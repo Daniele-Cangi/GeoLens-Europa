@@ -18,8 +18,12 @@ import {
 } from './infrastructure';
 import { selectUnavailableEvidenceStatus } from './runoff';
 
+export const NODE_ELEVATION_ORIENTATION_VERSION =
+  'node-ground-elevation-direction-v0.2.0';
+export const PIPE_INVERT_ORIENTATION_VERSION =
+  'pipe-invert-direction-v0.1.0';
 export const NETWORK_ORIENTATION_VERSION =
-  'elevation-direction-v0.1.0';
+  NODE_ELEVATION_ORIENTATION_VERSION;
 export const NETWORK_PROPAGATION_VERSION =
   'no-loss-downstream-accumulation-v0.1.0';
 
@@ -122,25 +126,38 @@ export class NetworkTopologyError extends Error {
   }
 }
 
+export type DirectionEvidenceBasis =
+  | 'node_ground_elevation'
+  | 'pipe_invert_level';
+
+export type DirectionOrientationVersion =
+  | typeof NODE_ELEVATION_ORIENTATION_VERSION
+  | typeof PIPE_INVERT_ORIENTATION_VERSION;
+
 export interface KnownPipeDirection {
   readonly status: 'known';
+  readonly evidenceBasis: DirectionEvidenceBasis;
   readonly fromNodeId: string;
   readonly toNodeId: string;
-  readonly elevationDropM: number;
+  readonly verticalDropM: number;
   readonly grade: number;
 }
 
 export interface UnknownPipeDirection {
   readonly status: 'unknown';
-  readonly reason: 'missing_elevation' | 'invalid_elevation';
-  readonly nodeAStatus: string;
-  readonly nodeBStatus: string;
+  readonly evidenceBasis: DirectionEvidenceBasis;
+  readonly reason:
+    | 'missing_vertical_evidence'
+    | 'invalid_vertical_evidence';
+  readonly endpointAStatus: string;
+  readonly endpointBStatus: string;
 }
 
 export interface AmbiguousPipeDirection {
   readonly status: 'ambiguous';
+  readonly evidenceBasis: DirectionEvidenceBasis;
   readonly reason: 'within_vertical_resolution';
-  readonly elevationDifferenceM: number;
+  readonly verticalDifferenceM: number;
   readonly minimumResolvableDropM: number;
 }
 
@@ -151,7 +168,8 @@ export type PipeDirection =
 
 export interface OrientedStormwaterNetwork {
   readonly topology: StormwaterTopology;
-  readonly orientationVersion: typeof NETWORK_ORIENTATION_VERSION;
+  readonly orientationVersion: DirectionOrientationVersion;
+  readonly evidenceBasis: DirectionEvidenceBasis;
   readonly minimumResolvableDropM: number;
   readonly directions: Readonly<Record<string, PipeDirection>>;
 }
@@ -500,6 +518,48 @@ export function orientStormwaterNetwork(
   topology: StormwaterTopology,
   options: OrientationOptions,
 ): OrientedStormwaterNetwork {
+  return orientStormwaterNetworkFromEvidence(
+    topology,
+    options,
+    NODE_ELEVATION_ORIENTATION_VERSION,
+    'node_ground_elevation',
+    (pipe) => ({
+      endpointA: topology.nodes[pipe.nodeAId].elevationM,
+      endpointB: topology.nodes[pipe.nodeBId].elevationM,
+    }),
+  );
+}
+
+export function orientStormwaterNetworkByPipeInverts(
+  topology: StormwaterTopology,
+  options: OrientationOptions,
+): OrientedStormwaterNetwork {
+  return orientStormwaterNetworkFromEvidence(
+    topology,
+    options,
+    PIPE_INVERT_ORIENTATION_VERSION,
+    'pipe_invert_level',
+    (pipe) => ({
+      endpointA: pipe.invertLevelAM,
+      endpointB: pipe.invertLevelBM,
+    }),
+  );
+}
+
+interface VerticalEvidencePair {
+  readonly endpointA: Evidence<number>;
+  readonly endpointB: Evidence<number>;
+}
+
+function orientStormwaterNetworkFromEvidence(
+  topology: StormwaterTopology,
+  options: OrientationOptions,
+  orientationVersion: DirectionOrientationVersion,
+  evidenceBasis: DirectionEvidenceBasis,
+  evidenceForPipe: (
+    pipe: StormwaterPipe,
+  ) => VerticalEvidencePair,
+): OrientedStormwaterNetwork {
   if (
     !Number.isFinite(options.minimumResolvableDropM) ||
     options.minimumResolvableDropM < 0
@@ -512,59 +572,71 @@ export function orientStormwaterNetwork(
   const directions: Record<string, PipeDirection> = {};
 
   for (const pipe of Object.values(topology.pipes)) {
-    const nodeA = topology.nodes[pipe.nodeAId];
-    const nodeB = topology.nodes[pipe.nodeBId];
-    const elevationA = nodeA.elevationM.value;
-    const elevationB = nodeB.elevationM.value;
+    const vertical = evidenceForPipe(pipe);
+    const levelA = vertical.endpointA.value;
+    const levelB = vertical.endpointB.value;
 
-    if (elevationA === null || elevationB === null) {
+    if (levelA === null || levelB === null) {
       directions[pipe.id] = {
         status: 'unknown',
-        reason: 'missing_elevation',
-        nodeAStatus: nodeA.elevationM.quality.status,
-        nodeBStatus: nodeB.elevationM.quality.status,
+        evidenceBasis,
+        reason: 'missing_vertical_evidence',
+        endpointAStatus:
+          vertical.endpointA.quality.status,
+        endpointBStatus:
+          vertical.endpointB.quality.status,
       };
       continue;
     }
 
-    if (!Number.isFinite(elevationA) || !Number.isFinite(elevationB)) {
+    if (!Number.isFinite(levelA) || !Number.isFinite(levelB)) {
       directions[pipe.id] = {
         status: 'unknown',
-        reason: 'invalid_elevation',
-        nodeAStatus: nodeA.elevationM.quality.status,
-        nodeBStatus: nodeB.elevationM.quality.status,
+        evidenceBasis,
+        reason: 'invalid_vertical_evidence',
+        endpointAStatus:
+          vertical.endpointA.quality.status,
+        endpointBStatus:
+          vertical.endpointB.quality.status,
       };
       continue;
     }
 
-    const differenceM = elevationA - elevationB;
+    const differenceM = levelA - levelB;
 
     if (
       Math.abs(differenceM) <= options.minimumResolvableDropM
     ) {
       directions[pipe.id] = {
         status: 'ambiguous',
+        evidenceBasis,
         reason: 'within_vertical_resolution',
-        elevationDifferenceM: differenceM,
+        verticalDifferenceM: differenceM,
         minimumResolvableDropM:
           options.minimumResolvableDropM,
       };
       continue;
     }
 
-    const nodeAIsHigher = differenceM > 0;
+    const endpointAIsHigher = differenceM > 0;
     directions[pipe.id] = {
       status: 'known',
-      fromNodeId: nodeAIsHigher ? nodeA.id : nodeB.id,
-      toNodeId: nodeAIsHigher ? nodeB.id : nodeA.id,
-      elevationDropM: Math.abs(differenceM),
+      evidenceBasis,
+      fromNodeId: endpointAIsHigher
+        ? pipe.nodeAId
+        : pipe.nodeBId,
+      toNodeId: endpointAIsHigher
+        ? pipe.nodeBId
+        : pipe.nodeAId,
+      verticalDropM: Math.abs(differenceM),
       grade: Math.abs(differenceM) / pipe.lengthM,
     };
   }
 
   return {
     topology,
-    orientationVersion: NETWORK_ORIENTATION_VERSION,
+    orientationVersion,
+    evidenceBasis,
     minimumResolvableDropM: options.minimumResolvableDropM,
     directions,
   };
@@ -1190,7 +1262,8 @@ function pipePropagationDescriptor(
         pipeId: pipe.id,
         fromNodeId: direction.fromNodeId,
         toNodeId: direction.toNodeId,
-        elevationDropM: direction.elevationDropM,
+        evidenceBasis: direction.evidenceBasis,
+        verticalDropM: direction.verticalDropM,
         grade: direction.grade,
       },
     },

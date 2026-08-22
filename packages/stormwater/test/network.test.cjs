@@ -222,7 +222,7 @@ test('missing and vertically unresolved elevations preserve direction uncertaint
     Object.values(missing.directions).every(
       (direction) =>
         direction.status === 'unknown' &&
-        direction.reason === 'missing_elevation',
+        direction.reason === 'missing_vertical_evidence',
     ),
   );
 

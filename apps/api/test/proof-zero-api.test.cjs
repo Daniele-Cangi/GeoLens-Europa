@@ -368,6 +368,31 @@ test('API exposes observed Waternet topology with its import receipt', async (co
     16,
   );
   assert.equal(
+    body.orientation.evidenceBasis,
+    'pipe_invert_level',
+  );
+  assert.equal(
+    body.orientation.modelVersion,
+    'pipe-invert-direction-v0.1.0',
+  );
+  assert.equal(
+    body.orientation.minimumResolvableDropM,
+    0.05,
+  );
+  assert.deepEqual(body.orientation.counts, {
+    known: 11,
+    ambiguous: 5,
+    unknown: 0,
+  });
+  assert.ok(
+    Object.values(body.orientation.directions).every(
+      (direction) =>
+        direction.evidenceBasis ===
+        'pipe_invert_level',
+    ),
+  );
+  assert.equal('propagation' in body, false);
+  assert.equal(
     body.import.source.origin,
     'observed_public_record',
   );
@@ -379,6 +404,15 @@ test('API exposes observed Waternet topology with its import receipt', async (co
   assert.equal(
     body.import.counts.skippedBoundaryPipes,
     8,
+  );
+  assert.deepEqual(
+    body.import.pumpingAreaReferences,
+    {
+      sourceField: 'bemalingsgebied',
+      identifiers: ['826'],
+      geometryStatus: 'not_provided_by_source',
+      attachmentEligible: false,
+    },
   );
   assert.deepEqual(
     body.topology.catchmentAttachments,
@@ -427,6 +461,7 @@ test('API preserves Waternet provider failure without topology', async (context)
   assert.equal(body.status, 'rate_limited');
   assert.equal(body.failedLayer, 'pipes');
   assert.equal('topology' in body, false);
+  assert.equal('orientation' in body, false);
 });
 
 test('API requires a complete Waternet bbox', async (context) => {

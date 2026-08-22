@@ -717,11 +717,11 @@ function Inspector({
             </dd>
           </div>
           <div>
-            <dt>Elevation drop</dt>
+            <dt>Vertical drop</dt>
             <dd>
               {direction?.status === 'known'
                 ? formatNumber(
-                    direction.elevationDropM,
+                    direction.verticalDropM,
                     3,
                     'm',
                   )

@@ -141,8 +141,8 @@ test(
       directions.pipe_2_B_to_C.toNodeId,
       'node_C_outfall',
     );
-    assert.ok(directions.pipe_1_A_to_B.elevationDropM > 0);
-    assert.ok(directions.pipe_2_B_to_C.elevationDropM > 0);
+    assert.ok(directions.pipe_1_A_to_B.verticalDropM > 0);
+    assert.ok(directions.pipe_2_B_to_C.verticalDropM > 0);
 
     const contribution = body.catchmentContributions[0];
     assert.equal(contribution.status, 'complete');

@@ -15,6 +15,7 @@ import {
   importAmsterdamWaternetStormwater,
   importStormwaterGeoJson,
   ImportedStormwaterNetwork,
+  orientStormwaterNetworkByPipeInverts,
 } from '@geo-lens/stormwater';
 
 const DEFAULT_NODE_H3_RESOLUTION = 11;
@@ -25,6 +26,8 @@ const DEFAULT_WATERNET_BBOX: AmsterdamWaternetBbox = {
   lonMax: 4.8998,
 };
 const WATERNET_SNAP_TOLERANCE_M = 0.25;
+const WATERNET_MINIMUM_RESOLVABLE_INVERT_DROP_M =
+  0.05;
 const DEFAULT_CATCHMENT_H3_RESOLUTION = 13;
 const DEFAULT_SNAP_TOLERANCE_M = 5;
 const DEFAULT_MINIMUM_RESOLVABLE_DROP_M = 0.1;
@@ -166,11 +169,39 @@ export function buildGeoLensApi(
             },
           );
 
+        const oriented =
+          orientStormwaterNetworkByPipeInverts(
+            imported.topology,
+            {
+              minimumResolvableDropM:
+                WATERNET_MINIMUM_RESOLVABLE_INVERT_DROP_M,
+            },
+          );
+        const directionCounts = Object.values(
+          oriented.directions,
+        ).reduce(
+          (counts, direction) => {
+            counts[direction.status] += 1;
+            return counts;
+          },
+          { known: 0, ambiguous: 0, unknown: 0 },
+        );
+
         return reply.code(200).send({
           status: 'available',
           acquisition: acquisition.receipt,
           import: imported.receipt,
           topology: imported.topology,
+          orientation: {
+            modelVersion: oriented.orientationVersion,
+            evidenceBasis: oriented.evidenceBasis,
+            minimumResolvableDropM:
+              oriented.minimumResolvableDropM,
+            thresholdSemantics:
+              'configured analysis threshold; not provider survey accuracy',
+            counts: directionCounts,
+            directions: oriented.directions,
+          },
         });
       } catch (error) {
         request.log.error(error);

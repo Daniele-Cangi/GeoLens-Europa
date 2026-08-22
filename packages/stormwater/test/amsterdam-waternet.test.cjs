@@ -6,6 +6,7 @@ const path = require('node:path');
 const {
   importAmsterdamWaternetStormwater,
   infrastructureAssetSource,
+  orientStormwaterNetworkByPipeInverts,
   validateStormwaterTopology,
 } = require('../dist');
 
@@ -116,6 +117,75 @@ test('Waternet assets retain public-record provenance and physical pipe attribut
   );
 });
 
+test('Waternet pipes orient only from endpoint invert evidence', () => {
+  const imported = importSnapshot();
+  const oriented = orientStormwaterNetworkByPipeInverts(
+    imported.topology,
+    { minimumResolvableDropM: 0.01 },
+  );
+  const flat =
+    oriented.directions[
+      'waternet:000129F5-3505-4966-ACE7-0C507F5BB469'
+    ];
+  const descending =
+    oriented.directions[
+      'waternet:0CDC1BEF-C744-468D-875B-14DE56FEB347'
+    ];
+  const reverse =
+    oriented.directions[
+      'waternet:33252F1B-6C15-49AB-BCB2-FB40DF0A425D'
+    ];
+
+  assert.equal(oriented.evidenceBasis, 'pipe_invert_level');
+  assert.equal(
+    oriented.orientationVersion,
+    'pipe-invert-direction-v0.1.0',
+  );
+  assert.equal(flat.status, 'ambiguous');
+  assert.equal(flat.verticalDifferenceM, 0);
+  assert.equal(descending.status, 'known');
+  assert.equal(
+    descending.fromNodeId,
+    imported.topology.pipes[
+      'waternet:0CDC1BEF-C744-468D-875B-14DE56FEB347'
+    ].nodeAId,
+  );
+  assert.ok(descending.verticalDropM > 0.04);
+  assert.equal(reverse.status, 'known');
+  assert.equal(
+    reverse.fromNodeId,
+    imported.topology.pipes[
+      'waternet:33252F1B-6C15-49AB-BCB2-FB40DF0A425D'
+    ].nodeBId,
+  );
+});
+
+test('missing Waternet invert evidence keeps pipe direction unknown', () => {
+  const modified = structuredClone(snapshot);
+  const feature = modified.pipes.features.find(
+    (candidate) =>
+      candidate.properties.globalid ===
+      '0CDC1BEF-C744-468D-875B-14DE56FEB347',
+  );
+
+  assert.ok(feature);
+  feature.properties.bob_beginpunt = null;
+
+  const imported = importSnapshot(modified);
+  const oriented = orientStormwaterNetworkByPipeInverts(
+    imported.topology,
+    { minimumResolvableDropM: 0.01 },
+  );
+  const direction =
+    oriented.directions[
+      'waternet:0CDC1BEF-C744-468D-875B-14DE56FEB347'
+    ];
+
+  assert.equal(direction.status, 'unknown');
+  assert.equal(direction.evidenceBasis, 'pipe_invert_level');
+  assert.equal(direction.reason, 'missing_vertical_evidence');
+  assert.equal(direction.endpointAStatus, 'missing');
+});
 test('invalid endpoint UUIDs and bounded-response gaps stay explicit', () => {
   const imported = importSnapshot();
 
@@ -141,6 +211,15 @@ test('invalid endpoint UUIDs and bounded-response gaps stay explicit', () => {
       imported.topology.catchmentAttachments,
     ),
     [],
+  );
+  assert.deepEqual(
+    imported.receipt.pumpingAreaReferences,
+    {
+      sourceField: 'bemalingsgebied',
+      identifiers: ['826'],
+      geometryStatus: 'not_provided_by_source',
+      attachmentEligible: false,
+    },
   );
   assert.deepEqual(imported.receipt.catchmentState, {
     status: 'not_provided_by_source',
