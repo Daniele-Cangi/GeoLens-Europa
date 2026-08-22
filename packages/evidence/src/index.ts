@@ -83,6 +83,7 @@ export interface SyntheticFixtureDescriptor {
   readonly transformationVersion?: string;
   readonly samplingMethod?: string;
   readonly sourceQuality?: number;
+  readonly sourceMetadata?: Readonly<Record<string, EvidenceMetadataValue>>;
 }
 
 const evidenceStatusSet: ReadonlySet<string> = new Set(EVIDENCE_STATUSES);
@@ -153,6 +154,7 @@ export function syntheticFixtureEvidence<T>(
       transformationVersion: descriptor.transformationVersion,
       samplingMethod: descriptor.samplingMethod,
       sourceMetadata: {
+        ...descriptor.sourceMetadata,
         fixtureId: descriptor.fixtureId,
       },
     },

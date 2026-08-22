@@ -7,7 +7,7 @@
     ],
     "scripts": {
         "build": "npm run build --workspaces",
-        "build:refoundation": "npm run build --workspace=@geo-lens/evidence",
+        "build:refoundation": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/stormwater",
         "dev": "concurrently \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/web\"",
         "typecheck": "npm run typecheck --workspaces --if-present",
         "test": "npm run test --workspaces --if-present",
