@@ -58,7 +58,7 @@ The following state has been verified locally on 2026-08-22.
 | Layer or subsystem | Verified state |
 | --- | --- |
 | Evidence semantics | Observed zero is distinct from missing, incomplete, failed, stale and out-of-coverage evidence. |
-| IMERG boundary | The Python `earthaccess` + `xarray` service is the sole production acquisition path. Service startup and deterministic contracts are verified; live granule acquisition remains opt-in and credential/network dependent. |
+| IMERG boundary | The Python `earthaccess` + `xarray` service is the sole production acquisition path. A fixed 24 h live window ending `2026-08-20T00:00:00Z` was verified as complete Early Run V07 evidence with 48/48 granules. Live execution remains opt-in and credential/network dependent. |
 | Copernicus DEM | Real public GLO-30 sampling is verified, including traceable elevation and finite-difference slope evidence. |
 | CORINE Land Cover | The official CLC 2018 V2020_20u1 European 100 m GeoTIFF is verified locally. A real Trento sample returned available class `111`. |
 | CLC encoding | Official raster palette indices `1..44` are explicitly decoded to CLC level-3 codes `111..523` by transformation `clc-centroid-v0.2.0`. |
@@ -68,8 +68,12 @@ The following state has been verified locally on 2026-08-22.
 | Propagation | Supported directed acyclic topology conserves volume and exposes mass balance. |
 | API and inspector | Fastify API and Next.js inspector build and run without AI or mineral services. |
 
-The deterministic fixture produces a non-zero downstream result. Missing
-rainfall, land cover or elevation never becomes a valid-looking zero.
+The bounded Trento fixture produces a non-zero downstream result in both
+deterministic verification and the fixed live run. That live run observed `9.24 mm` of
+rainfall, derived `2.957 m3` of catchment contribution and delivered the same
+volume to the outfall with zero mass-balance difference. The network geometry is a
+deterministic fixture, not surveyed municipal infrastructure. Missing rainfall, land
+cover or elevation never becomes a valid-looking zero.
 
 ## Active architecture
 
@@ -195,7 +199,10 @@ NASA_PRECIP_SERVICE_URL=http://127.0.0.1:8001
 ```
 
 IMERG source resolution is approximately `0.1 degree`. H3 is only the sampling
-and indexing representation.
+and indexing representation. The canonical acquisition opens remote granules with an
+in-memory block cache; it does not intentionally persist HDF5 granules. On Windows,
+set `TEMP` and `TMP` to a directory such as `D:/GeoLens/tmp` before startup if
+operating-system temporaries must also stay off C:.
 
 ### CORINE Land Cover
 
@@ -341,6 +348,18 @@ $env:CLC_RASTER_PATH = 'D:/GeoLens/data/clc/u2018_clc2018_v2020_20u1_raster100m/
 $env:GEOLENS_IMERG_REFERENCE_TIME = '2026-08-20T00:00:00Z'
 npm run test:live
 ```
+
+With the IMERG service and GeoLens API already running, verify the complete live
+chain separately:
+
+```powershell
+$env:GEOLENS_RUN_LIVE_PROOF_ZERO_TESTS = '1'
+$env:GEOLENS_IMERG_REFERENCE_TIME = '2026-08-20T00:00:00Z'
+npm run test:live:proof-zero
+```
+
+The end-to-end test requires the API process to have loaded both
+`NASA_PRECIP_SERVICE_URL` and `CLC_RASTER_PATH` from `apps/api/.env`.
 
 Use a reference time old enough for the selected IMERG run to be published.
 Live checks may fail because of credentials, provider availability, rate limits

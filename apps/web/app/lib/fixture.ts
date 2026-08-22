@@ -7,7 +7,7 @@ export const PROOF_ZERO_NETWORK = {
       properties: { type: 'inlet' },
       geometry: {
         type: 'Point',
-        coordinates: [11.12, 46.07],
+        coordinates: [11.121, 46.068],
       },
     },
     {
@@ -16,7 +16,7 @@ export const PROOF_ZERO_NETWORK = {
       properties: { type: 'manhole' },
       geometry: {
         type: 'Point',
-        coordinates: [11.1201, 46.0699],
+        coordinates: [11.12, 46.069],
       },
     },
     {
@@ -25,7 +25,7 @@ export const PROOF_ZERO_NETWORK = {
       properties: { type: 'outfall' },
       geometry: {
         type: 'Point',
-        coordinates: [11.1202, 46.0698],
+        coordinates: [11.12, 46.07],
       },
     },
     {
@@ -38,8 +38,8 @@ export const PROOF_ZERO_NETWORK = {
       geometry: {
         type: 'LineString',
         coordinates: [
-          [11.120002, 46.070001],
-          [11.120098, 46.069902],
+          [11.121, 46.068],
+          [11.12, 46.069],
         ],
       },
     },
@@ -53,8 +53,8 @@ export const PROOF_ZERO_NETWORK = {
       geometry: {
         type: 'LineString',
         coordinates: [
-          [11.120101, 46.069899],
-          [11.120202, 46.069799],
+          [11.12, 46.069],
+          [11.12, 46.07],
         ],
       },
     },
@@ -69,11 +69,11 @@ export const PROOF_ZERO_NETWORK = {
         type: 'Polygon',
         coordinates: [
           [
-            [11.1199, 46.0701],
-            [11.1201, 46.0701],
-            [11.1201, 46.07005],
-            [11.1199, 46.07005],
-            [11.1199, 46.0701],
+            [11.1209, 46.0681],
+            [11.1211, 46.0681],
+            [11.1211, 46.0679],
+            [11.1209, 46.0679],
+            [11.1209, 46.0681],
           ],
         ],
       },

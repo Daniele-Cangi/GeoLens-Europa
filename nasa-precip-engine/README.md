@@ -67,6 +67,8 @@ The reference timestamp is normalized to an IMERG half-hour boundary. If omitted
 
 The acquisition code searches Late Run first and may use Early Run when Late Run does not cover the requested window. It selects one product for a window and reports the selected product and run type. A partial granule set remains `incomplete_window`; partial accumulation is not exposed as an available observation.
 
+The service opens remote granules through the `earthaccess`/`fsspec` in-memory block cache and keeps completed windows in process memory. It does not intentionally persist HDF5 granules. Set the operating system `TEMP` and `TMP` variables before startup when temporary storage must use a specific drive.
+
 ## Verify
 
 Deterministic contract and numeric-semantics tests:
