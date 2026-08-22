@@ -121,24 +121,31 @@ export interface PipeTopology {
   readonly diameterMm?: number;
 }
 
+export type DirectionEvidenceBasis =
+  | 'node_ground_elevation'
+  | 'pipe_invert_level';
+
 export type PipeDirection =
   | {
       readonly status: 'known';
+      readonly evidenceBasis: DirectionEvidenceBasis;
       readonly fromNodeId: string;
       readonly toNodeId: string;
-      readonly elevationDropM: number;
+      readonly verticalDropM: number;
       readonly grade: number;
     }
   | {
       readonly status: 'unknown';
+      readonly evidenceBasis: DirectionEvidenceBasis;
       readonly reason: string;
-      readonly nodeAStatus: string;
-      readonly nodeBStatus: string;
+      readonly endpointAStatus: string;
+      readonly endpointBStatus: string;
     }
   | {
       readonly status: 'ambiguous';
+      readonly evidenceBasis: DirectionEvidenceBasis;
       readonly reason: string;
-      readonly elevationDifferenceM: number;
+      readonly verticalDifferenceM: number;
       readonly minimumResolvableDropM: number;
     };
 
@@ -217,6 +224,8 @@ export interface ProofZeroResult {
     readonly pipes: Readonly<Record<string, PipeTopology>>;
   };
   readonly orientedNetwork: {
+    readonly orientationVersion: string;
+    readonly evidenceBasis: DirectionEvidenceBasis;
     readonly minimumResolvableDropM: number;
     readonly directions: Readonly<
       Record<string, PipeDirection>
@@ -336,6 +345,12 @@ export interface AvailableObservedInfrastructure {
       readonly pipeSourceRecordId: string;
       readonly message: string;
     }[];
+    readonly pumpingAreaReferences: {
+      readonly sourceField: 'bemalingsgebied';
+      readonly identifiers: readonly string[];
+      readonly geometryStatus: 'not_provided_by_source';
+      readonly attachmentEligible: false;
+    };
     readonly catchmentState: {
       readonly status: 'not_provided_by_source';
       readonly attachmentsCreated: 0;
@@ -351,6 +366,20 @@ export interface AvailableObservedInfrastructure {
     >;
     readonly catchmentAttachments: Readonly<
       Record<string, never>
+    >;
+  };
+  readonly orientation: {
+    readonly modelVersion: string;
+    readonly evidenceBasis: 'pipe_invert_level';
+    readonly minimumResolvableDropM: number;
+    readonly thresholdSemantics: string;
+    readonly counts: {
+      readonly known: number;
+      readonly ambiguous: number;
+      readonly unknown: number;
+    };
+    readonly directions: Readonly<
+      Record<string, PipeDirection>
     >;
   };
 }

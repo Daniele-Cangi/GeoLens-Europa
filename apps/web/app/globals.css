@@ -559,6 +559,19 @@ th {
   transition: stroke 140ms ease, stroke-width 140ms ease;
 }
 
+.observed-pipe[data-direction-status="known"] .observed-pipe-line {
+  stroke: var(--teal);
+}
+
+.observed-pipe[data-direction-status="ambiguous"] .observed-pipe-line {
+  stroke: var(--amber);
+  stroke-dasharray: 8 6;
+}
+
+.observed-pipe[data-direction-status="unknown"] .observed-pipe-line {
+  stroke: #ff8f80;
+  stroke-dasharray: 3 7;
+}
 .observed-pipe-hit {
   fill: none;
   stroke: transparent;
@@ -588,6 +601,7 @@ th {
 
 .observed-map-meta {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 12px;
   padding: 10px 15px 13px;

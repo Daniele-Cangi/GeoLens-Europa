@@ -234,6 +234,12 @@ export default function ObservedInfrastructurePanel({
         ]
       : undefined) ??
     mapModel.pipes[0];
+  const selectedDirection =
+    selectedPipe && available
+      ? available.orientation.directions[
+          selectedPipe.id
+        ]
+      : undefined;
   const status =
     result?.status ?? 'not_requested';
 
@@ -256,8 +262,8 @@ export default function ObservedInfrastructurePanel({
         <div className="panel-meta">
           <StatusPill status={status} />
           <span>
-            Topology only - no catchment,
-            direction or flow asserted
+            Invert orientation only - no
+            catchment or flow asserted
           </span>
         </div>
       </div>
@@ -347,6 +353,11 @@ export default function ObservedInfrastructurePanel({
                     data-selected={
                       selected || undefined
                     }
+                    data-direction-status={
+                      available.orientation.directions[
+                        pipe.id
+                      ]?.status
+                    }
                     className="observed-pipe"
                     onClick={() =>
                       setSelectedPipeId(
@@ -411,6 +422,14 @@ export default function ObservedInfrastructurePanel({
                     .importedPipes
                 }
                 {' pipes'}
+              </span>
+              <span>
+                {available.orientation.counts.known}
+                {' known / '}
+                {available.orientation.counts.ambiguous}
+                {' ambiguous / '}
+                {available.orientation.counts.unknown}
+                {' unknown directions'}
               </span>
               <span>
                 Output{' '}
@@ -502,6 +521,31 @@ export default function ObservedInfrastructurePanel({
                 </dd>
               </div>
               <div>
+                <dt>Direction evidence</dt>
+                <dd>Pipe endpoint invert NAP</dd>
+              </div>
+              <div>
+                <dt>Ambiguity threshold</dt>
+                <dd>
+                  {formatNumber(
+                    available.orientation
+                      .minimumResolvableDropM,
+                    2,
+                    'm',
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>Pumping-area reference</dt>
+                <dd>
+                  {available.import
+                    .pumpingAreaReferences
+                    .identifiers.join(', ') ||
+                    'Not stated'}
+                  {' - identifier only, no polygon'}
+                </dd>
+              </div>
+              <div>
                 <dt>Catchments</dt>
                 <dd>
                   Not provided by source
@@ -558,6 +602,35 @@ export default function ObservedInfrastructurePanel({
                     </dd>
                   </div>
                   <div>
+                    <dt>Invert-derived direction</dt>
+                    <dd>
+                      {selectedDirection?.status ===
+                      'known'
+                        ? selectedDirection.fromNodeId ===
+                          selectedPipe.nodeAId
+                          ? 'A → B'
+                          : 'B → A'
+                        : selectedDirection
+                          ? statusLabel(
+                              selectedDirection.reason,
+                            )
+                          : '-'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Vertical drop</dt>
+                    <dd>
+                      {selectedDirection?.status ===
+                      'known'
+                        ? formatNumber(
+                            selectedDirection.verticalDropM,
+                            3,
+                            'm',
+                          )
+                        : '-'}
+                    </dd>
+                  </div>
+                  <div>
                     <dt>Material</dt>
                     <dd>
                       {metadataString(
@@ -571,6 +644,14 @@ export default function ObservedInfrastructurePanel({
               </section>
             ) : null}
 
+            <p className="observed-warning">
+              Direction is derived only by
+              comparing Waternet pipe endpoint
+              invert levels. The configured 0.05 m
+              threshold is not a claim about source
+              survey accuracy, and no hydraulic flow
+              is asserted.
+            </p>
             <p className="observed-warning">
               Source endpoint UUIDs are
               self-referential in this response.

@@ -523,7 +523,7 @@ test('missing node elevation preserves unknown edge direction', async () => {
     Object.values(result.orientedNetwork.directions).some(
       (direction) =>
         direction.status === 'unknown' &&
-        direction.reason === 'missing_elevation',
+        direction.reason === 'missing_vertical_evidence',
     ),
   );
 });

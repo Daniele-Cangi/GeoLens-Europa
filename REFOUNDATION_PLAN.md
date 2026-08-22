@@ -12,6 +12,7 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Refoundation core, Proof 0 API, and minimal inspection UI build/typecheck/test baseline: established; historical legacy sources are excluded from the active TypeScript boundary
 - First refoundation success gate: established through deterministic fixture proof and a fully real environmental-evidence chain over the bounded Trento test network, from IMERG, DEM and CLC through runoff, direction, propagation and zero-difference mass balance
 - Observed-infrastructure gate: established through a live bounded Waternet/Amsterdam WFS path, a valid 18-node/16-pipe topology, explicit provider failures, API receipts and a browser-verified inspection panel
+- Observed-direction gate: established separately from propagation; Waternet endpoint invert NAP evidence yields 11 known and 5 ambiguous directions at an explicit 0.05 m analysis threshold, with no ground-elevation fallback
 - Historical tracked Copernicus private key: removed from the active tree; revocation/rotation remains an external security action because the secret is present in Git history
 
 Verified starting baseline (historical):
@@ -288,13 +289,20 @@ Checkpoints:
 
 State: in progress
 
+Progress:
+
+- the official Waternet schema exposes `bemalingsgebied` as a node string attribute, not a contributing-area polygon in `Leidingeninfrastructuur`;
+- the bounded observed subgraph retains identifier `826` as a source reference with `geometryStatus: not_provided_by_source` and forbids catchment attachment from that identifier alone;
+- direction model `pipe-invert-direction-v0.1.0` compares the retained `bob_beginpunt` / `bob_eindpunt` NAP evidence at the snapped pipe endpoints;
+- the configured 0.05 m analysis threshold produces 11 known, 5 ambiguous and 0 unknown directions for the 16-pipe recorded response; this threshold is not represented as provider survey accuracy;
+- missing invert evidence remains an unknown direction and the observed route never falls back to node ground elevation;
+- the API and inspector expose evidence basis, model version, threshold, per-pipe state and counts without claiming catchment contribution or propagated flow.
+
 Work:
 
 - identify an authoritative contributing-area or drainage-area source that can be linked to explicit Waternet outlets/inlets;
 - reject representative-point, first-coordinate and name-prefix shortcuts;
 - define polygon-to-H3 coverage and outlet attachment with inspectable spatial transformation semantics;
-- orient eligible pipes from endpoint invert-level evidence only when the NAP values and minimum resolvable drop support a direction;
-- retain missing or near-level invert evidence as unknown or ambiguous;
 - compose real IMERG, DEM and CLC evidence over the bounded Amsterdam contributing area before deriving runoff;
 - propagate only through the validated, supported observed subgraph.
 
@@ -304,3 +312,7 @@ Gate:
 - invert-based direction agrees with retained pipe endpoint evidence and never falls back to ground elevation silently;
 - a bounded observed-infrastructure result either produces traceable non-zero downstream state or stops at an explicit missing-data boundary;
 - the API and inspector distinguish observed assets, derived topology links and environmental evidence.
+
+Checkpoint:
+
+- `refactor: orient observed pipes from invert evidence`

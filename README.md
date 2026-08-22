@@ -31,8 +31,8 @@ NASA GPM IMERG + Copernicus DEM + CORINE Land Cover
 
 The completed Proof 0 remains the asserted end-to-end product path. The next
 gate is now visible separately: a bounded public Waternet/Amsterdam stormwater
-topology with source records and an import receipt, but no invented catchment,
-direction or flow.
+topology with source records, invert-derived direction states and receipts, but
+no invented contributing area or propagated flow.
 
 Latest published refoundation baseline: **v0.1.0-alpha.4**.
 
@@ -70,7 +70,7 @@ The following state has been verified locally through 2026-08-23.
 | H3 composition | Catchment cells and network entities are joined through explicit H3 representations while source resolution remains visible. |
 | Runoff and catchments | Runoff v0 is deterministic and exposes inputs/intermediates; catchment aggregation uses represented H3 area. |
 | Proof 0 network | Topology is validated separately from environmental evidence. Direction is `known`, `unknown` or `ambiguous`. |
-| Observed infrastructure | The official Waternet/Amsterdam `Leidingeninfrastructuur` WFS was verified live. The bounded import produced 18 observed nodes and 16 active stormwater pipes, retained NAP ground/invert attributes and reported 8 boundary-crossing pipes without inventing endpoints. |
+| Observed infrastructure | The official Waternet/Amsterdam `Leidingeninfrastructuur` WFS was verified live. The bounded import produced 18 observed nodes and 16 active stormwater pipes, retained NAP ground/invert attributes, reported 8 boundary-crossing pipes, and classified 11 invert-supported directions as known and 5 as ambiguous at the configured 0.05 m threshold. |
 | Propagation | Supported directed acyclic topology conserves volume and exposes mass balance. |
 | API and inspector | One root command health-gates IMERG -> API -> web. The Next.js inspector automatically runs the verified window and independently acquires the bounded Waternet topology. Each path exposes a traceable receipt without AI or mineral services. |
 
@@ -315,6 +315,10 @@ An available response exposes:
 - node ground levels and pipe invert levels in metres with NAP datum metadata;
 - strict active-stormwater filtering and 0.25 m endpoint snap distances;
 - skipped boundary pipes and defective endpoint-UUID state;
+- invert-derived edge direction with evidence basis, model version, configured
+  ambiguity threshold and `known` / `ambiguous` / `unknown` counts;
+- `bemalingsgebied` values retained only as source identifiers; the response
+  explicitly states that no contributing-area geometry was supplied;
 - an empty catchment attachment set because the source does not provide the
   required contributing areas.
 
@@ -432,9 +436,8 @@ or incomplete source windows; those failures must never produce zero rainfall.
   proxies, not observed drainage capacity.
 - Slope is derived from sampled DEM elevations and retains its transformation
   metadata.
-- Edge direction is never invented when elevation evidence is insufficient.
-- The observed Waternet topology does not claim catchment contribution,
-  direction or flow until those required data/model boundaries are supplied.
+- Proof 0 edge direction is never invented when node-elevation evidence is insufficient; observed Waternet direction is derived separately from pipe endpoint invert evidence.
+- The observed Waternet topology exposes only invert-derived direction state; it does not claim catchment contribution or propagated flow until those evidence boundaries are supplied.
 - Propagation operates on supported known directed acyclic topology and does
   not simulate pipe hydraulics, storage, surcharge or overflow.
 - No percentage confidence, flood probability or production-readiness claim is

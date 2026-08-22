@@ -79,6 +79,12 @@ export interface AmsterdamWaternetImportReceipt {
       | 'ignored_unverified';
   };
   readonly diagnostics: readonly AmsterdamWaternetDiagnostic[];
+  readonly pumpingAreaReferences: {
+    readonly sourceField: 'bemalingsgebied';
+    readonly identifiers: readonly string[];
+    readonly geometryStatus: 'not_provided_by_source';
+    readonly attachmentEligible: false;
+  };
   readonly catchmentState: {
     readonly status: 'not_provided_by_source';
     readonly attachmentsCreated: 0;
@@ -342,6 +348,13 @@ export function importAmsterdamWaternetStormwater(
   )
     ? 'ignored_invalid_self_referential'
     : 'ignored_unverified';
+  const pumpingAreaIdentifiers = uniqueStrings(
+    [...usedNodeIds].map(
+      (nodeId) =>
+        nodeById.get(nodeId)?.properties
+          .bemalingsgebied,
+    ),
+  );
 
   return {
     topology,
@@ -371,6 +384,12 @@ export function importAmsterdamWaternetStormwater(
         sourceEndpointAttributes,
       },
       diagnostics,
+      pumpingAreaReferences: {
+        sourceField: 'bemalingsgebied',
+        identifiers: pumpingAreaIdentifiers,
+        geometryStatus: 'not_provided_by_source',
+        attachmentEligible: false,
+      },
       catchmentState: {
         status: 'not_provided_by_source',
         attachmentsCreated: 0,
@@ -419,6 +438,12 @@ function buildNode(
         sourceKind: record.properties.soort,
         sourceNodeType: record.properties.type_knoop,
         sourceSubtype: record.properties.subtype,
+        pumpingAreaId:
+          record.properties.bemalingsgebied,
+        overflowThresholdMNap:
+          record.properties.drempelniveau,
+        overflowWidthMm:
+          record.properties.drempelbreedte,
         groundLevelMNap: groundLevel,
         deliveryDate: record.properties.leveringsdatum,
       }),
