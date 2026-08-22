@@ -7,9 +7,9 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Working branch: `codex/geolens-refoundation`
 - Canonical base: `main@46b41e70557f18c8ec6852f6af3e796a6d1e2a8d`
 - Protected historical snapshot: `codex/pre-overhaul-snapshot-20260822@9920ee29ed945a55af8e7ff89005724fab19a998`
-- Deterministic core Proof 0: established through environmental bundle, runoff, catchment aggregation, point-sampled node elevation, direction, propagation, and mass balance; clean API/live multi-provider Proof 0 is not established
+- Deterministic core Proof 0: established through environmental bundle, runoff, catchment aggregation, point-sampled node elevation, direction, propagation, and mass balance
 - Live provider verification: Copernicus DEM established; IMERG and CLC remain unverified
-- Refoundation core and Proof 0 API build/typecheck/test baseline: established; historical legacy sources are excluded from the active TypeScript boundary
+- Refoundation core, Proof 0 API, and minimal inspection UI build/typecheck/test baseline: established; historical legacy sources are excluded from the active TypeScript boundary
 - Historical tracked Copernicus private key: removed from the active tree; revocation/rotation remains an external security action because the secret is present in Git history
 
 Verified legacy baseline:
@@ -158,7 +158,7 @@ Checkpoints:
 
 ## Phase 4 — Compose and expose Proof 0
 
-State: in progress
+State: completed
 
 Progress:
 
@@ -169,7 +169,8 @@ Progress:
 - a bounded `POST /api/proof-zero/run` exposes inputs, evidence, transformations, unresolved state, propagation, and mass balance;
 - the active API compiles and runs without AI, mineral, generic-risk, database, or legacy route dependencies;
 - API runtime tests reproduce non-zero downstream state and prove missing rainfall cannot become a valid-looking zero;
-- opt-in live IMERG+DEM+CLC execution remains pending.
+- a production-path browser run returned real Copernicus DEM evidence while retaining unconfigured IMERG as `upstream_error` and CLC as `missing`, without fabricating rainfall, land cover, runoff, or propagation values;
+- fully available live IMERG+DEM+CLC execution remains pending provider credentials/data.
 
 Work:
 
@@ -194,7 +195,14 @@ Checkpoints:
 
 ## Phase 5 — Add the minimal inspection map
 
-State: pending
+State: completed
+
+Progress:
+
+- the old Cesium/Deck.gl multi-product interface and generated Cesium distribution are removed from the active web runtime;
+- the bounded inspector exposes source resolution, evidence status, H3 representation, runoff intermediates, catchment contribution, node elevation, pipe direction uncertainty, and downstream state;
+- initial state contains no synthetic measurements and unavailable production evidence remains visibly distinct from observed zero;
+- browser verification confirmed a non-blank page, no framework overlay or console errors, successful CORS/API execution, interactive pipe inspection, and no active AI, mineral, risk, or unrelated hazard framing.
 
 Work:
 
