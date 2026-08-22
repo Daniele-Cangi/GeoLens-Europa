@@ -8,7 +8,7 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Canonical base: `main@46b41e70557f18c8ec6852f6af3e796a6d1e2a8d`
 - Protected historical snapshot: `codex/pre-overhaul-snapshot-20260822@9920ee29ed945a55af8e7ff89005724fab19a998`
 - Deterministic fixture chain: established; live-provider/API Proof 0 is not established
-- Live IMERG/DEM/CLC verification: not established
+- Live provider verification: Copernicus DEM established; IMERG and CLC remain unverified
 - Refoundation typecheck/test baseline: established; the parked legacy build remains intentionally recorded as failing
 - Historical tracked Copernicus private key: removed from the active tree; revocation/rotation remains an external security action because the secret is present in Git history
 
@@ -18,7 +18,7 @@ Verified legacy baseline:
 - the API currently has TypeScript failures around legacy adapters, construction assumptions, and inconsistent types;
 - the web build currently has a Deck.gl typing failure;
 - root test orchestration refers to missing workspace test scripts;
-- duplicate IMERG paths, silent fallback, generic risk, AI, and mineral code remain active;
+- the canonical Python IMERG path is established and silent precipitation fallback is removed; generic risk, AI, and mineral code remain active only in the legacy API surface pending Phase 4;
 - no verified real-evidence-to-network result exists.
 
 ## Migration classification
@@ -126,6 +126,14 @@ Checkpoints:
 ## Phase 3 — Consolidate real environmental providers
 
 State: in progress
+
+Progress:
+
+- Python earthaccess/xarray is the sole production IMERG acquisition path;
+- canonical TypeScript clients now return Evidence for IMERG, Copernicus DEM elevation/slope, and CLC class codes;
+- deterministic provider contracts pass and synthetic raster sources are structurally marked as fixtures;
+- live Copernicus DEM sampling is verified against the public raster;
+- live IMERG awaits Earthdata credentials and live CLC awaits a configured CLC2018 raster.
 
 Work:
 

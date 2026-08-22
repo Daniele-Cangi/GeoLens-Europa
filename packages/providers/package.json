@@ -12,7 +12,9 @@
   },
   "dependencies": {
     "@geo-lens/evidence": "0.1.0",
-    "h3-js": "^4.3.0"
+    "geotiff": "^2.1.4-beta.1",
+    "h3-js": "^4.3.0",
+    "proj4": "^2.19.10"
   },
   "devDependencies": {
     "typescript": "^5.2.2"
