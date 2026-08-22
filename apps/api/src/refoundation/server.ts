@@ -10,7 +10,7 @@ import {
 } from '@geo-lens/proof-zero';
 import {
   importStormwaterGeoJson,
-  ImportedStormwaterFixture,
+  ImportedStormwaterNetwork,
 } from '@geo-lens/stormwater';
 
 const DEFAULT_NODE_H3_RESOLUTION = 11;
@@ -91,7 +91,7 @@ export function buildGeoLensApi(
 
   server.post('/api/proof-zero/run', async (request, reply) => {
     let parsed: ParsedProofZeroRequest;
-    let imported: ImportedStormwaterFixture;
+    let imported: ImportedStormwaterNetwork;
 
     try {
       parsed = parseProofZeroRequest(request.body);
@@ -99,7 +99,18 @@ export function buildGeoLensApi(
       const importedAt = now().toISOString();
       imported = importStormwaterGeoJson(parsed.network, {
         networkId: parsed.networkId,
-        importedAt,
+        source: {
+          origin: 'user_supplied',
+          provider: 'geolens-api',
+          dataset: 'submitted-stormwater-geojson',
+          acquiredAt: importedAt,
+          sourceCrs: 'EPSG:4326',
+          outputCrs: 'EPSG:4326',
+          transformation:
+            'parse typed node, pipe, and catchment features; snap pipe geometry endpoints',
+          transformationVersion:
+            'stormwater-geojson-import-v0.2.0',
+        },
         nodeH3Resolution: parsed.nodeH3Resolution,
         catchmentH3Resolution:
           parsed.catchmentH3Resolution,
@@ -295,7 +306,7 @@ function collectCoordinates(
 }
 
 function validateImportedSize(
-  imported: ImportedStormwaterFixture,
+  imported: ImportedStormwaterNetwork,
 ): void {
   const nodeCount = Object.keys(
     imported.topology.nodes,

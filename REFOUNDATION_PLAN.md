@@ -11,6 +11,7 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Live provider verification: Copernicus DEM, the official local CLC2018 V2020_20u1 raster, and a complete 48-granule IMERG Early Run V07 window are established; live execution remains opt-in
 - Refoundation core, Proof 0 API, and minimal inspection UI build/typecheck/test baseline: established; historical legacy sources are excluded from the active TypeScript boundary
 - First refoundation success gate: established through deterministic fixture proof and a fully real environmental-evidence chain over the bounded Trento test network, from IMERG, DEM and CLC through runoff, direction, propagation and zero-difference mass balance
+- Observed-infrastructure gate: in progress with a bounded Waternet/Amsterdam public-record import that retains asset provenance, geometry and NAP attributes while reporting boundary exclusions and defective source endpoint identifiers
 - Historical tracked Copernicus private key: removed from the active tree; revocation/rotation remains an external security action because the secret is present in Git history
 
 Verified starting baseline (historical):
@@ -252,3 +253,37 @@ Gate:
 - Proof 0 is the only asserted completed product path.
 
 Checkpoint: `docs: rewrite GeoLens identity from verified behavior`
+
+## Phase 7 — Replace fixture-only topology with observed infrastructure
+
+State: in progress
+
+Progress:
+
+- the official Waternet/Amsterdam `Leidingeninfrastructuur` WFS is selected as the first public stormwater asset source under Creative Commons Attribution;
+- a bounded recorded response retains 30 node records and 51 pipe records for deterministic source-schema verification;
+- strict active stormwater filtering and 0.25 m geometry endpoint snapping produce a valid topology of 18 observed nodes and 16 observed pipes;
+- eight pipes crossing the response boundary remain explicit diagnostics rather than receiving invented endpoints;
+- self-referential source endpoint UUID fields are retained as defective source attributes and are never used as topology truth;
+- node ground levels, pipe invert levels, NAP vertical datum, delivery date, source/output CRS, license, source record ids and transformations remain inspectable;
+- synthetic, user-supplied, derived and observed-public-record infrastructure are structurally distinct.
+
+Work:
+
+- add a bounded live WFS acquisition boundary with explicit provider failure states;
+- expose the observed topology and import receipt through a clean API;
+- add a minimal observed-infrastructure inspection surface;
+- define a real contributing-area/catchment source before attaching environmental evidence;
+- use pipe invert evidence for direction only through an explicit, tested orientation model.
+
+Gate:
+
+- a live or explicitly unavailable public infrastructure acquisition is reproducible through the API;
+- replayed source records and live acquisition use the same deterministic importer;
+- boundary gaps, invalid identifiers and missing attributes cannot create synthetic topology or zero-valued evidence;
+- no catchment, direction or downstream flow is claimed before its required evidence exists.
+
+Checkpoint:
+
+- `refactor: introduce traceable infrastructure import`
+- `feat: expose observed stormwater topology`

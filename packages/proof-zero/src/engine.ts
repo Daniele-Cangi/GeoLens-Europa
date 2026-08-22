@@ -2,7 +2,7 @@ import {
   CatchmentContribution,
   composeNodeSourceTerms,
   createStormwaterTopology,
-  ImportedStormwaterFixture,
+  ImportedStormwaterNetwork,
   NodeSourceTerms,
   orientStormwaterNetwork,
   OrientedStormwaterNetwork,
@@ -39,7 +39,7 @@ export interface StormwaterProofZeroResult {
 }
 
 export async function runStormwaterProofZero(
-  imported: ImportedStormwaterFixture,
+  imported: ImportedStormwaterNetwork,
   evidenceComposer: EnvironmentalEvidenceComposer,
   options: StormwaterProofZeroOptions,
 ): Promise<StormwaterProofZeroResult> {
@@ -152,7 +152,7 @@ export async function runStormwaterProofZero(
 }
 
 function validateOptions(
-  imported: ImportedStormwaterFixture,
+  imported: ImportedStormwaterNetwork,
   options: StormwaterProofZeroOptions,
 ): void {
   if (imported.catchments.length === 0) {

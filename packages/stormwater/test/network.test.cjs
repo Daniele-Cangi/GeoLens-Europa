@@ -24,6 +24,18 @@ const fixturePath = path.resolve(
 const fixture = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
 const importedAt = '2026-08-21T01:00:00.000Z';
 const derivedAt = '2026-08-21T01:05:00.000Z';
+const fixtureInfrastructureSource = {
+  origin: 'synthetic_fixture',
+  provider: 'synthetic-fixture',
+  dataset: 'fixture:stormwater_network_example',
+  acquiredAt: importedAt,
+  sourceCrs: 'EPSG:4326',
+  outputCrs: 'EPSG:4326',
+  transformation:
+    'parse deterministic typed stormwater fixture and snap pipe endpoints',
+  transformationVersion:
+    'stormwater-geojson-import-v0.2.0',
+};
 const observationWindow = {
   windowStart: '2026-08-20T00:00:00.000Z',
   windowEnd: '2026-08-21T00:00:00.000Z',
@@ -33,7 +45,7 @@ const observationWindow = {
 function importFixture(elevations) {
   return importStormwaterGeoJson(fixture, {
     networkId: 'trento-proof-zero',
-    importedAt,
+    source: fixtureInfrastructureSource,
     nodeH3Resolution: 11,
     catchmentH3Resolution: 13,
     snapToleranceM: 5,
@@ -142,8 +154,16 @@ test('GeoJSON fixture imports typed topology and H3 catchment coverage', () => {
   );
   assert.ok(
     Object.values(imported.topology.pipes).every(
-      (pipe) => pipe.lengthM > 0,
+      (pipe) =>
+        pipe.lengthM > 0 &&
+        pipe.source.origin === 'synthetic_fixture' &&
+        pipe.invertLevelAM.value === null &&
+        pipe.invertLevelBM.value === null,
     ),
+  );
+  assert.equal(
+    imported.catchments[0].source.origin,
+    'synthetic_fixture',
   );
 });
 
@@ -157,7 +177,7 @@ test('catchments require an explicit typed outlet', () => {
   assert.throws(
     () => importStormwaterGeoJson(noOutlet, {
       networkId: 'no-outlet',
-      importedAt,
+      source: fixtureInfrastructureSource,
       nodeH3Resolution: 11,
       catchmentH3Resolution: 13,
       snapToleranceM: 5,
