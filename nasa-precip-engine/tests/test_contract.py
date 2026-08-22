@@ -148,6 +148,33 @@ class EndpointTests(unittest.IsolatedAsyncioTestCase):
             "auth_required",
         )
 
+    async def test_unexpected_failure_does_not_expose_exception_details(self):
+        request = PrecipRequest(
+            h3_indices=[H3_CELL],
+            reference_time="2026-08-21T12:00:00Z",
+            window_hours=[24],
+        )
+        sensitive_detail = "secret token at C:\\private\\credentials.txt"
+
+        with patch(
+            "src.main.load_imerg_window",
+            side_effect=RuntimeError(sensitive_detail),
+        ):
+            payload = await get_precipitation_for_h3(request)
+
+        evidence = payload["windows"][0]["cells"][0]["rainfallMm"]
+        reason = evidence["quality"]["missingReason"]
+        self.assertIsNone(evidence["value"])
+        self.assertEqual(
+            evidence["quality"]["status"],
+            "upstream_error",
+        )
+        self.assertNotIn(sensitive_detail, reason)
+        self.assertEqual(
+            reason,
+            "Unexpected IMERG provider failure; inspect service logs",
+        )
+
     def test_duplicate_windows_are_rejected(self):
         with self.assertRaises(ValueError):
             PrecipRequest(

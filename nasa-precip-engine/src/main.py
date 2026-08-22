@@ -175,14 +175,14 @@ async def get_precipitation_for_h3(
                     acquired_at=acquired_at,
                 )
             )
-        except Exception as exc:
+        except Exception:
             logger.exception(
                 "Unexpected IMERG provider failure for %sh window",
                 hours,
             )
             wrapped = ImergAcquisitionError(
                 "upstream_error",
-                f"Unexpected IMERG provider failure: {exc}",
+                "Unexpected IMERG provider failure; inspect service logs",
             )
             windows.append(
                 build_error_window_payload(

@@ -136,6 +136,29 @@ test('default timeout accommodates a cold real-data acquisition', async () => {
 
   assert.equal(transport.requests[0].timeoutMs, 10 * 60 * 1000);
 });
+test('base URL normalization is bounded and removes trailing slashes', async () => {
+  const transport = new FakeTransport(async () => ({
+    status: 200,
+    body: serviceResponse(),
+  }));
+  const client = new NasaImergClient({
+    baseUrl: '  http://nasa.test' + '/'.repeat(100_000) + '  ',
+    transport,
+    now: () => new Date(acquiredAt),
+  });
+
+  await client.getEvidence(request);
+
+  assert.equal(transport.requests[0].url, 'http://nasa.test/precip/h3');
+});
+
+test('slash-only IMERG base URL is rejected', () => {
+  assert.throws(
+    () => new NasaImergClient({ baseUrl: '///' }),
+    /baseUrl must be non-empty/,
+  );
+});
+
 test('observed zero survives the canonical service client', async () => {
   const { client, transport } = clientFor(async () => ({
     status: 200,

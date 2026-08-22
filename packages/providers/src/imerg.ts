@@ -76,6 +76,16 @@ export interface NasaImergClientOptions {
   readonly now?: () => Date;
 }
 
+function stripTrailingSlashes(value: string): string {
+  let end = value.length;
+
+  while (end > 0 && value.charCodeAt(end - 1) === 47) {
+    end -= 1;
+  }
+
+  return value.slice(0, end);
+}
+
 export class FetchImergTransport implements ImergTransport {
   async postJson(
     url: string,
@@ -126,11 +136,13 @@ export class NasaImergClient {
   private readonly now: () => Date;
 
   constructor(options: NasaImergClientOptions) {
-    if (options.baseUrl.trim().length === 0) {
+    const baseUrl = stripTrailingSlashes(options.baseUrl.trim());
+
+    if (baseUrl.length === 0) {
       throw new Error('IMERG service baseUrl must be non-empty');
     }
 
-    this.baseUrl = options.baseUrl.replace(/\/+$/, '');
+    this.baseUrl = baseUrl;
     this.timeoutMs = options.timeoutMs ?? 10 * 60 * 1000;
     this.transport = options.transport ?? new FetchImergTransport();
     this.now = options.now ?? (() => new Date());
