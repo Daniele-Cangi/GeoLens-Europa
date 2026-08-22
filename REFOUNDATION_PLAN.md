@@ -9,7 +9,7 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Protected historical snapshot: `codex/pre-overhaul-snapshot-20260822@9920ee29ed945a55af8e7ff89005724fab19a998`
 - Proof 0: not established
 - Live IMERG/DEM/CLC verification: not established
-- Clean repository typecheck/test baseline: not established
+- Refoundation typecheck/test baseline: established; the parked legacy build remains intentionally recorded as failing
 - Historical tracked Copernicus private key: removed from the active tree; revocation/rotation remains an external security action because the secret is present in Git history
 
 Verified legacy baseline:
@@ -59,7 +59,7 @@ Verified legacy baseline:
 
 ## Phase 0 — Establish a safe refoundation baseline
 
-State: in progress
+State: completed
 
 Work:
 
@@ -79,7 +79,7 @@ Checkpoint: `chore: establish refoundation baseline`
 
 ## Phase 1 — Introduce canonical evidence semantics
 
-State: pending
+State: completed
 
 Work:
 
@@ -99,7 +99,7 @@ Checkpoint: `refactor: introduce canonical evidence model`
 
 ## Phase 2 — Build the deterministic physical core
 
-State: pending
+State: in progress
 
 Work:
 
