@@ -10,14 +10,15 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Deterministic core Proof 0: established through environmental bundle, runoff, catchment aggregation, point-sampled node elevation, direction, propagation, and mass balance
 - Live provider verification: Copernicus DEM established; IMERG and CLC remain unverified
 - Refoundation core, Proof 0 API, and minimal inspection UI build/typecheck/test baseline: established; historical legacy sources are excluded from the active TypeScript boundary
+- First refoundation success gate: established through deterministic fixture proof, production-path DEM evidence, explicit IMERG/CLC unavailability, clean API, and browser-verified inspector
 - Historical tracked Copernicus private key: removed from the active tree; revocation/rotation remains an external security action because the secret is present in Git history
 
-Verified legacy baseline:
+Verified starting baseline (historical):
 
-- shared TypeScript packages compile individually;
-- the API currently has TypeScript failures around legacy adapters, construction assumptions, and inconsistent types;
-- the web build currently has a Deck.gl typing failure;
-- root test orchestration refers to missing workspace test scripts;
+- shared TypeScript packages compiled individually;
+- the API had TypeScript failures around legacy adapters, construction assumptions, and inconsistent types;
+- the web build had a Deck.gl typing failure;
+- root test orchestration referred to missing workspace test scripts;
 - the canonical Python IMERG path is established and silent precipitation fallback is removed; generic risk, AI, and mineral sources remain parked in the tree but are absent from the active API entrypoint, dependencies, routes, and TypeScript build;
 - no verified real-evidence-to-network result exists.
 
@@ -221,7 +222,15 @@ Checkpoint: `feat: add minimal inspection map`
 
 ## Phase 6 — Verify live behavior and rewrite project identity
 
-State: pending
+State: completed
+
+Progress:
+
+- the root README and canonical IMERG service README now describe only verified behavior, explicit unavailable states, setup, scope, and model limits;
+- npm workspaces contain only API, web, evidence, providers, stormwater, and Proof 0; parked AI, generic-risk, data-cube, SDK, and 3D packages are absent from the active lockfile and root build;
+- obsolete claims, phase reports, build logs, response dumps, and ad-hoc verification scripts were removed after confirming their presence in the protected historical snapshot;
+- typecheck, deterministic TypeScript/Python tests, the canonical root build, a live public DEM request, and browser/API verification pass;
+- the sixteen first-cycle success conditions are evidenced by code/tests/runtime or an explicit unavailable provider state.
 
 Work:
 

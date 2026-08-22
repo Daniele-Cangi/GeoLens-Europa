@@ -1,7 +1,7 @@
 """
 NASA IMERG Precipitation Microservice
 
-Provides real-time precipitation data from GPM IMERG for H3 hexagons.
+Provides traceable GPM IMERG precipitation evidence for H3 requests.
 """
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"
