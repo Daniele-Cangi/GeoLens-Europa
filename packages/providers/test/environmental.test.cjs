@@ -6,6 +6,7 @@ const {
   CorineLandCoverClient,
   classifyRasterError,
   copernicusDemTileUrl,
+  corineRasterValueToClassCode,
   corineSourceCoordinate,
 } = require('../dist');
 
@@ -187,6 +188,17 @@ test('CLC accepts official three-digit class codes as fixture evidence', async (
     evidence.provenance.sourceMetadata.intendedDataset,
     'CORINE Land Cover',
   );
+});
+
+test('CLC decodes the official raster palette index into level-3 codes', () => {
+  assert.equal(corineRasterValueToClassCode(1), 111);
+  assert.equal(corineRasterValueToClassCode(2), 112);
+  assert.equal(corineRasterValueToClassCode(23), 311);
+  assert.equal(corineRasterValueToClassCode(44), 523);
+  assert.equal(corineRasterValueToClassCode(111), 111);
+  assert.equal(corineRasterValueToClassCode(0), null);
+  assert.equal(corineRasterValueToClassCode(45), null);
+  assert.equal(corineRasterValueToClassCode(1.5), null);
 });
 
 test('CLC rejects legacy 1..44 ordinal values as invalid responses', async () => {

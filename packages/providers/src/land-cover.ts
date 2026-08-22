@@ -30,6 +30,27 @@ const validCorineCodes: ReadonlySet<number> = new Set(
   CORINE_LAND_COVER_CODES,
 );
 
+export function corineRasterValueToClassCode(
+  value: number,
+): number | null {
+  if (!Number.isInteger(value)) {
+    return null;
+  }
+
+  if (validCorineCodes.has(value)) {
+    return value;
+  }
+
+  if (
+    value < 1 ||
+    value > CORINE_LAND_COVER_CODES.length
+  ) {
+    return null;
+  }
+
+  return CORINE_LAND_COVER_CODES[value - 1] ?? null;
+}
+
 interface RasterImage {
   getBoundingBox(): readonly [number, number, number, number];
   getWidth(): number;
@@ -260,9 +281,21 @@ export class CorineRasterSource implements PointRasterSource {
         };
       }
 
+      const classCode = corineRasterValueToClassCode(value);
+
+      if (classCode === null) {
+        return {
+          status: 'invalid_response',
+          value: null,
+          missingReason:
+            `CLC raster returned unsupported encoded value ${value}`,
+          sourceId: this.rasterLocation,
+        };
+      }
+
       return normalizeCorineSample({
         status: 'available',
-        value,
+        value: classCode,
         sourceId: this.rasterLocation,
       });
     } catch (error) {
@@ -372,13 +405,19 @@ function descriptor(
       provider: 'Copernicus Land Monitoring Service',
       dataset: 'CORINE Land Cover',
       datasetVersion: 'CLC2018',
-      transformation: 'sample CLC raster at H3 centroid',
-      transformationVersion: 'clc-centroid-v0.1.0',
+      transformation:
+        'decode official CLC raster palette index to level-3 class code and sample at H3 centroid',
+      transformationVersion: 'clc-centroid-v0.2.0',
       samplingMethod:
         'nearest source raster pixel after explicit CRS transform',
       sourceMetadata: {
         nomenclature: 'CLC level 3',
         classCount: CORINE_LAND_COVER_CODES.length,
+        acceptedRasterEncodings: [
+          'CLC level-3 class code',
+          'official CLC2018 palette index 1..44',
+        ],
+        paletteMapping: 'CLC2018 V2020_20u1 legend',
         supportedRasterCrs: ['EPSG:3035', 'EPSG:4326'],
       },
     },
