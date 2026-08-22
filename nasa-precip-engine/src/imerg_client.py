@@ -48,20 +48,82 @@ _auth_initialized = False
 
 
 class ImergAcquisitionError(RuntimeError):
-    """Expected acquisition failure with canonical evidence semantics."""
+    """Base class for typed acquisition failures."""
+
+    status: EvidenceStatus
 
     def __init__(
         self,
-        status: EvidenceStatus,
         message: str,
         *,
         product: str | None = None,
         run_type: str | None = None,
     ) -> None:
         super().__init__(message)
-        self.status = status
         self.product = product
         self.run_type = run_type
+
+
+class ImergMissingError(ImergAcquisitionError):
+    status: EvidenceStatus = "missing"
+
+
+class ImergStaleError(ImergAcquisitionError):
+    status: EvidenceStatus = "stale"
+
+
+class ImergOutOfCoverageError(ImergAcquisitionError):
+    status: EvidenceStatus = "out_of_coverage"
+
+
+class ImergAuthRequiredError(ImergAcquisitionError):
+    status: EvidenceStatus = "auth_required"
+
+
+class ImergRateLimitedError(ImergAcquisitionError):
+    status: EvidenceStatus = "rate_limited"
+
+
+class ImergUpstreamError(ImergAcquisitionError):
+    status: EvidenceStatus = "upstream_error"
+
+
+class ImergInvalidResponseError(ImergAcquisitionError):
+    status: EvidenceStatus = "invalid_response"
+
+
+class ImergIncompleteWindowError(ImergAcquisitionError):
+    status: EvidenceStatus = "incomplete_window"
+
+
+_ACQUISITION_ERROR_TYPES: dict[
+    EvidenceStatus,
+    type[ImergAcquisitionError],
+] = {
+    "available": ImergInvalidResponseError,
+    "missing": ImergMissingError,
+    "stale": ImergStaleError,
+    "out_of_coverage": ImergOutOfCoverageError,
+    "auth_required": ImergAuthRequiredError,
+    "rate_limited": ImergRateLimitedError,
+    "upstream_error": ImergUpstreamError,
+    "invalid_response": ImergInvalidResponseError,
+    "incomplete_window": ImergIncompleteWindowError,
+}
+
+
+def _acquisition_error(
+    status: EvidenceStatus,
+    message: str,
+    *,
+    product: str | None = None,
+    run_type: str | None = None,
+) -> ImergAcquisitionError:
+    return _ACQUISITION_ERROR_TYPES[status](
+        message,
+        product=product,
+        run_type=run_type,
+    )
 
 
 @dataclass(frozen=True)
@@ -125,15 +187,14 @@ def authenticate() -> None:
         return
 
     if not EARTHDATA_USERNAME or not EARTHDATA_PASSWORD:
-        raise ImergAcquisitionError(
-            "auth_required",
+        raise ImergAuthRequiredError(
             "NASA Earthdata credentials are not configured",
         )
 
     try:
         earthaccess.login(strategy="environment", persist=False)
     except Exception as exc:
-        raise ImergAcquisitionError(
+        raise _acquisition_error(
             _status_for_exception(exc, authentication=True),
             f"NASA Earthdata authentication failed: {exc}",
         ) from exc
@@ -201,8 +262,7 @@ def load_imerg_window(
     )
 
     if not timestamped_results:
-        raise ImergAcquisitionError(
-            "missing",
+        raise ImergMissingError(
             (
                 "No IMERG granules overlap requested window "
                 f"{start.isoformat()} to {end.isoformat()}"
@@ -218,7 +278,7 @@ def load_imerg_window(
     try:
         files = earthaccess.open(results)
     except Exception as exc:
-        raise ImergAcquisitionError(
+        raise _acquisition_error(
             _status_for_exception(exc),
             f"Failed to open IMERG granules: {exc}",
             product=product,
@@ -226,8 +286,7 @@ def load_imerg_window(
         ) from exc
 
     if not files:
-        raise ImergAcquisitionError(
-            "upstream_error",
+        raise ImergUpstreamError(
             "NASA returned granules but none could be opened",
             product=product,
             run_type=run_type,
@@ -261,8 +320,7 @@ def load_imerg_window(
                 dataset.close()
 
     if not amounts:
-        raise ImergAcquisitionError(
-            "invalid_response",
+        raise ImergInvalidResponseError(
             "No opened IMERG granule contained usable precipitation data",
             product=product,
             run_type=run_type,
@@ -515,7 +573,7 @@ def _search_product(
             )
         )
     except Exception as exc:
-        raise ImergAcquisitionError(
+        raise _acquisition_error(
             _status_for_exception(exc),
             f"IMERG search failed for {product}: {exc}",
             product=product,
@@ -541,8 +599,7 @@ def _results_in_window(
             timestamped.append((timestamp, result))
 
     if results and not timestamped and unknown_count:
-        raise ImergAcquisitionError(
-            "invalid_response",
+        raise ImergInvalidResponseError(
             (
                 "IMERG search results did not expose parseable granule "
                 "timestamps"

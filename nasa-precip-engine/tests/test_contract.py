@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import h3
+from fastapi import HTTPException
 import numpy as np
 import xarray as xr
 
@@ -12,7 +13,8 @@ from src.contracts import (
     build_window_payload,
 )
 from src.imerg_client import (
-    ImergAcquisitionError,
+    ImergAuthRequiredError,
+    ImergRateLimitedError,
     ImergWindow,
     ImergWindowMetadata,
 )
@@ -102,11 +104,9 @@ class ContractTests(unittest.TestCase):
 
     def test_auth_failure_is_evidence_not_zero(self):
         payload = build_error_window_payload(
-            ImergAcquisitionError(
-                "auth_required",
-                "NASA credentials are missing",
-            ),
+            "auth_required",
             [H3_CELL],
+            missing_reason="NASA Earthdata authentication is required",
             hours=24,
             requested_start=REFERENCE - timedelta(hours=24),
             requested_end=REFERENCE,
@@ -134,8 +134,7 @@ class EndpointTests(unittest.IsolatedAsyncioTestCase):
 
         with patch(
             "src.main.load_imerg_window",
-            side_effect=ImergAcquisitionError(
-                "auth_required",
+            side_effect=ImergAuthRequiredError(
                 "NASA credentials are missing",
             ),
         ):
@@ -146,6 +145,34 @@ class EndpointTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             evidence["quality"]["status"],
             "auth_required",
+        )
+        self.assertEqual(
+            evidence["quality"]["missingReason"],
+            "NASA Earthdata authentication is required",
+        )
+
+    async def test_endpoint_preserves_rate_limit_status_safely(self):
+        request = PrecipRequest(
+            h3_indices=[H3_CELL],
+            reference_time="2026-08-21T12:00:00Z",
+            window_hours=[24],
+        )
+
+        with patch(
+            "src.main.load_imerg_window",
+            side_effect=ImergRateLimitedError("private upstream detail"),
+        ):
+            payload = await get_precipitation_for_h3(request)
+
+        evidence = payload["windows"][0]["cells"][0]["rainfallMm"]
+        self.assertIsNone(evidence["value"])
+        self.assertEqual(
+            evidence["quality"]["status"],
+            "rate_limited",
+        )
+        self.assertEqual(
+            evidence["quality"]["missingReason"],
+            "NASA Earthdata rate limiting prevented acquisition",
         )
 
     async def test_unexpected_failure_does_not_expose_exception_details(self):
@@ -175,6 +202,21 @@ class EndpointTests(unittest.IsolatedAsyncioTestCase):
             "Unexpected IMERG provider failure; inspect service logs",
         )
 
+    async def test_invalid_h3_does_not_expose_validation_exception(self):
+        request = PrecipRequest(
+            h3_indices=["not-an-h3-cell"],
+            reference_time="2026-08-21T12:00:00Z",
+            window_hours=[24],
+        )
+
+        with self.assertRaises(HTTPException) as raised:
+            await get_precipitation_for_h3(request)
+
+        self.assertEqual(raised.exception.status_code, 400)
+        self.assertEqual(
+            raised.exception.detail,
+            "One or more H3 indices are invalid",
+        )
     def test_duplicate_windows_are_rejected(self):
         with self.assertRaises(ValueError):
             PrecipRequest(

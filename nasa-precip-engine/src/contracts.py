@@ -12,7 +12,6 @@ from .config import (
 from .h3_mapping import sample_precip_for_h3
 from .imerg_client import (
     EvidenceStatus,
-    ImergAcquisitionError,
     ImergWindow,
 )
 
@@ -132,30 +131,37 @@ def build_window_payload(
 
 
 def build_error_window_payload(
-    error: ImergAcquisitionError,
+    status: EvidenceStatus,
     h3_indices: Sequence[str],
     *,
+    missing_reason: str,
     hours: int,
     requested_start: datetime,
     requested_end: datetime,
     acquired_at: datetime,
+    product: str | None = None,
+    run_type: str | None = None,
 ) -> dict[str, Any]:
+    if status == "available":
+        raise ValueError(
+            "An acquisition failure cannot have available status"
+        )
+
     expected_count = hours * 60 // IMERG_INTERVAL_MINUTES
-    product = error.product or "GPM IMERG"
-    run_type = error.run_type
+    resolved_product = product or "GPM IMERG"
     cells = [
         {
             "h3": h3_index,
             "rainfallMm": _evidence_payload(
                 h3_index=h3_index,
                 value=None,
-                status=error.status,
-                missing_reason=str(error),
+                status=status,
+                missing_reason=missing_reason,
                 lat=None,
                 lon=None,
                 sampled_lat=None,
                 sampled_lon=None,
-                product=product,
+                product=resolved_product,
                 run_type=run_type,
                 requested_start=requested_start,
                 requested_end=requested_end,
@@ -177,9 +183,9 @@ def build_error_window_payload(
 
     return {
         "windowHours": hours,
-        "status": error.status,
-        "missingReason": str(error),
-        "product": product,
+        "status": status,
+        "missingReason": missing_reason,
+        "product": resolved_product,
         "runType": run_type,
         "datasetVersion": IMERG_DATASET_VERSION,
         "requestedWindow": {

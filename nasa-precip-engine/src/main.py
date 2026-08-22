@@ -33,7 +33,16 @@ from .contracts import (
 )
 from .h3_mapping import validate_h3_indices
 from .imerg_client import (
+    EvidenceStatus,
     ImergAcquisitionError,
+    ImergAuthRequiredError,
+    ImergIncompleteWindowError,
+    ImergInvalidResponseError,
+    ImergMissingError,
+    ImergOutOfCoverageError,
+    ImergRateLimitedError,
+    ImergStaleError,
+    ImergUpstreamError,
     load_imerg_window,
     normalize_reference_time,
 )
@@ -43,6 +52,24 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+_PUBLIC_ACQUISITION_MESSAGES: dict[EvidenceStatus, str] = {
+    "available": "IMERG acquisition returned an invalid available state",
+    "missing": (
+        "No IMERG observations are available for the requested window"
+    ),
+    "stale": "IMERG observations are stale for the requested window",
+    "out_of_coverage": "The request is outside IMERG coverage",
+    "auth_required": "NASA Earthdata authentication is required",
+    "rate_limited": "NASA Earthdata rate limiting prevented acquisition",
+    "upstream_error": (
+        "Unexpected IMERG provider failure; inspect service logs"
+    ),
+    "invalid_response": "NASA Earthdata returned an invalid IMERG response",
+    "incomplete_window": (
+        "IMERG observations do not completely cover the requested window"
+    ),
+}
 
 app = FastAPI(
     title="GeoLens NASA IMERG Evidence Service",
@@ -85,10 +112,10 @@ class PrecipRequest(BaseModel):
 
         try:
             datetime.fromisoformat(value.replace("Z", "+00:00"))
-        except ValueError as exc:
+        except ValueError:
             raise ValueError(
                 "reference_time must be ISO 8601"
-            ) from exc
+            ) from None
 
         return value
 
@@ -129,8 +156,11 @@ async def get_precipitation_for_h3(
 ) -> dict[str, object]:
     try:
         h3_indices = validate_h3_indices(request.h3_indices)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="One or more H3 indices are invalid",
+        ) from None
 
     reference_time = _reference_time(request.reference_time)
     acquired_at = datetime.now(timezone.utc)
@@ -150,12 +180,42 @@ async def get_precipitation_for_h3(
             )
             continue
 
+        error_status: EvidenceStatus
         try:
             window = await run_in_threadpool(
                 load_imerg_window,
                 reference_time,
                 hours,
             )
+        except ImergMissingError:
+            error_status = "missing"
+        except ImergStaleError:
+            error_status = "stale"
+        except ImergOutOfCoverageError:
+            error_status = "out_of_coverage"
+        except ImergAuthRequiredError:
+            error_status = "auth_required"
+        except ImergRateLimitedError:
+            error_status = "rate_limited"
+        except ImergUpstreamError:
+            error_status = "upstream_error"
+        except ImergInvalidResponseError:
+            error_status = "invalid_response"
+        except ImergIncompleteWindowError:
+            error_status = "incomplete_window"
+        except ImergAcquisitionError:
+            logger.exception(
+                "Unclassified IMERG acquisition failure for %sh window",
+                hours,
+            )
+            error_status = "invalid_response"
+        except Exception:
+            logger.exception(
+                "Unexpected IMERG provider failure for %sh window",
+                hours,
+            )
+            error_status = "upstream_error"
+        else:
             set_cached_window(reference_time, hours, window)
             windows.append(
                 build_window_payload(
@@ -164,36 +224,21 @@ async def get_precipitation_for_h3(
                     cached=False,
                 )
             )
-        except ImergAcquisitionError as exc:
-            windows.append(
-                build_error_window_payload(
-                    exc,
-                    h3_indices,
-                    hours=hours,
-                    requested_start=requested_start,
-                    requested_end=reference_time,
-                    acquired_at=acquired_at,
-                )
+            continue
+
+        windows.append(
+            build_error_window_payload(
+                error_status,
+                h3_indices,
+                missing_reason=_PUBLIC_ACQUISITION_MESSAGES[
+                    error_status
+                ],
+                hours=hours,
+                requested_start=requested_start,
+                requested_end=reference_time,
+                acquired_at=acquired_at,
             )
-        except Exception:
-            logger.exception(
-                "Unexpected IMERG provider failure for %sh window",
-                hours,
-            )
-            wrapped = ImergAcquisitionError(
-                "upstream_error",
-                "Unexpected IMERG provider failure; inspect service logs",
-            )
-            windows.append(
-                build_error_window_payload(
-                    wrapped,
-                    h3_indices,
-                    hours=hours,
-                    requested_start=requested_start,
-                    requested_end=reference_time,
-                    acquired_at=acquired_at,
-                )
-            )
+        )
 
     return {
         "provider": "NASA GES DISC",
