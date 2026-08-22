@@ -12,7 +12,8 @@
   "scripts": {
     "build": "npm run build --workspaces",
     "build:refoundation": "npm run build",
-    "dev": "concurrently \"npm run dev --workspace=@geo-lens/api\" \"npm run dev --workspace=@geo-lens/web\"",
+    "dev": "node scripts/dev-proof-zero.mjs",
+    "dev:api-web": "concurrently \"npm run dev --workspace=@geo-lens/api\" \"npm run dev --workspace=@geo-lens/web\"",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test:ts && npm run test:python",
     "test:ts": "npm run test --workspaces --if-present",

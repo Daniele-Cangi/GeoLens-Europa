@@ -42,6 +42,17 @@ CACHE_MAX_SIZE = 50
 # Cache TTL (seconds) - 30 minutes (matches IMERG update frequency)
 CACHE_TTL_SECONDS = 1800
 
+# Optional persistent cache for completed real-evidence windows. Only
+# accumulated cubes and original provenance are stored, never mock values.
+IMERG_CACHE_DIR = os.getenv('IMERG_CACHE_DIR', '').strip()
+IMERG_DISK_CACHE_TTL_SECONDS = int(
+    os.getenv('IMERG_DISK_CACHE_TTL_SECONDS', '2592000')
+)
+if IMERG_DISK_CACHE_TTL_SECONDS <= 0:
+    raise ValueError(
+        "IMERG_DISK_CACHE_TTL_SECONDS must be positive"
+    )
+
 # === API CONFIGURATION ===
 API_HOST = os.getenv('API_HOST', '0.0.0.0')
 API_PORT = int(os.getenv('API_PORT', '8001'))

@@ -22,6 +22,7 @@ from .config import (
     CORS_ORIGINS,
     EARTHDATA_PASSWORD,
     EARTHDATA_USERNAME,
+    IMERG_CACHE_DIR,
     LOG_LEVEL,
     MAX_H3_CELLS_PER_REQUEST,
 )
@@ -113,6 +114,7 @@ async def health_check() -> dict[str, object]:
         "earthdataCredentialsConfigured": bool(
             EARTHDATA_USERNAME and EARTHDATA_PASSWORD
         ),
+        "persistentCacheConfigured": bool(IMERG_CACHE_DIR),
     }
 
 

@@ -29,7 +29,7 @@ NASA GPM IMERG + Copernicus DEM + CORINE Land Cover
           inspectable state + full provenance
 ```
 
-Latest refoundation baseline: **v0.1.0-alpha.1**.
+Latest refoundation baseline: **v0.1.0-alpha.3**.
 
 ## What GeoLens is
 
@@ -66,7 +66,7 @@ The following state has been verified locally on 2026-08-22.
 | Runoff and catchments | Runoff v0 is deterministic and exposes inputs/intermediates; catchment aggregation uses represented H3 area. |
 | Network | Topology is validated separately from environmental evidence. Direction is `known`, `unknown` or `ambiguous`. |
 | Propagation | Supported directed acyclic topology conserves volume and exposes mass balance. |
-| API and inspector | Fastify API and Next.js inspector build and run without AI or mineral services. |
+| API and inspector | One root command health-gates IMERG → API → web. The Next.js inspector automatically runs the verified window and exposes a traceable IMERG receipt without AI or mineral services. |
 
 The bounded Trento fixture produces a non-zero downstream result in both
 deterministic verification and the fixed live run. That live run observed `9.24 mm` of
@@ -189,6 +189,12 @@ EARTHDATA_PASSWORD=...
 API_HOST=0.0.0.0
 API_PORT=8001
 LOG_LEVEL=INFO
+
+# Optional completed-window cache and one-command runtime overrides
+IMERG_CACHE_DIR=D:/GeoLens/cache/imerg
+IMERG_DISK_CACHE_TTL_SECONDS=2592000
+GEOLENS_PYTHON=D:/GeoLens/venvs/nasa-precip/Scripts/python.exe
+GEOLENS_TEMP_DIR=D:/GeoLens/tmp
 ```
 
 Set the API boundary in `apps/api/.env`:
@@ -199,10 +205,14 @@ NASA_PRECIP_SERVICE_URL=http://127.0.0.1:8001
 ```
 
 IMERG source resolution is approximately `0.1 degree`. H3 is only the sampling
-and indexing representation. The canonical acquisition opens remote granules with an
-in-memory block cache; it does not intentionally persist HDF5 granules. On Windows,
-set `TEMP` and `TMP` to a directory such as `D:/GeoLens/tmp` before startup if
-operating-system temporaries must also stay off C:.
+and indexing representation. Remote granules use the provider's transient block
+cache and are not intentionally retained. When `IMERG_CACHE_DIR` is configured,
+GeoLens persists only completed `available` accumulation windows plus their original
+provenance. Missing, failed and incomplete windows are never cached as observations.
+A restored window is marked `cached: true` while retaining its original acquisition
+time; it is real evidence replay, not a synthetic fixture. `GEOLENS_TEMP_DIR` keeps
+operating-system temporaries off `C:` when the root development command starts the
+service.
 
 ### CORINE Land Cover
 
@@ -231,18 +241,21 @@ or outside coverage, the result remains explicit unavailable evidence.
 
 ## Run locally
 
-Terminal 1 — canonical IMERG service:
-
-```bash
-cd nasa-precip-engine
-python -m uvicorn src.main:app --reload --host 127.0.0.1 --port 8001
-```
-
-Terminal 2 — API and web inspector:
+Start the canonical IMERG service, Proof 0 API and inspector together:
 
 ```bash
 npm run dev
 ```
+
+The command reads `nasa-precip-engine/.env`, starts services in dependency
+order, waits for each health gate, and shuts down the complete process tree with
+`Ctrl+C`. The inspector then runs the fixed verified window ending
+`2026-08-20T00:00:00Z` automatically. The first uncached IMERG acquisition may
+take several minutes; subsequent exact-window runs restore the completed real
+accumulation from the configured persistent cache.
+
+Use `npm run dev:api-web` only when the IMERG service is already managed
+separately.
 
 Local endpoints:
 

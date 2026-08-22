@@ -414,6 +414,99 @@ th {
   color: var(--amber);
 }
 
+.imerg-receipt {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(61, 214, 193, 0.28);
+  border-radius: 10px;
+  padding: 17px 19px 15px;
+  background:
+    linear-gradient(135deg, rgba(61, 214, 193, 0.09), transparent 48%),
+    rgba(10, 26, 32, 0.88);
+  box-shadow: var(--shadow);
+}
+
+.imerg-receipt::after {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(90deg, var(--teal), transparent 72%);
+  content: '';
+}
+
+.imerg-receipt[data-evidence-status="incomplete_window"],
+.imerg-receipt[data-evidence-status="missing"] {
+  border-color: rgba(242, 184, 75, 0.32);
+}
+
+.imerg-receipt[data-evidence-status="upstream_error"],
+.imerg-receipt[data-evidence-status="auth_required"],
+.imerg-receipt[data-evidence-status="invalid_response"] {
+  border-color: rgba(239, 128, 111, 0.4);
+}
+
+.receipt-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.receipt-heading h2 {
+  margin: 0;
+  font-size: 1.08rem;
+}
+
+.receipt-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 7px;
+  color: var(--paper-muted);
+  font-size: 0.68rem;
+  text-align: right;
+}
+
+.receipt-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  margin: 16px 0 0;
+  border: 1px solid var(--line-dark);
+  border-radius: 8px;
+  background: var(--line-dark);
+}
+
+.receipt-grid > div {
+  min-width: 0;
+  padding: 10px 11px;
+  background: rgba(7, 21, 26, 0.96);
+}
+
+.receipt-grid dt {
+  margin-bottom: 5px;
+  color: #72888b;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.receipt-grid dd {
+  overflow-wrap: anywhere;
+  color: var(--paper-strong);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.66rem;
+  line-height: 1.42;
+}
+
+.receipt-note {
+  margin: 12px 0 0;
+  color: #91a5a6;
+  font-size: 0.67rem;
+  line-height: 1.5;
+}
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -898,6 +991,26 @@ footer {
   }
 }
 
+@media (max-width: 1280px) {
+  .receipt-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .receipt-heading {
+    flex-direction: column;
+  }
+
+  .receipt-state {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .receipt-grid {
+    grid-template-columns: 1fr;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

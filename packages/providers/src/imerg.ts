@@ -131,7 +131,7 @@ export class NasaImergClient {
     }
 
     this.baseUrl = options.baseUrl.replace(/\/+$/, '');
-    this.timeoutMs = options.timeoutMs ?? 120_000;
+    this.timeoutMs = options.timeoutMs ?? 10 * 60 * 1000;
     this.transport = options.transport ?? new FetchImergTransport();
     this.now = options.now ?? (() => new Date());
 

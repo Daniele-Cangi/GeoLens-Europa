@@ -1,8 +1,10 @@
 'use client';
 
 import {
+  useCallback,
+  useEffect,
+  useRef,
   useState,
-  useTransition,
   type FormEvent,
   type KeyboardEvent,
 } from 'react';
@@ -25,6 +27,20 @@ type Selection =
   | { readonly kind: 'pipe'; readonly id: string };
 
 type DisplayStatus = EvidenceStatus | 'not_requested';
+
+const VERIFIED_REFERENCE_TIME_INPUT = '2026-08-20T00:00';
+const VERIFIED_REFERENCE_TIME_ISO =
+  '2026-08-20T00:00:00.000Z';
+
+function utcInputToIso(value: string): string {
+  const instant = new Date(value + ':00.000Z');
+
+  if (Number.isNaN(instant.getTime())) {
+    throw new Error('Observation reference must be a valid UTC timestamp.');
+  }
+
+  return instant.toISOString();
+}
 
 const SOURCE_DEFAULTS = {
   rainfall: {
@@ -151,7 +167,7 @@ function SourceCard({
           <dt>Acquired</dt>
           <dd>
             {source
-              ? new Date(source.acquiredAt).toLocaleString('en-GB')
+              ? formatUtcTimestamp(source.acquiredAt)
               : 'Not requested'}
           </dd>
         </div>
@@ -808,9 +824,203 @@ function EvidenceTable({
   );
 }
 
+function metadataNumber(
+  metadata: Readonly<Record<string, unknown>> | undefined,
+  key: string,
+): number | undefined {
+  const value = metadata?.[key];
+  return typeof value === 'number' ? value : undefined;
+}
+
+function metadataString(
+  metadata: Readonly<Record<string, unknown>> | undefined,
+  key: string,
+): string | undefined {
+  const value = metadata?.[key];
+  return typeof value === 'string' ? value : undefined;
+}
+
+function metadataBoolean(
+  metadata: Readonly<Record<string, unknown>> | undefined,
+  key: string,
+): boolean | undefined {
+  const value = metadata?.[key];
+  return typeof value === 'boolean' ? value : undefined;
+}
+
+function formatUtcTimestamp(value: string | undefined): string {
+  if (!value) {
+    return '—';
+  }
+
+  const instant = new Date(value);
+  if (Number.isNaN(instant.getTime())) {
+    return value;
+  }
+
+  return (
+    instant.toLocaleString('en-GB', {
+      timeZone: 'UTC',
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }) + ' UTC'
+  );
+}
+
+function formatWindow(
+  start: string | undefined,
+  end: string | undefined,
+): string {
+  if (!start || !end) {
+    return '—';
+  }
+
+  return (
+    formatUtcTimestamp(start) +
+    ' → ' +
+    formatUtcTimestamp(end)
+  );
+}
+
+function ImergReceipt({
+  evidence,
+  isRunning,
+}: {
+  readonly evidence: Evidence<number> | undefined;
+  readonly isRunning: boolean;
+}) {
+  const metadata = evidence?.provenance.sourceMetadata;
+  const runType = metadataString(metadata, 'runType');
+  const actualWindowStart = metadataString(
+    metadata,
+    'actualWindowStart',
+  );
+  const actualWindowEnd = metadataString(
+    metadata,
+    'actualWindowEnd',
+  );
+  const granuleCount = metadataNumber(
+    metadata,
+    'granuleCount',
+  );
+  const expectedGranuleCount = metadataNumber(
+    metadata,
+    'expectedGranuleCount',
+  );
+  const cached = metadataBoolean(metadata, 'cached');
+  const status = evidence?.quality.status ?? 'not_requested';
+
+  return (
+    <section
+      className="imerg-receipt"
+      aria-live="polite"
+      aria-busy={isRunning}
+      data-testid="imerg-receipt"
+      data-evidence-status={status}
+    >
+      <div className="receipt-heading">
+        <div>
+          <p className="eyebrow">Live evidence receipt</p>
+          <h2>NASA IMERG · 24 h</h2>
+        </div>
+        <div className="receipt-state">
+          <StatusPill status={status} />
+          <span>
+            {isRunning
+              ? 'Restoring or acquiring the verified window'
+              : evidence
+                ? 'Traceable observation returned'
+                : 'Verified window queued automatically'}
+          </span>
+        </div>
+      </div>
+
+      <dl className="receipt-grid">
+        <div>
+          <dt>Requested window</dt>
+          <dd>
+            {formatWindow(
+              evidence?.temporal.windowStart,
+              evidence?.temporal.windowEnd,
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt>Actual coverage</dt>
+          <dd>
+            {formatWindow(
+              actualWindowStart,
+              actualWindowEnd,
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt>Product / version</dt>
+          <dd>
+            {evidence
+              ? evidence.provenance.dataset +
+                ' · V' +
+                (evidence.provenance.datasetVersion ?? '—')
+              : '—'}
+          </dd>
+        </div>
+        <div>
+          <dt>Run type</dt>
+          <dd>{runType ? runType + ' run' : '—'}</dd>
+        </div>
+        <div>
+          <dt>Granule coverage</dt>
+          <dd>
+            {granuleCount !== undefined &&
+            expectedGranuleCount !== undefined
+              ? granuleCount + ' / ' + expectedGranuleCount
+              : '—'}
+          </dd>
+        </div>
+        <div>
+          <dt>Source grid</dt>
+          <dd>{evidence?.spatial.sourceResolution ?? '—'}</dd>
+        </div>
+        <div>
+          <dt>Acquired at</dt>
+          <dd>
+            {formatUtcTimestamp(
+              evidence?.temporal.acquiredAt,
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt>Evidence path</dt>
+          <dd>
+            {cached === true
+              ? 'Persistent real-evidence replay'
+              : cached === false
+                ? 'Live provider acquisition'
+                : '—'}
+          </dd>
+        </div>
+      </dl>
+
+      <p className="receipt-note">
+        {cached === true
+          ? 'The cached accumulation retains its original NASA provenance and acquisition time; it is not synthetic evidence.'
+          : isRunning
+            ? 'The first uncached IMERG acquisition can take several minutes. Missing, failed and incomplete windows remain explicit.'
+            : evidence?.quality.status === 'available'
+              ? 'Sampling: ' +
+                (evidence.provenance.samplingMethod ??
+                  'reported by provider') +
+                '.'
+              : evidence?.quality.missingReason ??
+                'Waiting for provider evidence; no zero fallback is permitted.'}
+      </p>
+    </section>
+  );
+}
+
 export default function Home() {
   const [referenceTime, setReferenceTime] = useState(
-    '2026-08-21T00:00',
+    VERIFIED_REFERENCE_TIME_INPUT,
   );
   const [result, setResult] =
     useState<ProofZeroResult | null>(null);
@@ -819,7 +1029,12 @@ export default function Home() {
     kind: 'catchment',
     id: 'catchment_A',
   });
-  const [isPending, startTransition] = useTransition();
+  const [isRunning, setIsRunning] = useState(false);
+  const autoRunStartedRef = useRef(false);
+  const requestIdRef = useRef(0);
+  const manualRequestRef = useRef<AbortController | null>(
+    null,
+  );
 
   const firstCell = result
     ? Object.values(result.environmental.cells)[0]
@@ -834,24 +1049,79 @@ export default function Home() {
           ?.downstreamAccumulationM3
       : undefined;
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
+  const executeProofZero = useCallback(
+    async (nextReferenceTime: string, signal?: AbortSignal) => {
+      const requestId = requestIdRef.current + 1;
+      requestIdRef.current = requestId;
+      setError(null);
+      setIsRunning(true);
 
-    startTransition(async () => {
       try {
         const nextResult = await runProofZero(
-          new Date(referenceTime).toISOString(),
+          nextReferenceTime,
+          signal,
         );
-        setResult(nextResult);
+        if (requestId === requestIdRef.current) {
+          setResult(nextResult);
+        }
       } catch (cause) {
-        setError(
-          cause instanceof Error
-            ? cause.message
-            : 'Proof 0 request failed.',
-        );
+        if (
+          requestId === requestIdRef.current &&
+          !(cause instanceof DOMException && cause.name === 'AbortError')
+        ) {
+          setError(
+            cause instanceof Error
+              ? cause.message
+              : 'Proof 0 request failed.',
+          );
+        }
+      } finally {
+        if (requestId === requestIdRef.current) {
+          setIsRunning(false);
+        }
       }
-    });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (autoRunStartedRef.current) {
+      return;
+    }
+
+    autoRunStartedRef.current = true;
+    void executeProofZero(VERIFIED_REFERENCE_TIME_ISO);
+  }, [executeProofZero]);
+
+  useEffect(
+    () => () => {
+      manualRequestRef.current?.abort();
+    },
+    [],
+  );
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    manualRequestRef.current?.abort();
+
+    let nextReferenceTime: string;
+    try {
+      nextReferenceTime = utcInputToIso(referenceTime);
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'Observation reference is invalid.',
+      );
+      return;
+    }
+
+    const controller = new AbortController();
+    manualRequestRef.current = controller;
+    void executeProofZero(
+      nextReferenceTime,
+      controller.signal,
+    );
   }
 
   const rainfallSource =
@@ -876,7 +1146,7 @@ export default function Home() {
 
         <form className="run-controls" onSubmit={handleSubmit}>
           <label htmlFor="reference-time">
-            Observation reference
+            Observation reference (UTC)
           </label>
           <input
             id="reference-time"
@@ -887,8 +1157,10 @@ export default function Home() {
             }
             required
           />
-          <button type="submit" disabled={isPending}>
-            {isPending ? 'Composing evidence…' : 'Run Proof 0'}
+          <button type="submit" disabled={isRunning}>
+            {isRunning
+              ? 'Restoring/acquiring evidence…'
+              : 'Run requested window'}
           </button>
         </form>
 
@@ -964,6 +1236,11 @@ export default function Home() {
         </aside>
 
         <section className="analysis-column">
+          <ImergReceipt
+            evidence={firstCell?.rainfall24hMm}
+            isRunning={isRunning}
+          />
+
           <div className="metric-grid" aria-label="Physical quantities">
             <MetricCard
               label="Rainfall · 24 h"
@@ -1015,9 +1292,9 @@ export default function Home() {
                 <span>H3 nodes r11 · catchments r13</span>
                 <span>
                   {result
-                    ? new Date(
+                    ? formatUtcTimestamp(
                         result.environmental.referenceTime,
-                      ).toLocaleString('en-GB')
+                      )
                     : 'Awaiting evidence'}
                 </span>
               </div>

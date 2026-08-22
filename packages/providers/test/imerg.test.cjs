@@ -121,6 +121,21 @@ const request = {
   windowHours: [24],
 };
 
+test('default timeout accommodates a cold real-data acquisition', async () => {
+  const transport = new FakeTransport(async () => ({
+    status: 200,
+    body: serviceResponse(),
+  }));
+  const client = new NasaImergClient({
+    baseUrl: 'http://nasa.test/',
+    transport,
+    now: () => new Date(acquiredAt),
+  });
+
+  await client.getEvidence(request);
+
+  assert.equal(transport.requests[0].timeoutMs, 10 * 60 * 1000);
+});
 test('observed zero survives the canonical service client', async () => {
   const { client, transport } = clientFor(async () => ({
     status: 200,

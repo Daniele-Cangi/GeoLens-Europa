@@ -233,7 +233,9 @@ Progress:
 - npm workspaces contain only API, web, evidence, providers, stormwater, and Proof 0; parked AI, generic-risk, data-cube, SDK, and 3D packages are absent from the active lockfile and root build;
 - obsolete claims, phase reports, build logs, response dumps, and ad-hoc verification scripts were removed after confirming their presence in the protected historical snapshot;
 - typecheck, deterministic TypeScript/Python tests, the canonical root build, a live public DEM request, and browser/API verification pass;
-- the sixteen first-cycle success conditions are evidenced by code/tests/runtime or an explicit unavailable provider state.
+- the sixteen first-cycle success conditions are evidenced by code/tests/runtime or an explicit unavailable provider state;
+- one root command now health-gates IMERG, API and web in dependency order; the inspector automatically composes the verified fixed window and displays an IMERG evidence receipt;
+- completed real IMERG windows can be replayed from a provenance-preserving persistent cache, while missing, failed, incomplete, corrupt and expired entries remain explicit cache misses.
 
 Work:
 
