@@ -23,6 +23,18 @@ const fixture = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
 const referenceTime = new Date('2026-08-21T00:00:00.000Z');
 const acquiredAt = '2026-08-21T01:00:00.000Z';
 const derivedAt = '2026-08-21T01:05:00.000Z';
+const fixtureInfrastructureSource = {
+  origin: 'synthetic_fixture',
+  provider: 'synthetic-fixture',
+  dataset: 'fixture:stormwater_network_example',
+  acquiredAt,
+  sourceCrs: 'EPSG:4326',
+  outputCrs: 'EPSG:4326',
+  transformation:
+    'parse deterministic typed stormwater fixture and snap pipe endpoints',
+  transformationVersion:
+    'stormwater-geojson-import-v0.2.0',
+};
 const rainfallWindow = {
   windowStart: '2026-08-20T00:00:00.000Z',
   windowEnd: '2026-08-21T00:00:00.000Z',
@@ -33,7 +45,7 @@ const rainfallWindow = {
 function importFixture() {
   return importStormwaterGeoJson(fixture, {
     networkId: 'trento-proof-zero',
-    importedAt: acquiredAt,
+    source: fixtureInfrastructureSource,
     nodeH3Resolution: 11,
     catchmentH3Resolution: 13,
     snapToleranceM: 5,

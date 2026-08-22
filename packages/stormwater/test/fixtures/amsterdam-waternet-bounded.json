@@ -1,0 +1,3215 @@
+{
+  "metadata": {
+    "provider": "Gemeente Amsterdam Data API",
+    "owner": "Gemeente Amsterdam",
+    "sourceOrganization": "Waternet",
+    "dataset": "Leidingeninfrastructuur",
+    "license": "Creative Commons Attribution",
+    "documentationUrl": "https://api.data.amsterdam.nl/v1/docs/datasets/leidingeninfrastructuur.html",
+    "wfsUrl": "https://api.data.amsterdam.nl/v1/wfs/leidingeninfrastructuur/",
+    "nodeTypeName": "app:waternet_rioolknopen",
+    "pipeTypeName": "app:waternet_rioolleidingen",
+    "bboxWfsAxisOrder": "52.3393,4.8987,52.3404,4.8998,EPSG:4326",
+    "sourceCrs": "EPSG:7415",
+    "outputCrs": "EPSG:4326",
+    "acquiredAt": "2026-08-22T21:38:31.0211287Z",
+    "fixtureRole": "recorded_public_dataset_response_for_deterministic_tests"
+  },
+  "nodes": {
+    "type": "FeatureCollection",
+    "timeStamp": "2026-08-22T23:38:28.669426+02:00",
+    "crs": {
+      "type": "name",
+      "properties": {
+        "name": "http://www.opengis.net/gml/srs/epsg.xml#4326"
+      }
+    },
+    "features": [
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.00474653-1B4A-4F85-BBFB-DBD3BA35CBBA",
+        "geometry_name": "00474653-1B4A-4F85-BBFB-DBD3BA35CBBA",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.899238023973306,
+            52.34006678961092,
+            0
+          ]
+        },
+        "properties": {
+          "name": "00474653-1B4A-4F85-BBFB-DBD3BA35CBBA",
+          "globalid": "00474653-1B4A-4F85-BBFB-DBD3BA35CBBA",
+          "objectnummer": 189077,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2015,
+          "soort": "Rioolput",
+          "type_knoop": "Hemelwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.6600000262260437,
+          "funderingstype": "Standaard",
+          "symboolhoek": -87,
+          "nummer": null,
+          "bemalingsgebied": null,
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.00A5AABA-F885-4E74-A77C-589FBC00FAD4",
+        "geometry_name": "00A5AABA-F885-4E74-A77C-589FBC00FAD4",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.899517484390467,
+            52.340060032332175,
+            0
+          ]
+        },
+        "properties": {
+          "name": "00A5AABA-F885-4E74-A77C-589FBC00FAD4",
+          "globalid": "00A5AABA-F885-4E74-A77C-589FBC00FAD4",
+          "objectnummer": 189078,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2015,
+          "soort": "Rioolput",
+          "type_knoop": "Hemelwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.44999998807907104,
+          "funderingstype": "Standaard",
+          "symboolhoek": 54,
+          "nummer": null,
+          "bemalingsgebied": "826",
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.072145DE-F9AE-4C3E-B207-69A60E24013E",
+        "geometry_name": "072145DE-F9AE-4C3E-B207-69A60E24013E",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.899153447288781,
+            52.33951126664817,
+            0
+          ]
+        },
+        "properties": {
+          "name": "072145DE-F9AE-4C3E-B207-69A60E24013E",
+          "globalid": "072145DE-F9AE-4C3E-B207-69A60E24013E",
+          "objectnummer": 141572,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1975,
+          "soort": "Rioolput",
+          "type_knoop": "Vuilwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.41999998688697815,
+          "funderingstype": "Standaard",
+          "symboolhoek": 5,
+          "nummer": null,
+          "bemalingsgebied": "036",
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.0C7F55CC-7713-4CD5-B939-C18F3A3E9BF6",
+        "geometry_name": "0C7F55CC-7713-4CD5-B939-C18F3A3E9BF6",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.899041417720831,
+            52.34033183684123,
+            0
+          ]
+        },
+        "properties": {
+          "name": "0C7F55CC-7713-4CD5-B939-C18F3A3E9BF6",
+          "globalid": "0C7F55CC-7713-4CD5-B939-C18F3A3E9BF6",
+          "objectnummer": 141704,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2002,
+          "soort": "Rioolput",
+          "type_knoop": "Vuilwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.3100000023841858,
+          "funderingstype": "Standaard",
+          "symboolhoek": 92,
+          "nummer": null,
+          "bemalingsgebied": "826",
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.1A41FF9A-3C4F-4252-9521-D356CF513F89",
+        "geometry_name": "1A41FF9A-3C4F-4252-9521-D356CF513F89",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.899573885371755,
+            52.340228785305136,
+            0
+          ]
+        },
+        "properties": {
+          "name": "1A41FF9A-3C4F-4252-9521-D356CF513F89",
+          "globalid": "1A41FF9A-3C4F-4252-9521-D356CF513F89",
+          "objectnummer": 140756,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2014,
+          "soort": "Rioolput",
+          "type_knoop": "Hemelwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.4000000059604645,
+          "funderingstype": "Standaard",
+          "symboolhoek": 2,
+          "nummer": null,
+          "bemalingsgebied": null,
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.1C5CC039-2771-4AFD-9FAF-1A84AC83A887",
+        "geometry_name": "1C5CC039-2771-4AFD-9FAF-1A84AC83A887",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.899507540552702,
+            52.34023057910532,
+            0
+          ]
+        },
+        "properties": {
+          "name": "1C5CC039-2771-4AFD-9FAF-1A84AC83A887",
+          "globalid": "1C5CC039-2771-4AFD-9FAF-1A84AC83A887",
+          "objectnummer": 140942,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2002,
+          "soort": "Rioolput",
+          "type_knoop": "Hemelwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.47999998927116394,
+          "funderingstype": "Standaard",
+          "symboolhoek": -87,
+          "nummer": null,
+          "bemalingsgebied": null,
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.22C3ED9B-C53D-44A2-90A8-1548B0E2ECFA",
+        "geometry_name": "22C3ED9B-C53D-44A2-90A8-1548B0E2ECFA",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.899202785230365,
+            52.33977508124165,
+            0
+          ]
+        },
+        "properties": {
+          "name": "22C3ED9B-C53D-44A2-90A8-1548B0E2ECFA",
+          "globalid": "22C3ED9B-C53D-44A2-90A8-1548B0E2ECFA",
+          "objectnummer": 140750,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2015,
+          "soort": "Rioolput",
+          "type_knoop": "Hemelwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.6100000143051147,
+          "funderingstype": "Standaard",
+          "symboolhoek": 90,
+          "nummer": null,
+          "bemalingsgebied": "826",
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.297A5375-E63C-4AA7-BBDA-DA7F413F5FD1",
+        "geometry_name": "297A5375-E63C-4AA7-BBDA-DA7F413F5FD1",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.899132605674482,
+            52.34035270504661,
+            0
+          ]
+        },
+        "properties": {
+          "name": "297A5375-E63C-4AA7-BBDA-DA7F413F5FD1",
+          "globalid": "297A5375-E63C-4AA7-BBDA-DA7F413F5FD1",
+          "objectnummer": 140730,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2002,
+          "soort": "Rioolput",
+          "type_knoop": "Hemelwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.41999998688697815,
+          "funderingstype": "Standaard",
+          "symboolhoek": -86,
+          "nummer": null,
+          "bemalingsgebied": null,
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.42CC6396-EAC7-46DF-8ABD-0559D60DA1DD",
+        "geometry_name": "42CC6396-EAC7-46DF-8ABD-0559D60DA1DD",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.899225571631848,
+            52.340331967168716,
+            0
+          ]
+        },
+        "properties": {
+          "name": "42CC6396-EAC7-46DF-8ABD-0559D60DA1DD",
+          "globalid": "42CC6396-EAC7-46DF-8ABD-0559D60DA1DD",
+          "objectnummer": 141682,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2002,
+          "soort": "Rioolput",
+          "type_knoop": "Vuilwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.30000001192092896,
+          "funderingstype": "Standaard",
+          "symboolhoek": -90,
+          "nummer": null,
+          "bemalingsgebied": "036",
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.46C3DDC4-52AD-4B0D-8959-499CB0235135",
+        "geometry_name": "46C3DDC4-52AD-4B0D-8959-499CB0235135",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.898888108672448,
+            52.339781962101,
+            0
+          ]
+        },
+        "properties": {
+          "name": "46C3DDC4-52AD-4B0D-8959-499CB0235135",
+          "globalid": "46C3DDC4-52AD-4B0D-8959-499CB0235135",
+          "objectnummer": 141577,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1975,
+          "soort": "Rioolput",
+          "type_knoop": "Vuilwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.49000000953674316,
+          "funderingstype": "Standaard",
+          "symboolhoek": -86,
+          "nummer": null,
+          "bemalingsgebied": "036",
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.4BD709A0-500C-4302-8B6F-DB76447616A8",
+        "geometry_name": "4BD709A0-500C-4302-8B6F-DB76447616A8",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.899569322341589,
+            52.340172493218454,
+            0
+          ]
+        },
+        "properties": {
+          "name": "4BD709A0-500C-4302-8B6F-DB76447616A8",
+          "globalid": "4BD709A0-500C-4302-8B6F-DB76447616A8",
+          "objectnummer": 307507,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2014,
+          "soort": "Onderdeel",
+          "type_knoop": "Compartiment",
+          "subtype": null,
+          "maaiveldniveau": 0.41999998688697815,
+          "funderingstype": "Standaard",
+          "symboolhoek": 16,
+          "nummer": "OVS: B156",
+          "bemalingsgebied": "826",
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.4EB3B584-7E75-46A4-A947-E891EB3E4017",
+        "geometry_name": "4EB3B584-7E75-46A4-A947-E891EB3E4017",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.89915475624887,
+            52.339392184161085,
+            0
+          ]
+        },
+        "properties": {
+          "name": "4EB3B584-7E75-46A4-A947-E891EB3E4017",
+          "globalid": "4EB3B584-7E75-46A4-A947-E891EB3E4017",
+          "objectnummer": 140748,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1964,
+          "soort": "Rioolput",
+          "type_knoop": "Hemelwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.4699999988079071,
+          "funderingstype": "Standaard",
+          "symboolhoek": 5,
+          "nummer": null,
+          "bemalingsgebied": null,
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.56F84407-3639-432C-98E9-CA42734E4364",
+        "geometry_name": "56F84407-3639-432C-98E9-CA42734E4364",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.89917095585793,
+            52.339520326616906,
+            0
+          ]
+        },
+        "properties": {
+          "name": "56F84407-3639-432C-98E9-CA42734E4364",
+          "globalid": "56F84407-3639-432C-98E9-CA42734E4364",
+          "objectnummer": 141025,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1952,
+          "soort": "Rioolput",
+          "type_knoop": "Hemelwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.49000000953674316,
+          "funderingstype": "Standaard",
+          "symboolhoek": 90,
+          "nummer": null,
+          "bemalingsgebied": "826",
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.60799209-AC1F-47A5-914F-36717993B8BD",
+        "geometry_name": "60799209-AC1F-47A5-914F-36717993B8BD",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.8987174148293,
+            52.3403724727779,
+            0
+          ]
+        },
+        "properties": {
+          "name": "60799209-AC1F-47A5-914F-36717993B8BD",
+          "globalid": "60799209-AC1F-47A5-914F-36717993B8BD",
+          "objectnummer": 140729,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1952,
+          "soort": "Rioolput",
+          "type_knoop": "Hemelwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.44999998807907104,
+          "funderingstype": "Standaard",
+          "symboolhoek": -85,
+          "nummer": null,
+          "bemalingsgebied": null,
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.6AB66298-0DCF-4A9E-9842-29D2B1DE758B",
+        "geometry_name": "6AB66298-0DCF-4A9E-9842-29D2B1DE758B",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.898975106083547,
+            52.33952994460771,
+            0
+          ]
+        },
+        "properties": {
+          "name": "6AB66298-0DCF-4A9E-9842-29D2B1DE758B",
+          "globalid": "6AB66298-0DCF-4A9E-9842-29D2B1DE758B",
+          "objectnummer": 141024,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1952,
+          "soort": "Rioolput",
+          "type_knoop": "Hemelwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.4399999976158142,
+          "funderingstype": "Standaard",
+          "symboolhoek": -85,
+          "nummer": null,
+          "bemalingsgebied": null,
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.6E630B5C-EDF8-4810-93B1-04BF7AFA9A06",
+        "geometry_name": "6E630B5C-EDF8-4810-93B1-04BF7AFA9A06",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.899185520619989,
+            52.339770516166574,
+            0
+          ]
+        },
+        "properties": {
+          "name": "6E630B5C-EDF8-4810-93B1-04BF7AFA9A06",
+          "globalid": "6E630B5C-EDF8-4810-93B1-04BF7AFA9A06",
+          "objectnummer": 141571,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2015,
+          "soort": "Rioolput",
+          "type_knoop": "Vuilwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.6299999952316284,
+          "funderingstype": "Standaard",
+          "symboolhoek": 96,
+          "nummer": null,
+          "bemalingsgebied": "826",
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.6F1E8AF1-B93D-4589-BA3A-538B4E389770",
+        "geometry_name": "6F1E8AF1-B93D-4589-BA3A-538B4E389770",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.899570797512156,
+            52.34017592453343,
+            0
+          ]
+        },
+        "properties": {
+          "name": "6F1E8AF1-B93D-4589-BA3A-538B4E389770",
+          "globalid": "6F1E8AF1-B93D-4589-BA3A-538B4E389770",
+          "objectnummer": 179290,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2014,
+          "soort": "Overstortput",
+          "type_knoop": "Stuwput",
+          "subtype": null,
+          "maaiveldniveau": 0.4000000059604645,
+          "funderingstype": "Standaard",
+          "symboolhoek": 16,
+          "nummer": "OVS: B156",
+          "bemalingsgebied": null,
+          "drempelniveau": -0.30000001192092896,
+          "drempelbreedte": 0.8799999952316284,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.854A1241-CDC6-4585-BD5C-92FAFB69B1CE",
+        "geometry_name": "854A1241-CDC6-4585-BD5C-92FAFB69B1CE",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.89885556871545,
+            52.34033906919847,
+            0
+          ]
+        },
+        "properties": {
+          "name": "854A1241-CDC6-4585-BD5C-92FAFB69B1CE",
+          "globalid": "854A1241-CDC6-4585-BD5C-92FAFB69B1CE",
+          "objectnummer": 141683,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1952,
+          "soort": "Rioolput",
+          "type_knoop": "Vuilwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.3400000035762787,
+          "funderingstype": "Standaard",
+          "symboolhoek": -85,
+          "nummer": null,
+          "bemalingsgebied": "036",
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.931BF72D-7FCB-4DBD-943B-50D3DD4BB054",
+        "geometry_name": "931BF72D-7FCB-4DBD-943B-50D3DD4BB054",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.898951345581173,
+            52.34006273113432,
+            0
+          ]
+        },
+        "properties": {
+          "name": "931BF72D-7FCB-4DBD-943B-50D3DD4BB054",
+          "globalid": "931BF72D-7FCB-4DBD-943B-50D3DD4BB054",
+          "objectnummer": 189098,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2015,
+          "soort": "Rioolput",
+          "type_knoop": "Vuilwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.4000000059604645,
+          "funderingstype": "Standaard",
+          "symboolhoek": -85,
+          "nummer": null,
+          "bemalingsgebied": "036",
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.B73B3BC3-F2A4-4521-BE2D-DC708390FBBB",
+        "geometry_name": "B73B3BC3-F2A4-4521-BE2D-DC708390FBBB",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.899225085251595,
+            52.33997569021275,
+            0
+          ]
+        },
+        "properties": {
+          "name": "B73B3BC3-F2A4-4521-BE2D-DC708390FBBB",
+          "globalid": "B73B3BC3-F2A4-4521-BE2D-DC708390FBBB",
+          "objectnummer": 189079,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2015,
+          "soort": "Rioolput",
+          "type_knoop": "Hemelwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.5400000214576721,
+          "funderingstype": "Standaard",
+          "symboolhoek": 4,
+          "nummer": null,
+          "bemalingsgebied": null,
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.B8636DBA-ABDB-4D1A-B1F7-98198D137C21",
+        "geometry_name": "B8636DBA-ABDB-4D1A-B1F7-98198D137C21",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.898700242733267,
+            52.3397993420601,
+            0
+          ]
+        },
+        "properties": {
+          "name": "B8636DBA-ABDB-4D1A-B1F7-98198D137C21",
+          "globalid": "B8636DBA-ABDB-4D1A-B1F7-98198D137C21",
+          "objectnummer": 141022,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1952,
+          "soort": "Rioolput",
+          "type_knoop": "Hemelwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.5199999809265137,
+          "funderingstype": "Standaard",
+          "symboolhoek": 94,
+          "nummer": null,
+          "bemalingsgebied": "826",
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.C339BB3C-1D42-4766-9849-7DFA89308763",
+        "geometry_name": "C339BB3C-1D42-4766-9849-7DFA89308763",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.89952194821331,
+            52.34017464471196,
+            0
+          ]
+        },
+        "properties": {
+          "name": "C339BB3C-1D42-4766-9849-7DFA89308763",
+          "globalid": "C339BB3C-1D42-4766-9849-7DFA89308763",
+          "objectnummer": 189101,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2015,
+          "soort": "Rioolput",
+          "type_knoop": "Vuilwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.4399999976158142,
+          "funderingstype": "Standaard",
+          "symboolhoek": 8,
+          "nummer": null,
+          "bemalingsgebied": "826",
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.CAEEE1CF-2870-437F-8FD9-EB8FD6A427A9",
+        "geometry_name": "CAEEE1CF-2870-437F-8FD9-EB8FD6A427A9",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.898984911535954,
+            52.340359645567965,
+            0
+          ]
+        },
+        "properties": {
+          "name": "CAEEE1CF-2870-437F-8FD9-EB8FD6A427A9",
+          "globalid": "CAEEE1CF-2870-437F-8FD9-EB8FD6A427A9",
+          "objectnummer": 140776,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2002,
+          "soort": "Rioolput",
+          "type_knoop": "Hemelwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.41999998688697815,
+          "funderingstype": "Standaard",
+          "symboolhoek": 95,
+          "nummer": null,
+          "bemalingsgebied": "826",
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.D300E06C-42AA-4633-83C7-027F289B6FBF",
+        "geometry_name": "D300E06C-42AA-4633-83C7-027F289B6FBF",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.89951915208153,
+            52.340335693907505,
+            0
+          ]
+        },
+        "properties": {
+          "name": "D300E06C-42AA-4633-83C7-027F289B6FBF",
+          "globalid": "D300E06C-42AA-4633-83C7-027F289B6FBF",
+          "objectnummer": 140731,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2002,
+          "soort": "Rioolput",
+          "type_knoop": "Hemelwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.4399999976158142,
+          "funderingstype": "Standaard",
+          "symboolhoek": 85,
+          "nummer": null,
+          "bemalingsgebied": null,
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.DCA2CD1C-756C-4D06-B918-7B17D0876049",
+        "geometry_name": "DCA2CD1C-756C-4D06-B918-7B17D0876049",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.898997214657531,
+            52.33978789478228,
+            0
+          ]
+        },
+        "properties": {
+          "name": "DCA2CD1C-756C-4D06-B918-7B17D0876049",
+          "globalid": "DCA2CD1C-756C-4D06-B918-7B17D0876049",
+          "objectnummer": 141021,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1952,
+          "soort": "Rioolput",
+          "type_knoop": "Hemelwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.5400000214576721,
+          "funderingstype": "Standaard",
+          "symboolhoek": -86,
+          "nummer": null,
+          "bemalingsgebied": null,
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.E1FB8178-5A7F-4D8E-BBCE-A40A844D103E",
+        "geometry_name": "E1FB8178-5A7F-4D8E-BBCE-A40A844D103E",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.899101486883453,
+            52.340326961579414,
+            0
+          ]
+        },
+        "properties": {
+          "name": "E1FB8178-5A7F-4D8E-BBCE-A40A844D103E",
+          "globalid": "E1FB8178-5A7F-4D8E-BBCE-A40A844D103E",
+          "objectnummer": 142038,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2002,
+          "soort": "Hulppunt",
+          "type_knoop": "Knikpunt persleiding",
+          "subtype": null,
+          "maaiveldniveau": 0.3100000023841858,
+          "funderingstype": null,
+          "symboolhoek": -31,
+          "nummer": null,
+          "bemalingsgebied": "5682",
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.F061F113-E4E6-4E5E-9C32-C2CDD6DFF82B",
+        "geometry_name": "F061F113-E4E6-4E5E-9C32-C2CDD6DFF82B",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.899187419381157,
+            52.33965116648471,
+            0
+          ]
+        },
+        "properties": {
+          "name": "F061F113-E4E6-4E5E-9C32-C2CDD6DFF82B",
+          "globalid": "F061F113-E4E6-4E5E-9C32-C2CDD6DFF82B",
+          "objectnummer": 140749,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1952,
+          "soort": "Rioolput",
+          "type_knoop": "Hemelwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.49000000953674316,
+          "funderingstype": "Standaard",
+          "symboolhoek": 5,
+          "nummer": null,
+          "bemalingsgebied": null,
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.F0EA5033-A521-4D43-9693-DF09D0050032",
+        "geometry_name": "F0EA5033-A521-4D43-9693-DF09D0050032",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.89885408611252,
+            52.339526659070636,
+            0
+          ]
+        },
+        "properties": {
+          "name": "F0EA5033-A521-4D43-9693-DF09D0050032",
+          "globalid": "F0EA5033-A521-4D43-9693-DF09D0050032",
+          "objectnummer": 141580,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1975,
+          "soort": "Rioolput",
+          "type_knoop": "Vuilwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.3799999952316284,
+          "funderingstype": "Standaard",
+          "symboolhoek": 275,
+          "nummer": null,
+          "bemalingsgebied": "826",
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.F96B2A3A-EEED-43C7-B752-0E7463E881C5",
+        "geometry_name": "F96B2A3A-EEED-43C7-B752-0E7463E881C5",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.899490717122631,
+            52.34003889065742,
+            0
+          ]
+        },
+        "properties": {
+          "name": "F96B2A3A-EEED-43C7-B752-0E7463E881C5",
+          "globalid": "F96B2A3A-EEED-43C7-B752-0E7463E881C5",
+          "objectnummer": 189100,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2015,
+          "soort": "Rioolput",
+          "type_knoop": "Vuilwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.44999998807907104,
+          "funderingstype": "Standaard",
+          "symboolhoek": 8,
+          "nummer": null,
+          "bemalingsgebied": "036",
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolknopen.FEEB50AF-086B-4F4D-BB84-E8BA9BA705FE",
+        "geometry_name": "FEEB50AF-086B-4F4D-BB84-E8BA9BA705FE",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            4.899209734220676,
+            52.34005067474242,
+            0
+          ]
+        },
+        "properties": {
+          "name": "FEEB50AF-086B-4F4D-BB84-E8BA9BA705FE",
+          "globalid": "FEEB50AF-086B-4F4D-BB84-E8BA9BA705FE",
+          "objectnummer": 189099,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2015,
+          "soort": "Rioolput",
+          "type_knoop": "Vuilwaterrioolput",
+          "subtype": null,
+          "maaiveldniveau": 0.6200000047683716,
+          "funderingstype": "Standaard",
+          "symboolhoek": -86,
+          "nummer": null,
+          "bemalingsgebied": "036",
+          "drempelniveau": null,
+          "drempelbreedte": null,
+          "leveringsdatum": "2026-08-10"
+        }
+      }
+    ],
+    "links": [],
+    "numberReturned": 30,
+    "numberMatched": null
+  },
+  "pipes": {
+    "type": "FeatureCollection",
+    "timeStamp": "2026-08-22T23:38:30.313655+02:00",
+    "crs": {
+      "type": "name",
+      "properties": {
+        "name": "http://www.opengis.net/gml/srs/epsg.xml#4326"
+      }
+    },
+    "features": [
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.000129F5-3505-4966-ACE7-0C507F5BB469",
+        "geometry_name": "000129F5-3505-4966-ACE7-0C507F5BB469",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899225085254207,
+              52.33997569012304,
+              -0.63249999
+            ],
+            [
+              4.899202785232978,
+              52.33977508115193,
+              -0.63249999
+            ]
+          ]
+        },
+        "properties": {
+          "name": "000129F5-3505-4966-ACE7-0C507F5BB469",
+          "globalid": "000129F5-3505-4966-ACE7-0C507F5BB469",
+          "objectnummer": 205999,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2015,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 375,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "PVC",
+          "bob_beginpunt": -0.81999999,
+          "bob_eindpunt": -0.81999999,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "000129F5-3505-4966-ACE7-0C507F5BB469",
+          "globalid_eindknoop": "000129F5-3505-4966-ACE7-0C507F5BB469",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.00D45E94-67A3-447A-9A8E-B4DCEC7CE03C",
+        "geometry_name": "00D45E94-67A3-447A-9A8E-B4DCEC7CE03C",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.898674577822267,
+              52.33954470248966,
+              -0.90499997
+            ],
+            [
+              4.8989751060875,
+              52.339529944472254,
+              -0.95500004
+            ]
+          ]
+        },
+        "properties": {
+          "name": "00D45E94-67A3-447A-9A8E-B4DCEC7CE03C",
+          "globalid": "00D45E94-67A3-447A-9A8E-B4DCEC7CE03C",
+          "objectnummer": 153056,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1952,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 250,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -1.02999997,
+          "bob_eindpunt": -1.08000004,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "00D45E94-67A3-447A-9A8E-B4DCEC7CE03C",
+          "globalid_eindknoop": "00D45E94-67A3-447A-9A8E-B4DCEC7CE03C",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.09FC2CBC-7831-4B85-935B-07195D319F3E",
+        "geometry_name": "09FC2CBC-7831-4B85-935B-07195D319F3E",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.898610230464266,
+              52.33953841509642,
+              -0.51499999
+            ],
+            [
+              4.898854086114484,
+              52.33952665900326,
+              -0.47500002
+            ]
+          ]
+        },
+        "properties": {
+          "name": "09FC2CBC-7831-4B85-935B-07195D319F3E",
+          "globalid": "09FC2CBC-7831-4B85-935B-07195D319F3E",
+          "objectnummer": 153646,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1975,
+          "soort": "Rioolleiding",
+          "type_leiding": "Vuilwaterriool",
+          "vorm": "Rond",
+          "diameter": 250,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -0.63999999,
+          "bob_eindpunt": -0.60000002,
+          "stelsel_type": "Vuilwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "09FC2CBC-7831-4B85-935B-07195D319F3E",
+          "globalid_eindknoop": "09FC2CBC-7831-4B85-935B-07195D319F3E",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.0B93E18E-5A44-47CF-8BA5-25DDD80677D4",
+        "geometry_name": "0B93E18E-5A44-47CF-8BA5-25DDD80677D4",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.898994397643693,
+              52.339989772613045,
+              0
+            ],
+            [
+              4.898996127831657,
+              52.340004570015054,
+              0
+            ],
+            [
+              4.898992775070814,
+              52.340012695503006,
+              0
+            ],
+            [
+              4.898982452380199,
+              52.340022685060354,
+              0
+            ]
+          ]
+        },
+        "properties": {
+          "name": "0B93E18E-5A44-47CF-8BA5-25DDD80677D4",
+          "globalid": "0B93E18E-5A44-47CF-8BA5-25DDD80677D4",
+          "objectnummer": 284045,
+          "status": "In bedrijf",
+          "jaar_gelegd": null,
+          "soort": "Aansluitleiding",
+          "type_leiding": "DWA perceelaansluitleiding",
+          "vorm": "Rond",
+          "diameter": 116,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "PVC",
+          "bob_beginpunt": null,
+          "bob_eindpunt": null,
+          "stelsel_type": null,
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "0B93E18E-5A44-47CF-8BA5-25DDD80677D4",
+          "globalid_eindknoop": "0B93E18E-5A44-47CF-8BA5-25DDD80677D4",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.0C0BC511-DA92-4316-9F7D-A21622927895",
+        "geometry_name": "0C0BC511-DA92-4316-9F7D-A21622927895",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.898855568717955,
+              52.340339069112645,
+              -0.60500002
+            ],
+            [
+              4.898510267222192,
+              52.340354990118996,
+              -0.61500001
+            ]
+          ]
+        },
+        "properties": {
+          "name": "0C0BC511-DA92-4316-9F7D-A21622927895",
+          "globalid": "0C0BC511-DA92-4316-9F7D-A21622927895",
+          "objectnummer": 153770,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1952,
+          "soort": "Rioolleiding",
+          "type_leiding": "Vuilwaterriool",
+          "vorm": "Rond",
+          "diameter": 250,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -0.73000002,
+          "bob_eindpunt": -0.74000001,
+          "stelsel_type": "Vuilwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "0C0BC511-DA92-4316-9F7D-A21622927895",
+          "globalid_eindknoop": "0C0BC511-DA92-4316-9F7D-A21622927895",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.0CDC1BEF-C744-468D-875B-14DE56FEB347",
+        "geometry_name": "0CDC1BEF-C744-468D-875B-14DE56FEB347",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.898997214662018,
+              52.33978789462837,
+              -1.08500004
+            ],
+            [
+              4.899202785235053,
+              52.33977508108064,
+              -1.13499999
+            ]
+          ]
+        },
+        "properties": {
+          "name": "0CDC1BEF-C744-468D-875B-14DE56FEB347",
+          "globalid": "0CDC1BEF-C744-468D-875B-14DE56FEB347",
+          "objectnummer": 152692,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1952,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 250,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -1.21000004,
+          "bob_eindpunt": -1.25999999,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "0CDC1BEF-C744-468D-875B-14DE56FEB347",
+          "globalid_eindknoop": "0CDC1BEF-C744-468D-875B-14DE56FEB347",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.11247890-1481-4D60-A887-865BC38F97D8",
+        "geometry_name": "11247890-1481-4D60-A887-865BC38F97D8",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.898888108673958,
+              52.339781962049216,
+              -0.36500001
+            ],
+            [
+              4.899185520621289,
+              52.33977051612189,
+              -0.315
+            ]
+          ]
+        },
+        "properties": {
+          "name": "11247890-1481-4D60-A887-865BC38F97D8",
+          "globalid": "11247890-1481-4D60-A887-865BC38F97D8",
+          "objectnummer": 153637,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1975,
+          "soort": "Rioolleiding",
+          "type_leiding": "Vuilwaterriool",
+          "vorm": "Rond",
+          "diameter": 250,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -0.49000001,
+          "bob_eindpunt": -0.44,
+          "stelsel_type": "Vuilwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "11247890-1481-4D60-A887-865BC38F97D8",
+          "globalid_eindknoop": "11247890-1481-4D60-A887-865BC38F97D8",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.196A0C90-1C86-4DB0-B6D6-883AA849F5C1",
+        "geometry_name": "196A0C90-1C86-4DB0-B6D6-883AA849F5C1",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.898982452380199,
+              52.340022685060354,
+              0
+            ],
+            [
+              4.898951406014911,
+              52.34005803617577,
+              0
+            ]
+          ]
+        },
+        "properties": {
+          "name": "196A0C90-1C86-4DB0-B6D6-883AA849F5C1",
+          "globalid": "196A0C90-1C86-4DB0-B6D6-883AA849F5C1",
+          "objectnummer": 271328,
+          "status": "In bedrijf",
+          "jaar_gelegd": null,
+          "soort": "Aansluitleiding",
+          "type_leiding": "DWA perceelaansluitleiding",
+          "vorm": "Rond",
+          "diameter": 116,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "PVC",
+          "bob_beginpunt": null,
+          "bob_eindpunt": null,
+          "stelsel_type": null,
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "196A0C90-1C86-4DB0-B6D6-883AA849F5C1",
+          "globalid_eindknoop": "196A0C90-1C86-4DB0-B6D6-883AA849F5C1",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.1C989FBB-A30A-4A5F-B90A-0D1FA364C1A3",
+        "geometry_name": "1C989FBB-A30A-4A5F-B90A-0D1FA364C1A3",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.898888108673916,
+              52.33978196205063,
+              -0.35499999
+            ],
+            [
+              4.898613576391882,
+              52.339794400460526,
+              -0.46499997
+            ]
+          ]
+        },
+        "properties": {
+          "name": "1C989FBB-A30A-4A5F-B90A-0D1FA364C1A3",
+          "globalid": "1C989FBB-A30A-4A5F-B90A-0D1FA364C1A3",
+          "objectnummer": 153645,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1975,
+          "soort": "Rioolleiding",
+          "type_leiding": "Vuilwaterriool",
+          "vorm": "Rond",
+          "diameter": 250,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -0.47999999,
+          "bob_eindpunt": -0.58999997,
+          "stelsel_type": "Vuilwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "1C989FBB-A30A-4A5F-B90A-0D1FA364C1A3",
+          "globalid_eindknoop": "1C989FBB-A30A-4A5F-B90A-0D1FA364C1A3",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.24FF397E-7C11-48DD-9064-D1E075DFB6BE",
+        "geometry_name": "24FF397E-7C11-48DD-9064-D1E075DFB6BE",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.893399586785394,
+              52.33954680697238,
+              0
+            ],
+            [
+              4.899109757223202,
+              52.33928099967727,
+              0
+            ]
+          ]
+        },
+        "properties": {
+          "name": "24FF397E-7C11-48DD-9064-D1E075DFB6BE",
+          "globalid": "24FF397E-7C11-48DD-9064-D1E075DFB6BE",
+          "objectnummer": 152108,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1958,
+          "soort": "Transportleiding",
+          "type_leiding": "Hoofdpersleiding bypass",
+          "vorm": "Rond",
+          "diameter": 500,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "GY",
+          "bob_beginpunt": null,
+          "bob_eindpunt": null,
+          "stelsel_type": "Vuilwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "24FF397E-7C11-48DD-9064-D1E075DFB6BE",
+          "globalid_eindknoop": "24FF397E-7C11-48DD-9064-D1E075DFB6BE",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.26374E1E-2DA8-43AA-A0AD-8A0828A7B873",
+        "geometry_name": "26374E1E-2DA8-43AA-A0AD-8A0828A7B873",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899187419383947,
+              52.33965116638896,
+              -0.67500001
+            ],
+            [
+              4.899170955861009,
+              52.33952032651124,
+              -0.745
+            ]
+          ]
+        },
+        "properties": {
+          "name": "26374E1E-2DA8-43AA-A0AD-8A0828A7B873",
+          "globalid": "26374E1E-2DA8-43AA-A0AD-8A0828A7B873",
+          "objectnummer": 152690,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1952,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 250,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -0.80000001,
+          "bob_eindpunt": -0.87,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "26374E1E-2DA8-43AA-A0AD-8A0828A7B873",
+          "globalid_eindknoop": "26374E1E-2DA8-43AA-A0AD-8A0828A7B873",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.316DF2CE-23FF-4C5D-853C-6C1FDBFA22A4",
+        "geometry_name": "316DF2CE-23FF-4C5D-853C-6C1FDBFA22A4",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.89913954830217,
+              52.33929397495742,
+              -0.63499999
+            ],
+            [
+              4.89915475625141,
+              52.33939218407385,
+              -0.61500001
+            ]
+          ]
+        },
+        "properties": {
+          "name": "316DF2CE-23FF-4C5D-853C-6C1FDBFA22A4",
+          "globalid": "316DF2CE-23FF-4C5D-853C-6C1FDBFA22A4",
+          "objectnummer": 152687,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1964,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 250,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -0.75999999,
+          "bob_eindpunt": -0.74000001,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "316DF2CE-23FF-4C5D-853C-6C1FDBFA22A4",
+          "globalid_eindknoop": "316DF2CE-23FF-4C5D-853C-6C1FDBFA22A4",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.33252F1B-6C15-49AB-BCB2-FB40DF0A425D",
+        "geometry_name": "33252F1B-6C15-49AB-BCB2-FB40DF0A425D",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.898975106089194,
+              52.33952994441409,
+              -1.36500001
+            ],
+            [
+              4.899170955863238,
+              52.33952032643464,
+              -1.28499997
+            ]
+          ]
+        },
+        "properties": {
+          "name": "33252F1B-6C15-49AB-BCB2-FB40DF0A425D",
+          "globalid": "33252F1B-6C15-49AB-BCB2-FB40DF0A425D",
+          "objectnummer": 153057,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1952,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 250,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -1.49000001,
+          "bob_eindpunt": -1.40999997,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "33252F1B-6C15-49AB-BCB2-FB40DF0A425D",
+          "globalid_eindknoop": "33252F1B-6C15-49AB-BCB2-FB40DF0A425D",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.336E6DBA-C127-45F7-BBAD-E6C8E627A1B1",
+        "geometry_name": "336E6DBA-C127-45F7-BBAD-E6C8E627A1B1",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899569322345351,
+              52.340172493089,
+              -0.91250002
+            ],
+            [
+              4.899517484393817,
+              52.34006003221692,
+              -0.8125
+            ]
+          ]
+        },
+        "properties": {
+          "name": "336E6DBA-C127-45F7-BBAD-E6C8E627A1B1",
+          "globalid": "336E6DBA-C127-45F7-BBAD-E6C8E627A1B1",
+          "objectnummer": 205997,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2015,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 375,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "PVC",
+          "bob_beginpunt": -1.10000002,
+          "bob_eindpunt": -1.0,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "336E6DBA-C127-45F7-BBAD-E6C8E627A1B1",
+          "globalid_eindknoop": "336E6DBA-C127-45F7-BBAD-E6C8E627A1B1",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.40C0AF1D-547F-4EA8-99DD-9A336F98614A",
+        "geometry_name": "40C0AF1D-547F-4EA8-99DD-9A336F98614A",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899238023976868,
+              52.34006678948856,
+              -0.86249995
+            ],
+            [
+              4.899517484396332,
+              52.34006003213039,
+              -1.42250001
+            ]
+          ]
+        },
+        "properties": {
+          "name": "40C0AF1D-547F-4EA8-99DD-9A336F98614A",
+          "globalid": "40C0AF1D-547F-4EA8-99DD-9A336F98614A",
+          "objectnummer": 205996,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2015,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 375,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "PVC",
+          "bob_beginpunt": -1.04999995,
+          "bob_eindpunt": -1.61000001,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "40C0AF1D-547F-4EA8-99DD-9A336F98614A",
+          "globalid_eindknoop": "40C0AF1D-547F-4EA8-99DD-9A336F98614A",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.40E99B51-6D04-4389-AF86-347419364AF2",
+        "geometry_name": "40E99B51-6D04-4389-AF86-347419364AF2",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899899011459244,
+              52.34021933908772,
+              -0.7215
+            ],
+            [
+              4.899573885374647,
+              52.34022878520563,
+              -0.70150002
+            ]
+          ]
+        },
+        "properties": {
+          "name": "40E99B51-6D04-4389-AF86-347419364AF2",
+          "globalid": "40E99B51-6D04-4389-AF86-347419364AF2",
+          "objectnummer": 152700,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2002,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 297,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "PVC",
+          "bob_beginpunt": -0.87,
+          "bob_eindpunt": -0.85000002,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "40E99B51-6D04-4389-AF86-347419364AF2",
+          "globalid_eindknoop": "40E99B51-6D04-4389-AF86-347419364AF2",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.41257068-5A12-4903-A6DD-F2C063587704",
+        "geometry_name": "41257068-5A12-4903-A6DD-F2C063587704",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.898335117062907,
+              52.34039003803391,
+              -0.57499999
+            ],
+            [
+              4.898717414831351,
+              52.34037247270767,
+              -0.495
+            ]
+          ]
+        },
+        "properties": {
+          "name": "41257068-5A12-4903-A6DD-F2C063587704",
+          "globalid": "41257068-5A12-4903-A6DD-F2C063587704",
+          "objectnummer": 152667,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1952,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 250,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -0.69999999,
+          "bob_eindpunt": -0.62,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "41257068-5A12-4903-A6DD-F2C063587704",
+          "globalid_eindknoop": "41257068-5A12-4903-A6DD-F2C063587704",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.465195B8-2EB9-4CC5-B6EA-DEF91413A52C",
+        "geometry_name": "465195B8-2EB9-4CC5-B6EA-DEF91413A52C",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899658530884687,
+              52.34044457036632,
+              -2.55000005
+            ],
+            [
+              4.899519152091674,
+              52.34033569355852,
+              -2.4599999
+            ]
+          ]
+        },
+        "properties": {
+          "name": "465195B8-2EB9-4CC5-B6EA-DEF91413A52C",
+          "globalid": "465195B8-2EB9-4CC5-B6EA-DEF91413A52C",
+          "objectnummer": 152578,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2002,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 800,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -2.95000005,
+          "bob_eindpunt": -2.8599999,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "465195B8-2EB9-4CC5-B6EA-DEF91413A52C",
+          "globalid_eindknoop": "465195B8-2EB9-4CC5-B6EA-DEF91413A52C",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.50272A31-72EE-4346-AFF5-6E34B5799D7C",
+        "geometry_name": "50272A31-72EE-4346-AFF5-6E34B5799D7C",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899187419384029,
+              52.339651166386126,
+              -0.69499999
+            ],
+            [
+              4.899202785232783,
+              52.339775081158656,
+              -0.58499998
+            ]
+          ]
+        },
+        "properties": {
+          "name": "50272A31-72EE-4346-AFF5-6E34B5799D7C",
+          "globalid": "50272A31-72EE-4346-AFF5-6E34B5799D7C",
+          "objectnummer": 152689,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1952,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 250,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -0.81999999,
+          "bob_eindpunt": -0.70999998,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "50272A31-72EE-4346-AFF5-6E34B5799D7C",
+          "globalid_eindknoop": "50272A31-72EE-4346-AFF5-6E34B5799D7C",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.5DE249CA-2CFE-4536-B86A-211474DDF967",
+        "geometry_name": "5DE249CA-2CFE-4536-B86A-211474DDF967",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.898997214659659,
+              52.33978789470923,
+              -0.51499999
+            ],
+            [
+              4.898700242736228,
+              52.339799341958674,
+              -0.71499997
+            ]
+          ]
+        },
+        "properties": {
+          "name": "5DE249CA-2CFE-4536-B86A-211474DDF967",
+          "globalid": "5DE249CA-2CFE-4536-B86A-211474DDF967",
+          "objectnummer": 153055,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1952,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 250,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -0.63999999,
+          "bob_eindpunt": -0.83999997,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "5DE249CA-2CFE-4536-B86A-211474DDF967",
+          "globalid_eindknoop": "5DE249CA-2CFE-4536-B86A-211474DDF967",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.6AB414FB-0698-41B4-9411-0FE36E61078E",
+        "geometry_name": "6AB414FB-0698-41B4-9411-0FE36E61078E",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.89949071712421,
+              52.34003889060308,
+              -0.383
+            ],
+            [
+              4.899521948214684,
+              52.34017464466472,
+              -0.33299999
+            ]
+          ]
+        },
+        "properties": {
+          "name": "6AB414FB-0698-41B4-9411-0FE36E61078E",
+          "globalid": "6AB414FB-0698-41B4-9411-0FE36E61078E",
+          "objectnummer": 206022,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2015,
+          "soort": "Rioolleiding",
+          "type_leiding": "Vuilwaterriool",
+          "vorm": "Rond",
+          "diameter": 234,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "PVC",
+          "bob_beginpunt": -0.5,
+          "bob_eindpunt": -0.44999999,
+          "stelsel_type": "Vuilwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "6AB414FB-0698-41B4-9411-0FE36E61078E",
+          "globalid_eindknoop": "6AB414FB-0698-41B4-9411-0FE36E61078E",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.76BEC29C-C0F0-47B6-B4E2-191E8486268B",
+        "geometry_name": "76BEC29C-C0F0-47B6-B4E2-191E8486268B",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.898823208738973,
+              52.33999756331445,
+              0
+            ],
+            [
+              4.898824938870151,
+              52.340012360718895,
+              0
+            ],
+            [
+              4.898828097445917,
+              52.3400202910749,
+              0
+            ],
+            [
+              4.898847172122552,
+              52.34002692276784,
+              0
+            ],
+            [
+              4.89894673963264,
+              52.34005284716192,
+              0
+            ],
+            [
+              4.898950881118653,
+              52.34005946576101,
+              0
+            ]
+          ]
+        },
+        "properties": {
+          "name": "76BEC29C-C0F0-47B6-B4E2-191E8486268B",
+          "globalid": "76BEC29C-C0F0-47B6-B4E2-191E8486268B",
+          "objectnummer": 265543,
+          "status": "In bedrijf",
+          "jaar_gelegd": null,
+          "soort": "Aansluitleiding",
+          "type_leiding": "DWA perceelaansluitleiding",
+          "vorm": "Rond",
+          "diameter": 116,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "PVC",
+          "bob_beginpunt": null,
+          "bob_eindpunt": null,
+          "stelsel_type": null,
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "76BEC29C-C0F0-47B6-B4E2-191E8486268B",
+          "globalid_eindknoop": "76BEC29C-C0F0-47B6-B4E2-191E8486268B",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.794D75C3-C626-418C-9317-F3C692C12ECE",
+        "geometry_name": "794D75C3-C626-418C-9317-F3C692C12ECE",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.89922557163409,
+              52.34033196709168,
+              -0.54300003
+            ],
+            [
+              4.89904141772353,
+              52.34033183674858,
+              -0.65299998
+            ]
+          ]
+        },
+        "properties": {
+          "name": "794D75C3-C626-418C-9317-F3C692C12ECE",
+          "globalid": "794D75C3-C626-418C-9317-F3C692C12ECE",
+          "objectnummer": 153769,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2002,
+          "soort": "Rioolleiding",
+          "type_leiding": "Vuilwaterriool",
+          "vorm": "Rond",
+          "diameter": 234,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "PVC",
+          "bob_beginpunt": -0.66000003,
+          "bob_eindpunt": -0.76999998,
+          "stelsel_type": "Vuilwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "794D75C3-C626-418C-9317-F3C692C12ECE",
+          "globalid_eindknoop": "794D75C3-C626-418C-9317-F3C692C12ECE",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.7C7E4274-F621-4301-BBAD-D4CDAB93DD37",
+        "geometry_name": "7C7E4274-F621-4301-BBAD-D4CDAB93DD37",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.89950754055576,
+              52.34023057900011,
+              -0.74149999
+            ],
+            [
+              4.899573885374771,
+              52.34022878520137,
+              -0.7315
+            ]
+          ]
+        },
+        "properties": {
+          "name": "7C7E4274-F621-4301-BBAD-D4CDAB93DD37",
+          "globalid": "7C7E4274-F621-4301-BBAD-D4CDAB93DD37",
+          "objectnummer": 152701,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2002,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 297,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "PVC",
+          "bob_beginpunt": -0.88999999,
+          "bob_eindpunt": -0.88,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "7C7E4274-F621-4301-BBAD-D4CDAB93DD37",
+          "globalid_eindknoop": "7C7E4274-F621-4301-BBAD-D4CDAB93DD37",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.7D26990E-D1C0-4ABA-BBBB-B5C6F5BEA841",
+        "geometry_name": "7D26990E-D1C0-4ABA-BBBB-B5C6F5BEA841",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.89915475625141,
+              52.33939218407385,
+              -0.61500001
+            ],
+            [
+              4.89917095586014,
+              52.33952032654103,
+              -0.53500003
+            ]
+          ]
+        },
+        "properties": {
+          "name": "7D26990E-D1C0-4ABA-BBBB-B5C6F5BEA841",
+          "globalid": "7D26990E-D1C0-4ABA-BBBB-B5C6F5BEA841",
+          "objectnummer": 152688,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1964,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 250,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -0.74000001,
+          "bob_eindpunt": -0.66000003,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "7D26990E-D1C0-4ABA-BBBB-B5C6F5BEA841",
+          "globalid_eindknoop": "7D26990E-D1C0-4ABA-BBBB-B5C6F5BEA841",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.835ED618-0469-4117-9817-0FE14E607A78",
+        "geometry_name": "835ED618-0469-4117-9817-0FE14E607A78",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.898645249837311,
+              52.340076387476486,
+              -0.71299998
+            ],
+            [
+              4.898951345583791,
+              52.340062731044526,
+              -0.633
+            ]
+          ]
+        },
+        "properties": {
+          "name": "835ED618-0469-4117-9817-0FE14E607A78",
+          "globalid": "835ED618-0469-4117-9817-0FE14E607A78",
+          "objectnummer": 206019,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2015,
+          "soort": "Rioolleiding",
+          "type_leiding": "Vuilwaterriool",
+          "vorm": "Rond",
+          "diameter": 234,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "PVC",
+          "bob_beginpunt": -0.82999998,
+          "bob_eindpunt": -0.75,
+          "stelsel_type": "Vuilwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "835ED618-0469-4117-9817-0FE14E607A78",
+          "globalid_eindknoop": "835ED618-0469-4117-9817-0FE14E607A78",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.8B3156A8-8F68-4E5E-B683-2F12D670FA66",
+        "geometry_name": "8B3156A8-8F68-4E5E-B683-2F12D670FA66",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899006104241089,
+              52.33998924029619,
+              0
+            ],
+            [
+              4.899007834432882,
+              52.34000403769809,
+              0
+            ],
+            [
+              4.89899508642223,
+              52.34002174672864,
+              0
+            ],
+            [
+              4.898954377446178,
+              52.34005790103553,
+              0
+            ]
+          ]
+        },
+        "properties": {
+          "name": "8B3156A8-8F68-4E5E-B683-2F12D670FA66",
+          "globalid": "8B3156A8-8F68-4E5E-B683-2F12D670FA66",
+          "objectnummer": 268958,
+          "status": "In bedrijf",
+          "jaar_gelegd": null,
+          "soort": "Aansluitleiding",
+          "type_leiding": "DWA perceelaansluitleiding",
+          "vorm": "Rond",
+          "diameter": 116,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "PVC",
+          "bob_beginpunt": null,
+          "bob_eindpunt": null,
+          "stelsel_type": null,
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "8B3156A8-8F68-4E5E-B683-2F12D670FA66",
+          "globalid_eindknoop": "8B3156A8-8F68-4E5E-B683-2F12D670FA66",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.94142C97-AAB5-400B-AA72-6A6B74264DA8",
+        "geometry_name": "94142C97-AAB5-400B-AA72-6A6B74264DA8",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899153447290454,
+              52.33951126659071,
+              -0.40499997
+            ],
+            [
+              4.899122419201765,
+              52.33925040356237,
+              -0.40499997
+            ]
+          ]
+        },
+        "properties": {
+          "name": "94142C97-AAB5-400B-AA72-6A6B74264DA8",
+          "globalid": "94142C97-AAB5-400B-AA72-6A6B74264DA8",
+          "objectnummer": 153638,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1975,
+          "soort": "Rioolleiding",
+          "type_leiding": "Vuilwaterriool",
+          "vorm": "Rond",
+          "diameter": 250,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -0.52999997,
+          "bob_eindpunt": -0.52999997,
+          "stelsel_type": "Vuilwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "94142C97-AAB5-400B-AA72-6A6B74264DA8",
+          "globalid_eindknoop": "94142C97-AAB5-400B-AA72-6A6B74264DA8",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.971E4955-DA22-4766-8F87-F76B651C2D88",
+        "geometry_name": "971E4955-DA22-4766-8F87-F76B651C2D88",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899209734222591,
+              52.34005067467674,
+              -0.46299998
+            ],
+            [
+              4.89949071712421,
+              52.34003889060308,
+              -0.383
+            ]
+          ]
+        },
+        "properties": {
+          "name": "971E4955-DA22-4766-8F87-F76B651C2D88",
+          "globalid": "971E4955-DA22-4766-8F87-F76B651C2D88",
+          "objectnummer": 206021,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2015,
+          "soort": "Rioolleiding",
+          "type_leiding": "Vuilwaterriool",
+          "vorm": "Rond",
+          "diameter": 234,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "PVC",
+          "bob_beginpunt": -0.57999998,
+          "bob_eindpunt": -0.5,
+          "stelsel_type": "Vuilwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "971E4955-DA22-4766-8F87-F76B651C2D88",
+          "globalid_eindknoop": "971E4955-DA22-4766-8F87-F76B651C2D88",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.9930E61D-A139-4CB2-A659-16B5A34BB53C",
+        "geometry_name": "9930E61D-A139-4CB2-A659-16B5A34BB53C",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899573885375465,
+              52.34022878517747,
+              -0.90000002
+            ],
+            [
+              4.899570797515867,
+              52.34017592440576,
+              -0.90000002
+            ]
+          ]
+        },
+        "properties": {
+          "name": "9930E61D-A139-4CB2-A659-16B5A34BB53C",
+          "globalid": "9930E61D-A139-4CB2-A659-16B5A34BB53C",
+          "objectnummer": 193291,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2014,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 400,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -1.10000002,
+          "bob_eindpunt": -1.10000002,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "9930E61D-A139-4CB2-A659-16B5A34BB53C",
+          "globalid_eindknoop": "9930E61D-A139-4CB2-A659-16B5A34BB53C",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.9E27FE1E-310C-46A1-9826-62556250EA88",
+        "geometry_name": "9E27FE1E-310C-46A1-9826-62556250EA88",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.901247895583364,
+              52.340225604173526,
+              -4.0500001
+            ],
+            [
+              4.899101486897507,
+              52.34032696109708,
+              -3.4
+            ]
+          ]
+        },
+        "properties": {
+          "name": "9E27FE1E-310C-46A1-9826-62556250EA88",
+          "globalid": "9E27FE1E-310C-46A1-9826-62556250EA88",
+          "objectnummer": 154105,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2002,
+          "soort": "Transportleiding",
+          "type_leiding": "Hoofdpersleiding",
+          "vorm": "Rond",
+          "diameter": 1200,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -4.6500001,
+          "bob_eindpunt": -4.0,
+          "stelsel_type": "Vuilwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "9E27FE1E-310C-46A1-9826-62556250EA88",
+          "globalid_eindknoop": "9E27FE1E-310C-46A1-9826-62556250EA88",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.A0083BC0-A77E-4C21-ABCC-0F3E466E8EBA",
+        "geometry_name": "A0083BC0-A77E-4C21-ABCC-0F3E466E8EBA",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.898717414831309,
+              52.34037247270909,
+              -0.48500001
+            ],
+            [
+              4.89898491153858,
+              52.340359645477875,
+              -0.63499999
+            ]
+          ]
+        },
+        "properties": {
+          "name": "A0083BC0-A77E-4C21-ABCC-0F3E466E8EBA",
+          "globalid": "A0083BC0-A77E-4C21-ABCC-0F3E466E8EBA",
+          "objectnummer": 152668,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1952,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 250,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -0.61000001,
+          "bob_eindpunt": -0.75999999,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "A0083BC0-A77E-4C21-ABCC-0F3E466E8EBA",
+          "globalid_eindknoop": "A0083BC0-A77E-4C21-ABCC-0F3E466E8EBA",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.A387F094-7CF8-4E09-95EB-D9ECD44E973F",
+        "geometry_name": "A387F094-7CF8-4E09-95EB-D9ECD44E973F",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.898817720769285,
+              52.33999796668682,
+              0
+            ],
+            [
+              4.898819085567353,
+              52.340012626868514,
+              0
+            ],
+            [
+              4.898826366584126,
+              52.340020367518306,
+              0
+            ],
+            [
+              4.898843055432128,
+              52.340027790176,
+              0
+            ],
+            [
+              4.898929167036651,
+              52.34004332312858,
+              0
+            ],
+            [
+              4.898933690197876,
+              52.34008061584514,
+              0
+            ]
+          ]
+        },
+        "properties": {
+          "name": "A387F094-7CF8-4E09-95EB-D9ECD44E973F",
+          "globalid": "A387F094-7CF8-4E09-95EB-D9ECD44E973F",
+          "objectnummer": 258382,
+          "status": "In bedrijf",
+          "jaar_gelegd": null,
+          "soort": "Aansluitleiding",
+          "type_leiding": "HWA perceelaansluitleiding",
+          "vorm": "Rond",
+          "diameter": 116,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "PVC",
+          "bob_beginpunt": null,
+          "bob_eindpunt": null,
+          "stelsel_type": null,
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "A387F094-7CF8-4E09-95EB-D9ECD44E973F",
+          "globalid_eindknoop": "A387F094-7CF8-4E09-95EB-D9ECD44E973F",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.A40BF268-9531-41F3-9FC1-47B49549A3A0",
+        "geometry_name": "A40BF268-9531-41F3-9FC1-47B49549A3A0",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899000230607824,
+              52.33998948749654,
+              0
+            ],
+            [
+              4.899001981132304,
+              52.340004303856716,
+              0
+            ],
+            [
+              4.898995365861271,
+              52.340012747534495,
+              0
+            ],
+            [
+              4.898934233594813,
+              52.340043078893345,
+              0
+            ],
+            [
+              4.898939021022221,
+              52.340080359218355,
+              0
+            ]
+          ]
+        },
+        "properties": {
+          "name": "A40BF268-9531-41F3-9FC1-47B49549A3A0",
+          "globalid": "A40BF268-9531-41F3-9FC1-47B49549A3A0",
+          "objectnummer": 251677,
+          "status": "In bedrijf",
+          "jaar_gelegd": null,
+          "soort": "Aansluitleiding",
+          "type_leiding": "HWA perceelaansluitleiding",
+          "vorm": "Rond",
+          "diameter": 116,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "PVC",
+          "bob_beginpunt": null,
+          "bob_eindpunt": null,
+          "stelsel_type": null,
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "A40BF268-9531-41F3-9FC1-47B49549A3A0",
+          "globalid_eindknoop": "A40BF268-9531-41F3-9FC1-47B49549A3A0",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.A410FAB0-327B-40A3-AADE-D8D78F9BD04B",
+        "geometry_name": "A410FAB0-327B-40A3-AADE-D8D78F9BD04B",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.898855568717955,
+              52.340339069112645,
+              -0.60500002
+            ],
+            [
+              4.89904141772329,
+              52.340331836756825,
+              -0.59500003
+            ]
+          ]
+        },
+        "properties": {
+          "name": "A410FAB0-327B-40A3-AADE-D8D78F9BD04B",
+          "globalid": "A410FAB0-327B-40A3-AADE-D8D78F9BD04B",
+          "objectnummer": 153771,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1975,
+          "soort": "Rioolleiding",
+          "type_leiding": "Vuilwaterriool",
+          "vorm": "Rond",
+          "diameter": 250,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -0.73000002,
+          "bob_eindpunt": -0.72000003,
+          "stelsel_type": "Vuilwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "A410FAB0-327B-40A3-AADE-D8D78F9BD04B",
+          "globalid_eindknoop": "A410FAB0-327B-40A3-AADE-D8D78F9BD04B",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.A76C30E7-EE1D-4F61-A268-1D61901242CA",
+        "geometry_name": "A76C30E7-EE1D-4F61-A268-1D61901242CA",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899132605677188,
+              52.340352704953695,
+              -0.65499997
+            ],
+            [
+              4.899519152084767,
+              52.34033569379614,
+              -0.78500003
+            ]
+          ]
+        },
+        "properties": {
+          "name": "A76C30E7-EE1D-4F61-A268-1D61901242CA",
+          "globalid": "A76C30E7-EE1D-4F61-A268-1D61901242CA",
+          "objectnummer": 152669,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1952,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 250,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -0.77999997,
+          "bob_eindpunt": -0.91000003,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "A76C30E7-EE1D-4F61-A268-1D61901242CA",
+          "globalid_eindknoop": "A76C30E7-EE1D-4F61-A268-1D61901242CA",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.A7981CF2-9808-4096-B871-568EBAFC8E49",
+        "geometry_name": "A7981CF2-9808-4096-B871-568EBAFC8E49",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.898434520957829,
+              52.33981118716769,
+              -0.89499998
+            ],
+            [
+              4.898700242736228,
+              52.339799341958674,
+              -0.71499997
+            ]
+          ]
+        },
+        "properties": {
+          "name": "A7981CF2-9808-4096-B871-568EBAFC8E49",
+          "globalid": "A7981CF2-9808-4096-B871-568EBAFC8E49",
+          "objectnummer": 153050,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1952,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 250,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -1.01999998,
+          "bob_eindpunt": -0.83999997,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "A7981CF2-9808-4096-B871-568EBAFC8E49",
+          "globalid_eindknoop": "A7981CF2-9808-4096-B871-568EBAFC8E49",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.B579E08A-F268-49F9-980E-A7F8915C34DA",
+        "geometry_name": "B579E08A-F268-49F9-980E-A7F8915C34DA",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.898431732836336,
+              52.34010444637133,
+              -1.14250004
+            ],
+            [
+              4.899238023977818,
+              52.340066789455946,
+              -1.09249997
+            ]
+          ]
+        },
+        "properties": {
+          "name": "B579E08A-F268-49F9-980E-A7F8915C34DA",
+          "globalid": "B579E08A-F268-49F9-980E-A7F8915C34DA",
+          "objectnummer": 205994,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2015,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 375,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "PVC",
+          "bob_beginpunt": -1.33000004,
+          "bob_eindpunt": -1.27999997,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "B579E08A-F268-49F9-980E-A7F8915C34DA",
+          "globalid_eindknoop": "B579E08A-F268-49F9-980E-A7F8915C34DA",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.BCD37919-E572-4CC8-9A35-DB9333E966B0",
+        "geometry_name": "BCD37919-E572-4CC8-9A35-DB9333E966B0",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899519152089201,
+              52.340335693643645,
+              -1.85999999
+            ],
+            [
+              4.89950754056029,
+              52.340230578844285,
+              -1.84000001
+            ]
+          ]
+        },
+        "properties": {
+          "name": "BCD37919-E572-4CC8-9A35-DB9333E966B0",
+          "globalid": "BCD37919-E572-4CC8-9A35-DB9333E966B0",
+          "objectnummer": 152672,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2002,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 800,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -2.25999999,
+          "bob_eindpunt": -2.24000001,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "BCD37919-E572-4CC8-9A35-DB9333E966B0",
+          "globalid_eindknoop": "BCD37919-E572-4CC8-9A35-DB9333E966B0",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.BEE0D1FB-DBDB-4652-8492-DA41D4792D34",
+        "geometry_name": "BEE0D1FB-DBDB-4652-8492-DA41D4792D34",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.898811502137246,
+              52.339998095613154,
+              0
+            ],
+            [
+              4.898813232264542,
+              52.34001289301782,
+              0
+            ],
+            [
+              4.898824261920627,
+              52.34001987619,
+              0
+            ],
+            [
+              4.898838669981918,
+              52.340028145071244,
+              0
+            ],
+            [
+              4.898943044667312,
+              52.34005419446253,
+              0
+            ],
+            [
+              4.898947475047014,
+              52.340059227913315,
+              0
+            ]
+          ]
+        },
+        "properties": {
+          "name": "BEE0D1FB-DBDB-4652-8492-DA41D4792D34",
+          "globalid": "BEE0D1FB-DBDB-4652-8492-DA41D4792D34",
+          "objectnummer": 285201,
+          "status": "In bedrijf",
+          "jaar_gelegd": null,
+          "soort": "Aansluitleiding",
+          "type_leiding": "DWA perceelaansluitleiding",
+          "vorm": "Rond",
+          "diameter": 116,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "PVC",
+          "bob_beginpunt": null,
+          "bob_eindpunt": null,
+          "stelsel_type": null,
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "BEE0D1FB-DBDB-4652-8492-DA41D4792D34",
+          "globalid_eindknoop": "BEE0D1FB-DBDB-4652-8492-DA41D4792D34",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.C04C8733-359D-4349-AC97-D4F477162654",
+        "geometry_name": "C04C8733-359D-4349-AC97-D4F477162654",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.898951345583376,
+              52.3400627310587,
+              -0.53299998
+            ],
+            [
+              4.899209734222591,
+              52.34005067467674,
+              -0.46299998
+            ]
+          ]
+        },
+        "properties": {
+          "name": "C04C8733-359D-4349-AC97-D4F477162654",
+          "globalid": "C04C8733-359D-4349-AC97-D4F477162654",
+          "objectnummer": 206020,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2015,
+          "soort": "Rioolleiding",
+          "type_leiding": "Vuilwaterriool",
+          "vorm": "Rond",
+          "diameter": 234,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "PVC",
+          "bob_beginpunt": -0.64999998,
+          "bob_eindpunt": -0.57999998,
+          "stelsel_type": "Vuilwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "C04C8733-359D-4349-AC97-D4F477162654",
+          "globalid_eindknoop": "C04C8733-359D-4349-AC97-D4F477162654",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.C93154FE-EC50-4920-8CFD-B343D79F5884",
+        "geometry_name": "C93154FE-EC50-4920-8CFD-B343D79F5884",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.898906948678465,
+              52.34004354782606,
+              0
+            ],
+            [
+              4.898559525479274,
+              52.34005913665807,
+              0
+            ]
+          ]
+        },
+        "properties": {
+          "name": "C93154FE-EC50-4920-8CFD-B343D79F5884",
+          "globalid": "C93154FE-EC50-4920-8CFD-B343D79F5884",
+          "objectnummer": 287687,
+          "status": "Vervallen",
+          "jaar_gelegd": null,
+          "soort": null,
+          "type_leiding": null,
+          "vorm": null,
+          "diameter": null,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": null,
+          "bob_beginpunt": null,
+          "bob_eindpunt": null,
+          "stelsel_type": null,
+          "funderingstype": null,
+          "toelichting": null,
+          "globalid_beginknoop": "C93154FE-EC50-4920-8CFD-B343D79F5884",
+          "globalid_eindknoop": "C93154FE-EC50-4920-8CFD-B343D79F5884",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.CD5CB09D-3D3C-4472-B46B-724E124B76F1",
+        "geometry_name": "CD5CB09D-3D3C-4472-B46B-724E124B76F1",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899153447290454,
+              52.33951126659071,
+              -0.40499997
+            ],
+            [
+              4.898854086114484,
+              52.33952665900326,
+              -0.47500002
+            ]
+          ]
+        },
+        "properties": {
+          "name": "CD5CB09D-3D3C-4472-B46B-724E124B76F1",
+          "globalid": "CD5CB09D-3D3C-4472-B46B-724E124B76F1",
+          "objectnummer": 153639,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1975,
+          "soort": "Rioolleiding",
+          "type_leiding": "Vuilwaterriool",
+          "vorm": "Rond",
+          "diameter": 250,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -0.52999997,
+          "bob_eindpunt": -0.60000002,
+          "stelsel_type": "Vuilwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "CD5CB09D-3D3C-4472-B46B-724E124B76F1",
+          "globalid_eindknoop": "CD5CB09D-3D3C-4472-B46B-724E124B76F1",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.CFD4193D-51EF-4706-B587-53C215F6AC88",
+        "geometry_name": "CFD4193D-51EF-4706-B587-53C215F6AC88",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899238023977818,
+              52.340066789455946,
+              -1.09249997
+            ],
+            [
+              4.899225085254207,
+              52.33997569012304,
+              -0.63249999
+            ]
+          ]
+        },
+        "properties": {
+          "name": "CFD4193D-51EF-4706-B587-53C215F6AC88",
+          "globalid": "CFD4193D-51EF-4706-B587-53C215F6AC88",
+          "objectnummer": 205998,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2015,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 375,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "PVC",
+          "bob_beginpunt": -1.27999997,
+          "bob_eindpunt": -0.81999999,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "CFD4193D-51EF-4706-B587-53C215F6AC88",
+          "globalid_eindknoop": "CFD4193D-51EF-4706-B587-53C215F6AC88",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.D0AF50E4-5906-456D-86EB-050E48E9C6F8",
+        "geometry_name": "D0AF50E4-5906-456D-86EB-050E48E9C6F8",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899519152085552,
+              52.3403356937692,
+              -0.97500002
+            ],
+            [
+              4.899858497512994,
+              52.34035434823117,
+              -0.60500002
+            ]
+          ]
+        },
+        "properties": {
+          "name": "D0AF50E4-5906-456D-86EB-050E48E9C6F8",
+          "globalid": "D0AF50E4-5906-456D-86EB-050E48E9C6F8",
+          "objectnummer": 152671,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1940,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 250,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -1.10000002,
+          "bob_eindpunt": -0.73000002,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "D0AF50E4-5906-456D-86EB-050E48E9C6F8",
+          "globalid_eindknoop": "D0AF50E4-5906-456D-86EB-050E48E9C6F8",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.D3A39111-26D2-470A-8CD3-F4439FEBC922",
+        "geometry_name": "D3A39111-26D2-470A-8CD3-F4439FEBC922",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899132605677634,
+              52.340352704938354,
+              -0.763
+            ],
+            [
+              4.898984911538696,
+              52.3403596454739,
+              -0.66299997
+            ]
+          ]
+        },
+        "properties": {
+          "name": "D3A39111-26D2-470A-8CD3-F4439FEBC922",
+          "globalid": "D3A39111-26D2-470A-8CD3-F4439FEBC922",
+          "objectnummer": 152670,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2002,
+          "soort": "Rioolleiding",
+          "type_leiding": "Hemelwaterriool",
+          "vorm": "Rond",
+          "diameter": 234,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "PVC",
+          "bob_beginpunt": -0.88,
+          "bob_eindpunt": -0.77999997,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "D3A39111-26D2-470A-8CD3-F4439FEBC922",
+          "globalid_eindknoop": "D3A39111-26D2-470A-8CD3-F4439FEBC922",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.D3AE3AB7-AC85-4D96-8951-D9D84D6FBDA7",
+        "geometry_name": "D3AE3AB7-AC85-4D96-8951-D9D84D6FBDA7",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899539079074168,
+              52.34043882432026,
+              0
+            ],
+            [
+              4.899522624903544,
+              52.340351097965275,
+              0
+            ]
+          ]
+        },
+        "properties": {
+          "name": "D3AE3AB7-AC85-4D96-8951-D9D84D6FBDA7",
+          "globalid": "D3AE3AB7-AC85-4D96-8951-D9D84D6FBDA7",
+          "objectnummer": 281268,
+          "status": "Vervallen",
+          "jaar_gelegd": null,
+          "soort": null,
+          "type_leiding": null,
+          "vorm": null,
+          "diameter": null,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": null,
+          "bob_beginpunt": null,
+          "bob_eindpunt": null,
+          "stelsel_type": null,
+          "funderingstype": null,
+          "toelichting": null,
+          "globalid_beginknoop": "D3AE3AB7-AC85-4D96-8951-D9D84D6FBDA7",
+          "globalid_eindknoop": "D3AE3AB7-AC85-4D96-8951-D9D84D6FBDA7",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.E9097903-C15C-439C-8983-BEF7E08EFEC6",
+        "geometry_name": "E9097903-C15C-439C-8983-BEF7E08EFEC6",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899101486897507,
+              52.34032696109708,
+              -3.4
+            ],
+            [
+              4.89865687554804,
+              52.340766785202234,
+              -3.4
+            ]
+          ]
+        },
+        "properties": {
+          "name": "E9097903-C15C-439C-8983-BEF7E08EFEC6",
+          "globalid": "E9097903-C15C-439C-8983-BEF7E08EFEC6",
+          "objectnummer": 154106,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2002,
+          "soort": "Transportleiding",
+          "type_leiding": "Hoofdpersleiding",
+          "vorm": "Rond",
+          "diameter": 1200,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -4.0,
+          "bob_eindpunt": -4.0,
+          "stelsel_type": "Vuilwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "E9097903-C15C-439C-8983-BEF7E08EFEC6",
+          "globalid_eindknoop": "E9097903-C15C-439C-8983-BEF7E08EFEC6",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.E9F5F28F-AEC3-4642-AABA-40728AA9D8B5",
+        "geometry_name": "E9F5F28F-AEC3-4642-AABA-40728AA9D8B5",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899223696245964,
+              52.34002864039027,
+              0
+            ],
+            [
+              4.898928896829205,
+              52.34004254187584,
+              0
+            ]
+          ]
+        },
+        "properties": {
+          "name": "E9F5F28F-AEC3-4642-AABA-40728AA9D8B5",
+          "globalid": "E9F5F28F-AEC3-4642-AABA-40728AA9D8B5",
+          "objectnummer": 278123,
+          "status": "Vervallen",
+          "jaar_gelegd": null,
+          "soort": null,
+          "type_leiding": null,
+          "vorm": null,
+          "diameter": null,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": null,
+          "bob_beginpunt": null,
+          "bob_eindpunt": null,
+          "stelsel_type": null,
+          "funderingstype": null,
+          "toelichting": null,
+          "globalid_beginknoop": "E9F5F28F-AEC3-4642-AABA-40728AA9D8B5",
+          "globalid_eindknoop": "E9F5F28F-AEC3-4642-AABA-40728AA9D8B5",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.F473617C-FA98-4CC8-B768-86D56B14D6B8",
+        "geometry_name": "F473617C-FA98-4CC8-B768-86D56B14D6B8",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899153447290454,
+              52.33951126659071,
+              -0.40499997
+            ],
+            [
+              4.899185520621289,
+              52.33977051612189,
+              -0.315
+            ]
+          ]
+        },
+        "properties": {
+          "name": "F473617C-FA98-4CC8-B768-86D56B14D6B8",
+          "globalid": "F473617C-FA98-4CC8-B768-86D56B14D6B8",
+          "objectnummer": 153636,
+          "status": "In bedrijf",
+          "jaar_gelegd": 1975,
+          "soort": "Rioolleiding",
+          "type_leiding": "Vuilwaterriool",
+          "vorm": "Rond",
+          "diameter": 250,
+          "breedte": null,
+          "hoogte": null,
+          "materiaal": "Beton",
+          "bob_beginpunt": -0.52999997,
+          "bob_eindpunt": -0.44,
+          "stelsel_type": "Vuilwaterstelsel",
+          "funderingstype": "Standaard",
+          "toelichting": null,
+          "globalid_beginknoop": "F473617C-FA98-4CC8-B768-86D56B14D6B8",
+          "globalid_eindknoop": "F473617C-FA98-4CC8-B768-86D56B14D6B8",
+          "leveringsdatum": "2026-08-10"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "waternet_rioolleidingen.FC4782FF-6D4D-422B-B663-E5B7A1D107E8",
+        "geometry_name": "FC4782FF-6D4D-422B-B663-E5B7A1D107E8",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              4.899570797512156,
+              52.34017592453343,
+              0
+            ],
+            [
+              4.899569322341589,
+              52.340172493218454,
+              0
+            ]
+          ]
+        },
+        "properties": {
+          "name": "FC4782FF-6D4D-422B-B663-E5B7A1D107E8",
+          "globalid": "FC4782FF-6D4D-422B-B663-E5B7A1D107E8",
+          "objectnummer": 350857,
+          "status": "In bedrijf",
+          "jaar_gelegd": 2014,
+          "soort": "Onderdeel",
+          "type_leiding": "Wand",
+          "vorm": null,
+          "diameter": null,
+          "breedte": 880,
+          "hoogte": -300,
+          "materiaal": null,
+          "bob_beginpunt": null,
+          "bob_eindpunt": null,
+          "stelsel_type": "Hemelwaterstelsel",
+          "funderingstype": null,
+          "toelichting": null,
+          "globalid_beginknoop": "FC4782FF-6D4D-422B-B663-E5B7A1D107E8",
+          "globalid_eindknoop": "FC4782FF-6D4D-422B-B663-E5B7A1D107E8",
+          "leveringsdatum": "2026-08-10"
+        }
+      }
+    ],
+    "links": [],
+    "numberReturned": 51,
+    "numberMatched": null
+  }
+}

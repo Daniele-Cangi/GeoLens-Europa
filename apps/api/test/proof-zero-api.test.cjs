@@ -16,6 +16,13 @@ const fixturePath = path.resolve(
   '../../../stormwater_network_example.geojson',
 );
 const network = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
+const waternetFixturePath = path.resolve(
+  __dirname,
+  '../../../packages/stormwater/test/fixtures/amsterdam-waternet-bounded.json',
+);
+const waternetSnapshot = JSON.parse(
+  fs.readFileSync(waternetFixturePath, 'utf8'),
+);
 const referenceTime = '2026-08-21T00:00:00.000Z';
 const acquiredAt = '2026-08-21T01:00:00.000Z';
 const rainfallTemporal = {
@@ -184,7 +191,46 @@ function fixtureComposer(options = {}) {
   };
 }
 
-function buildTestServer(composer = fixtureComposer()) {
+function availableWaternetClient() {
+  return {
+    async acquire({ bbox }) {
+      const bboxWfsAxisOrder = [
+        bbox.latMin,
+        bbox.lonMin,
+        bbox.latMax,
+        bbox.lonMax,
+        'EPSG:4326',
+      ].join(',');
+      const receipt = {
+        provider: 'Gemeente Amsterdam Data API',
+        dataset: 'Leidingeninfrastructuur',
+        acquiredAt,
+        bboxWfsAxisOrder,
+        nodeUrl: 'https://fixture.invalid/nodes',
+        pipeUrl: 'https://fixture.invalid/pipes',
+      };
+
+      return {
+        status: 'available',
+        receipt,
+        snapshot: {
+          ...waternetSnapshot,
+          metadata: {
+            ...waternetSnapshot.metadata,
+            acquiredAt,
+            bboxWfsAxisOrder,
+            retrievalMode: 'live',
+          },
+        },
+      };
+    },
+  };
+}
+
+function buildTestServer(
+  composer = fixtureComposer(),
+  overrides = {},
+) {
   return buildGeoLensApi({
     evidenceComposer: composer,
     now: () => new Date(acquiredAt),
@@ -192,10 +238,11 @@ function buildTestServer(composer = fixtureComposer()) {
       imergServiceConfigured: false,
       clcRasterConfigured: false,
     },
+    ...overrides,
   });
 }
 
-test('API identity exposes only health and spatial Proof 0', async (context) => {
+test('API identity exposes health, Proof 0 and observed infrastructure', async (context) => {
   const server = buildTestServer();
   context.after(() => server.close());
 
@@ -214,6 +261,10 @@ test('API identity exposes only health and spatial Proof 0', async (context) => 
   assert.equal(
     root.endpoints.proofZero,
     'POST /api/proof-zero/run',
+  );
+  assert.equal(
+    root.endpoints.observedInfrastructure,
+    'GET /api/infrastructure/amsterdam-waternet',
   );
   assert.equal(JSON.stringify(root).includes('ai'), false);
   assert.equal(JSON.stringify(root).includes('mineral'), false);
@@ -290,6 +341,131 @@ test('API returns incomplete evidence instead of zero rainfall', async (context)
   );
 });
 
+test('API exposes observed Waternet topology with its import receipt', async (context) => {
+  const server = buildTestServer(
+    fixtureComposer(),
+    {
+      waternetClient:
+        availableWaternetClient(),
+    },
+  );
+  context.after(() => server.close());
+
+  const response = await server.inject({
+    method: 'GET',
+    url: '/api/infrastructure/amsterdam-waternet',
+  });
+  const body = response.json();
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(body.status, 'available');
+  assert.equal(
+    Object.keys(body.topology.nodes).length,
+    18,
+  );
+  assert.equal(
+    Object.keys(body.topology.pipes).length,
+    16,
+  );
+  assert.equal(
+    body.import.source.origin,
+    'observed_public_record',
+  );
+  assert.equal(
+    body.import.endpointLinkPolicy
+      .sourceEndpointAttributes,
+    'ignored_invalid_self_referential',
+  );
+  assert.equal(
+    body.import.counts.skippedBoundaryPipes,
+    8,
+  );
+  assert.deepEqual(
+    body.topology.catchmentAttachments,
+    {},
+  );
+});
+
+test('API preserves Waternet provider failure without topology', async (context) => {
+  const server = buildTestServer(
+    fixtureComposer(),
+    {
+      waternetClient: {
+        async acquire() {
+          return {
+            status: 'rate_limited',
+            missingReason:
+              'Waternet pipes WFS returned HTTP 429',
+            failedLayer: 'pipes',
+            receipt: {
+              provider:
+                'Gemeente Amsterdam Data API',
+              dataset:
+                'Leidingeninfrastructuur',
+              acquiredAt,
+              bboxWfsAxisOrder:
+                '52.3393,4.8987,52.3404,4.8998,EPSG:4326',
+              nodeUrl:
+                'https://fixture.invalid/nodes',
+              pipeUrl:
+                'https://fixture.invalid/pipes',
+            },
+          };
+        },
+      },
+    },
+  );
+  context.after(() => server.close());
+
+  const response = await server.inject({
+    method: 'GET',
+    url: '/api/infrastructure/amsterdam-waternet',
+  });
+  const body = response.json();
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(body.status, 'rate_limited');
+  assert.equal(body.failedLayer, 'pipes');
+  assert.equal('topology' in body, false);
+});
+
+test('API requires a complete Waternet bbox', async (context) => {
+  const server = buildTestServer(
+    fixtureComposer(),
+    {
+      waternetClient:
+        availableWaternetClient(),
+    },
+  );
+  context.after(() => server.close());
+
+  const response = await server.inject({
+    method: 'GET',
+    url:
+      '/api/infrastructure/amsterdam-waternet?latMin=52.3393',
+  });
+  const body = response.json();
+
+  assert.equal(response.statusCode, 400);
+  assert.equal(body.status, 'invalid_request');
+  assert.match(body.error, /requires latMin/);
+});
+
+test('API rejects a Waternet bbox outside the bounded-area limit', async (context) => {
+  const server = buildTestServer();
+  context.after(() => server.close());
+
+  const response = await server.inject({
+    method: 'GET',
+    url:
+      '/api/infrastructure/amsterdam-waternet?latMin=52.3&lonMin=4.8&latMax=52.4&lonMax=4.9',
+  });
+  const body = response.json();
+
+  assert.equal(response.statusCode, 400);
+  assert.equal(body.status, 'invalid_request');
+  assert.match(body.error, /bounded-area limit/);
+});
 test('API rejects requests without an explicit reference time', async (context) => {
   const server = buildTestServer();
   context.after(() => server.close());

@@ -11,6 +11,7 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Live provider verification: Copernicus DEM, the official local CLC2018 V2020_20u1 raster, and a complete 48-granule IMERG Early Run V07 window are established; live execution remains opt-in
 - Refoundation core, Proof 0 API, and minimal inspection UI build/typecheck/test baseline: established; historical legacy sources are excluded from the active TypeScript boundary
 - First refoundation success gate: established through deterministic fixture proof and a fully real environmental-evidence chain over the bounded Trento test network, from IMERG, DEM and CLC through runoff, direction, propagation and zero-difference mass balance
+- Observed-infrastructure gate: established through a live bounded Waternet/Amsterdam WFS path, a valid 18-node/16-pipe topology, explicit provider failures, API receipts and a browser-verified inspection panel
 - Historical tracked Copernicus private key: removed from the active tree; revocation/rotation remains an external security action because the secret is present in Git history
 
 Verified starting baseline (historical):
@@ -252,3 +253,54 @@ Gate:
 - Proof 0 is the only asserted completed product path.
 
 Checkpoint: `docs: rewrite GeoLens identity from verified behavior`
+
+## Phase 7 — Replace fixture-only topology with observed infrastructure
+
+State: completed
+
+Progress:
+
+- the official Waternet/Amsterdam `Leidingeninfrastructuur` WFS is selected as the first public stormwater asset source under Creative Commons Attribution;
+- a bounded recorded response retains 30 node records and 51 pipe records for deterministic source-schema verification;
+- strict active stormwater filtering and 0.25 m geometry endpoint snapping produce a valid topology of 18 observed nodes and 16 observed pipes;
+- eight pipes crossing the response boundary remain explicit diagnostics rather than receiving invented endpoints;
+- self-referential source endpoint UUID fields are retained as defective source attributes and are never used as topology truth;
+- node ground levels, pipe invert levels, NAP vertical datum, delivery date, source/output CRS, license, source record ids and transformations remain inspectable;
+- synthetic, user-supplied, derived and observed-public-record infrastructure are structurally distinct;
+- a bounded WFS client maps authentication, rate limit, upstream, malformed, truncated and empty responses to explicit unavailable states;
+- `GET /api/infrastructure/amsterdam-waternet` exposes either the observed topology plus acquisition/import receipts or the exact provider failure without a topology;
+- the Next.js inspector renders the observed lines/nodes and source record details separately from Proof 0 derived flow;
+- a live WFS verification, deterministic importer/client/API tests, production build and browser verification pass without an error overlay or fabricated catchments.
+
+Gate:
+
+- a live or explicitly unavailable public infrastructure acquisition is reproducible through the API;
+- replayed source records and live acquisition use the same deterministic importer;
+- boundary gaps, invalid identifiers and missing attributes cannot create synthetic topology or zero-valued evidence;
+- no catchment, direction or downstream flow is claimed before its required evidence exists.
+
+Checkpoints:
+
+- `refactor: introduce traceable infrastructure import`
+- `feat: expose observed stormwater topology`
+
+## Phase 8 — Connect observed topology to contributing-area evidence
+
+State: in progress
+
+Work:
+
+- identify an authoritative contributing-area or drainage-area source that can be linked to explicit Waternet outlets/inlets;
+- reject representative-point, first-coordinate and name-prefix shortcuts;
+- define polygon-to-H3 coverage and outlet attachment with inspectable spatial transformation semantics;
+- orient eligible pipes from endpoint invert-level evidence only when the NAP values and minimum resolvable drop support a direction;
+- retain missing or near-level invert evidence as unknown or ambiguous;
+- compose real IMERG, DEM and CLC evidence over the bounded Amsterdam contributing area before deriving runoff;
+- propagate only through the validated, supported observed subgraph.
+
+Gate:
+
+- at least one observed contributing area has a traceable polygon, explicit outlet attachment and testable H3 coverage;
+- invert-based direction agrees with retained pipe endpoint evidence and never falls back to ground elevation silently;
+- a bounded observed-infrastructure result either produces traceable non-zero downstream state or stops at an explicit missing-data boundary;
+- the API and inspector distinguish observed assets, derived topology links and environmental evidence.

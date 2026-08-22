@@ -9,6 +9,12 @@ import {
 } from 'h3-js';
 
 import {
+  assertInfrastructureDatasetSource,
+  infrastructureAssetSource,
+  InfrastructureAssetSource,
+  InfrastructureDatasetSource,
+} from './infrastructure';
+import {
   createStormwaterTopology,
   StormwaterNode,
   StormwaterNodeType,
@@ -27,16 +33,17 @@ export interface ImportedCatchmentCoverage {
   readonly h3Resolution: number;
   readonly coverageMethod: 'h3_cell_center';
   readonly cells: readonly ImportedCatchmentCell[];
+  readonly source: InfrastructureAssetSource;
 }
 
-export interface ImportedStormwaterFixture {
+export interface ImportedStormwaterNetwork {
   readonly topology: StormwaterTopology;
   readonly catchments: readonly ImportedCatchmentCoverage[];
 }
 
 export interface StormwaterGeoJsonImportOptions {
   readonly networkId: string;
-  readonly importedAt: string;
+  readonly source: InfrastructureDatasetSource;
   readonly nodeH3Resolution: number;
   readonly catchmentH3Resolution: number;
   readonly snapToleranceM: number;
@@ -69,16 +76,17 @@ const NODE_TYPES: ReadonlySet<string> = new Set([
 export function importStormwaterGeoJson(
   input: unknown,
   options: StormwaterGeoJsonImportOptions,
-): ImportedStormwaterFixture {
+): ImportedStormwaterNetwork {
   validateImportOptions(options);
   const features = parseFeatureCollection(input);
   assertUniqueFeatureIds(features);
   const nodes = importNodes(features, options);
-  const pipes = importPipes(features, nodes, options.snapToleranceM);
+  const pipes = importPipes(features, nodes, options);
   const catchments = importCatchments(
     features,
     nodes,
     options.catchmentH3Resolution,
+    options.source,
   );
   const recognizedFeatureCount =
     nodes.length + pipes.length + catchments.length;
@@ -161,14 +169,16 @@ function importNodes(
               lon,
             },
             temporal: {
-              acquiredAt: options.importedAt,
+              acquiredAt: options.source.acquiredAt,
             },
             provenance: {
-              provider: 'geolens-import',
-              dataset: 'node-elevation',
+              provider: options.source.provider,
+              dataset: `${options.source.dataset}:node-elevation`,
+              datasetVersion: options.source.datasetVersion,
               transformation:
                 'explicit missing state created during topology import',
-              transformationVersion: 'stormwater-geojson-import-v0.1.0',
+              transformationVersion:
+                options.source.transformationVersion,
             },
           },
         );
@@ -198,6 +208,13 @@ function importNodes(
         },
         h3,
         elevationM,
+        source: infrastructureAssetSource(
+          options.source,
+          id,
+          {
+            declaredType: String(feature.properties.type),
+          },
+        ),
       };
     });
 }
@@ -205,7 +222,7 @@ function importNodes(
 function importPipes(
   features: readonly GeoJsonFeature[],
   nodes: readonly StormwaterNode[],
-  snapToleranceM: number,
+  options: StormwaterGeoJsonImportOptions,
 ): StormwaterPipe[] {
   return features
     .filter((feature) => feature.properties.type === 'pipe')
@@ -225,13 +242,13 @@ function importPipes(
       const nodeA = findSnapNode(
         start,
         nodes,
-        snapToleranceM,
+        options.snapToleranceM,
         `pipe ${String(feature.id)} start`,
       );
       const nodeB = findSnapNode(
         end,
         nodes,
-        snapToleranceM,
+        options.snapToleranceM,
         `pipe ${String(feature.id)} end`,
       );
       const lengthM = coordinates
@@ -260,6 +277,67 @@ function importPipes(
         nodeBId: nodeB.id,
         lengthM,
         diameterMm: diameter as number | undefined,
+        path: coordinates.map(([lon, lat]) => ({
+          lat,
+          lon,
+        })),
+        invertLevelAM: unavailableEvidence(
+          'missing',
+          `No invert-level evidence supplied for pipe ${String(feature.id)} endpoint A`,
+          {
+            unit: 'm',
+            spatial: {},
+            temporal: {
+              acquiredAt: options.source.acquiredAt,
+            },
+            provenance: {
+              provider: options.source.provider,
+              dataset: `${options.source.dataset}:pipe-invert-level`,
+              datasetVersion: options.source.datasetVersion,
+              transformation:
+                'explicit missing state created during topology import',
+              transformationVersion:
+                options.source.transformationVersion,
+              sourceMetadata: {
+                pipeId: String(feature.id),
+                endpoint: 'A',
+              },
+            },
+          },
+        ),
+        invertLevelBM: unavailableEvidence(
+          'missing',
+          `No invert-level evidence supplied for pipe ${String(feature.id)} endpoint B`,
+          {
+            unit: 'm',
+            spatial: {},
+            temporal: {
+              acquiredAt: options.source.acquiredAt,
+            },
+            provenance: {
+              provider: options.source.provider,
+              dataset: `${options.source.dataset}:pipe-invert-level`,
+              datasetVersion: options.source.datasetVersion,
+              transformation:
+                'explicit missing state created during topology import',
+              transformationVersion:
+                options.source.transformationVersion,
+              sourceMetadata: {
+                pipeId: String(feature.id),
+                endpoint: 'B',
+              },
+            },
+          },
+        ),
+        source: infrastructureAssetSource(
+          options.source,
+          String(feature.id),
+          {
+            declaredType: 'pipe',
+            diameterMm:
+              (diameter as number | undefined) ?? null,
+          },
+        ),
       };
     });
 }
@@ -268,6 +346,7 @@ function importCatchments(
   features: readonly GeoJsonFeature[],
   nodes: readonly StormwaterNode[],
   h3Resolution: number,
+  source: InfrastructureDatasetSource,
 ): ImportedCatchmentCoverage[] {
   const nodeIds = new Set(nodes.map((node) => node.id));
 
@@ -322,6 +401,15 @@ function importCatchments(
           h3,
           coverageFraction: 1 as const,
         })),
+        source: infrastructureAssetSource(
+          source,
+          String(feature.id),
+          {
+            declaredType: 'catchment',
+            outletNodeId,
+            coverageMethod: 'h3_cell_center',
+          },
+        ),
       };
     });
 }
@@ -529,6 +617,8 @@ function degreesToRadians(degrees: number): number {
 function validateImportOptions(
   options: StormwaterGeoJsonImportOptions,
 ): void {
+  assertInfrastructureDatasetSource(options.source);
+
   if (options.networkId.trim().length === 0) {
     throw new Error('networkId must be non-empty');
   }
@@ -553,9 +643,6 @@ function validateImportOptions(
     throw new Error('snapToleranceM must be a finite positive number');
   }
 
-  if (Number.isNaN(Date.parse(options.importedAt))) {
-    throw new Error('importedAt must be a valid timestamp');
-  }
 }
 
 function isRecord(

@@ -29,7 +29,12 @@ NASA GPM IMERG + Copernicus DEM + CORINE Land Cover
           inspectable state + full provenance
 ```
 
-Latest refoundation baseline: **v0.1.0-alpha.3**.
+The completed Proof 0 remains the asserted end-to-end product path. The next
+gate is now visible separately: a bounded public Waternet/Amsterdam stormwater
+topology with source records and an import receipt, but no invented catchment,
+direction or flow.
+
+Latest published refoundation baseline: **v0.1.0-alpha.4**.
 
 ## What GeoLens is
 
@@ -53,7 +58,7 @@ runoff depth is flood depth.
 
 ## Verified baseline
 
-The following state has been verified locally on 2026-08-22.
+The following state has been verified locally through 2026-08-23.
 
 | Layer or subsystem | Verified state |
 | --- | --- |
@@ -64,16 +69,19 @@ The following state has been verified locally on 2026-08-22.
 | CLC encoding | Official raster palette indices `1..44` are explicitly decoded to CLC level-3 codes `111..523` by transformation `clc-centroid-v0.2.0`. |
 | H3 composition | Catchment cells and network entities are joined through explicit H3 representations while source resolution remains visible. |
 | Runoff and catchments | Runoff v0 is deterministic and exposes inputs/intermediates; catchment aggregation uses represented H3 area. |
-| Network | Topology is validated separately from environmental evidence. Direction is `known`, `unknown` or `ambiguous`. |
+| Proof 0 network | Topology is validated separately from environmental evidence. Direction is `known`, `unknown` or `ambiguous`. |
+| Observed infrastructure | The official Waternet/Amsterdam `Leidingeninfrastructuur` WFS was verified live. The bounded import produced 18 observed nodes and 16 active stormwater pipes, retained NAP ground/invert attributes and reported 8 boundary-crossing pipes without inventing endpoints. |
 | Propagation | Supported directed acyclic topology conserves volume and exposes mass balance. |
-| API and inspector | One root command health-gates IMERG → API → web. The Next.js inspector automatically runs the verified window and exposes a traceable IMERG receipt without AI or mineral services. |
+| API and inspector | One root command health-gates IMERG -> API -> web. The Next.js inspector automatically runs the verified window and independently acquires the bounded Waternet topology. Each path exposes a traceable receipt without AI or mineral services. |
 
 The bounded Trento fixture produces a non-zero downstream result in both
 deterministic verification and the fixed live run. That live run observed `9.24 mm` of
 rainfall, derived `2.957 m3` of catchment contribution and delivered the same
 volume to the outfall with zero mass-balance difference. The network geometry is a
-deterministic fixture, not surveyed municipal infrastructure. Missing rainfall, land
-cover or elevation never becomes a valid-looking zero.
+deterministic fixture, not surveyed municipal infrastructure. The Amsterdam
+panel is observed municipal infrastructure, but it is not yet connected to a
+real contributing-area model. Missing rainfall, land cover or elevation never
+becomes a valid-looking zero.
 
 ## Active architecture
 
@@ -85,7 +93,7 @@ apps/
 packages/
   evidence/            canonical evidence model and invariants
   providers/           IMERG client, Copernicus DEM and CLC providers
-  stormwater/          runoff, catchments, topology and propagation
+  stormwater/          runoff, catchments, topology, Waternet WFS import and propagation
   proof-zero/          end-to-end composition
 
 nasa-precip-engine/    canonical Python IMERG acquisition service
@@ -263,7 +271,8 @@ Local endpoints:
 - GeoLens API: <http://localhost:3003>;
 - API health: <http://localhost:3003/health>;
 - IMERG service: <http://localhost:8001>;
-- IMERG health: <http://localhost:8001/health>.
+- IMERG health: <http://localhost:8001/health>;
+- observed Waternet topology: <http://localhost:3003/api/infrastructure/amsterdam-waternet>.
 
 Example API health response:
 
@@ -282,6 +291,35 @@ Example API health response:
 
 Configuration flags confirm that endpoints/paths were supplied; evidence
 status in a Proof 0 response is the authority on actual provider availability.
+
+## Observed infrastructure API
+
+`GET /api/infrastructure/amsterdam-waternet` requests a bounded response from
+the official [Amsterdam Data API Waternet dataset](https://api.data.amsterdam.nl/v1/docs/datasets/leidingeninfrastructuur.html).
+The default WFS 2.0 bbox is:
+
+```text
+52.3393,4.8987,52.3404,4.8998,EPSG:4326
+```
+
+WFS 2.0 uses latitude/longitude axis order for this EPSG:4326 bbox. A custom
+request must provide `latMin`, `lonMin`, `latMax` and `lonMax` together,
+and each span is limited to `0.01 degree`.
+
+An available response exposes:
+
+- acquisition and import receipts;
+- provider, dataset, Creative Commons Attribution license and delivery date;
+- source EPSG:7415 and WFS output EPSG:4326;
+- observed point/line geometry and stable source record ids;
+- node ground levels and pipe invert levels in metres with NAP datum metadata;
+- strict active-stormwater filtering and 0.25 m endpoint snap distances;
+- skipped boundary pipes and defective endpoint-UUID state;
+- an empty catchment attachment set because the source does not provide the
+  required contributing areas.
+
+Authentication, rate limiting, upstream errors, invalid/truncated responses and
+empty coverage are returned explicitly without an empty valid-looking topology.
 
 ## Proof 0 API
 
@@ -362,6 +400,14 @@ $env:GEOLENS_IMERG_REFERENCE_TIME = '2026-08-20T00:00:00Z'
 npm run test:live
 ```
 
+The public Waternet WFS has its own opt-in live verification:
+
+```powershell
+$env:GEOLENS_LIVE_WATERNET = '1'
+npm run build --workspace=@geo-lens/stormwater
+node --test packages/stormwater/test/live-amsterdam-wfs.test.cjs
+```
+
 With the IMERG service and GeoLens API already running, verify the complete live
 chain separately:
 
@@ -387,6 +433,8 @@ or incomplete source windows; those failures must never produce zero rainfall.
 - Slope is derived from sampled DEM elevations and retains its transformation
   metadata.
 - Edge direction is never invented when elevation evidence is insufficient.
+- The observed Waternet topology does not claim catchment contribution,
+  direction or flow until those required data/model boundaries are supplied.
 - Propagation operates on supported known directed acyclic topology and does
   not simulate pipe hydraulics, storage, surcharge or overflow.
 - No percentage confidence, flood probability or production-readiness claim is
@@ -394,8 +442,8 @@ or incomplete source windows; those failures must never produce zero rainfall.
 
 ## Release policy
 
-`v0.1.0-alpha.1` is the first tagged refoundation baseline. It packages code,
-contracts and deterministic verification only. NASA granules, CLC rasters,
+`v0.1.0-alpha.4` is the latest published refoundation baseline. It packages code,
+contracts and deterministic/remote verification only. NASA granules, CLC rasters,
 credentials, caches and generated provider data are deliberately excluded.
 
 Future releases must keep fixture verification separate from live-data

@@ -12,6 +12,10 @@ import { isValidCell } from 'h3-js';
 import {
   CatchmentContribution,
 } from './catchment';
+import {
+  assertInfrastructureAssetSource,
+  InfrastructureAssetSource,
+} from './infrastructure';
 import { selectUnavailableEvidenceStatus } from './runoff';
 
 export const NETWORK_ORIENTATION_VERSION =
@@ -36,6 +40,7 @@ export interface StormwaterNode {
   readonly position: GeoPoint;
   readonly h3: string;
   readonly elevationM: Evidence<number>;
+  readonly source: InfrastructureAssetSource;
 }
 
 export interface StormwaterPipe {
@@ -44,6 +49,10 @@ export interface StormwaterPipe {
   readonly nodeBId: string;
   readonly lengthM: number;
   readonly diameterMm?: number;
+  readonly path: readonly GeoPoint[];
+  readonly invertLevelAM: Evidence<number>;
+  readonly invertLevelBM: Evidence<number>;
+  readonly source: InfrastructureAssetSource;
 }
 
 export interface CatchmentAttachment {
@@ -75,11 +84,15 @@ export type TopologyIssueCode =
   | 'invalid_h3'
   | 'invalid_elevation_evidence'
   | 'elevation_h3_mismatch'
+  | 'invalid_node_source'
   | 'duplicate_pipe_id'
   | 'missing_pipe_endpoint'
   | 'self_loop'
   | 'invalid_pipe_length'
   | 'invalid_pipe_diameter'
+  | 'invalid_pipe_path'
+  | 'invalid_pipe_invert_evidence'
+  | 'invalid_pipe_source'
   | 'duplicate_pipe_endpoints'
   | 'duplicate_catchment_attachment'
   | 'missing_catchment_outlet';
@@ -290,6 +303,17 @@ export function validateStormwaterTopology(
       });
     }
 
+    try {
+      assertInfrastructureAssetSource(node.source);
+    } catch (error) {
+      issues.push({
+        code: 'invalid_node_source',
+        path: `${path}.source`,
+        message:
+          error instanceof Error ? error.message : 'Invalid source',
+      });
+    }
+
     if (
       node.elevationM.spatial.h3 !== undefined &&
       node.elevationM.spatial.h3 !== node.h3
@@ -348,6 +372,58 @@ export function validateStormwaterTopology(
         code: 'invalid_pipe_diameter',
         path: `${path}.diameterMm`,
         message: 'Pipe diameter must be a finite positive number',
+      });
+    }
+
+    if (
+      !Array.isArray(pipe.path) ||
+      pipe.path.length < 2 ||
+      pipe.path.some(
+        (point) =>
+          !Number.isFinite(point.lat) ||
+          point.lat < -90 ||
+          point.lat > 90 ||
+          !Number.isFinite(point.lon) ||
+          point.lon < -180 ||
+          point.lon > 180,
+      )
+    ) {
+      issues.push({
+        code: 'invalid_pipe_path',
+        path: `${path}.path`,
+        message:
+          'Pipe path requires at least two finite latitude/longitude positions',
+      });
+    }
+
+    for (const [name, evidence] of [
+      ['invertLevelAM', pipe.invertLevelAM],
+      ['invertLevelBM', pipe.invertLevelBM],
+    ] as const) {
+      try {
+        assertEvidenceInvariant(evidence);
+
+        if (evidence.unit !== 'm') {
+          throw new Error('Pipe invert evidence must use unit m');
+        }
+      } catch (error) {
+        issues.push({
+          code: 'invalid_pipe_invert_evidence',
+          path: `${path}.${name}`,
+          message:
+            error instanceof Error ? error.message : 'Invalid evidence',
+        });
+      }
+    }
+
+    try {
+      assertInfrastructureAssetSource(pipe.source);
+    } catch (error) {
+      issues.push({
+        code: 'invalid_pipe_source',
+        path: `${path}.source`,
+        message:
+          error instanceof Error ? error.message : 'Invalid source',
       });
     }
 

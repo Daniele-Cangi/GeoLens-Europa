@@ -9,11 +9,22 @@ import {
   runStormwaterProofZero,
 } from '@geo-lens/proof-zero';
 import {
+  AmsterdamWaternetAcquisition,
+  AmsterdamWaternetBbox,
+  AmsterdamWaternetWfsClient,
+  importAmsterdamWaternetStormwater,
   importStormwaterGeoJson,
-  ImportedStormwaterFixture,
+  ImportedStormwaterNetwork,
 } from '@geo-lens/stormwater';
 
 const DEFAULT_NODE_H3_RESOLUTION = 11;
+const DEFAULT_WATERNET_BBOX: AmsterdamWaternetBbox = {
+  latMin: 52.3393,
+  lonMin: 4.8987,
+  latMax: 52.3404,
+  lonMax: 4.8998,
+};
+const WATERNET_SNAP_TOLERANCE_M = 0.25;
 const DEFAULT_CATCHMENT_H3_RESOLUTION = 13;
 const DEFAULT_SNAP_TOLERANCE_M = 5;
 const DEFAULT_MINIMUM_RESOLVABLE_DROP_M = 0.1;
@@ -36,6 +47,10 @@ export interface BuildGeoLensApiOptions {
   readonly now?: () => Date;
   readonly logger?: FastifyServerOptions['logger'];
   readonly runtime?: GeoLensApiRuntime;
+  readonly waternetClient?: Pick<
+    AmsterdamWaternetWfsClient,
+    'acquire'
+  >;
 }
 
 interface ParsedProofZeroRequest {
@@ -63,6 +78,9 @@ export function buildGeoLensApi(
     logger: options.logger ?? false,
     bodyLimit: 1_048_576,
   });
+  const waternetClient =
+    options.waternetClient ??
+    new AmsterdamWaternetWfsClient({ now });
 
   server.register(cors);
   server.register(compress, { global: true });
@@ -85,13 +103,94 @@ export function buildGeoLensApi(
       'traceable environmental evidence through a stormwater network',
     endpoints: {
       health: '/health',
+      observedInfrastructure:
+        'GET /api/infrastructure/amsterdam-waternet',
       proofZero: 'POST /api/proof-zero/run',
     },
   }));
 
+  server.get(
+    '/api/infrastructure/amsterdam-waternet',
+    async (request, reply) => {
+      let bbox: AmsterdamWaternetBbox;
+
+      try {
+        bbox = parseWaternetBbox(request.query);
+      } catch (error) {
+        return reply.code(400).send({
+          status: 'invalid_request',
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Invalid Waternet bbox',
+        });
+      }
+
+      let acquisition:
+        AmsterdamWaternetAcquisition;
+
+      try {
+        acquisition =
+          await waternetClient.acquire({ bbox });
+      } catch (error) {
+        return reply.code(400).send({
+          status: 'invalid_request',
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Invalid Waternet request',
+        });
+      }
+
+      if (acquisition.status !== 'available') {
+        return reply.code(200).send(acquisition);
+      }
+
+      try {
+        const imported =
+          importAmsterdamWaternetStormwater(
+            acquisition.snapshot,
+            {
+              networkId:
+                'amsterdam-waternet-observed',
+              acquiredAt:
+                acquisition.receipt.acquiredAt,
+              nodeH3Resolution:
+                DEFAULT_NODE_H3_RESOLUTION,
+              snapToleranceM:
+                WATERNET_SNAP_TOLERANCE_M,
+              bboxWfsAxisOrder:
+                acquisition.receipt
+                  .bboxWfsAxisOrder,
+              retrievalMode: 'live',
+            },
+          );
+
+        return reply.code(200).send({
+          status: 'available',
+          acquisition: acquisition.receipt,
+          import: imported.receipt,
+          topology: imported.topology,
+        });
+      } catch (error) {
+        request.log.error(error);
+
+        return reply.code(200).send({
+          status: 'invalid_response',
+          missingReason:
+            error instanceof Error
+              ? error.message
+              : 'Waternet response could not be imported',
+          failedLayer: 'both',
+          receipt: acquisition.receipt,
+        });
+      }
+    },
+  );
+
   server.post('/api/proof-zero/run', async (request, reply) => {
     let parsed: ParsedProofZeroRequest;
-    let imported: ImportedStormwaterFixture;
+    let imported: ImportedStormwaterNetwork;
 
     try {
       parsed = parseProofZeroRequest(request.body);
@@ -99,7 +198,18 @@ export function buildGeoLensApi(
       const importedAt = now().toISOString();
       imported = importStormwaterGeoJson(parsed.network, {
         networkId: parsed.networkId,
-        importedAt,
+        source: {
+          origin: 'user_supplied',
+          provider: 'geolens-api',
+          dataset: 'submitted-stormwater-geojson',
+          acquiredAt: importedAt,
+          sourceCrs: 'EPSG:4326',
+          outputCrs: 'EPSG:4326',
+          transformation:
+            'parse typed node, pipe, and catchment features; snap pipe geometry endpoints',
+          transformationVersion:
+            'stormwater-geojson-import-v0.2.0',
+        },
         nodeH3Resolution: parsed.nodeH3Resolution,
         catchmentH3Resolution:
           parsed.catchmentH3Resolution,
@@ -145,6 +255,65 @@ export function buildGeoLensApi(
   });
 
   return server;
+}
+
+function parseWaternetBbox(
+  query: unknown,
+): AmsterdamWaternetBbox {
+  if (!isRecord(query)) {
+    return DEFAULT_WATERNET_BBOX;
+  }
+
+  const names = [
+    'latMin',
+    'lonMin',
+    'latMax',
+    'lonMax',
+  ] as const;
+  const present = names.filter(
+    (name) => query[name] !== undefined,
+  );
+
+  if (present.length === 0) {
+    return DEFAULT_WATERNET_BBOX;
+  }
+
+  if (present.length !== names.length) {
+    throw new RequestValidationError(
+      'Waternet bbox requires latMin, lonMin, latMax and lonMax together',
+    );
+  }
+
+  return {
+    latMin: queryNumber(query.latMin, 'latMin'),
+    lonMin: queryNumber(query.lonMin, 'lonMin'),
+    latMax: queryNumber(query.latMax, 'latMax'),
+    lonMax: queryNumber(query.lonMax, 'lonMax'),
+  };
+}
+
+function queryNumber(
+  value: unknown,
+  name: string,
+): number {
+  if (
+    typeof value !== 'string' ||
+    value.trim().length === 0
+  ) {
+    throw new RequestValidationError(
+      `${name} must be a finite query number`,
+    );
+  }
+
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed)) {
+    throw new RequestValidationError(
+      `${name} must be a finite query number`,
+    );
+  }
+
+  return parsed;
 }
 
 function parseProofZeroRequest(
@@ -295,7 +464,7 @@ function collectCoordinates(
 }
 
 function validateImportedSize(
-  imported: ImportedStormwaterFixture,
+  imported: ImportedStormwaterNetwork,
 ): void {
   const nodeCount = Object.keys(
     imported.topology.nodes,
