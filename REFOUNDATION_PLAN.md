@@ -9,7 +9,7 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Protected historical snapshot: `codex/pre-overhaul-snapshot-20260822@9920ee29ed945a55af8e7ff89005724fab19a998`
 - Deterministic core Proof 0: established through environmental bundle, runoff, catchment aggregation, point-sampled node elevation, direction, propagation, and mass balance; clean API/live multi-provider Proof 0 is not established
 - Live provider verification: Copernicus DEM established; IMERG and CLC remain unverified
-- Refoundation typecheck/test baseline: established; the parked legacy build remains intentionally recorded as failing
+- Refoundation core and Proof 0 API build/typecheck/test baseline: established; historical legacy sources are excluded from the active TypeScript boundary
 - Historical tracked Copernicus private key: removed from the active tree; revocation/rotation remains an external security action because the secret is present in Git history
 
 Verified legacy baseline:
@@ -18,7 +18,7 @@ Verified legacy baseline:
 - the API currently has TypeScript failures around legacy adapters, construction assumptions, and inconsistent types;
 - the web build currently has a Deck.gl typing failure;
 - root test orchestration refers to missing workspace test scripts;
-- the canonical Python IMERG path is established and silent precipitation fallback is removed; generic risk, AI, and mineral code remain active only in the legacy API surface pending Phase 4;
+- the canonical Python IMERG path is established and silent precipitation fallback is removed; generic risk, AI, and mineral sources remain parked in the tree but are absent from the active API entrypoint, dependencies, routes, and TypeScript build;
 - no verified real-evidence-to-network result exists.
 
 ## Migration classification
@@ -166,7 +166,10 @@ Progress:
 - network-node elevation is sampled at physical node coordinates so multiple nodes in one H3 cell remain distinguishable;
 - the deterministic bounded fixture now produces non-zero outfall accumulation with a checked no-loss mass balance;
 - missing rainfall and missing node elevation terminate as explicit incomplete evidence or direction;
-- clean API exposure and opt-in live IMERG+DEM+CLC execution remain pending.
+- a bounded `POST /api/proof-zero/run` exposes inputs, evidence, transformations, unresolved state, propagation, and mass balance;
+- the active API compiles and runs without AI, mineral, generic-risk, database, or legacy route dependencies;
+- API runtime tests reproduce non-zero downstream state and prove missing rainfall cannot become a valid-looking zero;
+- opt-in live IMERG+DEM+CLC execution remains pending.
 
 Work:
 

@@ -7,8 +7,8 @@
     ],
     "scripts": {
         "build": "npm run build --workspaces",
-        "build:refoundation": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/providers && npm run build --workspace=@geo-lens/stormwater && npm run build --workspace=@geo-lens/proof-zero",
-        "dev": "concurrently \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/web\"",
+        "build:refoundation": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/providers && npm run build --workspace=@geo-lens/stormwater && npm run build --workspace=@geo-lens/proof-zero && npm run build --workspace=@geo-lens/api",
+        "dev": "concurrently \"npm run dev --workspace=@geo-lens/api\" \"npm run dev --workspace=apps/web\"",
         "typecheck": "npm run typecheck --workspaces --if-present",
         "test": "npm run test:ts && npm run test:python",
         "test:ts": "npm run test --workspaces --if-present",
