@@ -8,9 +8,10 @@ import { Protocol } from 'pmtiles';
 import { getCellData, analyzePatch } from '../lib/api';
 import { CellScore } from '@geo-lens/geocube';
 import DeckGL from '@deck.gl/react';
+import { ZoomIn, Satellite, CloudRain } from 'lucide-react';
 import { getOverlayLayers } from './MapOverlay';
 import Sidebar from './Sidebar';
-import ChatPanel from './ChatPanel';
+// import ChatPanel from './ChatPanel'; // Removed
 
 // Compact cell format from tile endpoint
 type CompactCell = {
@@ -30,9 +31,9 @@ interface Props {
 
 export default function MapView({ selectedLayer, onLayerChange }: Props) {
     const [viewState, setViewState] = useState({
-        longitude: 12.5,
-        latitude: 41.9,
-        zoom: 6
+        longitude: 19.35,
+        latitude: 43.75,
+        zoom: 7
     });
 
     const [hoverInfo, setHoverInfo] = useState<any>(null);
@@ -135,35 +136,44 @@ export default function MapView({ selectedLayer, onLayerChange }: Props) {
             {/* Zoom Indicator */}
             {showZoomMsg && (
                 <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-slate-900/80 text-white px-4 py-2 rounded-full text-sm font-medium backdrop-blur z-20 flex items-center gap-2 animate-in fade-in slide-in-from-top-4">
-                    <span>🔍</span> Zoom in to view data
+                    <ZoomIn className="w-4 h-4" /> Zoom in to view data
                 </div>
             )}
 
-            {/* Floating Dock Layer Control - Light Theme */}
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-md p-1.5 rounded-2xl shadow-xl z-10 flex gap-1 border border-slate-200 ring-1 ring-black/5">
+            {/* Zoom Hint */}
+            {viewState.zoom < 6 && (
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/70 text-white px-4 py-2 rounded-full backdrop-blur-sm pointer-events-none z-10 flex items-center gap-2">
+                    <ZoomIn className="w-4 h-4" /> Zoom in to view data
+                </div>
+            )}
+
+            {/* Layer Controls - Top Right (Shifted down below NavigationControl) */}
+            <div className="absolute top-36 right-4 flex flex-col gap-2 z-10">
                 <button
                     onClick={() => onLayerChange(selectedLayer === 'satellite' ? 'water' : 'satellite')}
-                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${selectedLayer === 'satellite'
-                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
-                        : 'text-slate-600 hover:bg-slate-100'
+                    className={`p-2 rounded-lg shadow-lg transition-all ${selectedLayer === 'satellite'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white text-slate-700 hover:bg-slate-50'
                         }`}
+                    title="Toggle Satellite"
                 >
-                    <span>🛰️</span> Satellite
+                    <Satellite className="w-5 h-5" />
                 </button>
-                <div className="w-px bg-slate-200 mx-1 my-1" />
 
-                {/* Precipitation Layer */}
                 <button
-                    onClick={() => onLayerChange('precipitation')}
-                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${selectedLayer === 'precipitation'
-                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
-                        : 'text-slate-600 hover:bg-slate-100'
+                    onClick={() => onLayerChange(selectedLayer === 'precipitation' ? 'water' : 'precipitation')}
+                    className={`p-2 rounded-lg shadow-lg transition-all ${selectedLayer === 'precipitation'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white text-slate-700 hover:bg-slate-50'
                         }`}
+                    title="Toggle Rain"
                 >
-                    <span>🌧️</span> Rain
+                    <CloudRain className="w-5 h-5" />
                 </button>
-                <div className="w-px bg-slate-200 mx-1 my-1" />
+            </div>
 
+            {/* Floating Dock Layer Control - Light Theme */}
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-md p-1.5 rounded-2xl shadow-xl z-10 flex gap-1 border border-slate-200 ring-1 ring-black/5">
                 {/* Risk Engine V1: Only water, landslide, seismic (mineral hidden) */}
                 {(['water', 'landslide', 'seismic'] as const).map(layer => (
                     <button
@@ -179,9 +189,9 @@ export default function MapView({ selectedLayer, onLayerChange }: Props) {
                 ))}
             </div>
 
-            {/* Legend - Light Theme */}
+            {/* Legend - Bottom Left (Moved to avoid overlap with Sidebar) */}
             {selectedLayer !== 'satellite' && (
-                <div className="absolute bottom-8 right-8 bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-slate-200 shadow-xl z-10 w-64 ring-1 ring-black/5">
+                <div className="absolute bottom-8 left-8 bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-slate-200 shadow-xl z-10 w-64 ring-1 ring-black/5">
                     <div className="flex justify-between items-center mb-2">
                         <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{selectedLayer} Risk</span>
                         <span className="text-[10px] text-slate-400">0 - 100</span>
@@ -232,7 +242,7 @@ export default function MapView({ selectedLayer, onLayerChange }: Props) {
                             tileSize={256}
                             attribution="Sentinel-2 cloudless - https://s2maps.eu by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2020)"
                         >
-                            <Layer id="sentinel2-layer" type="raster" beforeId="h3-tile-layer" />
+                            <Layer id="sentinel2-layer" type="raster" />
                         </Source>
                     )}
 
@@ -277,10 +287,11 @@ export default function MapView({ selectedLayer, onLayerChange }: Props) {
                 onAnalyze={handleAnalyze}
                 loading={loading}
                 analysis={analysis}
+                selectedLayer={selectedLayer}
+                onLayerChange={onLayerChange}
             />
 
-            {/* Chat Panel */}
-            <ChatPanel context={selectedCell} />
+            {/* Chat Panel Removed */}
         </div>
     );
 }

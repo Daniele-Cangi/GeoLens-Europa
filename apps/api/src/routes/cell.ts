@@ -9,7 +9,14 @@ export async function cellRoutes(fastify: FastifyInstance) {
      */
     fastify.get<{
         Params: { h3Index: string };
-    }>('/api/cell/:h3Index', async (request: FastifyRequest<{ Params: { h3Index: string } }>, reply: FastifyReply) => {
+    }>('/api/cell/:h3Index', {
+        config: {
+            rateLimit: {
+                max: 100,
+                timeWindow: '1 minute'
+            }
+        }
+    }, async (request: FastifyRequest<{ Params: { h3Index: string } }>, reply: FastifyReply) => {
         const { h3Index } = request.params;
 
         if (!h3Index) {
@@ -37,7 +44,9 @@ export async function cellRoutes(fastify: FastifyInstance) {
             };
 
             // Fetch data through tileOrchestrator (includes NASA precipitation)
-            const results = await getH3ScoresForArea(area);
+            // This will throw 503 if Strict Mode is violated
+            const { profile } = request.query as { profile?: string };
+            const results = await getH3ScoresForArea(area, { profile });
 
             // Find the exact cell in results
             const cellData = results.find(r => r.h3Index === h3Index);
@@ -56,10 +65,19 @@ export async function cellRoutes(fastify: FastifyInstance) {
                     return reply.code(404).send({ error: 'Cell data not found' });
                 }
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(`[API] Error fetching cell data for ${h3Index}:`, error);
 
-            // Fallback to cache on error
+            // Respect specific error codes (e.g. 503 Strict Mode)
+            if (error.statusCode) {
+                return reply.code(error.statusCode).send({
+                    error: error.message,
+                    code: error.code,
+                    details: error.details
+                });
+            }
+
+            // Fallback to cache on generic error
             const cached = h3Cache.get(h3Index);
             if (cached) {
                 console.log(`[API] Error fallback to cache for ${h3Index}`);

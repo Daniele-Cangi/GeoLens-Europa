@@ -12,6 +12,7 @@ import { h3TileRoutes } from './routes/h3-tile';
 import { h3TileOptimizedRoutes } from './routes/h3-tile-optimized';
 import { cellRoutes } from './routes/cell';
 import { aiRoutes } from './routes/ai';
+import { stormwaterRoutes } from './routes/stormwater';
 
 // Load environment variables
 dotenv.config();
@@ -30,6 +31,7 @@ server.register(h3TileRoutes); // Legacy tile endpoint
 server.register(h3TileOptimizedRoutes); // OPTIMIZED tile endpoint (use this!)
 server.register(cellRoutes); // Single cell details
 server.register(aiRoutes); // AI - optional enhancement (works without GEMINI_API_KEY)
+server.register(stormwaterRoutes); // P1 Stormwater Assets
 
 // Serve Static Assets (Tiles & Data)
 server.register(fastifyStatic, {

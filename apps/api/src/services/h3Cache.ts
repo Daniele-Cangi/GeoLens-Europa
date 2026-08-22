@@ -3,6 +3,7 @@ import path from 'path';
 import { CellScore } from '@geo-lens/geocube';
 import { RiskResult } from '@geo-lens/risk-engine';
 import { CellFeatures } from '@geo-lens/geocube';
+import { DatasetProvenance } from './datasets/types';
 
 // V1 Cache File
 const CACHE_FILE_V1 = path.resolve(__dirname, '../../../../data/intermediate/h3_cache.json');
@@ -22,6 +23,13 @@ if (!fs.existsSync(cacheDir)) {
 export interface H3CacheRecord extends CellScore {
     updatedAt: string;
     sourceHash: string;
+    data_status?: {
+        precipitation?: DatasetProvenance;
+        clc?: DatasetProvenance;
+        dem?: DatasetProvenance;
+        elsus?: DatasetProvenance;
+        eshm20?: DatasetProvenance;
+    };
 }
 
 class H3CacheService {
@@ -77,6 +85,43 @@ class H3CacheService {
 
     public getMulti(h3Indices: string[]): (H3CacheRecord | undefined)[] {
         return h3Indices.map(index => this.cache.get(index));
+    }
+
+    /**
+     * Clear entire cache (memory + file)
+     */
+    public clear() {
+        const previousSize = this.cache.size;
+        this.cache.clear();
+        this.dirty = true;
+        this.save();
+        console.log(`[H3CacheV1] Cleared ${previousSize} records.`);
+    }
+
+    /**
+     * Invalidate cache entries without NASA precipitation data
+     * Call this when NASA provider becomes available
+     */
+    public invalidateWithoutPrecip() {
+        let invalidated = 0;
+        for (const [h3Index, record] of this.cache) {
+            // Invalidate records that don't have NASA precipitation data
+            if (record.sourceHash !== 'v3-nasa-imerg' ||
+                record.water.rain24h === undefined ||
+                record.water.rain24h === null) {
+                this.cache.delete(h3Index);
+                invalidated++;
+            }
+        }
+        if (invalidated > 0) {
+            this.dirty = true;
+            console.log(`[H3CacheV1] Invalidated ${invalidated} records without NASA precipitation data.`);
+        }
+        return invalidated;
+    }
+
+    public size(): number {
+        return this.cache.size;
     }
 }
 

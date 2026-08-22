@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { getH3ScoresForArea } from '../services/tileOrchestrator';
+import { h3Cache } from '../services/h3Cache';
 
 // Utility to convert Tile XYZ to Lat/Lon BBox
 function tileToBBox(x: number, y: number, z: number) {
@@ -56,5 +57,20 @@ export async function h3TileRoutes(server: FastifyInstance) {
             request.log.error(error);
             return reply.code(500).send({ error: 'Failed to fetch tile data' });
         }
+    });
+
+    // Cache management endpoints
+    server.post('/api/cache/clear', async (request, reply) => {
+        h3Cache.clear();
+        return { success: true, message: 'Cache cleared' };
+    });
+
+    server.post('/api/cache/invalidate-without-precip', async (request, reply) => {
+        const invalidated = h3Cache.invalidateWithoutPrecip();
+        return { success: true, invalidated, message: `Invalidated ${invalidated} entries without precipitation data` };
+    });
+
+    server.get('/api/cache/stats', async (request, reply) => {
+        return { size: h3Cache.size() };
     });
 }

@@ -30,6 +30,7 @@ from .config import (
     API_PORT,
     MAX_H3_CELLS_PER_REQUEST,
     LOG_LEVEL,
+    CORS_ORIGINS,
 )
 from .imerg_client import load_imerg_cube
 from .h3_mapping import sample_precip_for_h3, validate_h3_indices
@@ -52,7 +53,7 @@ app = FastAPI(
 # CORS middleware (allow GeoLens frontend/backend)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: Restrict to GeoLens domains in production
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

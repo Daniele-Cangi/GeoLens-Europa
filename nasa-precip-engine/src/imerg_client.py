@@ -147,7 +147,8 @@ def load_imerg_cube(
         datasets = []
         for f in files:
             try:
-                ds = xr.open_dataset(f)
+                # GPM IMERG V07 data is in the 'Grid' group
+                ds = xr.open_dataset(f, group='Grid', engine='h5netcdf')
                 datasets.append(ds)
             except Exception as e:
                 logger.warning(f"[IMERG] Failed to open file as xarray: {e}")

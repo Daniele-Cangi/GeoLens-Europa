@@ -24,6 +24,7 @@ import { RealElsusAdapter } from './realElsusAdapter';
 import { RealEshm20Adapter } from './realEshm20Adapter';
 import { RealClcAdapter } from './realClcAdapter';
 import { RealPrecipitationAdapter } from './realPrecipitationAdapter';
+import { GracefulAdapter } from './gracefulAdapter';
 
 export interface DataAdapters {
     dem: DatasetAdapter;
@@ -36,28 +37,43 @@ export interface DataAdapters {
 /**
  * Create data adapters based on environment configuration
  */
-export function createDataAdapters(): DataAdapters {
+export function createDataAdapters(requiredLayers: Set<string> = new Set()): DataAdapters {
     const useRealData = process.env.USE_REAL_DATA === 'true';
+    const realDataMode = process.env.GEO_REALDATA_MODE || 'best_effort'; // strict | best_effort
+    const isGlobalStrict = realDataMode === 'strict';
+
+    console.log(`[AdapterFactory] Config: USE_REAL_DATA=${useRealData}, MODE=${realDataMode}, REQUIRED=${Array.from(requiredLayers).join(',')}`);
 
     if (useRealData) {
-        console.log('🌍 [AdapterFactory] Using REAL geospatial data providers');
-        console.log('   ├─ Copernicus DEM (30m elevation, AWS S3)');
-        console.log('   ├─ NASA IMERG (real-time precipitation)');
-        console.log('   ├─ ELSUS v2 (landslide susceptibility, ESDAC)');
-        console.log('   ├─ ESHM20 (seismic hazard, EFEHR)');
-        console.log('   └─ CLC2018 (land cover, Copernicus)');
+        console.log('🌍 [AdapterFactory] Initializing REAL geospatial data providers...');
+
+        // Helper: If strict mode AND layer is required -> Use Real Adapter directly (Fail Fast)
+        //         Else -> Use Graceful Adapter (Real -> Mock Fallback)
+        const getAdapter = (layerName: string, real: DatasetAdapter, mock: DatasetAdapter) => {
+            const isRequired = requiredLayers.has(layerName);
+
+            // STRICT REQUIREMENT: If a layer is required (by env or profile), 
+            // we MUST use the Real adapter directly. 
+            // We do NOT wrap in GracefulAdapter because we want to fail hard/fast 
+            // if the real data is missing, rather than silently falling back to mock.
+            if (isRequired) {
+                console.log(`[AdapterFactory] Enforcing REAL data for required layer: ${layerName}`);
+                return real;
+            }
+            return new GracefulAdapter(real, mock);
+        };
 
         return {
-            dem: new RealDemAdapter(),
-            elsus: new RealElsusAdapter(),
-            eshm20: new RealEshm20Adapter(),
-            clc: new RealClcAdapter(),
+            dem: getAdapter('dem', new RealDemAdapter(), new DemAdapter()),
+            elsus: getAdapter('elsus', new RealElsusAdapter(), new ElsusAdapter()),
+            eshm20: getAdapter('eshm20', new RealEshm20Adapter(), new Eshm20Adapter()),
+            clc: getAdapter('clc', new RealClcAdapter(), new ClcAdapter()),
+
+            // Precip is microservice-based; Orchestrator handles its specific fallback logic
             precipitation: new RealPrecipitationAdapter()
         };
     } else {
-        console.log('🔧 [AdapterFactory] Using MOCK data generators (for testing/development)');
-        console.log('   Set USE_REAL_DATA=true to enable real satellite data');
-
+        console.log('🔧 [AdapterFactory] Using MOCK data generators.');
         return {
             dem: new DemAdapter(),
             elsus: new ElsusAdapter(),
@@ -66,6 +82,7 @@ export function createDataAdapters(): DataAdapters {
         };
     }
 }
+
 
 /**
  * Get description of current data source mode

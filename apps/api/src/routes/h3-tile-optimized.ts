@@ -21,6 +21,7 @@ interface CompactCell {
   l: number;  // landslide score
   s: number;  // seismic score
   m: number;  // mineral score
+  p?: number; // precipitation (mm)
   e?: number; // elevation (optional, for 3D visualization)
 }
 
@@ -148,6 +149,7 @@ function toCompactFormat(cell: any): CompactCell {
     l: cell.landslide.score,
     s: cell.seismic.score,
     m: cell.mineral.score,
+    p: cell.water.rain24h,
     e: cell.metadata?.elevation
   };
 }

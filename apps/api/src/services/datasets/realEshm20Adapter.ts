@@ -2,7 +2,7 @@
  * Real ESHM20 Adapter - Bridge between DatasetAdapter interface and ESHM20Provider
  */
 
-import { DatasetAdapter, AreaRequest } from './types';
+import { DatasetAdapter, AreaRequest, DatasetProvenance } from './types';
 import { CellFeatures } from '@geo-lens/geocube';
 import { h3ToLatLon } from '@geo-lens/core-geo';
 import { ESHM20Provider } from './providers/eshm20';
@@ -13,6 +13,21 @@ export class RealEshm20Adapter implements DatasetAdapter {
     constructor() {
         this.provider = new ESHM20Provider();
         console.log('[RealEshm20Adapter] Initialized with ESHM20 provider');
+    }
+
+    getProvenance(): DatasetProvenance {
+        return {
+            source: 'ESHM20 Seismic Hazard Model (PGA 475y)',
+            isMock: false,
+            datasetVersion: '2020'
+        };
+    }
+
+    getMetadata(): { name: string; description: string } {
+        return {
+            name: 'ESHM20',
+            description: 'European Seismic Hazard Model 2020'
+        };
     }
 
     async ensureCoverageForArea(area: AreaRequest): Promise<void> {

@@ -2,12 +2,11 @@
 
 import React from 'react';
 import { CellScore } from '@geo-lens/geocube';
+import { Droplets, Mountain, Activity, Sparkles, X } from 'lucide-react';
 
 type Props = {
     cell: CellScore | null;
     onClose: () => void;
-    onAnalyze: () => void;
-    loading: boolean;
     onAnalyze: () => void;
     loading: boolean;
     analysis: any;
@@ -19,210 +18,172 @@ export default function Sidebar({ cell, onClose, onAnalyze, loading, analysis, s
     if (!cell) return null;
 
     return (
-        <div className="absolute top-4 right-4 w-96 bg-white/90 backdrop-blur-xl shadow-2xl rounded-3xl z-20 max-h-[90vh] overflow-y-auto text-slate-800 border border-white/40 flex flex-col animate-in slide-in-from-right-10 duration-300 ring-1 ring-black/5">
-            {/* Header */}
-            <div className="p-5 border-b border-slate-100 flex justify-between items-start sticky top-0 bg-white/90 backdrop-blur-xl z-10">
-                <div>
-                    <h2 className="text-2xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent tracking-tight">
+        <div className="absolute top-4 right-4 w-[22rem] bg-white/90 backdrop-blur-xl shadow-2xl rounded-2xl z-20 flex flex-col animate-in slide-in-from-right-10 duration-500 ring-1 ring-black/5 font-sans max-h-[calc(100vh-2rem)]">
+            {/* Header - Compact */}
+            <div className="px-4 py-3 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <div className="flex items-center gap-3">
+                    <h2 className="text-lg font-semibold text-slate-800 tracking-tight">
                         Hazard Cube
                     </h2>
-                    <div className="mt-1 flex items-center gap-2">
-                        <span className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded-md text-[10px] font-mono text-slate-500 tracking-wide uppercase">
-                            H3 Index
-                        </span>
-                        <span className="text-xs font-mono text-slate-600 font-medium">{cell.h3Index}</span>
-                    </div>
-
-                    {/* Layer Selector */}
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                        {(['water', 'landslide', 'seismic', 'precipitation'] as const).map(layer => (
-                            <button
-                                key={layer}
-                                onClick={() => onLayerChange(layer)}
-                                className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-all border ${selectedLayer === layer
-                                    ? 'bg-slate-800 text-white border-slate-800 shadow-md'
-                                    : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                                    }`}
-                            >
-                                {layer === 'precipitation' ? 'Rain' : layer}
-                            </button>
-                        ))}
-                    </div>
+                    <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                        {cell.h3Index}
+                    </span>
                 </div>
                 <button
                     onClick={onClose}
-                    className="p-2 -mr-2 -mt-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600"
+                    className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors text-slate-400 hover:text-slate-600"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    <X className="w-4 h-4" />
                 </button>
             </div>
 
-            <div className="p-5 space-y-6">
-                {/* Water Axis */}
-                <Card title="Water Stress" icon="💧" color="blue" score={cell.water.score} source="NASA GPM (~4h latency) & Risk Engine">
-                    <Metric label="Stress Index" value={cell.water.stress} />
-                    <Metric label="Recharge Potential" value={cell.water.recharge} />
-                    {cell.water.rain24h !== undefined && (
-                        <div className="flex justify-between text-sm py-2 border-b border-slate-200/50 last:border-0">
-                            <span className="text-slate-500 font-medium">Precipitation (24h)</span>
-                            <span className="font-bold text-blue-600">{cell.water.rain24h.toFixed(1)} mm</span>
-                        </div>
-                    )}
-                    {cell.water.rain72h !== undefined && (
-                        <div className="flex justify-between text-sm py-2 border-b border-slate-200/50 last:border-0">
-                            <span className="text-slate-500 font-medium">Precipitation (72h)</span>
-                            <span className="font-bold text-blue-600">{cell.water.rain72h.toFixed(1)} mm</span>
-                        </div>
-                    )}
-                </Card>
+            {/* Scrollable Content - Compact Padding */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3 custom-scrollbar">
 
-                {/* Landslide Axis */}
-                <Card title="Mass Movement" icon="🏔️" color="amber" score={cell.landslide.score} source="Risk Engine (DEM + ELSUS)">
-                    <Metric label="Susceptibility" value={cell.landslide.susceptibility} />
-                    <div className="flex justify-between text-sm py-2 border-b border-slate-50 last:border-0">
-                        <span className="text-slate-500 font-medium">History</span>
-                        <span className={`font-bold px-2 py-0.5 rounded text-xs ${cell.landslide.history ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-green-100 text-green-700 border border-green-200'}`}>
-                            {cell.landslide.history ? 'Recorded Events' : 'Safe'}
-                        </span>
-                    </div>
-                </Card>
-
-                {/* Seismic Axis */}
-                <Card title="Seismic Risk" icon="📉" color="red" score={cell.seismic.score} source="ESHM20 (EFEHR)">
-                    <Metric label="PGA (g)" value={cell.seismic.pga} />
-                    <div className="flex justify-between text-sm py-2 border-b border-slate-50 last:border-0">
-                        <span className="text-slate-500 font-medium">Class</span>
-                        <span className="font-bold text-slate-800">{cell.seismic.class}</span>
-                    </div>
-                </Card>
-
-                {/* Metadata */}
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col items-center justify-center text-center hover:bg-slate-100 transition-colors">
-                        <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Biome</span>
-                        <span className="text-xs font-semibold text-slate-700 mt-1 line-clamp-1">{cell.metadata.biome}</span>
-                    </div>
-                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col items-center justify-center text-center hover:bg-slate-100 transition-colors">
-                        <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Elevation</span>
-                        <span className="text-xs font-semibold text-slate-700 mt-1">{cell.metadata.elevation.toFixed(0)}m</span>
-                    </div>
+                {/* Layer Toggle Bar - Integrated */}
+                <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar mb-1">
+                    {(['water', 'landslide', 'seismic', 'precipitation'] as const).map(layer => (
+                        <button
+                            key={layer}
+                            onClick={() => onLayerChange(layer)}
+                            className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide transition-all border whitespace-nowrap ${selectedLayer === layer
+                                ? 'bg-slate-800 text-white border-slate-800'
+                                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+                                }`}
+                        >
+                            {layer === 'precipitation' ? 'Rain' : layer}
+                        </button>
+                    ))}
                 </div>
 
-                {/* AI Action */}
-                <div className="pt-2">
+                {/* Cards - Tighter Spacing */}
+                <Card title="Water" icon={Droplets} color="blue" score={cell.water.score}>
+                    <div className="grid grid-cols-2 gap-4 mb-2">
+                        <MetricCompact label="Stress" value={cell.water.stress} />
+                        <MetricCompact label="Recharge" value={cell.water.recharge} />
+                    </div>
+                    <div className="bg-blue-50/50 rounded-lg px-2 py-1.5 border border-blue-100/50 flex justify-between items-center">
+                        <span className="text-[10px] text-blue-500 font-medium uppercase">Precipitation</span>
+                        <div className="flex gap-3 text-xs font-mono font-semibold text-blue-700">
+                            <span>24h: {cell.water.rain24h?.toFixed(1) ?? '-'}mm</span>
+                            <span className="opacity-30">|</span>
+                            <span>72h: {cell.water.rain72h?.toFixed(1) ?? '-'}mm</span>
+                        </div>
+                    </div>
+                </Card>
+
+                <div className="grid grid-cols-1 gap-3">
+                    <Card title="Mass Movement" icon={Mountain} color="amber" score={cell.landslide.score}>
+                        <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-500">Susceptibility</span>
+                            <span className="font-mono font-semibold text-slate-700">{cell.landslide.susceptibility.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs mt-1">
+                            <span className="text-slate-500">History</span>
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${cell.landslide.history
+                                ? 'text-red-600 bg-red-50'
+                                : 'text-emerald-600 bg-emerald-50'}`}>
+                                {cell.landslide.history ? 'Yes' : 'No'}
+                            </span>
+                        </div>
+                    </Card>
+
+                    <Card title="Seismic" icon={Activity} color="red" score={cell.seismic.score}>
+                        <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-500">PGA</span>
+                            <span className="font-mono font-semibold text-slate-700">{cell.seismic.pga.toFixed(2)}g</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs mt-1">
+                            <span className="text-slate-500">Class</span>
+                            <span className="font-mono font-semibold text-slate-700">{cell.seismic.class}</span>
+                        </div>
+                    </Card>
+                </div>
+
+                {/* Metadata - One Line */}
+                <div className="flex gap-2 text-[10px] justify-between px-1 text-slate-400 font-medium uppercase tracking-wider">
+                    <span>Biome: {cell.metadata.biome}</span>
+                    <span>Elev: {cell.metadata.elevation.toFixed(0)}m</span>
+                </div>
+
+                {/* Analysis Section (Sticky Bottom-ish but inside scroll if needed) */}
+                {analysis ? (
+                    <div className="relative bg-indigo-50/50 border border-indigo-100 rounded-xl p-3 animate-in fade-in zoom-in-95 duration-300">
+                        <div className="flex justify-between items-center mb-2">
+                            <h4 className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+                                <Sparkles className="w-3 h-3 text-indigo-500" />
+                                AI Assessment
+                            </h4>
+                            <span className="text-[10px] font-mono text-indigo-400">{Math.round(analysis.confidence * 100)}% Conf</span>
+                        </div>
+                        <p className="text-xs text-slate-700 leading-snug">
+                            {analysis.reasoning}
+                        </p>
+                    </div>
+                ) : (
                     <button
                         onClick={onAnalyze}
                         disabled={loading}
-                        className="group relative w-full py-3.5 bg-slate-900 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:translate-y-0 overflow-hidden"
+                        className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg shadow-md transition-all flex justify-center items-center gap-2 mt-2 active:scale-[0.99]"
                     >
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                        <div className="relative flex justify-center items-center gap-2">
-                            {loading ? (
-                                <>
-                                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    <span>Analyzing...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <span className="text-lg">✨</span>
-                                    <span>Analyze with Gemini</span>
-                                </>
-                            )}
-                        </div>
+                        {loading ? (
+                            <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : (
+                            <Sparkles className="w-3.5 h-3.5 text-indigo-300" />
+                        )}
+                        <span className="text-xs font-bold uppercase tracking-wide">Analyze with AI</span>
                     </button>
-                </div>
-
-                {/* AI Result */}
-                {analysis && (
-                    <div className="relative overflow-hidden bg-gradient-to-br from-indigo-50 to-white border border-indigo-100 rounded-2xl p-5 shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="absolute top-0 right-0 p-3 opacity-10">
-                            <svg width="64" height="64" viewBox="0 0 24 24" fill="currentColor" className="text-indigo-600"><path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z" /></svg>
-                        </div>
-
-                        <div className="relative z-10">
-                            <div className="flex items-center justify-between mb-3">
-                                <h4 className="font-bold text-indigo-900 flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                                    AI Assessment
-                                </h4>
-                                <span className="px-2.5 py-1 bg-indigo-100 text-indigo-700 text-[10px] font-bold rounded-full border border-indigo-200 shadow-sm">
-                                    {Math.round(analysis.confidence * 100)}% CONFIDENCE
-                                </span>
-                            </div>
-
-                            <p className="text-sm text-slate-700 leading-relaxed font-medium">
-                                {analysis.reasoning}
-                            </p>
-
-                            {analysis.key_visual_clues && analysis.key_visual_clues.length > 0 && (
-                                <div className="mt-4 pt-3 border-t border-indigo-100/50 flex flex-wrap gap-2">
-                                    {analysis.key_visual_clues.map((clue: string, i: number) => (
-                                        <span key={i} className="px-2 py-1 bg-white border border-indigo-100 text-indigo-600 text-[10px] font-bold uppercase tracking-wide rounded-md shadow-sm">
-                                            {clue}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
                 )}
             </div>
+
+            <style jsx>{`
+                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+            `}</style>
         </div>
     );
 }
 
-function Card({ title, icon, color, score, source, children }: { title: string, icon: string, color: string, score: number, source?: string, children: React.ReactNode }) {
-    const colorClasses = {
-        blue: 'bg-blue-500',
-        amber: 'bg-amber-500',
-        red: 'bg-red-500',
-        purple: 'bg-purple-500'
+function Card({ title, icon: Icon, color, score, children }: { title: string, icon: React.ElementType, color: string, score: number, children: React.ReactNode }) {
+    const theme = {
+        blue: { text: 'text-blue-600', bg: 'bg-blue-500', light: 'bg-blue-50' },
+        amber: { text: 'text-amber-600', bg: 'bg-amber-500', light: 'bg-amber-50' },
+        red: { text: 'text-red-500', bg: 'bg-red-500', light: 'bg-red-50' },
     };
 
-    const bgClasses = {
-        blue: 'bg-blue-50',
-        amber: 'bg-amber-50',
-        red: 'bg-red-50',
-        purple: 'bg-purple-50'
-    };
+    const t = theme[color as keyof typeof theme] || theme.blue;
 
     return (
-        <div className={`rounded-2xl border border-slate-200 p-4 transition-all hover:shadow-md ${bgClasses[color as keyof typeof bgClasses]}`}>
-            <div className="flex justify-between items-center mb-3">
+        <div className="bg-white/50 rounded-xl border border-slate-200/60 p-3 shadow-sm hover:border-slate-300 transition-colors">
+            <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center gap-2">
-                    <span className="text-lg">{icon}</span>
-                    <h3 className="font-bold text-slate-800 text-sm">{title}</h3>
+                    <Icon className={`w-3.5 h-3.5 ${t.text}`} />
+                    <h3 className="font-bold text-slate-700 text-xs tracking-tight uppercase">{title}</h3>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div className="w-8 h-1 bg-slate-100 rounded-full overflow-hidden">
                         <div
-                            className={`h-full ${colorClasses[color as keyof typeof colorClasses]} rounded-full transition-all duration-1000 ease-out`}
+                            className={`h-full ${t.bg} rounded-full`}
                             style={{ width: `${score * 100}%` }}
                         />
                     </div>
-                    <span className="text-xs font-bold text-slate-500 w-6 text-right">{(score * 100).toFixed(0)}</span>
+                    <span className="text-[10px] font-mono font-bold text-slate-400">{(score * 100).toFixed(0)}</span>
                 </div>
             </div>
-            <div className="space-y-0.5">
+            <div className="space-y-1">
                 {children}
             </div>
-            {source && (
-                <div className="mt-2 pt-2 border-t border-slate-200/50 text-[10px] text-slate-400 font-mono text-right">
-                    Source: {source}
-                </div>
-            )}
         </div>
     );
 }
 
-function Metric({ label, value }: { label: string, value: number }) {
+function MetricCompact({ label, value }: { label: string, value: number }) {
     return (
-        <div className="flex justify-between text-sm py-2 border-b border-slate-200/50 last:border-0">
-            <span className="text-slate-500 font-medium">{label}</span>
-            <span className="font-bold text-slate-800">{value.toFixed(2)}</span>
+        <div className="flex justify-between items-center text-xs">
+            <span className="text-slate-500">{label}</span>
+            <span className="font-mono font-semibold text-slate-700">{value.toFixed(2)}</span>
         </div>
     );
 }

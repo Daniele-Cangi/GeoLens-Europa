@@ -49,7 +49,11 @@ def sample_precip_for_h3(
     for h3_index in h3_indices:
         try:
             # Convert H3 to lat/lon centroid
-            lat, lon = h3.h3_to_geo(h3_index)
+            try:
+                lat, lon = h3.cell_to_latlng(h3_index)
+            except AttributeError:
+                # Fallback for H3 v3
+                lat, lon = h3.h3_to_geo(h3_index)
 
             # Sample precipitation at centroid
             precip_mm = get_precip_at_point(precip_data, lat, lon)
@@ -89,7 +93,13 @@ def validate_h3_indices(h3_indices: List[str]) -> List[str]:
     valid_indices = []
 
     for idx in h3_indices:
-        if h3.h3_is_valid(idx):
+        is_valid = False
+        try:
+            is_valid = h3.is_valid_cell(idx)
+        except AttributeError:
+            is_valid = h3.h3_is_valid(idx)
+            
+        if is_valid:
             valid_indices.append(idx)
         else:
             logger.warning(f"[H3] Invalid index: {idx}")
