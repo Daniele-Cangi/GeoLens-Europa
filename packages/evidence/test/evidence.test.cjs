@@ -62,6 +62,13 @@ test('available evidence cannot carry a null value', () => {
   );
 });
 
+test('available evidence cannot carry an undefined value', () => {
+  assert.throws(
+    () => availableEvidence(undefined, descriptor),
+    /must carry a value/,
+  );
+});
+
 test('unavailable constructors reject available and fixture statuses', () => {
   assert.throws(
     () => unavailableEvidence('available', 'invalid', descriptor),

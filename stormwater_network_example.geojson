@@ -89,7 +89,8 @@
             "type": "Feature",
             "id": "catchment_A",
             "properties": {
-                "type": "catchment"
+                "type": "catchment",
+                "outlet_node_id": "node_A_inlet"
             },
             "geometry": {
                 "type": "Polygon",

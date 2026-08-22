@@ -7,7 +7,7 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Working branch: `codex/geolens-refoundation`
 - Canonical base: `main@46b41e70557f18c8ec6852f6af3e796a6d1e2a8d`
 - Protected historical snapshot: `codex/pre-overhaul-snapshot-20260822@9920ee29ed945a55af8e7ff89005724fab19a998`
-- Proof 0: not established
+- Deterministic fixture chain: established; live-provider/API Proof 0 is not established
 - Live IMERG/DEM/CLC verification: not established
 - Refoundation typecheck/test baseline: established; the parked legacy build remains intentionally recorded as failing
 - Historical tracked Copernicus private key: removed from the active tree; revocation/rotation remains an external security action because the secret is present in Git history
@@ -99,7 +99,7 @@ Checkpoint: `refactor: introduce canonical evidence model`
 
 ## Phase 2 — Build the deterministic physical core
 
-State: in progress
+State: completed
 
 Work:
 
@@ -125,7 +125,7 @@ Checkpoints:
 
 ## Phase 3 — Consolidate real environmental providers
 
-State: pending
+State: in progress
 
 Work:
 

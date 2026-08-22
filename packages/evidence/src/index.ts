@@ -185,7 +185,10 @@ export function assertEvidenceInvariant(
 
   const carriesValue = status === 'available' || status === 'synthetic_fixture';
 
-  if (carriesValue && evidence.value === null) {
+  if (
+    carriesValue &&
+    (evidence.value === null || evidence.value === undefined)
+  ) {
     throw new Error(`Evidence with status "${status}" must carry a value`);
   }
 
