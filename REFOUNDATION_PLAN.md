@@ -8,7 +8,7 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Canonical base: `main@46b41e70557f18c8ec6852f6af3e796a6d1e2a8d`
 - Protected historical snapshot: `codex/pre-overhaul-snapshot-20260822@9920ee29ed945a55af8e7ff89005724fab19a998`
 - Deterministic core Proof 0: established through environmental bundle, runoff, catchment aggregation, point-sampled node elevation, direction, propagation, and mass balance
-- Live provider verification: Copernicus DEM established; IMERG and CLC remain unverified
+- Live provider verification: Copernicus DEM and the official local CLC2018 V2020_20u1 raster are established; live IMERG granule acquisition remains opt-in
 - Refoundation core, Proof 0 API, and minimal inspection UI build/typecheck/test baseline: established; historical legacy sources are excluded from the active TypeScript boundary
 - First refoundation success gate: established through deterministic fixture proof, production-path DEM evidence, explicit IMERG/CLC unavailability, clean API, and browser-verified inspector
 - Historical tracked Copernicus private key: removed from the active tree; revocation/rotation remains an external security action because the secret is present in Git history
@@ -134,7 +134,9 @@ Progress:
 - canonical TypeScript clients now return Evidence for IMERG, Copernicus DEM elevation/slope, and CLC class codes;
 - deterministic provider contracts pass and synthetic raster sources are structurally marked as fixtures;
 - live Copernicus DEM sampling is verified against the public raster;
-- live IMERG awaits Earthdata credentials and live CLC awaits a configured CLC2018 raster.
+- the official European CLC2018 V2020_20u1 100 m GeoTIFF is configured and a real Trento sample is verified as available class `111`;
+- official CLC palette indices `1..44` are explicitly decoded to level-3 codes `111..523` with transformation provenance;
+- live IMERG granule acquisition remains opt-in and dependent on Earthdata credentials/network availability.
 
 Work:
 
@@ -171,7 +173,7 @@ Progress:
 - the active API compiles and runs without AI, mineral, generic-risk, database, or legacy route dependencies;
 - API runtime tests reproduce non-zero downstream state and prove missing rainfall cannot become a valid-looking zero;
 - a production-path browser run returned real Copernicus DEM evidence while retaining unconfigured IMERG as `upstream_error` and CLC as `missing`, without fabricating rainfall, land cover, runoff, or propagation values;
-- fully available live IMERG+DEM+CLC execution remains pending provider credentials/data.
+- fully available live IMERG+DEM+CLC execution remains pending an opt-in live IMERG acquisition; DEM and CLC live evidence are established.
 
 Work:
 
