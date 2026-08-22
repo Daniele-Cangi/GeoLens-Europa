@@ -8,6 +8,20 @@ build
 coverage
 .vscode
 
+# Generated build and runtime caches
+*.tsbuildinfo
+__pycache__/
+*.py[cod]
+data/intermediate/h3_cache.json
+
+# Local diagnostics and downloaded source data
+*.log
+*.patch
+nasa-precip-engine/*.HDF5
+response.json
+verification_output*.json
+verification_risk_output.json
+
 # Data
 apps/api/public/data/*.json
 data/raw/

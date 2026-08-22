@@ -53,5 +53,12 @@ API_PORT = int(os.getenv('API_PORT', '8001'))
 # Maximum H3 cells per request (prevent DoS)
 MAX_H3_CELLS_PER_REQUEST = 10000
 
+
 # === LOGGING ===
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
+
+# === SECURITY ===
+# CORS Origins (comma-separated list for strict checking)
+# Default: Allow frontend (3000) and API (3003)
+CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:3003').split(',')
+

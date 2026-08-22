@@ -1,8 +1,23 @@
-import { DatasetAdapter, AreaRequest } from './types';
+import { DatasetAdapter, AreaRequest, DatasetProvenance } from './types';
 import { CellFeatures } from '@geo-lens/geocube';
 import { h3ToLatLon } from '@geo-lens/core-geo';
 
 export class DemAdapter implements DatasetAdapter {
+    getProvenance(): DatasetProvenance {
+        return {
+            source: 'Synthetic Terrain Generator (Perlin Noise)',
+            isMock: true,
+            layer: 'dem'
+        };
+    }
+
+    getMetadata() {
+        return {
+            name: 'Mock DEM',
+            description: 'Generated synthetic elevation data'
+        };
+    }
+
     async ensureCoverageForArea(area: AreaRequest): Promise<void> {
         // In a real implementation, this would check if we have the DEM tiles for the BBOX
         // and download them if missing.
@@ -14,12 +29,10 @@ export class DemAdapter implements DatasetAdapter {
     async sampleFeaturesForH3Cells(area: AreaRequest, h3Indices: string[]): Promise<Record<string, Partial<CellFeatures>>> {
         const results: Record<string, Partial<CellFeatures>> = {};
 
-        // Mock sampling logic (simulating reading from a DEM raster)
         h3Indices.forEach(h3Index => {
             const { lat, lon } = h3ToLatLon(h3Index);
 
             // Generate deterministic mock values based on location
-            // e.g., higher elevation in Alps/Apennines
             const elevation = Math.max(0, (Math.sin(lat * 0.1) + Math.cos(lon * 0.1)) * 1000 + Math.random() * 50);
             const slope = Math.abs(Math.sin(lat * 10) * 45); // Mock slope
 

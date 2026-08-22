@@ -2,17 +2,44 @@
  * Real DEM Adapter - Bridge between DatasetAdapter interface and CopernicusDEMProvider
  */
 
-import { DatasetAdapter, AreaRequest } from './types';
+import { DatasetAdapter, AreaRequest, DatasetProvenance } from './types';
 import { CellFeatures } from '@geo-lens/geocube';
 import { h3ToLatLon } from '@geo-lens/core-geo';
+import * as fs from 'fs';
 import { CopernicusDEMProvider } from './providers/copernicusDEM';
 
 export class RealDemAdapter implements DatasetAdapter {
     private provider: CopernicusDEMProvider;
+    private filePath: string;
 
-    constructor() {
+    constructor(filePath: string) {
+        this.filePath = filePath;
         this.provider = new CopernicusDEMProvider();
         console.log('[RealDemAdapter] Initialized with Copernicus DEM GLO-30 provider');
+    }
+
+    getProvenance(): DatasetProvenance {
+        return {
+            source: 'Copernicus DEM GLO-30',
+            isMock: false,
+            datasetVersion: 'GLO-30'
+        };
+    }
+
+    getMetadata(): { name: string; description: string } {
+        return {
+            name: 'Copernicus DEM',
+            description: 'Digital Elevation Model GLO-30'
+        };
+    }
+
+    async verify(): Promise<boolean> {
+        try {
+            await fs.promises.access(this.filePath);
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     async ensureCoverageForArea(area: AreaRequest): Promise<void> {
@@ -40,13 +67,8 @@ export class RealDemAdapter implements DatasetAdapter {
 
         // Batch fetch from provider
         let geoData = new Map<string, { value: number; source: string }>();
-        try {
-            const geoPoints = points.map(p => ({ lat: p.lat, lon: p.lon }));
-            geoData = await this.provider.fetchBatch(geoPoints);
-        } catch (error) {
-            console.error('[RealDemAdapter] Failed to fetch DEM data:', error);
-            // Continue with empty data to avoid crashing the entire request
-        }
+        const geoPoints = points.map(p => ({ lat: p.lat, lon: p.lon }));
+        geoData = await this.provider.fetchBatch(geoPoints);
 
         // Map results back to H3 indices
         for (const point of points) {

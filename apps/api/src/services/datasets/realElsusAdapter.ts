@@ -2,7 +2,7 @@
  * Real ELSUS Adapter - Bridge between DatasetAdapter interface and ELSUSProvider
  */
 
-import { DatasetAdapter, AreaRequest } from './types';
+import { DatasetAdapter, AreaRequest, DatasetProvenance } from './types';
 import { CellFeatures } from '@geo-lens/geocube';
 import { h3ToLatLon } from '@geo-lens/core-geo';
 import { ELSUSProvider } from './providers/elsus';
@@ -13,6 +13,21 @@ export class RealElsusAdapter implements DatasetAdapter {
     constructor() {
         this.provider = new ELSUSProvider();
         console.log('[RealElsusAdapter] Initialized with ELSUS v2 provider');
+    }
+
+    getProvenance(): DatasetProvenance {
+        return {
+            source: 'ELSUS v2 Landslide Susceptibility',
+            isMock: false,
+            datasetVersion: 'v2'
+        };
+    }
+
+    getMetadata(): { name: string; description: string } {
+        return {
+            name: 'ELSUS v2',
+            description: 'European Landslide Susceptibility Map'
+        };
     }
 
     async ensureCoverageForArea(area: AreaRequest): Promise<void> {
@@ -37,12 +52,8 @@ export class RealElsusAdapter implements DatasetAdapter {
         });
 
         let geoData = new Map<string, { value: number; source: string }>();
-        try {
-            const geoPoints = points.map(p => ({ lat: p.lat, lon: p.lon }));
-            geoData = await this.provider.fetchBatch(geoPoints);
-        } catch (error) {
-            console.error('[RealElsusAdapter] Failed to fetch ELSUS data:', error);
-        }
+        const geoPoints = points.map(p => ({ lat: p.lat, lon: p.lon }));
+        geoData = await this.provider.fetchBatch(geoPoints);
 
         for (const point of points) {
             const key = `${point.lat}_${point.lon}`;

@@ -31,7 +31,9 @@ export class CorineLandCoverProvider extends BaseGeoProvider {
     // Note: Direct download URL requires EEA registration
     // For automated access, use Copernicus Data Space or local mirror
     private static readonly CLC_URL = process.env.CLC_DOWNLOAD_URL || '';
-    private static readonly LOCAL_PATH = path.join(process.cwd(), 'data', 'raw', 'CLC2018_100m.tif');
+
+    // Path relative to project root (when running from root)
+    private static readonly LOCAL_PATH = path.join(process.cwd(), 'data', 'raw', 'clc', 'CLC2018_100m.tif');
 
     private tiff: any = null;
     private image: any = null;
