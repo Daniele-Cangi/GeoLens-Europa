@@ -1,0 +1,153 @@
+import json
+import tempfile
+import unittest
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from unittest.mock import patch
+
+import numpy as np
+import xarray as xr
+
+from src.cache import (
+    clear_cache,
+    get_cache_stats,
+    get_cached_window,
+    set_cached_window,
+)
+from src.imerg_client import ImergWindow, ImergWindowMetadata
+
+
+REFERENCE = datetime(2026, 8, 20, 0, 0, tzinfo=timezone.utc)
+START = REFERENCE - timedelta(hours=1)
+
+
+def evidence_window(status="available"):
+    timestamps = (
+        START,
+        START + timedelta(minutes=30),
+    )
+    granule_count = 2
+    reason = None
+
+    if status != "available":
+        timestamps = timestamps[:1]
+        granule_count = 1
+        reason = "one expected granule is missing"
+
+    return ImergWindow(
+        data=xr.DataArray(
+            np.array([[0.0, 1.25], [2.5, 4.0]], dtype=float),
+            dims=("lat", "lon"),
+            coords={
+                "lat": [45.95, 46.05],
+                "lon": [11.05, 11.15],
+            },
+            attrs={"units": "mm"},
+        ),
+        metadata=ImergWindowMetadata(
+            product="GPM_3IMERGHHE",
+            run_type="early",
+            dataset_version="07",
+            requested_window_start=START,
+            requested_window_end=REFERENCE,
+            actual_window_start=START,
+            actual_window_end=(
+                REFERENCE
+                if status == "available"
+                else START + timedelta(minutes=30)
+            ),
+            expected_granule_count=2,
+            searched_granule_count=granule_count,
+            granule_count=granule_count,
+            granule_timestamps=timestamps,
+            variable_names=("precipitationCal",),
+            acquired_at=REFERENCE + timedelta(minutes=5),
+            source_resolution="0.1 degree",
+            sampling_method="nearest IMERG grid cell at H3 centroid",
+            status=status,
+            missing_reason=reason,
+        ),
+    )
+
+
+class PersistentCacheTests(unittest.TestCase):
+    def setUp(self):
+        clear_cache()
+
+    def tearDown(self):
+        clear_cache()
+
+    def test_available_real_window_round_trips_without_losing_zero(self):
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "src.cache.IMERG_CACHE_DIR",
+            directory,
+        ), patch(
+            "src.cache.IMERG_DISK_CACHE_TTL_SECONDS",
+            3600,
+        ):
+            original = evidence_window()
+            set_cached_window(REFERENCE, 1, original)
+            clear_cache()
+
+            restored = get_cached_window(REFERENCE, 1)
+
+            self.assertIsNotNone(restored)
+            self.assertEqual(float(restored.data.values[0, 0]), 0.0)
+            self.assertEqual(float(restored.data.values[1, 1]), 4.0)
+            self.assertEqual(restored.metadata.status, "available")
+            self.assertEqual(
+                restored.metadata.granule_timestamps,
+                original.metadata.granule_timestamps,
+            )
+            self.assertEqual(
+                restored.metadata.acquired_at,
+                original.metadata.acquired_at,
+            )
+            self.assertEqual(restored.metadata.run_type, "early")
+            stats = get_cache_stats()
+            self.assertEqual(stats["disk_valid_entries"], 1)
+            self.assertGreater(stats["disk_bytes"], 0)
+
+    def test_incomplete_window_is_memory_only(self):
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "src.cache.IMERG_CACHE_DIR",
+            directory,
+        ), patch(
+            "src.cache.IMERG_DISK_CACHE_TTL_SECONDS",
+            3600,
+        ):
+            set_cached_window(
+                REFERENCE,
+                1,
+                evidence_window("incomplete_window"),
+            )
+            clear_cache()
+
+            self.assertIsNone(get_cached_window(REFERENCE, 1))
+            self.assertEqual(list(Path(directory).iterdir()), [])
+
+    def test_corrupt_metadata_is_a_cache_miss_not_evidence(self):
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "src.cache.IMERG_CACHE_DIR",
+            directory,
+        ), patch(
+            "src.cache.IMERG_DISK_CACHE_TTL_SECONDS",
+            3600,
+        ):
+            set_cached_window(REFERENCE, 1, evidence_window())
+            clear_cache()
+            metadata_path = next(Path(directory).glob("*.json"))
+            payload = json.loads(
+                metadata_path.read_text(encoding="utf-8")
+            )
+            payload["windowMetadata"]["status"] = "missing"
+            metadata_path.write_text(
+                json.dumps(payload),
+                encoding="utf-8",
+            )
+
+            self.assertIsNone(get_cached_window(REFERENCE, 1))
+
+
+if __name__ == "__main__":
+    unittest.main()

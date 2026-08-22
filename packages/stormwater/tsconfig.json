@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "paths": {
+      "@geo-lens/evidence": [
+        "../evidence/src"
+      ]
+    }
+  },
+  "references": [
+    {
+      "path": "../evidence"
+    }
+  ],
+  "include": [
+    "src"
+  ]
+}

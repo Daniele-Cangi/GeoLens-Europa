@@ -1,18 +1,10 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
+import path from 'node:path';
 
 const nextConfig: NextConfig = {
-  transpilePackages: [
-    '@geo-lens/core-geo',
-    '@geo-lens/geocube',
-    'resium',
-    'cesium',
-    '@deck.gl/core',
-    '@deck.gl/layers',
-    '@deck.gl/geo-layers',
-    '@deck.gl/react',
-    'react-map-gl',
-    'maplibre-gl'
-  ],
+  turbopack: {
+    root: path.resolve(__dirname, '../..'),
+  },
 };
 
 export default nextConfig;

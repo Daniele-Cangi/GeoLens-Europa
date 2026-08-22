@@ -5,8 +5,5 @@
  */
 
 export * from './base';
-export * from './copernicusDEM';
-export * from './gpmIMERG';
 export * from './elsus';
 export * from './eshm20';
-export * from './corineLandCover';

@@ -9,7 +9,11 @@ import {
     computeSeismicScore,
     computeMineralScore
 } from '@geo-lens/geocube';
-import { getNasaPrecipProvider, isNasaPrecipEnabled } from './precip/nasaPrecipProvider';
+import {
+    getNasaPrecipProvider,
+    isNasaPrecipEnabled,
+    PrecipData
+} from './precip/nasaPrecipProvider';
 
 // NASA precipitation provider (replaces old precipitation adapter)
 const nasaPrecipProvider = isNasaPrecipEnabled() ? getNasaPrecipProvider() : null;
@@ -218,30 +222,43 @@ export async function getH3ScoresForArea(area: AreaRequest, options: Orchestrato
     checkBudget();
 
     // 9. Fetch NASA precipitation
-    let precipData: Record<string, { rain24h_mm: number; rain72h_mm: number }> = {};
+    let precipData: Readonly<Record<string, PrecipData>> = {};
 
     if (nasaPrecipProvider) {
         try {
-            precipData = await withTimeout(
-                nasaPrecipProvider.getForH3IndicesWithFallback(missingIndices),
+            const batch = await withTimeout(
+                nasaPrecipProvider.getForH3Indices(missingIndices),
                 ADAPTER_TIMEOUT_MS
             );
+            precipData = batch.cells;
+            const unavailable = Object.values(precipData).flatMap(cell =>
+                [cell.rain24h, cell.rain72h]
+            ).filter(evidence => evidence.value === null);
+
             dataStatus.precipitation = {
                 source: 'NASA GPM IMERG',
                 isMock: false,
-                latencyMs: 14400000
+                status: unavailable.length === 0
+                    ? 'available'
+                    : unavailable[0].quality.status,
+                missingReason: unavailable[0]?.quality.missingReason
             };
         } catch (error) {
             console.error('[TileOrchestrator] Failed to fetch NASA precipitation:', error);
             dataStatus.precipitation = {
-                source: 'NASA GPM IMERG (Failed)',
-                isMock: true,
-                missingReason: 'Fetch Error',
-                howToFix: 'Check nasa-precip-engine status'
+                source: 'NASA GPM IMERG',
+                isMock: false,
+                status: 'upstream_error',
+                missingReason: error instanceof Error ? error.message : 'Fetch error'
             };
         }
     } else {
-        dataStatus.precipitation = { source: 'None', isMock: true, missingReason: 'Provider disabled' };
+        dataStatus.precipitation = {
+            source: 'NASA GPM IMERG',
+            isMock: false,
+            status: 'missing',
+            missingReason: 'Provider disabled'
+        };
     }
 
     // 10. Strict Mode / Profile Validation
@@ -252,7 +269,11 @@ export async function getH3ScoresForArea(area: AreaRequest, options: Orchestrato
         const violations: string[] = [];
 
         const checkLayer = (name: string, prov: any) => {
-            if (requiredLayers.has(name) && prov.isMock) {
+            const unavailable =
+                prov.isMock ||
+                (prov.status !== undefined && prov.status !== 'available');
+
+            if (requiredLayers.has(name) && unavailable) {
                 violations.push(name);
             }
         };
@@ -299,8 +320,8 @@ export async function getH3ScoresForArea(area: AreaRequest, options: Orchestrato
             elsusClass: elsus.elsusClass,
             hazardPGA: eshm.hazardPGA,
             clcClass: clc.clcClass,
-            rain24h: precip?.rain24h_mm,
-            rain72h: precip?.rain72h_mm
+            rain24h: precip?.rain24h_mm ?? undefined,
+            rain72h: precip?.rain72h_mm ?? undefined
         };
 
         const waterScore = computeWaterScore(features);
@@ -310,11 +331,16 @@ export async function getH3ScoresForArea(area: AreaRequest, options: Orchestrato
 
         // Stormwater Computation
         let stormwaterRisk = undefined;
-        if (profile === 'stormwater') {
+        if (
+            profile === 'stormwater' &&
+            typeof features.rain24h === 'number' &&
+            typeof features.clcClass === 'number' &&
+            typeof features.slope === 'number'
+        ) {
             stormwaterRisk = computeRunoffRisk({
-                rain24h_mm: typeof features.rain24h === 'number' ? features.rain24h : 0,
-                clcClass: typeof features.clcClass === 'number' ? features.clcClass : 0,
-                slope_deg: typeof features.slope === 'number' ? features.slope : 0
+                rain24h_mm: features.rain24h,
+                clcClass: features.clcClass,
+                slope_deg: features.slope
             });
         }
 
@@ -326,9 +352,8 @@ export async function getH3ScoresForArea(area: AreaRequest, options: Orchestrato
                 stress: waterScore,
                 recharge: 1 - waterScore,
                 score: waterScore,
-                // CACHE FIX: Do not cache precip if it's fallback/mock
-                rain24h: (dataStatus.precipitation.isMock) ? undefined : features.rain24h,
-                rain72h: (dataStatus.precipitation.isMock) ? undefined : features.rain72h,
+                rain24h: features.rain24h,
+                rain72h: features.rain72h,
                 ...(stormwaterRisk ? { stormwater: stormwaterRisk } : {})
             } as any,
             landslide: { susceptibility: landslideScore, history: false, score: landslideScore },

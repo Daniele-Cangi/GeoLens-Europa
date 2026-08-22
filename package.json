@@ -1,28 +1,27 @@
 {
-    "name": "geo-lens-eu",
-    "private": true,
-    "workspaces": [
-        "apps/*",
-        "packages/*"
-    ],
-    "scripts": {
-        "build": "npm run build --workspaces",
-        "dev": "concurrently \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/web\"",
-        "test": "npm run test --workspaces",
-        "ingest:eu": "npx tsx scripts/ingest/download/download-dem-eu.ts && npx tsx scripts/ingest/download/download-elsus.ts && npx tsx scripts/ingest/download/download-eshm20.ts && npx tsx scripts/ingest/download/download-clc.ts && npx tsx scripts/ingest/raster-to-h3/dem-to-h3.ts && npx tsx scripts/ingest/raster-to-h3/elsus-to-h3.ts && npx tsx scripts/ingest/raster-to-h3/eshm20-to-h3.ts && npx tsx scripts/ingest/raster-to-h3/clc-to-h3.ts && npx tsx scripts/ingest/aggregate/build-h3-features-eu.ts"
-    },
-    "devDependencies": {
-        "concurrently": "^9.2.1",
-        "eslint": "^8.0.0",
-        "prettier": "^3.0.0",
-        "ts-node": "^10.9.2",
-        "typescript": "^5.0.0"
-    },
-    "dependencies": {
-        "axios": "^1.13.2",
-        "cesium": "^1.135.0",
-        "csv-parse": "^6.1.0",
-        "csv-stringify": "^6.6.0",
-        "geotiff": "^2.1.4-beta.1"
-    }
+  "name": "geo-lens-eu",
+  "private": true,
+  "workspaces": [
+    "apps/api",
+    "apps/web",
+    "packages/evidence",
+    "packages/providers",
+    "packages/stormwater",
+    "packages/proof-zero"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "build:refoundation": "npm run build",
+    "dev": "node scripts/dev-proof-zero.mjs",
+    "dev:api-web": "concurrently \"npm run dev --workspace=@geo-lens/api\" \"npm run dev --workspace=@geo-lens/web\"",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test:ts && npm run test:python",
+    "test:ts": "npm run test --workspaces --if-present",
+    "test:python": "cd nasa-precip-engine && python -m unittest discover -s tests -v",
+    "test:live": "npm run build --workspace=@geo-lens/providers && node --test packages/providers/test/live-environmental.test.cjs && cd nasa-precip-engine && python -m unittest discover -s tests -p test_live_imerg.py -v",
+    "test:live:proof-zero": "node --test apps/api/test/live-proof-zero-runtime.test.cjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
 }

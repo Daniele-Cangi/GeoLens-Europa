@@ -25,16 +25,12 @@ LON_MAX = 40.0   # Eastern Europe (extended to Turkey/Caucasus)
 EARTHDATA_USERNAME = os.getenv('EARTHDATA_USERNAME', '')
 EARTHDATA_PASSWORD = os.getenv('EARTHDATA_PASSWORD', '')
 
-if not EARTHDATA_USERNAME or not EARTHDATA_PASSWORD:
-    raise ValueError(
-        "Missing NASA Earthdata credentials. "
-        "Set EARTHDATA_USERNAME and EARTHDATA_PASSWORD environment variables."
-    )
-
 # === IMERG DATA CONFIGURATION ===
 # GPM IMERG V07 product identifiers
 IMERG_PRODUCT_LATE = "GPM_3IMERGHH"  # Late Run (4-18h latency, more accurate)
 IMERG_PRODUCT_EARLY = "GPM_3IMERGHHE"  # Early Run (4-6h latency, less accurate)
+IMERG_DATASET_VERSION = "07"
+IMERG_INTERVAL_MINUTES = 30
 
 # Resolution: 0.1° (~10km at equator)
 IMERG_RESOLUTION = 0.1
@@ -45,6 +41,17 @@ CACHE_MAX_SIZE = 50
 
 # Cache TTL (seconds) - 30 minutes (matches IMERG update frequency)
 CACHE_TTL_SECONDS = 1800
+
+# Optional persistent cache for completed real-evidence windows. Only
+# accumulated cubes and original provenance are stored, never mock values.
+IMERG_CACHE_DIR = os.getenv('IMERG_CACHE_DIR', '').strip()
+IMERG_DISK_CACHE_TTL_SECONDS = int(
+    os.getenv('IMERG_DISK_CACHE_TTL_SECONDS', '2592000')
+)
+if IMERG_DISK_CACHE_TTL_SECONDS <= 0:
+    raise ValueError(
+        "IMERG_DISK_CACHE_TTL_SECONDS must be positive"
+    )
 
 # === API CONFIGURATION ===
 API_HOST = os.getenv('API_HOST', '0.0.0.0')

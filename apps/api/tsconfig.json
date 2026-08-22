@@ -1,22 +1,39 @@
 {
-    "extends": "../../tsconfig.base.json",
-    "compilerOptions": {
-        "outDir": "dist",
-        "rootDir": "src",
-        "paths": {
-            "@geo-lens/core-geo": ["../../packages/core-geo/src"],
-            "@geo-lens/geocube": ["../../packages/geocube/src"],
-            "@geo-lens/risk-engine": ["../../packages/risk-engine/src"],
-            "@geo-lens/datacube": ["../../packages/datacube/src"]
-        }
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "paths": {
+      "@geo-lens/evidence": [
+        "../../packages/evidence/src"
+      ],
+      "@geo-lens/proof-zero": [
+        "../../packages/proof-zero/src"
+      ],
+      "@geo-lens/providers": [
+        "../../packages/providers/src"
+      ],
+      "@geo-lens/stormwater": [
+        "../../packages/stormwater/src"
+      ]
+    }
+  },
+  "references": [
+    {
+      "path": "../../packages/evidence"
     },
-    "references": [
-        { "path": "../../packages/core-geo" },
-        { "path": "../../packages/geocube" },
-        { "path": "../../packages/risk-engine" },
-        { "path": "../../packages/datacube" }
-    ],
-    "include": [
-        "src"
-    ]
+    {
+      "path": "../../packages/providers"
+    },
+    {
+      "path": "../../packages/stormwater"
+    },
+    {
+      "path": "../../packages/proof-zero"
+    }
+  ],
+  "include": [
+    "src/index.ts",
+    "src/refoundation/**/*.ts"
+  ]
 }

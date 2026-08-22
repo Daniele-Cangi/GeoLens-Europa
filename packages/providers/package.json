@@ -1,0 +1,22 @@
+{
+  "name": "@geo-lens/providers",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Canonical real-data provider clients for GeoLens",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false",
+    "test": "npm run build && node --test"
+  },
+  "dependencies": {
+    "@geo-lens/evidence": "0.1.0",
+    "geotiff": "^2.1.4-beta.1",
+    "h3-js": "^4.3.0",
+    "proj4": "^2.19.10"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  }
+}
