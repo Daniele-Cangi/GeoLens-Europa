@@ -32,6 +32,17 @@ export interface DemRequest {
   readonly h3Indices: readonly string[];
 }
 
+export interface DemPointLocation {
+  readonly id: string;
+  readonly lat: number;
+  readonly lon: number;
+  readonly h3?: string;
+}
+
+export interface DemPointRequest {
+  readonly locations: readonly DemPointLocation[];
+}
+
 export interface DemCellEvidence {
   readonly elevationM: Evidence<number>;
   readonly slopeDeg: Evidence<number>;
@@ -42,6 +53,15 @@ export interface DemProviderResult {
   readonly dataset: 'Copernicus DEM GLO-30';
   readonly acquiredAt: string;
   readonly cells: Readonly<Record<string, DemCellEvidence>>;
+}
+
+export interface DemPointProviderResult {
+  readonly provider: 'Copernicus Data Space Ecosystem';
+  readonly dataset: 'Copernicus DEM GLO-30';
+  readonly acquiredAt: string;
+  readonly locations: Readonly<
+    Record<string, DemCellEvidence>
+  >;
 }
 
 export interface CopernicusDemClientOptions {
@@ -99,11 +119,38 @@ export class CopernicusDemClient {
     };
   }
 
+  async getPointEvidence(
+    request: DemPointRequest,
+  ): Promise<DemPointProviderResult> {
+    validatePointRequest(request.locations);
+    const acquiredAt = this.now().toISOString();
+    const entries = await Promise.all(
+      request.locations.map(async (location) => {
+        const evidence = await this.sampleCell(
+          location.h3,
+          location.lat,
+          location.lon,
+          acquiredAt,
+          location.id,
+        );
+        return [location.id, evidence] as const;
+      }),
+    );
+
+    return {
+      provider: 'Copernicus Data Space Ecosystem',
+      dataset: 'Copernicus DEM GLO-30',
+      acquiredAt,
+      locations: Object.fromEntries(entries),
+    };
+  }
+
   private async sampleCell(
-    h3: string,
+    h3: string | undefined,
     lat: number,
     lon: number,
     acquiredAt: string,
+    entityId?: string,
   ): Promise<DemCellEvidence> {
     const delta = this.neighborOffsetDegrees;
     const [center, north, south, east, west] =
@@ -126,6 +173,7 @@ export class CopernicusDemClient {
         transformation: 'sample DEM at H3 centroid',
         transformationVersion: 'dem-centroid-v0.1.0',
         samplingMethod: 'nearest source raster pixel',
+        entityId,
       }),
       this.rasterSource.identity,
     );
@@ -149,7 +197,8 @@ export class CopernicusDemClient {
           'central finite difference over four neighboring DEM samples',
         transformationVersion: 'dem-slope-v0.1.0',
         samplingMethod:
-          'four 1 arc-second offsets around H3 centroid',
+          'four 1 arc-second offsets around requested point',
+        entityId,
       }),
       this.rasterSource.identity,
     );
@@ -306,7 +355,7 @@ export function copernicusDemTileUrl(
 }
 
 function descriptor(input: {
-  readonly h3: string;
+  readonly h3?: string;
   readonly lat: number;
   readonly lon: number;
   readonly acquiredAt: string;
@@ -314,6 +363,7 @@ function descriptor(input: {
   readonly transformation: string;
   readonly transformationVersion: string;
   readonly samplingMethod: string;
+  readonly entityId?: string;
 }): EvidenceDescriptor {
   return {
     unit: input.unit,
@@ -337,6 +387,7 @@ function descriptor(input: {
       sourceMetadata: {
         product: 'COP-DEM_GLO-30-DGED',
         sourceGrid: 'geographic 1 arc-second',
+        entityId: input.entityId ?? null,
       },
     },
   };
@@ -478,6 +529,48 @@ function validCoordinate(lat: number, lon: number): boolean {
     lon >= -180 &&
     lon < 180
   );
+}
+
+function validatePointRequest(
+  locations: readonly DemPointLocation[],
+): void {
+  if (locations.length === 0) {
+    throw new Error(
+      'DEM point request requires at least one location',
+    );
+  }
+
+  const ids = new Set<string>();
+
+  for (const location of locations) {
+    if (location.id.trim().length === 0) {
+      throw new Error(
+        'DEM point locations require non-empty ids',
+      );
+    }
+
+    if (ids.has(location.id)) {
+      throw new Error(
+        `DEM point request contains duplicate id ${location.id}`,
+      );
+    }
+    ids.add(location.id);
+
+    if (!validCoordinate(location.lat, location.lon)) {
+      throw new Error(
+        `DEM point ${location.id} has invalid coordinates`,
+      );
+    }
+
+    if (
+      location.h3 !== undefined &&
+      !isValidCell(location.h3)
+    ) {
+      throw new Error(
+        `DEM point ${location.id} has invalid H3 ${location.h3}`,
+      );
+    }
+  }
 }
 
 function validateH3Request(

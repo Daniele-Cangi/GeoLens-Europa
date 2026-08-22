@@ -56,6 +56,50 @@ test('DEM fixture exposes elevation and inspectable finite-difference slope', as
   );
 });
 
+test('DEM point sampling distinguishes nodes that share one H3 cell', async () => {
+  const source = fixtureSource('node-point-dem', async (lat) => ({
+    status: 'available',
+    value: 100 + (lat - centerLat) * 10_000,
+    sourceId: 'fixture-grid',
+  }));
+  const result = await new CopernicusDemClient({
+    rasterSource: source,
+    now: fixedNow,
+  }).getPointEvidence({
+    locations: [
+      {
+        id: 'node-a',
+        h3,
+        lat: centerLat,
+        lon: centerLon,
+      },
+      {
+        id: 'node-b',
+        h3,
+        lat: centerLat + 0.001,
+        lon: centerLon,
+      },
+    ],
+  });
+
+  assert.equal(
+    result.locations['node-a'].elevationM.spatial.h3,
+    h3,
+  );
+  assert.equal(
+    result.locations['node-b'].elevationM.spatial.h3,
+    h3,
+  );
+  assert.notEqual(
+    result.locations['node-a'].elevationM.value,
+    result.locations['node-b'].elevationM.value,
+  );
+  assert.notEqual(
+    result.locations['node-a'].elevationM.spatial.lat,
+    result.locations['node-b'].elevationM.spatial.lat,
+  );
+});
+
 test('missing DEM neighbor keeps slope missing while elevation remains present', async () => {
   const source = fixtureSource('incomplete-dem', async (lat) => {
     if (lat > centerLat + 0.0001) {

@@ -1,0 +1,22 @@
+{
+  "name": "@geo-lens/proof-zero",
+  "version": "0.1.0",
+  "private": true,
+  "description": "End-to-end spatial evidence and stormwater Proof 0 orchestration",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false",
+    "test": "npm run build && node --test"
+  },
+  "dependencies": {
+    "@geo-lens/evidence": "0.1.0",
+    "@geo-lens/providers": "0.1.0",
+    "@geo-lens/stormwater": "0.1.0",
+    "h3-js": "^4.3.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  }
+}

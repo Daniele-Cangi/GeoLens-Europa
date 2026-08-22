@@ -7,7 +7,7 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Working branch: `codex/geolens-refoundation`
 - Canonical base: `main@46b41e70557f18c8ec6852f6af3e796a6d1e2a8d`
 - Protected historical snapshot: `codex/pre-overhaul-snapshot-20260822@9920ee29ed945a55af8e7ff89005724fab19a998`
-- Deterministic fixture chain: established; live-provider/API Proof 0 is not established
+- Deterministic core Proof 0: established through environmental bundle, runoff, catchment aggregation, point-sampled node elevation, direction, propagation, and mass balance; clean API/live multi-provider Proof 0 is not established
 - Live provider verification: Copernicus DEM established; IMERG and CLC remain unverified
 - Refoundation typecheck/test baseline: established; the parked legacy build remains intentionally recorded as failing
 - Historical tracked Copernicus private key: removed from the active tree; revocation/rotation remains an external security action because the secret is present in Git history
@@ -158,7 +158,15 @@ Checkpoints:
 
 ## Phase 4 — Compose and expose Proof 0
 
-State: pending
+State: in progress
+
+Progress:
+
+- canonical IMERG, DEM, and CLC evidence is composed into role-aware H3 catchment bundles;
+- network-node elevation is sampled at physical node coordinates so multiple nodes in one H3 cell remain distinguishable;
+- the deterministic bounded fixture now produces non-zero outfall accumulation with a checked no-loss mass balance;
+- missing rainfall and missing node elevation terminate as explicit incomplete evidence or direction;
+- clean API exposure and opt-in live IMERG+DEM+CLC execution remain pending.
 
 Work:
 
