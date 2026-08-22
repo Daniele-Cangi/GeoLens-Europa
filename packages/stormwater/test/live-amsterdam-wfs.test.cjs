@@ -1,0 +1,74 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+
+const {
+  AmsterdamWaternetWfsClient,
+  importAmsterdamWaternetStormwater,
+} = require('../dist');
+
+const liveEnabled =
+  process.env.GEOLENS_LIVE_WATERNET === '1';
+
+test(
+  'live Waternet WFS returns a bounded traceable stormwater topology',
+  { skip: !liveEnabled },
+  async () => {
+    const acquisition =
+      await new AmsterdamWaternetWfsClient()
+        .acquire({
+          bbox: {
+            latMin: 52.3393,
+            lonMin: 4.8987,
+            latMax: 52.3404,
+            lonMax: 4.8998,
+          },
+        });
+
+    assert.equal(
+      acquisition.status,
+      'available',
+      acquisition.status === 'available'
+        ? undefined
+        : acquisition.missingReason,
+    );
+
+    const imported =
+      importAmsterdamWaternetStormwater(
+        acquisition.snapshot,
+        {
+          networkId:
+            'amsterdam-waternet-live-verification',
+          acquiredAt:
+            acquisition.receipt.acquiredAt,
+          nodeH3Resolution: 11,
+          snapToleranceM: 0.25,
+          bboxWfsAxisOrder:
+            acquisition.receipt
+              .bboxWfsAxisOrder,
+          retrievalMode: 'live',
+        },
+      );
+
+    assert.ok(
+      Object.keys(imported.topology.nodes)
+        .length > 0,
+    );
+    assert.ok(
+      Object.keys(imported.topology.pipes)
+        .length > 0,
+    );
+    assert.equal(
+      imported.receipt.source.origin,
+      'observed_public_record',
+    );
+    assert.equal(
+      imported.receipt.source.license,
+      'Creative Commons Attribution',
+    );
+    assert.equal(
+      imported.receipt.catchmentState
+        .attachmentsCreated,
+      0,
+    );
+  },
+);

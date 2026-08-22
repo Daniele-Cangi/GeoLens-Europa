@@ -1,4 +1,5 @@
 export * from './amsterdam';
+export * from './amsterdam-wfs';
 export * from './catchment';
 export * from './geojson';
 export * from './infrastructure';

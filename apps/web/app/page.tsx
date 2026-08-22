@@ -9,14 +9,18 @@ import {
   type KeyboardEvent,
 } from 'react';
 
+import ObservedInfrastructurePanel from './components/ObservedInfrastructurePanel';
+
 import {
   PROOF_ZERO_NODE_POSITIONS,
   PROOF_ZERO_PIPES,
 } from './lib/fixture';
 import {
+  getObservedInfrastructure,
   runProofZero,
   type Evidence,
   type EvidenceStatus,
+  type ObservedInfrastructureResult,
   type ProofZeroResult,
   type ProviderSummary,
 } from './lib/api';
@@ -1030,6 +1034,18 @@ export default function Home() {
     id: 'catchment_A',
   });
   const [isRunning, setIsRunning] = useState(false);
+  const [
+    observedInfrastructure,
+    setObservedInfrastructure,
+  ] = useState<ObservedInfrastructureResult | null>(null);
+  const [
+    observedInfrastructureError,
+    setObservedInfrastructureError,
+  ] = useState<string | null>(null);
+  const [
+    isObservedInfrastructureLoading,
+    setIsObservedInfrastructureLoading,
+  ] = useState(true);
   const autoRunStartedRef = useRef(false);
   const requestIdRef = useRef(0);
   const manualRequestRef = useRef<AbortController | null>(
@@ -1092,6 +1108,38 @@ export default function Home() {
     autoRunStartedRef.current = true;
     void executeProofZero(VERIFIED_REFERENCE_TIME_ISO);
   }, [executeProofZero]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    setIsObservedInfrastructureLoading(true);
+    setObservedInfrastructureError(null);
+    void getObservedInfrastructure(
+      controller.signal,
+    )
+      .then(setObservedInfrastructure)
+      .catch((cause: unknown) => {
+        if (
+          !(
+            cause instanceof DOMException &&
+            cause.name === 'AbortError'
+          )
+        ) {
+          setObservedInfrastructureError(
+            cause instanceof Error
+              ? cause.message
+              : 'Observed infrastructure request failed.',
+          );
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsObservedInfrastructureLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, []);
 
   useEffect(
     () => () => {
@@ -1239,6 +1287,14 @@ export default function Home() {
           <ImergReceipt
             evidence={firstCell?.rainfall24hMm}
             isRunning={isRunning}
+          />
+
+          <ObservedInfrastructurePanel
+            result={observedInfrastructure}
+            isLoading={
+              isObservedInfrastructureLoading
+            }
+            error={observedInfrastructureError}
           />
 
           <div className="metric-grid" aria-label="Physical quantities">

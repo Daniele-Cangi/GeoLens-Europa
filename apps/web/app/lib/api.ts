@@ -240,6 +240,142 @@ export interface ProviderSummary {
   readonly missingReason?: string;
 }
 
+export interface InfrastructureAssetSource {
+  readonly origin:
+    | 'observed_public_record'
+    | 'user_supplied'
+    | 'derived'
+    | 'synthetic_fixture';
+  readonly provider: string;
+  readonly dataset: string;
+  readonly datasetVersion?: string;
+  readonly sourceUrl?: string;
+  readonly license?: string;
+  readonly acquiredAt: string;
+  readonly sourceCrs: string;
+  readonly outputCrs: string;
+  readonly transformation: string;
+  readonly transformationVersion: string;
+  readonly sourceRecordId: string;
+  readonly sourceAttributes?: Readonly<
+    Record<string, unknown>
+  >;
+}
+
+export interface ObservedInfrastructureNode {
+  readonly id: string;
+  readonly type:
+    | 'inlet'
+    | 'manhole'
+    | 'outfall'
+    | 'junction';
+  readonly position: {
+    readonly lat: number;
+    readonly lon: number;
+  };
+  readonly h3: string;
+  readonly elevationM: Evidence<number>;
+  readonly source: InfrastructureAssetSource;
+}
+
+export interface ObservedInfrastructurePipe {
+  readonly id: string;
+  readonly nodeAId: string;
+  readonly nodeBId: string;
+  readonly lengthM: number;
+  readonly diameterMm?: number;
+  readonly path: readonly {
+    readonly lat: number;
+    readonly lon: number;
+  }[];
+  readonly invertLevelAM: Evidence<number>;
+  readonly invertLevelBM: Evidence<number>;
+  readonly source: InfrastructureAssetSource;
+}
+
+export interface AvailableObservedInfrastructure {
+  readonly status: 'available';
+  readonly acquisition: {
+    readonly provider: string;
+    readonly dataset: string;
+    readonly acquiredAt: string;
+    readonly bboxWfsAxisOrder: string;
+    readonly nodeUrl: string;
+    readonly pipeUrl: string;
+  };
+  readonly import: {
+    readonly source: Omit<
+      InfrastructureAssetSource,
+      'sourceRecordId' | 'sourceAttributes'
+    >;
+    readonly retrievalMode:
+      | 'live'
+      | 'recorded_response';
+    readonly counts: {
+      readonly nodeFeatures: number;
+      readonly pipeFeatures: number;
+      readonly activeNodeFeatures: number;
+      readonly matchingStormwaterPipes: number;
+      readonly importedNodes: number;
+      readonly importedPipes: number;
+      readonly skippedBoundaryPipes: number;
+      readonly skippedAmbiguousPipes: number;
+      readonly skippedSelfLoops: number;
+    };
+    readonly deliveryDates: readonly string[];
+    readonly endpointLinkPolicy: {
+      readonly method:
+        'geometry_endpoint_nearest_node';
+      readonly snapToleranceM: number;
+      readonly sourceEndpointAttributes:
+        | 'ignored_invalid_self_referential'
+        | 'ignored_unverified';
+    };
+    readonly diagnostics: readonly {
+      readonly code: string;
+      readonly pipeSourceRecordId: string;
+      readonly message: string;
+    }[];
+    readonly catchmentState: {
+      readonly status: 'not_provided_by_source';
+      readonly attachmentsCreated: 0;
+    };
+  };
+  readonly topology: {
+    readonly id: string;
+    readonly nodes: Readonly<
+      Record<string, ObservedInfrastructureNode>
+    >;
+    readonly pipes: Readonly<
+      Record<string, ObservedInfrastructurePipe>
+    >;
+    readonly catchmentAttachments: Readonly<
+      Record<string, never>
+    >;
+  };
+}
+
+export interface UnavailableObservedInfrastructure {
+  readonly status: Exclude<
+    EvidenceStatus,
+    'available' | 'synthetic_fixture'
+  >;
+  readonly missingReason: string;
+  readonly failedLayer: 'nodes' | 'pipes' | 'both';
+  readonly receipt: {
+    readonly provider: string;
+    readonly dataset: string;
+    readonly acquiredAt: string;
+    readonly bboxWfsAxisOrder: string;
+    readonly nodeUrl: string;
+    readonly pipeUrl: string;
+  };
+}
+
+export type ObservedInfrastructureResult =
+  | AvailableObservedInfrastructure
+  | UnavailableObservedInfrastructure;
+
 interface ApiError {
   readonly status?: string;
   readonly error?: string;
@@ -282,4 +418,30 @@ export async function runProofZero(
   }
 
   return body as ProofZeroResult;
+}
+
+export async function getObservedInfrastructure(
+  signal?: AbortSignal,
+): Promise<ObservedInfrastructureResult> {
+  const response = await fetch(
+    `${API_URL}/api/infrastructure/amsterdam-waternet`,
+    {
+      method: 'GET',
+      cache: 'no-store',
+      signal,
+    },
+  );
+  const body = (await response.json()) as
+    | ObservedInfrastructureResult
+    | ApiError;
+
+  if (!response.ok) {
+    const error = body as ApiError;
+    throw new Error(
+      error.error ??
+        `GeoLens API returned HTTP ${response.status}`,
+    );
+  }
+
+  return body as ObservedInfrastructureResult;
 }
