@@ -4,6 +4,8 @@ dist
 .turbo
 build
 .env
+*.pem
+*.key
 .DS_Store
 coverage
 .vscode
