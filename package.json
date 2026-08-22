@@ -7,10 +7,12 @@
     ],
     "scripts": {
         "build": "npm run build --workspaces",
-        "build:refoundation": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/stormwater",
+        "build:refoundation": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/providers && npm run build --workspace=@geo-lens/stormwater",
         "dev": "concurrently \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/web\"",
         "typecheck": "npm run typecheck --workspaces --if-present",
-        "test": "npm run test --workspaces --if-present",
+        "test": "npm run test:ts && npm run test:python",
+        "test:ts": "npm run test --workspaces --if-present",
+        "test:python": "cd nasa-precip-engine && python -m unittest discover -s tests -v",
         "ingest:eu": "npx tsx scripts/ingest/download/download-dem-eu.ts && npx tsx scripts/ingest/download/download-elsus.ts && npx tsx scripts/ingest/download/download-eshm20.ts && npx tsx scripts/ingest/download/download-clc.ts && npx tsx scripts/ingest/raster-to-h3/dem-to-h3.ts && npx tsx scripts/ingest/raster-to-h3/elsus-to-h3.ts && npx tsx scripts/ingest/raster-to-h3/eshm20-to-h3.ts && npx tsx scripts/ingest/raster-to-h3/clc-to-h3.ts && npx tsx scripts/ingest/aggregate/build-h3-features-eu.ts"
     },
     "devDependencies": {

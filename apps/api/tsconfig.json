@@ -7,14 +7,18 @@
             "@geo-lens/core-geo": ["../../packages/core-geo/src"],
             "@geo-lens/geocube": ["../../packages/geocube/src"],
             "@geo-lens/risk-engine": ["../../packages/risk-engine/src"],
-            "@geo-lens/datacube": ["../../packages/datacube/src"]
+            "@geo-lens/datacube": ["../../packages/datacube/src"],
+            "@geo-lens/evidence": ["../../packages/evidence/src"],
+            "@geo-lens/providers": ["../../packages/providers/src"]
         }
     },
     "references": [
         { "path": "../../packages/core-geo" },
         { "path": "../../packages/geocube" },
         { "path": "../../packages/risk-engine" },
-        { "path": "../../packages/datacube" }
+        { "path": "../../packages/datacube" },
+        { "path": "../../packages/evidence" },
+        { "path": "../../packages/providers" }
     ],
     "include": [
         "src"

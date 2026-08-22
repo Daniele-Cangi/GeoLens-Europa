@@ -1,281 +1,647 @@
+"""Canonical NASA GPM IMERG acquisition for GeoLens.
+
+The module never converts absence, sampling failure, incomplete coverage, NaN,
+or upstream errors to zero. A numeric zero is returned only when the selected
+IMERG grid cell contains a finite observed zero.
 """
-NASA GPM IMERG data client using earthaccess + xarray
 
-WORKFLOW:
-1. Authenticate with NASA Earthdata
-2. Search for IMERG granules in time window
-3. Open granules via OPeNDAP (streaming access)
-4. Subset to Europe bbox
-5. Accumulate precipitation over time window
-6. Return DataArray [lat, lon] in mm
-
-IMERG PRODUCT:
-- GPM_3IMERGHH (Late Run): 4-18h latency, calibrated
-- GPM_3IMERGHHE (Early Run): 4-6h latency, uncalibrated
-- Resolution: 0.1° (~10km)
-- Temporal: 30-minute intervals
-- Variable: "precipitationCal" (mm/hr)
-
-ACCUMULATION:
-- 24h = 48 granules (30min each)
-- 72h = 144 granules
-- Total precipitation = sum(precip_rate * 0.5h)
-"""
+from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
-from typing import Optional, Tuple
+import re
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+from typing import Literal, Sequence
 
 import earthaccess
-import xarray as xr
 import numpy as np
+import xarray as xr
 
 from .config import (
-    EARTHDATA_USERNAME,
     EARTHDATA_PASSWORD,
-    IMERG_PRODUCT_LATE,
+    EARTHDATA_USERNAME,
+    IMERG_DATASET_VERSION,
+    IMERG_INTERVAL_MINUTES,
     IMERG_PRODUCT_EARLY,
-    LAT_MIN,
+    IMERG_PRODUCT_LATE,
     LAT_MAX,
-    LON_MIN,
+    LAT_MIN,
     LON_MAX,
+    LON_MIN,
 )
 
 logger = logging.getLogger(__name__)
 
-# Global authentication state
+EvidenceStatus = Literal[
+    "available",
+    "missing",
+    "stale",
+    "out_of_coverage",
+    "auth_required",
+    "rate_limited",
+    "upstream_error",
+    "invalid_response",
+    "incomplete_window",
+]
+
 _auth_initialized = False
 
 
-def authenticate() -> None:
-    """
-    Authenticate with NASA Earthdata
+class ImergAcquisitionError(RuntimeError):
+    """Expected acquisition failure with canonical evidence semantics."""
 
-    Uses credentials from environment variables.
-    Only authenticates once per process lifetime.
-    """
+    def __init__(
+        self,
+        status: EvidenceStatus,
+        message: str,
+        *,
+        product: str | None = None,
+        run_type: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.status = status
+        self.product = product
+        self.run_type = run_type
+
+
+@dataclass(frozen=True)
+class ImergWindowMetadata:
+    product: str
+    run_type: Literal["late", "early"]
+    dataset_version: str
+    requested_window_start: datetime
+    requested_window_end: datetime
+    actual_window_start: datetime | None
+    actual_window_end: datetime | None
+    expected_granule_count: int
+    searched_granule_count: int
+    granule_count: int
+    granule_timestamps: tuple[datetime, ...]
+    variable_names: tuple[str, ...]
+    acquired_at: datetime
+    source_resolution: str
+    sampling_method: str
+    status: EvidenceStatus
+    missing_reason: str | None
+
+
+@dataclass(frozen=True)
+class ImergWindow:
+    data: xr.DataArray
+    metadata: ImergWindowMetadata
+
+
+@dataclass(frozen=True)
+class PointSample:
+    value_mm: float | None
+    status: EvidenceStatus
+    missing_reason: str | None
+    requested_lat: float
+    requested_lon: float
+    sampled_lat: float | None
+    sampled_lon: float | None
+
+
+def normalize_reference_time(value: datetime) -> datetime:
+    """Normalize a reference timestamp to an IMERG half-hour boundary."""
+
+    if value.tzinfo is None:
+        normalized = value.replace(tzinfo=timezone.utc)
+    else:
+        normalized = value.astimezone(timezone.utc)
+
+    minute = (
+        normalized.minute // IMERG_INTERVAL_MINUTES
+    ) * IMERG_INTERVAL_MINUTES
+    return normalized.replace(minute=minute, second=0, microsecond=0)
+
+
+def authenticate() -> None:
+    """Authenticate once, reporting missing credentials as auth_required."""
+
     global _auth_initialized
 
     if _auth_initialized:
         return
 
-    try:
-        earthaccess.login(
-            strategy="environment",
-            persist=False
+    if not EARTHDATA_USERNAME or not EARTHDATA_PASSWORD:
+        raise ImergAcquisitionError(
+            "auth_required",
+            "NASA Earthdata credentials are not configured",
         )
-        _auth_initialized = True
-        logger.info("[IMERG] ✅ NASA Earthdata authentication successful")
 
-    except Exception as e:
-        logger.error(f"[IMERG] ❌ Authentication failed: {e}")
-        raise
+    try:
+        earthaccess.login(strategy="environment", persist=False)
+    except Exception as exc:
+        raise ImergAcquisitionError(
+            _status_for_exception(exc, authentication=True),
+            f"NASA Earthdata authentication failed: {exc}",
+        ) from exc
+
+    _auth_initialized = True
+    logger.info("[IMERG] NASA Earthdata authentication succeeded")
 
 
-def load_imerg_cube(
+def load_imerg_window(
     t_ref: datetime,
     hours: int,
-    use_early: bool = False
-) -> Tuple[xr.DataArray, str]:
-    """
-    Load and accumulate IMERG precipitation for time window
+    *,
+    allow_early: bool = True,
+) -> ImergWindow:
+    """Acquire one complete, single-product IMERG accumulation window."""
 
-    Args:
-        t_ref: Reference timestamp (end of accumulation window)
-        hours: Accumulation window (24 or 72)
-        use_early: Use Early Run if Late Run unavailable
+    if hours <= 0:
+        raise ValueError("hours must be positive")
 
-    Returns:
-        Tuple (DataArray, source_name)
-        - DataArray: Precipitation in mm, dims [lat, lon]
-        - source_name: "IMERG-Late" or "IMERG-Early"
+    end = normalize_reference_time(t_ref)
+    start = end - timedelta(hours=hours)
+    interval = timedelta(minutes=IMERG_INTERVAL_MINUTES)
+    expected_timestamps = tuple(
+        start + index * interval
+        for index in range(hours * 60 // IMERG_INTERVAL_MINUTES)
+    )
+    expected_count = len(expected_timestamps)
 
-    Raises:
-        ValueError: If no data available for time window
-        RuntimeError: If data loading fails
-    """
     authenticate()
 
-    # Calculate time window
-    t_start = t_ref - timedelta(hours=hours)
+    candidate_sets: list[
+        tuple[str, Literal["late", "early"], list[tuple[datetime, object]]]
+    ] = []
 
-    logger.info(f"[IMERG] Loading precipitation data:")
-    logger.info(f"  Time window: {t_start} → {t_ref} ({hours}h)")
-    logger.info(f"  Bbox: lat[{LAT_MIN}, {LAT_MAX}], lon[{LON_MIN}, {LON_MAX}]")
+    late_results = _search_product(
+        IMERG_PRODUCT_LATE,
+        start,
+        end,
+    )
+    candidate_sets.append(
+        (
+            IMERG_PRODUCT_LATE,
+            "late",
+            _results_in_window(late_results, start, end),
+        )
+    )
 
-    # Try Late Run first, fallback to Early Run
-    product = IMERG_PRODUCT_LATE
-    source_name = "IMERG-Late"
-
-    try:
-        # Search for granules
-        results = earthaccess.search_data(
-            short_name=product,
-            temporal=(t_start.isoformat(), t_ref.isoformat()),
-            bounding_box=(LON_MIN, LAT_MIN, LON_MAX, LAT_MAX)
+    if allow_early and len(candidate_sets[0][2]) < expected_count:
+        early_results = _search_product(
+            IMERG_PRODUCT_EARLY,
+            start,
+            end,
+        )
+        candidate_sets.append(
+            (
+                IMERG_PRODUCT_EARLY,
+                "early",
+                _results_in_window(early_results, start, end),
+            )
         )
 
-        if len(results) == 0:
-            if use_early:
-                logger.warning(f"[IMERG] No Late Run data, trying Early Run...")
-                product = IMERG_PRODUCT_EARLY
-                source_name = "IMERG-Early"
+    product, run_type, timestamped_results = max(
+        candidate_sets,
+        key=lambda candidate: len(candidate[2]),
+    )
 
-                results = earthaccess.search_data(
-                    short_name=product,
-                    temporal=(t_start.isoformat(), t_ref.isoformat()),
-                    bounding_box=(LON_MIN, LAT_MIN, LON_MAX, LAT_MAX)
-                )
+    if not timestamped_results:
+        raise ImergAcquisitionError(
+            "missing",
+            (
+                "No IMERG granules overlap requested window "
+                f"{start.isoformat()} to {end.isoformat()}"
+            ),
+            product=product,
+            run_type=run_type,
+        )
 
-            if len(results) == 0:
-                raise ValueError(
-                    f"No IMERG data available for time window {t_start} → {t_ref}"
-                )
+    searched_count = len(timestamped_results)
+    timestamped_results = _deduplicate_results(timestamped_results)
+    results = [result for _, result in timestamped_results]
 
-        logger.info(f"[IMERG] Found {len(results)} granules ({source_name})")
-
-        # Open granules via OPeNDAP
-        # earthaccess.open() returns file-like objects
+    try:
         files = earthaccess.open(results)
+    except Exception as exc:
+        raise ImergAcquisitionError(
+            _status_for_exception(exc),
+            f"Failed to open IMERG granules: {exc}",
+            product=product,
+            run_type=run_type,
+        ) from exc
 
-        if not files:
-            raise RuntimeError("Failed to open IMERG granules")
+    if not files:
+        raise ImergAcquisitionError(
+            "upstream_error",
+            "NASA returned granules but none could be opened",
+            product=product,
+            run_type=run_type,
+        )
 
-        logger.info(f"[IMERG] Opened {len(files)} file objects")
+    amounts: list[xr.DataArray] = []
+    valid_timestamps: list[datetime] = []
+    variable_names: list[str] = []
 
-        # Convert file objects to xarray Datasets
-        datasets = []
-        for f in files:
-            try:
-                # GPM IMERG V07 data is in the 'Grid' group
-                ds = xr.open_dataset(f, group='Grid', engine='h5netcdf')
-                datasets.append(ds)
-            except Exception as e:
-                logger.warning(f"[IMERG] Failed to open file as xarray: {e}")
+    for (timestamp, _), file_object in zip(timestamped_results, files):
+        dataset: xr.Dataset | None = None
 
-        if not datasets:
-            raise RuntimeError("Failed to open any granules as xarray Datasets")
+        try:
+            dataset = xr.open_dataset(
+                file_object,
+                group="Grid",
+                engine="h5netcdf",
+            )
+            amount, variable_name = precipitation_amount(dataset)
+            amounts.append(amount.load())
+            valid_timestamps.append(timestamp)
+            variable_names.append(variable_name)
+        except Exception as exc:
+            logger.warning(
+                "[IMERG] Granule %s was unusable: %s",
+                timestamp.isoformat(),
+                exc,
+            )
+        finally:
+            if dataset is not None:
+                dataset.close()
 
-        # Accumulate precipitation
-        precip_accumulated = accumulate_precip(datasets, hours)
+    if not amounts:
+        raise ImergAcquisitionError(
+            "invalid_response",
+            "No opened IMERG granule contained usable precipitation data",
+            product=product,
+            run_type=run_type,
+        )
 
-        logger.info(f"[IMERG] ✅ Accumulated {hours}h precipitation successfully")
-        logger.info(f"  Shape: {precip_accumulated.shape}")
-        logger.info(f"  Range: [{float(precip_accumulated.min()):.2f}, {float(precip_accumulated.max()):.2f}] mm")
+    accumulated = accumulate_amounts(amounts)
+    actual_timestamps = tuple(sorted(valid_timestamps))
+    expected_set = set(expected_timestamps)
+    actual_set = set(actual_timestamps)
+    is_complete = actual_set == expected_set
+    actual_start = min(actual_timestamps)
+    actual_end = max(actual_timestamps) + interval
+    status: EvidenceStatus = (
+        "available" if is_complete else "incomplete_window"
+    )
+    missing_reason = None
 
-        return precip_accumulated, source_name
+    if not is_complete:
+        missing = sorted(expected_set - actual_set)
+        missing_reason = (
+            f"IMERG window has {len(actual_set)} of {expected_count} expected "
+            f"granules; missing timestamps: "
+            f"{', '.join(value.isoformat() for value in missing[:8])}"
+        )
+        if len(missing) > 8:
+            missing_reason += f" (+{len(missing) - 8} more)"
 
-    except Exception as e:
-        logger.error(f"[IMERG] ❌ Data loading failed: {e}")
-        raise RuntimeError(f"Failed to load IMERG data: {e}")
+    metadata = ImergWindowMetadata(
+        product=product,
+        run_type=run_type,
+        dataset_version=IMERG_DATASET_VERSION,
+        requested_window_start=start,
+        requested_window_end=end,
+        actual_window_start=actual_start,
+        actual_window_end=actual_end,
+        expected_granule_count=expected_count,
+        searched_granule_count=searched_count,
+        granule_count=len(actual_timestamps),
+        granule_timestamps=actual_timestamps,
+        variable_names=tuple(sorted(set(variable_names))),
+        acquired_at=datetime.now(timezone.utc),
+        source_resolution="0.1 degree",
+        sampling_method="nearest IMERG grid cell at H3 centroid",
+        status=status,
+        missing_reason=missing_reason,
+    )
+
+    return ImergWindow(data=accumulated, metadata=metadata)
 
 
-def accumulate_precip(datasets: list, hours: int) -> xr.DataArray:
-    """
-    Accumulate precipitation from multiple IMERG granules
+def precipitation_amount(
+    dataset: xr.Dataset,
+) -> tuple[xr.DataArray, str]:
+    """Extract one non-negative half-hour precipitation amount."""
 
-    IMERG provides precipitation rate (mm/hr) in 30-minute intervals.
-    Total precipitation = sum(rate * 0.5h) over all granules.
+    variable_name = _precipitation_variable(dataset)
+    rate = dataset[variable_name].squeeze(drop=True)
 
-    Args:
-        datasets: List of xr.Dataset from IMERG granules
-        hours: Expected accumulation window (for validation)
+    if "lat" not in rate.dims or "lon" not in rate.dims:
+        raise ValueError(
+            f"IMERG variable {variable_name} lacks lat/lon dimensions"
+        )
 
-    Returns:
-        DataArray with accumulated precipitation [mm], dims [lat, lon]
+    subset = _subset_europe(rate)
 
-    Raises:
-        ValueError: If datasets invalid or missing required variable
-    """
+    if subset.sizes.get("lat", 0) == 0 or subset.sizes.get("lon", 0) == 0:
+        raise ValueError("IMERG granule has no data inside configured bounds")
+
+    if subset.ndim != 2:
+        raise ValueError(
+            f"IMERG precipitation must be 2D after squeeze, got {subset.dims}"
+        )
+
+    valid_rate = subset.where(subset >= 0)
+    amount = valid_rate * (IMERG_INTERVAL_MINUTES / 60)
+    amount.attrs = {
+        "units": "mm",
+        "source_variable": variable_name,
+        "transformation": (
+            f"non-negative mm/hr multiplied by "
+            f"{IMERG_INTERVAL_MINUTES / 60:g} hour"
+        ),
+    }
+    return amount, variable_name
+
+
+def accumulate_precip(
+    datasets: Sequence[xr.Dataset],
+) -> tuple[xr.DataArray, tuple[str, ...]]:
+    """Deterministic helper used by acquisition and fixture tests."""
+
     if not datasets:
         raise ValueError("No datasets provided for accumulation")
 
-    precip_arrays = []
+    amounts: list[xr.DataArray] = []
+    variables: list[str] = []
 
-    for i, ds in enumerate(datasets):
-        try:
-            # IMERG variable name: "precipitationCal" (calibrated precipitation rate, mm/hr)
-            if "precipitationCal" not in ds:
-                # Fallback to uncalibrated if calibrated not available
-                if "precipitation" in ds:
-                    precip_rate = ds["precipitation"]
-                    logger.warning(f"[IMERG] Granule {i}: Using uncalibrated precipitation")
-                else:
-                    logger.error(f"[IMERG] Granule {i}: No precipitation variable found")
-                    continue
-            else:
-                precip_rate = ds["precipitationCal"]
+    for dataset in datasets:
+        amount, variable_name = precipitation_amount(dataset)
+        amounts.append(amount)
+        variables.append(variable_name)
 
-            # Subset to Europe bbox (if not already subset by earthaccess)
-            precip_rate_subset = precip_rate.sel(
-                lat=slice(LAT_MIN, LAT_MAX),
-                lon=slice(LON_MIN, LON_MAX)
-            )
+    return accumulate_amounts(amounts), tuple(variables)
 
-            # Convert rate (mm/hr) to amount (mm) for 30-minute interval
-            # Amount = rate * 0.5h
-            precip_amount = precip_rate_subset * 0.5
 
-            precip_arrays.append(precip_amount)
+def accumulate_amounts(
+    amounts: Sequence[xr.DataArray],
+) -> xr.DataArray:
+    """Sum amounts while preserving any missing source pixel as NaN."""
 
-        except Exception as e:
-            logger.warning(f"[IMERG] Skipping granule {i} due to error: {e}")
-            continue
+    if not amounts:
+        raise ValueError("No precipitation amounts provided")
 
-    if not precip_arrays:
-        raise ValueError("No valid precipitation data extracted from granules")
+    aligned = xr.align(*amounts, join="exact")
+    stack = xr.concat(aligned, dim="granule")
+    total = stack.sum(dim="granule", skipna=False)
 
-    # Stack along time dimension and sum
-    try:
-        # Concatenate along time (if time dim exists), otherwise just sum
-        precip_stack = xr.concat(precip_arrays, dim='time')
-        precip_total = precip_stack.sum(dim='time')
+    if total.ndim != 2 or "lat" not in total.dims or "lon" not in total.dims:
+        raise ValueError(
+            f"Accumulated IMERG data must be [lat, lon], got {total.dims}"
+        )
 
-    except Exception as e:
-        # Fallback: simple sum if concat fails
-        logger.warning(f"[IMERG] Concat failed, using simple sum: {e}")
-        precip_total = sum(precip_arrays)
-
-    # Replace NaNs with 0 (missing data over land/sea)
-    precip_total = precip_total.fillna(0.0)
-
-    # Ensure 2D array [lat, lon]
-    if precip_total.ndim != 2:
-        logger.warning(f"[IMERG] Unexpected dims: {precip_total.dims}, squeezing extra dims")
-        precip_total = precip_total.squeeze()
-
-    return precip_total
+    total.attrs = {
+        "units": "mm",
+        "transformation": (
+            "sum of half-hour precipitation amounts with skipna=False"
+        ),
+    }
+    return total
 
 
 def get_precip_at_point(
     precip_data: xr.DataArray,
     lat: float,
-    lon: float
-) -> float:
-    """
-    Sample precipitation at a single point using nearest-neighbor
+    lon: float,
+) -> PointSample:
+    """Sample a point without converting missing or invalid data to zero."""
 
-    Args:
-        precip_data: Precipitation DataArray [lat, lon]
-        lat: Latitude
-        lon: Longitude
+    if not np.isfinite(lat) or not np.isfinite(lon):
+        return PointSample(
+            value_mm=None,
+            status="invalid_response",
+            missing_reason="Requested latitude/longitude is not finite",
+            requested_lat=lat,
+            requested_lon=lon,
+            sampled_lat=None,
+            sampled_lon=None,
+        )
 
-    Returns:
-        Precipitation in mm, or 0.0 if out of bounds
-    """
+    if "lat" not in precip_data.coords or "lon" not in precip_data.coords:
+        return PointSample(
+            value_mm=None,
+            status="invalid_response",
+            missing_reason="IMERG array lacks lat/lon coordinates",
+            requested_lat=lat,
+            requested_lon=lon,
+            sampled_lat=None,
+            sampled_lon=None,
+        )
+
+    lat_values = np.asarray(precip_data.coords["lat"].values)
+    lon_values = np.asarray(precip_data.coords["lon"].values)
+
+    if (
+        lat < float(np.nanmin(lat_values))
+        or lat > float(np.nanmax(lat_values))
+        or lon < float(np.nanmin(lon_values))
+        or lon > float(np.nanmax(lon_values))
+    ):
+        return PointSample(
+            value_mm=None,
+            status="out_of_coverage",
+            missing_reason="H3 centroid lies outside the acquired IMERG cube",
+            requested_lat=lat,
+            requested_lon=lon,
+            sampled_lat=None,
+            sampled_lon=None,
+        )
+
     try:
-        # Use xarray's nearest-neighbor selection
-        value = precip_data.sel(lat=lat, lon=lon, method='nearest').values
+        selected = precip_data.sel(lat=lat, lon=lon, method="nearest")
+        raw_value = np.asarray(selected.values).squeeze()
 
-        # Handle scalar vs array return
-        if isinstance(value, np.ndarray):
-            value = float(value.item())
-        else:
-            value = float(value)
+        if raw_value.size != 1:
+            raise ValueError(
+                f"Point selection returned {raw_value.size} values"
+            )
 
-        # Ensure non-negative
-        return max(0.0, value)
+        value = float(raw_value)
+        sampled_lat = float(selected.coords["lat"].values)
+        sampled_lon = float(selected.coords["lon"].values)
+    except Exception as exc:
+        return PointSample(
+            value_mm=None,
+            status="invalid_response",
+            missing_reason=f"IMERG point sampling failed: {exc}",
+            requested_lat=lat,
+            requested_lon=lon,
+            sampled_lat=None,
+            sampled_lon=None,
+        )
 
-    except (KeyError, IndexError, ValueError) as e:
-        logger.warning(f"[IMERG] Point sampling failed at ({lat}, {lon}): {e}")
-        return 0.0
+    if np.isnan(value):
+        return PointSample(
+            value_mm=None,
+            status="missing",
+            missing_reason="Selected IMERG grid cell is missing",
+            requested_lat=lat,
+            requested_lon=lon,
+            sampled_lat=sampled_lat,
+            sampled_lon=sampled_lon,
+        )
+
+    if not np.isfinite(value) or value < 0:
+        return PointSample(
+            value_mm=None,
+            status="invalid_response",
+            missing_reason=(
+                "Selected IMERG grid cell contains a non-finite or "
+                "negative value"
+            ),
+            requested_lat=lat,
+            requested_lon=lon,
+            sampled_lat=sampled_lat,
+            sampled_lon=sampled_lon,
+        )
+
+    return PointSample(
+        value_mm=value,
+        status="available",
+        missing_reason=None,
+        requested_lat=lat,
+        requested_lon=lon,
+        sampled_lat=sampled_lat,
+        sampled_lon=sampled_lon,
+    )
+
+
+def _search_product(
+    product: str,
+    start: datetime,
+    end: datetime,
+) -> list[object]:
+    try:
+        return list(
+            earthaccess.search_data(
+                short_name=product,
+                temporal=(start.isoformat(), end.isoformat()),
+                bounding_box=(LON_MIN, LAT_MIN, LON_MAX, LAT_MAX),
+            )
+        )
+    except Exception as exc:
+        raise ImergAcquisitionError(
+            _status_for_exception(exc),
+            f"IMERG search failed for {product}: {exc}",
+            product=product,
+        ) from exc
+
+
+def _results_in_window(
+    results: Sequence[object],
+    start: datetime,
+    end: datetime,
+) -> list[tuple[datetime, object]]:
+    timestamped: list[tuple[datetime, object]] = []
+    unknown_count = 0
+
+    for result in results:
+        timestamp = _granule_timestamp(result)
+
+        if timestamp is None:
+            unknown_count += 1
+            continue
+
+        if start <= timestamp < end:
+            timestamped.append((timestamp, result))
+
+    if results and not timestamped and unknown_count:
+        raise ImergAcquisitionError(
+            "invalid_response",
+            (
+                "IMERG search results did not expose parseable granule "
+                "timestamps"
+            ),
+        )
+
+    return sorted(timestamped, key=lambda item: item[0])
+
+
+def _deduplicate_results(
+    results: Sequence[tuple[datetime, object]],
+) -> list[tuple[datetime, object]]:
+    by_timestamp: dict[datetime, object] = {}
+
+    for timestamp, result in results:
+        by_timestamp.setdefault(timestamp, result)
+
+    return sorted(by_timestamp.items(), key=lambda item: item[0])
+
+
+def _granule_timestamp(result: object) -> datetime | None:
+    metadata = getattr(result, "umm", None)
+
+    if metadata is None and isinstance(result, dict):
+        metadata = result.get("umm", result)
+
+    try:
+        value = metadata["TemporalExtent"]["RangeDateTime"][
+            "BeginningDateTime"
+        ]
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return parsed.astimezone(timezone.utc)
+    except (KeyError, TypeError, ValueError, AttributeError):
+        pass
+
+    match = re.search(
+        r"(?P<date>\d{8})-S(?P<time>\d{6})",
+        str(result),
+    )
+
+    if match is None:
+        return None
+
+    parsed = datetime.strptime(
+        match.group("date") + match.group("time"),
+        "%Y%m%d%H%M%S",
+    )
+    return parsed.replace(tzinfo=timezone.utc)
+
+
+def _precipitation_variable(dataset: xr.Dataset) -> str:
+    if "precipitationCal" in dataset:
+        return "precipitationCal"
+
+    if "precipitation" in dataset:
+        return "precipitation"
+
+    raise ValueError(
+        "IMERG granule lacks precipitationCal and precipitation variables"
+    )
+
+
+def _subset_europe(rate: xr.DataArray) -> xr.DataArray:
+    lat_values = np.asarray(rate.coords["lat"].values)
+    lon_values = np.asarray(rate.coords["lon"].values)
+    lat_slice = (
+        slice(LAT_MIN, LAT_MAX)
+        if lat_values[0] <= lat_values[-1]
+        else slice(LAT_MAX, LAT_MIN)
+    )
+    lon_slice = (
+        slice(LON_MIN, LON_MAX)
+        if lon_values[0] <= lon_values[-1]
+        else slice(LON_MAX, LON_MIN)
+    )
+    return rate.sel(lat=lat_slice, lon=lon_slice)
+
+
+def _status_for_exception(
+    exc: Exception,
+    *,
+    authentication: bool = False,
+) -> EvidenceStatus:
+    message = str(exc).lower()
+
+    if authentication or any(
+        token in message
+        for token in ("unauthorized", "forbidden", "credential", "401", "403")
+    ):
+        return "auth_required"
+
+    if any(token in message for token in ("rate limit", "too many", "429")):
+        return "rate_limited"
+
+    return "upstream_error"
+
+
+def reset_authentication_for_tests() -> None:
+    """Reset module state for deterministic tests only."""
+
+    global _auth_initialized
+    _auth_initialized = False

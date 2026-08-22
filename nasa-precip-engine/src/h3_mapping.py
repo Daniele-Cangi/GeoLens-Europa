@@ -1,115 +1,105 @@
-"""
-H3 hexagon to precipitation mapping
+"""Map H3 centroids to IMERG samples without synthetic fallback."""
 
-WORKFLOW:
-1. Convert H3 indices to lat/lon centroids
-2. Sample precipitation DataArray at each centroid (nearest-neighbor)
-3. Return dict {h3_index: precip_mm}
+from __future__ import annotations
 
-H3 LIBRARY:
-- h3.h3_to_geo(h3_index) → (lat, lon)
-- Centroid represents the cell center
-"""
-
-import logging
-from typing import Dict, List
+from dataclasses import dataclass
+from typing import Sequence
 
 import h3
 import xarray as xr
 
-from .imerg_client import get_precip_at_point
+from .imerg_client import PointSample, get_precip_at_point
 
-logger = logging.getLogger(__name__)
+
+@dataclass(frozen=True)
+class H3PrecipSample:
+    h3_index: str
+    centroid_lat: float
+    centroid_lon: float
+    sample: PointSample
 
 
 def sample_precip_for_h3(
     precip_data: xr.DataArray,
-    h3_indices: List[str]
-) -> Dict[str, float]:
-    """
-    Sample precipitation values for list of H3 cells
+    h3_indices: Sequence[str],
+) -> dict[str, H3PrecipSample]:
+    """Sample every validated H3 centroid and retain per-cell failure state."""
 
-    Args:
-        precip_data: Precipitation DataArray [lat, lon] in mm
-        h3_indices: List of H3 cell indices (any resolution)
-
-    Returns:
-        Dict mapping {h3_index: precipitation_mm}
-
-    Raises:
-        ValueError: If h3_indices invalid
-    """
-    if not h3_indices:
-        return {}
-
-    logger.info(f"[H3] Sampling precipitation for {len(h3_indices)} cells")
-
-    results: Dict[str, float] = {}
+    results: dict[str, H3PrecipSample] = {}
 
     for h3_index in h3_indices:
         try:
-            # Convert H3 to lat/lon centroid
-            try:
-                lat, lon = h3.cell_to_latlng(h3_index)
-            except AttributeError:
-                # Fallback for H3 v3
-                lat, lon = h3.h3_to_geo(h3_index)
+            lat, lon = _cell_to_latlng(h3_index)
+        except Exception as exc:
+            results[h3_index] = H3PrecipSample(
+                h3_index=h3_index,
+                centroid_lat=float("nan"),
+                centroid_lon=float("nan"),
+                sample=PointSample(
+                    value_mm=None,
+                    status="invalid_response",
+                    missing_reason=f"H3 centroid conversion failed: {exc}",
+                    requested_lat=float("nan"),
+                    requested_lon=float("nan"),
+                    sampled_lat=None,
+                    sampled_lon=None,
+                ),
+            )
+            continue
 
-            # Sample precipitation at centroid
-            precip_mm = get_precip_at_point(precip_data, lat, lon)
-
-            results[h3_index] = precip_mm
-
-        except Exception as e:
-            logger.warning(f"[H3] Failed to sample {h3_index}: {e}")
-            results[h3_index] = 0.0  # Fallback to 0 if sampling fails
-
-    logger.info(f"[H3] ✅ Sampled {len(results)} cells successfully")
-
-    # Log statistics
-    if results:
-        values = list(results.values())
-        avg_precip = sum(values) / len(values)
-        max_precip = max(values)
-        logger.info(f"  Precipitation range: [0.0, {max_precip:.1f}] mm")
-        logger.info(f"  Average: {avg_precip:.1f} mm")
+        results[h3_index] = H3PrecipSample(
+            h3_index=h3_index,
+            centroid_lat=lat,
+            centroid_lon=lon,
+            sample=get_precip_at_point(precip_data, lat, lon),
+        )
 
     return results
 
 
-def validate_h3_indices(h3_indices: List[str]) -> List[str]:
-    """
-    Validate and filter H3 indices
+def validate_h3_indices(h3_indices: Sequence[str]) -> list[str]:
+    """Reject any invalid or duplicate H3 input instead of filtering it."""
 
-    Args:
-        h3_indices: List of H3 indices to validate
+    if not h3_indices:
+        raise ValueError("At least one H3 index is required")
 
-    Returns:
-        List of valid H3 indices
+    invalid = [
+        index for index in h3_indices
+        if not _is_valid_cell(index)
+    ]
 
-    Raises:
-        ValueError: If all indices invalid
-    """
-    valid_indices = []
-
-    for idx in h3_indices:
-        is_valid = False
-        try:
-            is_valid = h3.is_valid_cell(idx)
-        except AttributeError:
-            is_valid = h3.h3_is_valid(idx)
-            
-        if is_valid:
-            valid_indices.append(idx)
-        else:
-            logger.warning(f"[H3] Invalid index: {idx}")
-
-    if not valid_indices:
-        raise ValueError("No valid H3 indices provided")
-
-    if len(valid_indices) < len(h3_indices):
-        logger.warning(
-            f"[H3] Filtered {len(h3_indices) - len(valid_indices)} invalid indices"
+    if invalid:
+        raise ValueError(
+            f"Invalid H3 indices: {', '.join(invalid)}"
         )
 
-    return valid_indices
+    duplicates = sorted(
+        {
+            index
+            for index in h3_indices
+            if h3_indices.count(index) > 1
+        }
+    )
+
+    if duplicates:
+        raise ValueError(
+            f"Duplicate H3 indices: {', '.join(duplicates)}"
+        )
+
+    return list(h3_indices)
+
+
+def _cell_to_latlng(h3_index: str) -> tuple[float, float]:
+    try:
+        lat, lon = h3.cell_to_latlng(h3_index)
+    except AttributeError:
+        lat, lon = h3.h3_to_geo(h3_index)
+
+    return float(lat), float(lon)
+
+
+def _is_valid_cell(h3_index: str) -> bool:
+    try:
+        return bool(h3.is_valid_cell(h3_index))
+    except AttributeError:
+        return bool(h3.h3_is_valid(h3_index))

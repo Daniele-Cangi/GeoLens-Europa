@@ -25,16 +25,12 @@ LON_MAX = 40.0   # Eastern Europe (extended to Turkey/Caucasus)
 EARTHDATA_USERNAME = os.getenv('EARTHDATA_USERNAME', '')
 EARTHDATA_PASSWORD = os.getenv('EARTHDATA_PASSWORD', '')
 
-if not EARTHDATA_USERNAME or not EARTHDATA_PASSWORD:
-    raise ValueError(
-        "Missing NASA Earthdata credentials. "
-        "Set EARTHDATA_USERNAME and EARTHDATA_PASSWORD environment variables."
-    )
-
 # === IMERG DATA CONFIGURATION ===
 # GPM IMERG V07 product identifiers
 IMERG_PRODUCT_LATE = "GPM_3IMERGHH"  # Late Run (4-18h latency, more accurate)
 IMERG_PRODUCT_EARLY = "GPM_3IMERGHHE"  # Early Run (4-6h latency, less accurate)
+IMERG_DATASET_VERSION = "07"
+IMERG_INTERVAL_MINUTES = 30
 
 # Resolution: 0.1° (~10km at equator)
 IMERG_RESOLUTION = 0.1
