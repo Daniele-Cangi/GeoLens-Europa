@@ -1,0 +1,360 @@
+{
+  "manifestVersion": "1.0.0",
+  "benchmark": {
+    "id": "emilia-romagna-2023-forli-historical-replay",
+    "title": "Case 02 - Emilia-Romagna 2023 / Historical Flood Replay",
+    "state": "data_audit",
+    "claimLevel": "hydrologic_routing",
+    "event": {
+      "windowStart": "2023-05-16T00:00:00Z",
+      "windowEnd": "2023-05-18T00:00:00Z",
+      "knowledgeCutoff": "2023-05-18T00:00:00Z"
+    },
+    "aoi": {
+      "name": "Forli bounded pilot",
+      "crs": "EPSG:4326",
+      "bounds": [
+        11.98,
+        44.17,
+        12.1,
+        44.28
+      ],
+      "selectionBasis": "Bounded engineering pilot around Forli and the Montone-Rabbi system. The bbox must be intersected with official product coverage before the benchmark can become model_ready."
+    },
+    "evaluationMetrics": [
+      "area_intersection_over_union",
+      "spatial_precision",
+      "spatial_recall",
+      "average_symmetric_boundary_distance",
+      "hausdorff_distance",
+      "elevation_stratified_error"
+    ],
+    "forbiddenClaims": [
+      "flood_probability",
+      "validated_inundation_extent",
+      "validated_water_depth",
+      "operational_forecast"
+    ]
+  },
+  "datasets": [
+    {
+      "id": "nasa-imerg-v06c-nrt",
+      "role": "model_input",
+      "temporalRelation": "during_event",
+      "availableAt": "2022-05-09T00:00:00Z",
+      "publisher": "NASA GES DISC",
+      "dataset": "GPM IMERG Early/Late half-hourly precipitation",
+      "datasetVersion": "06C",
+      "sourceUrl": "https://disc.gsfc.nasa.gov/datasets/GPM_3IMERGHH_06/summary",
+      "accessMethod": "canonical nasa-precip service after explicit V06C historical-mode parameterization",
+      "sourceResolution": "0.1 degree, 30 minute",
+      "acquisitionStatus": "blocked",
+      "license": {
+        "name": "NASA EOSDIS data use policy",
+        "access": "auth_required",
+        "redistribution": "unknown",
+        "note": "Earthdata authentication is required; derived evidence must retain product, run type, granules and actual coverage."
+      },
+      "allowedUses": {
+        "modelInput": true,
+        "calibration": false,
+        "evaluation": false
+      },
+      "methodologyNote": "Replay-eligible product family active during the event. Acquisition remains blocked until the canonical service can select V06C explicitly and verify every granule against the cutoff."
+    },
+    {
+      "id": "nasa-imerg-v07",
+      "role": "context_only",
+      "temporalRelation": "post_event",
+      "publisher": "NASA GES DISC",
+      "dataset": "GPM IMERG half-hourly precipitation",
+      "datasetVersion": "07",
+      "sourceUrl": "https://disc.gsfc.nasa.gov/datasets/GPM_3IMERGHH_07/summary",
+      "accessMethod": "earthaccess plus xarray through the canonical nasa-precip service",
+      "sourceResolution": "0.1 degree, 30 minute",
+      "acquisitionStatus": "remote_verified",
+      "license": {
+        "name": "NASA EOSDIS data use policy",
+        "access": "auth_required",
+        "redistribution": "unknown",
+        "note": "Earthdata authentication is required; derived evidence must retain product, run type, granules and actual coverage."
+      },
+      "allowedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "evaluation": true
+      },
+      "methodologyNote": "V07 was first released after the event and is excluded from the cutoff-constrained replay. It may be evaluated only as a retrospective product.",
+      "availableAt": "2023-07-10T00:00:00Z"
+    },
+    {
+      "id": "copernicus-clc-2018",
+      "role": "model_input",
+      "temporalRelation": "pre_event",
+      "publisher": "Copernicus Land Monitoring Service",
+      "dataset": "CORINE Land Cover 2018",
+      "datasetVersion": "V2020_20u1",
+      "sourceUrl": "https://land.copernicus.eu/en/products/corine-land-cover/clc2018",
+      "accessMethod": "official local raster through the canonical CLC provider",
+      "sourceResolution": "100 m raster",
+      "acquisitionStatus": "remote_verified",
+      "license": {
+        "name": "Copernicus Data and Information Legal Notice",
+        "access": "public",
+        "redistribution": "allowed"
+      },
+      "allowedUses": {
+        "modelInput": true,
+        "calibration": false,
+        "evaluation": false
+      },
+      "availableAt": "2021-04-20T00:00:00Z"
+    },
+    {
+      "id": "rer-dtm-1m-pst",
+      "role": "context_only",
+      "temporalRelation": "pre_event",
+      "publisher": "Regione Emilia-Romagna / MASE",
+      "dataset": "DTM 1x1 PST",
+      "sourceUrl": "https://servizigis.regione.emilia-romagna.it/wcs/dtm1x1pst",
+      "accessMethod": "WCS 1.0.0 bounded coverage request",
+      "sourceResolution": "1 m in available lowland coverage; derived from 2009-2014 surveys",
+      "acquisitionStatus": "remote_verified",
+      "license": {
+        "name": "Not OpenData; MASE PST distribution terms apply",
+        "access": "public",
+        "redistribution": "restricted",
+        "note": "The regional page explicitly states that the WCS is not OpenData."
+      },
+      "allowedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "evaluation": true
+      },
+      "localArtifacts": [
+        {
+          "relativePath": "source/rer-dtm1x1-wcs-capabilities.xml",
+          "bytes": 3541,
+          "sha256": "0D66F613BEC4A3D468AD924F4C9ED428D6E1ADA746872270CCA9E9A8110026BF"
+        }
+      ],
+      "methodologyNote": "The terrain survey predates the event, but availability of this exact WCS/source by the knowledge cutoff is not yet proven. It remains excluded from the cutoff-constrained model path."
+    },
+    {
+      "id": "copernicus-dem-glo-30-2022",
+      "role": "model_input",
+      "temporalRelation": "pre_event",
+      "availableAt": "2022-12-31T23:59:59Z",
+      "publisher": "European Union / ESA",
+      "dataset": "Copernicus DEM GLO-30",
+      "datasetVersion": "2022_1",
+      "sourceUrl": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "accessMethod": "bounded tile acquisition through the canonical Copernicus DEM provider",
+      "sourceResolution": "30 m DSM",
+      "acquisitionStatus": "remote_verified",
+      "license": {
+        "name": "Copernicus WorldDEM-30 user licence",
+        "access": "auth_required",
+        "redistribution": "allowed",
+        "note": "Attribution and adapted-product notices apply."
+      },
+      "allowedUses": {
+        "modelInput": true,
+        "calibration": false,
+        "evaluation": false
+      },
+      "methodologyNote": "Pre-event terrain input. This is a surface model, not bare-earth terrain; buildings and vegetation may affect routing and must remain explicit in provenance."
+    },
+    {
+      "id": "rer-xdbtr-2020-2018",
+      "role": "model_input",
+      "temporalRelation": "pre_event",
+      "publisher": "Regione Emilia-Romagna",
+      "dataset": "XDBTR alveo, argine and edificato",
+      "datasetVersion": "Alveo/Argine 2020; Edificato 2018",
+      "sourceUrl": "https://servizigis.regione.emilia-romagna.it/wms/xdbtr",
+      "accessMethod": "bounded WMS acquisition followed by typed feature extraction",
+      "sourceResolution": "nominal source scale 1:10000 for argine/alveo",
+      "acquisitionStatus": "remote_verified",
+      "license": {
+        "name": "CC BY 4.0",
+        "access": "public",
+        "redistribution": "allowed"
+      },
+      "allowedUses": {
+        "modelInput": true,
+        "calibration": false,
+        "evaluation": false
+      },
+      "localArtifacts": [
+        {
+          "relativePath": "source/rer-dbtr-wms-capabilities.xml",
+          "bytes": 72190,
+          "sha256": "326658858A728B19B7713ECC45CF614D0917571B6C9D83850F08FED6C286E619"
+        }
+      ],
+      "availableAt": "2020-01-01T00:00:00Z"
+    },
+    {
+      "id": "arpae-2023-pluviometry",
+      "role": "context_only",
+      "temporalRelation": "during_event",
+      "publisher": "ARPAE Emilia-Romagna",
+      "dataset": "Annali idrologici 2023 - Parte I pluviometria",
+      "datasetVersion": "published 2024-12-23",
+      "sourceUrl": "https://www.arpae.it/it/temi-ambientali/meteo/report-meteo/annali-idrologici/annali-idrologici-2023.zip/view",
+      "accessMethod": "official annual archive; station observations extracted for the event window",
+      "sourceResolution": "station observations",
+      "acquisitionStatus": "downloaded_verified",
+      "license": {
+        "name": "CC BY 4.0 for ARPAE observational monitoring data",
+        "access": "public",
+        "redistribution": "allowed"
+      },
+      "allowedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "evaluation": true
+      },
+      "methodologyNote": "The annual archive was published after the knowledge cutoff. It is held out as a rainfall comparison until an event-time ARPAE source with verified availability is acquired.",
+      "localArtifacts": [
+        {
+          "relativePath": "source/arpae-annali-idrologici-2023.zip",
+          "bytes": 11331242,
+          "sha256": "44835A40DDA87474413EE01E54465A3401C858AE246558D158854D4AE90EA63D"
+        }
+      ],
+      "availableAt": "2024-12-23T00:00:00Z"
+    },
+    {
+      "id": "arpae-2023-hydrometry",
+      "role": "context_only",
+      "temporalRelation": "during_event",
+      "publisher": "ARPAE Emilia-Romagna",
+      "dataset": "Annali idrologici 2023 - Parte II hydrometry",
+      "datasetVersion": "published 2024-12-23",
+      "sourceUrl": "https://www.arpae.it/it/temi-ambientali/meteo/report-meteo/annali-idrologici/annali-idrologici-2023.zip/view",
+      "accessMethod": "official annual archive",
+      "sourceResolution": "station observations",
+      "acquisitionStatus": "remote_verified",
+      "license": {
+        "name": "CC BY 4.0 for ARPAE observational monitoring data",
+        "access": "public",
+        "redistribution": "allowed"
+      },
+      "allowedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "evaluation": true
+      },
+      "methodologyNote": "Hydrometry is context/evaluation for the hydrologic-routing gate. It may become a boundary condition only in a separately declared conditioned-inundation replay.",
+      "availableAt": "2024-12-23T00:00:00Z"
+    },
+    {
+      "id": "rer-flood-extent-v7-event-2",
+      "role": "evaluation_reference",
+      "temporalRelation": "post_event",
+      "publisher": "Regione Emilia-Romagna",
+      "dataset": "Perimetrazione aree allagate 16-17 May 2023",
+      "datasetVersion": "V7, DSG 88/2025",
+      "sourceUrl": "https://geoportale.regione.emilia-romagna.it/approfondimenti/emergenza-maggio-23/emergenza-rer-maggio-2023-servizi",
+      "accessMethod": "official GeoPackage/Shapefile archive; evaluation-only holdout",
+      "sourceResolution": "2022 multipolygon features in EPSG:32632 for event 2",
+      "acquisitionStatus": "downloaded_license_review",
+      "license": {
+        "name": "Restricted emergency and post-emergency use",
+        "access": "restricted",
+        "redistribution": "restricted",
+        "note": "Do not redistribute or publish derived extracts until the owner clarifies benchmark use."
+      },
+      "allowedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "evaluation": true
+      },
+      "methodologyNote": "Primary observed extent, withheld from every model and calibration path.",
+      "localArtifacts": [
+        {
+          "relativePath": "source/rer-flood-extent-v7.zip",
+          "bytes": 2446047,
+          "sha256": "741040C949E9EC7ADEE965DD457C806383979D18A5AE480B1B8515CA79260C81"
+        },
+        {
+          "relativePath": "source/rer-flood-extent-v7-information.pdf",
+          "bytes": 112771,
+          "sha256": "18DEECAF1DC7599342B6E391B0D3D3E4E1FEE2855D64DA6051CC796575A1D4B3"
+        },
+        {
+          "relativePath": "source/rer-flood-extent-v7-genealogy.pdf",
+          "bytes": 587961,
+          "sha256": "79F7C9471D596A648FD4A0349623EA614D65695ADB3BA64BC1B4DD4569CA28DC"
+        }
+      ],
+      "availableAt": "2025-11-24T00:00:00Z"
+    },
+    {
+      "id": "rer-rapid-mapping-may-2023",
+      "role": "comparison_reference",
+      "temporalRelation": "post_event",
+      "publisher": "Regione Emilia-Romagna / Copernicus EMSR664",
+      "dataset": "Aree allagate Rapid Mapping maggio 2023",
+      "sourceUrl": "https://geoportale.regione.emilia-romagna.it/catalogo/dati-cartografici/informazioni-geoscientifiche/zone-a-rischio-naturale/aree-allagate/layer-1",
+      "accessMethod": "WMS layer Merge_allagate_rapidmapping",
+      "sourceResolution": "nominal equivalent scale 1:5000; satellite-derived",
+      "acquisitionStatus": "remote_verified",
+      "license": {
+        "name": "CC BY 4.0",
+        "access": "public",
+        "redistribution": "allowed"
+      },
+      "allowedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "evaluation": true
+      },
+      "localArtifacts": [
+        {
+          "relativePath": "source/rer-emergency-wms-capabilities.xml",
+          "bytes": 64894,
+          "sha256": "3A6B6A8114F6B59D2BBCA580F8F6BADDB8B173102E1B3CB02C29C4808600DD6A"
+        }
+      ]
+    },
+    {
+      "id": "copernicus-emsn154-p04-p06",
+      "role": "comparison_reference",
+      "temporalRelation": "post_event",
+      "publisher": "Copernicus Emergency Management Service",
+      "dataset": "EMSN154 P04 flood delineation and P06 temporal analysis",
+      "datasetVersion": "v01, published 2023-07-11",
+      "sourceUrl": "https://mapping.emergency.copernicus.eu/activations/EMSN154/",
+      "accessMethod": "official geospatial package and technical report",
+      "sourceResolution": "P04 uses 10 m Sentinel-1; P06 uses a 5 m conditioned DTM and 2-D hydraulic model",
+      "acquisitionStatus": "downloaded_verified",
+      "license": {
+        "name": "Copernicus EMS product terms - redistribution review pending",
+        "access": "public",
+        "redistribution": "unknown"
+      },
+      "allowedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "evaluation": true
+      },
+      "methodologyNote": "P06 was calibrated with P04 and EMSR664 flood footprints plus ARPAE boundary conditions. It is a secondary model comparison, not independent ground truth.",
+      "localArtifacts": [
+        {
+          "relativePath": "source/copernicus-emsn154-geospatial-data.zip",
+          "bytes": 566934144,
+          "sha256": "D89AEDA0A9D1C487E8303AEF6F0AB8A1960B27A58AD8AD545817F4FA9BAE9E2C"
+        },
+        {
+          "relativePath": "source/copernicus-emsn154-technical-report-v01.pdf",
+          "bytes": 19301053,
+          "sha256": "ED9FE823A384227041B858F17589A744191205DD380CC2CF73A97A4D900FCACC"
+        }
+      ],
+      "availableAt": "2023-07-11T00:00:00Z"
+    }
+  ]
+}
