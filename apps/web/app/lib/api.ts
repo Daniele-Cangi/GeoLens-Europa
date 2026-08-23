@@ -338,6 +338,94 @@ export interface ObservedOutfallConnectivity {
   };
 }
 
+export interface ObservedSurfaceCatchmentProxyCell {
+  readonly h3: string;
+  readonly elevationM: Evidence<number>;
+  readonly representedAreaM2: number;
+  readonly boundary: readonly (readonly [number, number])[];
+  readonly downstreamH3: string | null;
+  readonly elevationDropM: number | null;
+  readonly centerDistanceM: number | null;
+  readonly grade: number | null;
+  readonly flowMethod: string;
+  readonly termination:
+    | 'outlet_proxy'
+    | 'coverage_exit'
+    | 'local_depression'
+    | 'incomplete_elevation';
+  readonly contributesToOutletProxy: boolean | null;
+  readonly pathH3Indices: readonly string[];
+}
+
+export interface ObservedSurfaceCatchmentProxy {
+  readonly id: string;
+  readonly semantics:
+    'experimental_dem_derived_surface_contributing_area_proxy';
+  readonly modelVersion: string;
+  readonly status: EvidenceStatus;
+  readonly outfallAnchor: {
+    readonly nodeId: string;
+    readonly position: {
+      readonly lat: number;
+      readonly lon: number;
+    };
+    readonly h3: string;
+    readonly method: string;
+    readonly conditioning: string;
+  };
+  readonly coverage: {
+    readonly bbox: {
+      readonly latMin: number;
+      readonly lonMin: number;
+      readonly latMax: number;
+      readonly lonMax: number;
+    };
+    readonly h3Resolution: number;
+    readonly outletH3: string;
+    readonly targetH3Indices: readonly string[];
+    readonly sampledH3Indices: readonly string[];
+    readonly selectionMethod: string;
+    readonly boundaryHaloRings: number;
+    readonly targetCellCount: number;
+    readonly sampledCellCount: number;
+    readonly areaRepresentation: string;
+  };
+  readonly contributingAreaM2: Evidence<number>;
+  readonly partialContributingAreaM2: number;
+  readonly contributingH3Indices: readonly string[];
+  readonly cells: Readonly<
+    Record<string, ObservedSurfaceCatchmentProxyCell>
+  >;
+  readonly counts: {
+    readonly contributingCells: number;
+    readonly coverageExitCells: number;
+    readonly localDepressionCells: number;
+    readonly incompleteElevationCells: number;
+  };
+  readonly elevationSources: {
+    readonly providers: readonly string[];
+    readonly datasets: readonly string[];
+    readonly datasetVersions: readonly string[];
+    readonly sourceResolutions: readonly string[];
+    readonly acquiredAt: readonly string[];
+    readonly statuses: Readonly<Record<EvidenceStatus, number>>;
+  };
+  readonly sewerCatchmentSemantics: 'not_asserted';
+  readonly limitations: readonly string[];
+}
+
+export interface ObservedSurfaceCatchmentProxyEnvelope {
+  readonly status: EvidenceStatus;
+  readonly missingReason: string | null;
+  readonly result: ObservedSurfaceCatchmentProxy | null;
+  readonly networkUse: {
+    readonly eligibleForSewerPropagation: false;
+    readonly reasons: readonly string[];
+    readonly outfallConnectivityStatus: string;
+    readonly unresolvedBoundaryPipeIds: readonly string[];
+    readonly orientationThresholdM: number;
+  } | null;
+}
 export interface AvailableObservedInfrastructure {
   readonly status: 'available';
   readonly acquisition: {
@@ -419,6 +507,7 @@ export interface AvailableObservedInfrastructure {
     >;
   };
   readonly outfallConnectivity: ObservedOutfallConnectivity;
+  readonly surfaceCatchmentProxy: ObservedSurfaceCatchmentProxyEnvelope;
 }
 
 export interface UnavailableObservedInfrastructure {

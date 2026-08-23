@@ -300,13 +300,17 @@ Progress:
 - the configured 0.05 m analysis threshold produces 25 known, 22 ambiguous and 0 unknown directions for the 47-pipe recorded response; this threshold is not represented as provider survey accuracy;
 - model `known-direction-outfall-connectivity-v0.1.0` finds 0 known upstream paths to the four outfalls because each incident pipe is within the ambiguity threshold; the four pipes remain explicit unresolved boundaries;
 - missing invert evidence remains an unknown direction and the observed route never falls back to node ground elevation;
-- the API and inspector expose evidence basis, model versions, threshold, per-pipe state, outfall-path counts and highlighted unresolved outfall boundaries without claiming catchment contribution or propagated flow.
+- the API and inspector expose evidence basis, model versions, threshold, per-pipe state, outfall-path counts and highlighted unresolved outfall boundaries without claiming catchment contribution or propagated flow;
+- an explicitly experimental `bounded-h3-single-flow-surface-proxy-v0.1.0` now samples Copernicus GLO-30 elevation over the fixed Waternet bbox at H3 r11, uses a one-ring boundary halo, and conditions the observed `8522CE11-8DC1-41CC-9375-EDECAB742620` outfall cell as a pour point without creating a Waternet catchment attachment;
+- live verification returned 34/34 available non-synthetic GLO-30 samples for 14 target cells: only the conditioned outfall cell contributes (`1,801.61 m2`), while six paths exit coverage and seven terminate at local depressions; this limited result is retained as evidence that the unconditioned 30 m DSM does not support inventing a larger urban sewer catchment;
+- missing DEM evidence makes the proxy area unavailable while leaving the observed Waternet topology available; the proxy remains ineligible for sewer propagation because it is not an observed catchment, runoff is not yet composed, and the outfall pipe direction remains unresolved at 0.05 m.
 
 Work:
 
 - identify an authoritative contributing-area or drainage-area source that can be linked to the four explicit Waternet rainwater outfalls;
 - reject representative-point, first-coordinate and name-prefix shortcuts;
 - define polygon-to-H3 coverage and outlet attachment with inspectable spatial transformation semantics;
+- determine whether an authoritative Waternet polygon or a hydrologically conditioned higher-resolution surface is required before treating the trivial GLO-30 proxy as a usable contributing area;
 - compose real IMERG, DEM and CLC evidence over the bounded Amsterdam contributing area before deriving runoff;
 - propagate only through the validated, supported observed subgraph.
 
@@ -322,3 +326,5 @@ Checkpoints:
 - `refactor: orient observed pipes from invert evidence`
 - `feat: anchor observed topology at rainwater outfalls`
 - `refactor: expose known-direction outfall connectivity`
+- `feat: derive bounded DEM surface catchment proxy`
+- `feat: expose bounded DEM surface catchment proxy`

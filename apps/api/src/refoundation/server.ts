@@ -8,15 +8,20 @@ import {
   EnvironmentalEvidenceComposer,
   runStormwaterProofZero,
 } from '@geo-lens/proof-zero';
+import { CopernicusDemClient } from '@geo-lens/providers';
 import {
   AmsterdamWaternetAcquisition,
   AmsterdamWaternetBbox,
   analyzeOutfallConnectivity,
   AmsterdamWaternetWfsClient,
+  buildBoundedSurfaceCatchmentGrid,
+  deriveSurfaceCatchmentProxy,
   importAmsterdamWaternetStormwater,
   importStormwaterGeoJson,
   ImportedStormwaterNetwork,
   orientStormwaterNetworkByPipeInverts,
+  OutfallConnectivityAnalysis,
+  StormwaterTopology,
 } from '@geo-lens/stormwater';
 
 const DEFAULT_NODE_H3_RESOLUTION = 11;
@@ -29,6 +34,11 @@ const DEFAULT_WATERNET_BBOX: AmsterdamWaternetBbox = {
 const WATERNET_SNAP_TOLERANCE_M = 0.25;
 const WATERNET_MINIMUM_RESOLVABLE_INVERT_DROP_M =
   0.05;
+const SURFACE_PROXY_H3_RESOLUTION = 11;
+const SURFACE_PROXY_OUTFALL_SOURCE_RECORD_ID =
+  '8522CE11-8DC1-41CC-9375-EDECAB742620';
+const MAX_SURFACE_PROXY_TARGET_H3_CELLS = 100;
+const MAX_SURFACE_PROXY_SAMPLED_H3_CELLS = 180;
 const DEFAULT_CATCHMENT_H3_RESOLUTION = 13;
 const DEFAULT_SNAP_TOLERANCE_M = 5;
 const DEFAULT_MINIMUM_RESOLVABLE_DROP_M = 0.1;
@@ -54,6 +64,10 @@ export interface BuildGeoLensApiOptions {
   readonly waternetClient?: Pick<
     AmsterdamWaternetWfsClient,
     'acquire'
+  >;
+  readonly demClient?: Pick<
+    CopernicusDemClient,
+    'getElevationEvidence'
   >;
 }
 
@@ -85,6 +99,8 @@ export function buildGeoLensApi(
   const waternetClient =
     options.waternetClient ??
     new AmsterdamWaternetWfsClient({ now });
+  const demClient =
+    options.demClient ?? new CopernicusDemClient({ now });
 
   server.register(cors);
   server.register(compress, { global: true });
@@ -189,6 +205,14 @@ export function buildGeoLensApi(
           },
           { known: 0, ambiguous: 0, unknown: 0 },
         );
+        const surfaceCatchmentProxy =
+          await composeObservedSurfaceCatchmentProxy({
+            topology: imported.topology,
+            bbox,
+            outfallConnectivity,
+            demClient,
+            derivedAt: now().toISOString(),
+          });
 
         return reply.code(200).send({
           status: 'available',
@@ -206,6 +230,7 @@ export function buildGeoLensApi(
             directions: oriented.directions,
           },
           outfallConnectivity,
+          surfaceCatchmentProxy,
         });
       } catch (error) {
         request.log.error(error);
@@ -290,6 +315,145 @@ export function buildGeoLensApi(
   });
 
   return server;
+}
+
+async function composeObservedSurfaceCatchmentProxy(input: {
+  readonly topology: StormwaterTopology;
+  readonly bbox: AmsterdamWaternetBbox;
+  readonly outfallConnectivity: OutfallConnectivityAnalysis;
+  readonly demClient: Pick<
+    CopernicusDemClient,
+    'getElevationEvidence'
+  >;
+  readonly derivedAt: string;
+}) {
+  const outfall = Object.values(input.topology.nodes).find(
+    (node) =>
+      node.type === 'outfall' &&
+      node.source.sourceRecordId ===
+        SURFACE_PROXY_OUTFALL_SOURCE_RECORD_ID,
+  );
+
+  if (outfall === undefined) {
+    return {
+      status: 'out_of_coverage' as const,
+      missingReason:
+        `Observed outfall ${SURFACE_PROXY_OUTFALL_SOURCE_RECORD_ID} is absent from the bounded Waternet topology`,
+      result: null,
+      networkUse: null,
+    };
+  }
+
+  const connectivity =
+    input.outfallConnectivity.outfalls[outfall.id];
+
+  if (connectivity === undefined) {
+    return {
+      status: 'invalid_response' as const,
+      missingReason:
+        `Outfall connectivity omitted observed node ${outfall.id}`,
+      result: null,
+      networkUse: null,
+    };
+  }
+
+  const networkUse = {
+    eligibleForSewerPropagation: false,
+    reasons: [
+      'not_observed_sewer_catchment',
+      'environmental_runoff_not_composed',
+      ...(connectivity.status ===
+      'blocked_by_unresolved_direction'
+        ? ['outfall_network_direction_unresolved']
+        : []),
+    ],
+    outfallConnectivityStatus: connectivity.status,
+    unresolvedBoundaryPipeIds:
+      connectivity.unresolvedBoundaryPipeIds,
+    orientationThresholdM:
+      input.outfallConnectivity.minimumResolvableDropM,
+  };
+  let grid;
+
+  try {
+    grid = buildBoundedSurfaceCatchmentGrid({
+      bbox: input.bbox,
+      h3Resolution: SURFACE_PROXY_H3_RESOLUTION,
+      outfallPosition: outfall.position,
+    });
+  } catch (error) {
+    return {
+      status: 'invalid_response' as const,
+      missingReason:
+        `Surface proxy grid could not be built: ${errorMessage(error)}`,
+      result: null,
+      networkUse,
+    };
+  }
+
+  if (
+    grid.targetH3Indices.length >
+      MAX_SURFACE_PROXY_TARGET_H3_CELLS ||
+    grid.sampledH3Indices.length >
+      MAX_SURFACE_PROXY_SAMPLED_H3_CELLS
+  ) {
+    return {
+      status: 'out_of_coverage' as const,
+      missingReason:
+        `Surface proxy grid exceeds the bounded limit (${grid.targetH3Indices.length} target / ${grid.sampledH3Indices.length} sampled H3 cells)`,
+      result: null,
+      networkUse,
+    };
+  }
+
+  let elevation;
+
+  try {
+    elevation = await input.demClient.getElevationEvidence({
+      h3Indices: grid.sampledH3Indices,
+    });
+  } catch (error) {
+    return {
+      status: 'upstream_error' as const,
+      missingReason:
+        `Copernicus DEM acquisition failed: ${errorMessage(error)}`,
+      result: null,
+      networkUse,
+    };
+  }
+
+  try {
+    const result = deriveSurfaceCatchmentProxy({
+      id: 'amsterdam-waternet-outfall-8522-surface-proxy',
+      outfallNodeId: outfall.id,
+      outfallPosition: outfall.position,
+      grid,
+      elevationByH3: elevation.cells,
+      derivedAt: input.derivedAt,
+    });
+
+    return {
+      status: result.status,
+      missingReason:
+        result.contributingAreaM2.quality.missingReason ?? null,
+      result,
+      networkUse,
+    };
+  } catch (error) {
+    return {
+      status: 'invalid_response' as const,
+      missingReason:
+        `Surface proxy derivation failed: ${errorMessage(error)}`,
+      result: null,
+      networkUse,
+    };
+  }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error
+    ? error.message
+    : 'unknown error';
 }
 
 function parseWaternetBbox(
