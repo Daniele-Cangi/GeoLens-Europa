@@ -70,7 +70,7 @@ The following state has been verified locally through 2026-08-23.
 | H3 composition | Catchment cells and network entities are joined through explicit H3 representations while source resolution remains visible. |
 | Runoff and catchments | Runoff v0 is deterministic and exposes inputs/intermediates; catchment aggregation uses represented H3 area. |
 | Proof 0 network | Topology is validated separately from environmental evidence. Direction is `known`, `unknown` or `ambiguous`. |
-| Observed infrastructure | The official Waternet/Amsterdam `Leidingeninfrastructuur` WFS was verified live. The outfall-anchored bounded import produced 47 observed nodes and 47 active stormwater pipes, including 4 explicit `Regenwateruitlaat` outfalls, retained NAP ground/invert attributes, reported 10 boundary-crossing pipes, and classified 25 invert-supported directions as known and 22 as ambiguous at the configured 0.05 m threshold. |
+| Observed infrastructure | The official Waternet/Amsterdam `Leidingeninfrastructuur` WFS was verified live. The outfall-anchored bounded import produced 47 observed nodes and 47 active stormwater pipes, including 4 explicit `Regenwateruitlaat` outfalls, retained NAP ground/invert attributes, and classified 25 directions as known and 22 as ambiguous at the configured 0.05 m threshold. All 4 outfalls stop at an ambiguous direction boundary, so the known-direction outfall analysis reports 0 supported upstream paths. |
 | Propagation | Supported directed acyclic topology conserves volume and exposes mass balance. |
 | API and inspector | One root command health-gates IMERG -> API -> web. The Next.js inspector automatically runs the verified window and independently acquires the bounded Waternet topology. Each path exposes a traceable receipt without AI or mineral services. |
 
@@ -80,7 +80,7 @@ rainfall, derived `2.957 m3` of catchment contribution and delivered the same
 volume to the outfall with zero mass-balance difference. The network geometry is a
 deterministic fixture, not surveyed municipal infrastructure. The Amsterdam
 panel is observed municipal infrastructure with explicit rainwater outfalls, but it is not yet connected to a
-real contributing-area model. Missing rainfall, land cover or elevation never
+real contributing-area model. At the configured 0.05 m threshold, each observed outfall is separated from the network by one ambiguous pipe, so no observed-network propagation is produced. Missing rainfall, land cover or elevation never
 becomes a valid-looking zero.
 
 ## Active architecture
@@ -255,6 +255,15 @@ Start the canonical IMERG service, Proof 0 API and inspector together:
 npm run dev
 ```
 
+The inspector uses port `3000` by default. If that port is already occupied,
+the launcher rejects a successful response from the wrong application instead of
+reporting GeoLens as ready. Select a free port explicitly in PowerShell:
+
+```powershell
+$env:GEOLENS_WEB_PORT = '3004'
+npm run dev
+```
+
 The command reads `nasa-precip-engine/.env`, starts services in dependency
 order, waits for each health gate, and shuts down the complete process tree with
 `Ctrl+C`. The inspector then runs the fixed verified window ending
@@ -267,7 +276,7 @@ separately.
 
 Local endpoints:
 
-- inspector: <http://localhost:3000>;
+- inspector: <http://localhost:3000> (or the configured `GEOLENS_WEB_PORT`);
 - GeoLens API: <http://localhost:3003>;
 - API health: <http://localhost:3003/health>;
 - IMERG service: <http://localhost:8001>;
@@ -316,10 +325,14 @@ An available response exposes:
 - node ground levels and pipe invert levels in metres with NAP datum metadata;
 - strict active-stormwater filtering and 0.25 m endpoint snap distances;
 - skipped boundary pipes and defective endpoint-UUID state;
+- known-direction outfall connectivity with its own model version and explicit
+  supported-path / unresolved-boundary counts;
 - invert-derived edge direction with evidence basis, model version, configured
   ambiguity threshold and `known` / `ambiguous` / `unknown` counts;
 - `bemalingsgebied` values retained only as source identifiers; the response
   explicitly states that no contributing-area geometry was supplied;
+- the four unresolved outfall-boundary pipes highlighted separately from other
+  ambiguous directions;
 - an empty catchment attachment set because the source does not provide the
   required contributing areas.
 

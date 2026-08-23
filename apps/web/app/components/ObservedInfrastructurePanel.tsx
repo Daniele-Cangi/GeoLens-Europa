@@ -363,6 +363,11 @@ export default function ObservedInfrastructurePanel({
                         pipe.id
                       ]?.status
                     }
+                    data-outfall-boundary={
+                      available.outfallConnectivity
+                        .unresolvedBoundaryPipeIds
+                        .includes(pipe.id) || undefined
+                    }
                     className="observed-pipe"
                     onClick={() =>
                       setSelectedPipeId(
@@ -437,6 +442,19 @@ export default function ObservedInfrastructurePanel({
                 {' ambiguous / '}
                 {available.orientation.counts.unknown}
                 {' unknown directions'}
+              </span>
+              <span>
+                {
+                  available.outfallConnectivity
+                    .counts.knownUpstreamPaths
+                }
+                {' known outfall paths / '}
+                {
+                  available.outfallConnectivity
+                    .counts
+                    .blockedByUnresolvedDirection
+                }
+                {' direction-blocked'}
               </span>
               <span>
                 Output{' '}
@@ -540,6 +558,22 @@ export default function ObservedInfrastructurePanel({
                     2,
                     'm',
                   )}
+                </dd>
+              </div>
+              <div>
+                <dt>Outfall connectivity</dt>
+                <dd>
+                  {
+                    available.outfallConnectivity
+                      .counts.knownUpstreamPaths
+                  }
+                  {' known paths / '}
+                  {
+                    available.outfallConnectivity
+                      .counts
+                      .blockedByUnresolvedDirection
+                  }
+                  {' direction-blocked'}
                 </dd>
               </div>
               <div>
@@ -654,10 +688,27 @@ export default function ObservedInfrastructurePanel({
             <p className="observed-warning">
               Direction is derived only by
               comparing Waternet pipe endpoint
-              invert levels. The configured 0.05 m
-              threshold is not a claim about source
-              survey accuracy, and no hydraulic flow
-              is asserted.
+              invert levels. At this threshold,
+              {' '}
+              {
+                available.outfallConnectivity
+                  .counts.knownUpstreamPaths
+              }
+              {' of '}
+              {
+                available.outfallConnectivity
+                  .counts.outfalls
+              }
+              {' outfalls have a known upstream path; '}
+              {
+                available.outfallConnectivity
+                  .counts
+                  .blockedByUnresolvedDirection
+              }
+              {' stop at an unresolved direction boundary. '}
+              The configured 0.05 m threshold is not
+              a claim about source survey accuracy,
+              and no hydraulic flow is asserted.
             </p>
             <p className="observed-warning">
               Source endpoint UUIDs are

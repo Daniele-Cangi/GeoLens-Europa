@@ -397,7 +397,38 @@ test('API exposes observed Waternet topology with its import receipt', async (co
         'pipe_invert_level',
     ),
   );
-  assert.equal('propagation' in body, false);
+  assert.equal(
+    body.outfallConnectivity.modelVersion,
+    'known-direction-outfall-connectivity-v0.1.0',
+  );
+  assert.equal(
+    body.outfallConnectivity.minimumResolvableDropM,
+    0.05,
+  );
+  assert.deepEqual(
+    body.outfallConnectivity.counts,
+    {
+      outfalls: 4,
+      knownUpstreamPaths: 0,
+      blockedByUnresolvedDirection: 4,
+      isolated: 0,
+      directionConflicts: 0,
+      knownPathNodes: 0,
+      knownPathPipes: 0,
+      unresolvedBoundaryPipes: 4,
+    },
+  );
+  assert.deepEqual(
+    body.outfallConnectivity.knownPathPipeIds,
+    [],
+  );
+  assert.ok(
+    Object.values(body.outfallConnectivity.outfalls).every(
+      (outfall) =>
+        outfall.status ===
+        'blocked_by_unresolved_direction',
+    ),
+  );  assert.equal('propagation' in body, false);
   assert.equal(
     body.import.source.origin,
     'observed_public_record',

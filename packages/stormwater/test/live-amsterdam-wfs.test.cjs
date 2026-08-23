@@ -3,7 +3,9 @@ const assert = require('node:assert/strict');
 
 const {
   AmsterdamWaternetWfsClient,
+  analyzeOutfallConnectivity,
   importAmsterdamWaternetStormwater,
+  orientStormwaterNetworkByPipeInverts,
 } = require('../dist');
 
 const liveEnabled =
@@ -49,6 +51,22 @@ test(
         },
       );
 
+    const oriented = orientStormwaterNetworkByPipeInverts(
+      imported.topology,
+      { minimumResolvableDropM: 0.05 },
+    );
+    const connectivity = analyzeOutfallConnectivity(oriented);
+
+    assert.deepEqual(connectivity.counts, {
+      outfalls: 4,
+      knownUpstreamPaths: 0,
+      blockedByUnresolvedDirection: 4,
+      isolated: 0,
+      directionConflicts: 0,
+      knownPathNodes: 0,
+      knownPathPipes: 0,
+      unresolvedBoundaryPipes: 4,
+    });
     assert.ok(
       Object.keys(imported.topology.nodes)
         .length > 0,
