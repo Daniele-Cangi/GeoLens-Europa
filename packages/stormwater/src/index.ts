@@ -1,5 +1,6 @@
 export * from './amsterdam';
 export * from './amsterdam-wfs';
+export * from './bgt-inflow-attachment';
 export * from './catchment';
 export * from './conditioned-surface-catchment';
 export * from './geojson';

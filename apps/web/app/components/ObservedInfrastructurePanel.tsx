@@ -348,6 +348,8 @@ export default function ObservedInfrastructurePanel({
   const areaEnvelope =
     available?.outfallAreaContext;
   const areaContext = areaEnvelope?.result;
+  const authoritativeAttachment =
+    available?.authoritativeSurfaceNetworkAttachment;
   const surfaceEnvelope =
     available?.surfaceCatchmentProxy;
   const surfaceProxy = surfaceEnvelope?.result;
@@ -745,12 +747,24 @@ export default function ObservedInfrastructurePanel({
                 <dd>Pipe endpoint invert NAP</dd>
               </div>
               <div>
-                <dt>Ambiguity threshold</dt>
+                <dt>Resolvable drop boundary</dt>
                 <dd>
                   {formatNumber(
                     available.orientation
                       .minimumResolvableDropM,
                     2,
+                    'm',
+                  )}
+                  {' inclusive'}
+                </dd>
+              </div>
+              <div>
+                <dt>Numeric comparison tolerance</dt>
+                <dd>
+                  {formatNumber(
+                    available.orientation
+                      .numericComparisonToleranceM,
+                    6,
                     'm',
                   )}
                 </dd>
@@ -886,6 +900,95 @@ export default function ObservedInfrastructurePanel({
               )}
             </section>
 
+            <section className="observed-selection surface-proxy-receipt">
+              <div className="surface-proxy-heading">
+                <div>
+                  <p className="eyebrow">
+                    Authoritative attachment boundary
+                  </p>
+                  <h3>BGT Inlooptabel to observed pipe</h3>
+                </div>
+                <StatusPill
+                  status={
+                    authoritativeAttachment?.networkAttachments
+                      .quality.status ?? 'not_requested'
+                  }
+                />
+              </div>
+              {authoritativeAttachment ? (
+                <>
+                  <dl className="observed-facts">
+                    <div>
+                      <dt>Standard</dt>
+                      <dd>
+                        <a
+                          href={authoritativeAttachment.documentationUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {authoritativeAttachment.standard}
+                        </a>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Destination evidence</dt>
+                      <dd>
+                        {statusLabel(
+                          authoritativeAttachment
+                            .destinationObservations.quality.status,
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Exact pipe attachments</dt>
+                      <dd>
+                        {authoritativeAttachment.networkAttachments
+                          .value?.length ?? 0}
+                        {' · '}
+                        {statusLabel(
+                          authoritativeAttachment.networkAttachments
+                            .quality.status,
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Unresolved destinations</dt>
+                      <dd>
+                        {
+                          authoritativeAttachment
+                            .unresolvedNetworkDestinations.length
+                        }
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Sewer propagation</dt>
+                      <dd>
+                        {authoritativeAttachment.propagationEligible
+                          ? 'Eligible from observed attachment'
+                          : 'Blocked before propagation'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Matching rule</dt>
+                      <dd>Exact asset identifier only</dd>
+                    </div>
+                    <div>
+                      <dt>Model</dt>
+                      <dd>{authoritativeAttachment.modelVersion}</dd>
+                    </div>
+                  </dl>
+                  <p className="observed-warning">
+                    {authoritativeAttachment.networkAttachments.quality
+                      .missingReason ??
+                      'Owner-published attachment is available and retained.'}
+                  </p>
+                </>
+              ) : (
+                <p className="surface-proxy-missing">
+                  Authoritative attachment not requested.
+                </p>
+              )}
+            </section>
             <section className="observed-selection surface-proxy-receipt conditioned-surface-receipt">
               <div className="surface-proxy-heading">
                 <div>

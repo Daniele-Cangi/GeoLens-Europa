@@ -616,15 +616,23 @@ test('API exposes observed Waternet topology with its import receipt', async (co
   );
   assert.equal(
     body.orientation.modelVersion,
-    'pipe-invert-direction-v0.1.0',
+    'pipe-invert-direction-v0.2.0',
   );
   assert.equal(
     body.orientation.minimumResolvableDropM,
     0.05,
   );
+  assert.equal(
+    body.orientation.numericComparisonToleranceM,
+    0.000001,
+  );
+  assert.match(
+    body.orientation.thresholdSemantics,
+    /at or above the configured drop/,
+  );
   assert.deepEqual(body.orientation.counts, {
-    known: 25,
-    ambiguous: 22,
+    known: 26,
+    ambiguous: 21,
     unknown: 0,
   });
   assert.ok(
@@ -646,25 +654,35 @@ test('API exposes observed Waternet topology with its import receipt', async (co
     body.outfallConnectivity.counts,
     {
       outfalls: 4,
-      knownUpstreamPaths: 0,
-      blockedByUnresolvedDirection: 4,
+      knownUpstreamPaths: 1,
+      blockedByUnresolvedDirection: 3,
       isolated: 0,
       directionConflicts: 0,
-      knownPathNodes: 0,
-      knownPathPipes: 0,
+      knownPathNodes: 5,
+      knownPathPipes: 4,
       unresolvedBoundaryPipes: 4,
     },
   );
   assert.deepEqual(
     body.outfallConnectivity.knownPathPipeIds,
-    [],
+    [
+      'waternet:268FA439-0CF3-4604-8500-19F6DFDB3DC7',
+      'waternet:2E5F673B-3226-4E2D-9235-565CE30AF5CB',
+      'waternet:411E1909-C07E-498B-9CE7-E704D88E3160',
+      'waternet:BEFDCC16-D2C5-4E8E-B137-5010E94F8E24',
+    ],
   );
-  assert.ok(
-    Object.values(body.outfallConnectivity.outfalls).every(
-      (outfall) =>
-        outfall.status ===
-        'blocked_by_unresolved_direction',
-    ),
+  assert.equal(
+    body.outfallConnectivity.outfalls[
+      'waternet:8522CE11-8DC1-41CC-9375-EDECAB742620'
+    ].status,
+    'known_upstream_path',
+  );
+  assert.deepEqual(
+    body.outfallConnectivity.outfalls[
+      'waternet:8522CE11-8DC1-41CC-9375-EDECAB742620'
+    ].unresolvedBoundaryPipeIds,
+    ['waternet:4A138DAD-0918-4314-827A-28EEDBB468AE'],
   );
   assert.equal(
     body.outfallAreaContext.status,
@@ -693,6 +711,35 @@ test('API exposes observed Waternet topology with its import receipt', async (co
     body.outfallAreaContext.result.attachment
       .catchmentAttachmentCreated,
     false,
+  );
+  assert.equal(
+    body.authoritativeSurfaceNetworkAttachment.standard,
+    'STOWA-2025-02',
+  );
+  assert.equal(
+    body.authoritativeSurfaceNetworkAttachment
+      .destinationObservations.quality.status,
+    'missing',
+  );
+  assert.equal(
+    body.authoritativeSurfaceNetworkAttachment
+      .networkAttachments.quality.status,
+    'missing',
+  );
+  assert.equal(
+    body.authoritativeSurfaceNetworkAttachment
+      .networkAttachments.value,
+    null,
+  );
+  assert.equal(
+    body.authoritativeSurfaceNetworkAttachment
+      .propagationEligible,
+    false,
+  );
+  assert.match(
+    body.authoritativeSurfaceNetworkAttachment
+      .networkAttachments.quality.missingReason,
+    /No Amsterdam owner-published BGT Inlooptabel/,
   );
   assert.equal(
     body.surfaceCatchmentProxy.status,
@@ -738,7 +785,6 @@ test('API exposes observed Waternet topology with its import receipt', async (co
     [
       'not_observed_sewer_catchment',
       'environmental_runoff_not_composed',
-      'outfall_network_direction_unresolved',
     ],
   );
   assert.equal(
@@ -820,7 +866,6 @@ test('API exposes observed Waternet topology with its import receipt', async (co
     body.conditionedSurfaceRunoff.networkPropagation.blockingReasons,
     [
       'not_observed_sewer_catchment',
-      'outfall_network_direction_unresolved',
     ],
   );
   assert.equal(
@@ -831,7 +876,6 @@ test('API exposes observed Waternet topology with its import receipt', async (co
     body.conditionedSurfaceCatchmentProxy.networkUse.reasons,
     [
       'not_observed_sewer_catchment',
-      'outfall_network_direction_unresolved',
     ],
   );
   assert.equal('propagation' in body, false);
@@ -904,7 +948,6 @@ test('API keeps missing IMERG explicit in conditioned runoff without attempting 
     [
       'not_observed_sewer_catchment',
       'environmental_runoff_incomplete',
-      'outfall_network_direction_unresolved',
     ],
   );
   assert.equal('propagation' in body, false);
