@@ -18,6 +18,11 @@ const pythonExecutable = resolvePythonExecutable();
 const temporaryDirectory =
   process.env.GEOLENS_TEMP_DIR ??
   nasaEnvironment.GEOLENS_TEMP_DIR;
+const webPort = parseTcpPort(
+  process.env.GEOLENS_WEB_PORT ?? '3000',
+  'GEOLENS_WEB_PORT',
+);
+const webUrl = 'http://127.0.0.1:' + webPort;
 const sharedEnvironment = {
   ...process.env,
   ...(temporaryDirectory
@@ -95,14 +100,14 @@ try {
 
   startNpmService(
     'WEB',
-    ['run', 'dev'],
+    ['run', 'dev', '--', '--port', String(webPort)],
     webDirectory,
     sharedEnvironment,
   );
-  await waitForPage('WEB', 'http://127.0.0.1:3000');
+  await waitForGeoLensPage('WEB', webUrl);
 
   console.log('');
-  console.log('[GeoLens] Proof 0 inspector: http://127.0.0.1:3000');
+  console.log(`[GeoLens] Proof 0 inspector: ${webUrl}`);
   console.log('[GeoLens] GeoLens API:        http://127.0.0.1:3003');
   console.log('[GeoLens] IMERG service:      http://127.0.0.1:8001');
   console.log('[GeoLens] Press Ctrl+C to stop the complete chain.');
@@ -196,7 +201,7 @@ async function waitForJsonHealth(name, url, validate) {
   throw new Error(`${name} health timeout: ${lastReason}`);
 }
 
-async function waitForPage(name, url) {
+async function waitForGeoLensPage(name, url) {
   const deadline = Date.now() + 120_000;
   let lastReason = 'no response';
 
@@ -206,12 +211,32 @@ async function waitForPage(name, url) {
         signal: AbortSignal.timeout(5_000),
         cache: 'no-store',
       });
-      if (response.ok) {
+      const html = await response.text();
+
+      if (
+        response.ok &&
+        html.includes('GeoLens') &&
+        html.includes('Spatial Evidence Inspector')
+      ) {
         console.log(`[GeoLens] ${name} ready.`);
         return;
       }
+
+      if (response.ok) {
+        throw new Error(
+          `${name} URL ${url} is occupied by a non-GeoLens page`,
+        );
+      }
+
       lastReason = `HTTP ${response.status}`;
     } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.includes('occupied by a non-GeoLens page')
+      ) {
+        throw error;
+      }
+
       lastReason = error instanceof Error ? error.message : String(error);
     }
 
@@ -219,6 +244,16 @@ async function waitForPage(name, url) {
   }
 
   throw new Error(`${name} page timeout: ${lastReason}`);
+}
+
+function parseTcpPort(value, name) {
+  const parsed = Number(value);
+
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65_535) {
+    throw new Error(`${name} must be an integer from 1 to 65535`);
+  }
+
+  return parsed;
 }
 
 function resolvePythonExecutable() {

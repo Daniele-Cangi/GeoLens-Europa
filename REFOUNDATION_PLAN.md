@@ -237,7 +237,7 @@ Progress:
 - typecheck, deterministic TypeScript/Python tests, the canonical root build, a live public DEM request, and browser/API verification pass;
 - GitHub Actions enforces TypeScript typecheck/tests/build and Python compile/tests on pull requests and `main`; credentialed live-provider verification remains explicitly opt-in;
 - the sixteen first-cycle success conditions are evidenced by code/tests/runtime or an explicit unavailable provider state;
-- one root command now health-gates IMERG, API and web in dependency order; the inspector automatically composes the verified fixed window and displays an IMERG evidence receipt;
+- one root command now health-gates IMERG, API and web in dependency order, verifies the GeoLens HTML identity instead of accepting any HTTP 200, and supports an explicit alternate web port; the inspector automatically composes the verified fixed window and displays an IMERG evidence receipt;
 - completed real IMERG windows can be replayed from a provenance-preserving persistent cache, while missing, failed, incomplete, corrupt and expired entries remain explicit cache misses.
 
 Work:
@@ -253,7 +253,10 @@ Gate:
 - setup and claims match verified behavior;
 - Proof 0 is the only asserted completed product path.
 
-Checkpoint: `docs: rewrite GeoLens identity from verified behavior`
+Checkpoints:
+
+- `docs: rewrite GeoLens identity from verified behavior`
+- `fix: verify local inspector identity`
 
 ## Phase 7 — Replace fixture-only topology with observed infrastructure
 

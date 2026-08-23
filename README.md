@@ -255,6 +255,15 @@ Start the canonical IMERG service, Proof 0 API and inspector together:
 npm run dev
 ```
 
+The inspector uses port `3000` by default. If that port is already occupied,
+the launcher rejects a successful response from the wrong application instead of
+reporting GeoLens as ready. Select a free port explicitly in PowerShell:
+
+```powershell
+$env:GEOLENS_WEB_PORT = '3004'
+npm run dev
+```
+
 The command reads `nasa-precip-engine/.env`, starts services in dependency
 order, waits for each health gate, and shuts down the complete process tree with
 `Ctrl+C`. The inspector then runs the fixed verified window ending
@@ -267,7 +276,7 @@ separately.
 
 Local endpoints:
 
-- inspector: <http://localhost:3000>;
+- inspector: <http://localhost:3000> (or the configured `GEOLENS_WEB_PORT`);
 - GeoLens API: <http://localhost:3003>;
 - API health: <http://localhost:3003/health>;
 - IMERG service: <http://localhost:8001>;
