@@ -305,6 +305,102 @@ function unavailableGwswAreaClient() {
   };
 }
 
+function bgtReceipt() {
+  const collectionIds = [
+    'begroeidterreindeel',
+    'onbegroeidterreindeel',
+    'pand',
+    'waterdeel',
+    'wegdeel',
+    'ondersteunendwaterdeel',
+    'ondersteunendwegdeel',
+    'scheiding_vlak',
+  ];
+  return {
+    provider: 'PDOK',
+    dataset: 'Basisregistratie Grootschalige Topografie (BGT)',
+    license: 'CC0 1.0',
+    acquiredAt,
+    requestedAt: acquiredAt,
+    requestedBboxCrs84: '4.8978,52.3375,4.8995,52.3395',
+    sourceCrs: 'OGC:CRS84',
+    storageCrs: 'EPSG:28992',
+    featureCount: 1,
+    collections: collectionIds.map((collection) => ({
+      collection,
+      requestUrl: `https://fixture.invalid/bgt/${collection}`,
+      responseTimestamp: acquiredAt,
+      featureCount: collection === 'begroeidterreindeel' ? 1 : 0,
+    })),
+    documentationUrl:
+      'https://www.pdok.nl/ogc-apis/-/article/basisregistratie-grootschalige-topografie-bgt-',
+  };
+}
+
+function availableBgtSurfaceClient() {
+  return {
+    async acquire() {
+      return {
+        status: 'available',
+        receipt: bgtReceipt(),
+        features: [
+          {
+            featureId: 'fixture-bgt-land',
+            localId: 'G0363.fixture-bgt-land',
+            collection: 'begroeidterreindeel',
+            surfaceClass: 'vegetated_terrain',
+            sourceHolder: 'G0363',
+            status: 'bestaand',
+            relativeHeight: 0,
+            creationDate: '2020-01-01T00:00:00.000Z',
+            registrationTime: acquiredAt,
+            publicationTime: acquiredAt,
+            terminationDate: null,
+            version: 'fixture-bgt-version',
+            physicalAppearance: 'groenvoorziening',
+            function: null,
+            waterType: null,
+            geometry: {
+              type: 'MultiPolygon',
+              coordinates: [
+                [
+                  [
+                    [4.897, 52.337],
+                    [4.901, 52.337],
+                    [4.901, 52.341],
+                    [4.897, 52.341],
+                    [4.897, 52.337],
+                  ],
+                ],
+              ],
+            },
+          },
+        ],
+      };
+    },
+  };
+}
+
+function unavailableBgtSurfaceClient() {
+  return {
+    async acquire() {
+      return {
+        status: 'upstream_error',
+        missingReason: 'fixture BGT upstream unavailable',
+        receipt: {
+          ...bgtReceipt(),
+          featureCount: 0,
+          collections: bgtReceipt().collections.map((item) => ({
+            ...item,
+            responseTimestamp: null,
+            featureCount: 0,
+          })),
+        },
+        features: [],
+      };
+    },
+  };
+}
 function fixtureSurfaceElevationClient(options = {}) {
   return {
     async getElevationEvidence({ h3Indices }) {
@@ -373,6 +469,7 @@ function buildTestServer(
     evidenceComposer: composer,
     surfaceElevationClient: fixtureSurfaceElevationClient(),
     gwswAreaClient: availableGwswAreaClient(),
+    bgtSurfaceClient: availableBgtSurfaceClient(),
     now: () => new Date(acquiredAt),
     runtime: {
       imergServiceConfigured: false,
@@ -648,6 +745,42 @@ test('API exposes observed Waternet topology with its import receipt', async (co
     body.surfaceCatchmentProxy.networkUse.orientationThresholdM,
     0.05,
   );
+  assert.equal(
+    body.conditionedSurfaceCatchmentProxy.status,
+    'synthetic_fixture',
+  );
+  assert.equal(
+    body.conditionedSurfaceCatchmentProxy.result.semantics,
+    'experimental_bgt_ahn_conditioned_surface_contributing_area_proxy',
+  );
+  assert.equal(
+    body.conditionedSurfaceCatchmentProxy.result.coverage.targetCellCount,
+    696,
+  );
+  assert.equal(
+    body.conditionedSurfaceCatchmentProxy.result.counts.observedElevationCells,
+    696,
+  );
+  assert.equal(
+    body.conditionedSurfaceCatchmentProxy.result.counts.interpolatedElevationCells,
+    0,
+  );
+  assert.ok(
+    body.conditionedSurfaceCatchmentProxy.result.contributingAreaM2.value > 0,
+  );
+  assert.equal(
+    body.conditionedSurfaceCatchmentProxy.result.outfallAttachment.observed,
+    false,
+  );
+  assert.equal(
+    body.conditionedSurfaceCatchmentProxy.result.outfallAttachment
+      .eligibleForSewerPropagation,
+    false,
+  );
+  assert.equal(
+    body.conditionedSurfaceCatchmentProxy.surfaceAcquisition.featureCount,
+    1,
+  );
   assert.equal('propagation' in body, false);
   assert.equal(
     body.import.source.origin,
@@ -709,6 +842,15 @@ test('API keeps observed topology while missing DEM blocks the surface proxy are
     body.surfaceCatchmentProxy.networkUse.eligibleForSewerPropagation,
     false,
   );
+  assert.equal(body.conditionedSurfaceCatchmentProxy.status, 'missing');
+  assert.equal(
+    body.conditionedSurfaceCatchmentProxy.result.contributingAreaM2.value,
+    null,
+  );
+  assert.ok(
+    body.conditionedSurfaceCatchmentProxy.result.counts
+      .unresolvedConditioningCells > 0,
+  );
   assert.equal('propagation' in body, false);
 });
 test('API keeps GWSW failure explicit without changing observed topology', async (context) => {
@@ -742,6 +884,44 @@ test('API keeps GWSW failure explicit without changing observed topology', async
     body.outfallAreaContext.result.attachment
       .catchmentAttachmentCreated,
     false,
+  );
+  assert.deepEqual(body.topology.catchmentAttachments, {});
+  assert.equal('propagation' in body, false);
+});
+
+test('API keeps BGT failure explicit without invalidating AHN or observed topology', async (context) => {
+  const server = buildTestServer(
+    fixtureComposer(),
+    {
+      waternetClient: availableWaternetClient(),
+      bgtSurfaceClient: unavailableBgtSurfaceClient(),
+    },
+  );
+  context.after(() => server.close());
+
+  const response = await server.inject({
+    method: 'GET',
+    url: '/api/infrastructure/amsterdam-waternet',
+  });
+  const body = response.json();
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(body.status, 'available');
+  assert.equal(body.surfaceCatchmentProxy.status, 'synthetic_fixture');
+  assert.equal(body.surfaceCatchmentProxy.result.contributingAreaM2.value > 0, true);
+  assert.equal(body.conditionedSurfaceCatchmentProxy.status, 'upstream_error');
+  assert.equal(
+    body.conditionedSurfaceCatchmentProxy.result.contributingAreaM2.value,
+    null,
+  );
+  assert.match(
+    body.conditionedSurfaceCatchmentProxy.missingReason,
+    /fixture BGT upstream unavailable/,
+  );
+  assert.equal(
+    body.conditionedSurfaceCatchmentProxy.result.counts
+      .unresolvedConditioningCells,
+    696,
   );
   assert.deepEqual(body.topology.catchmentAttachments, {});
   assert.equal('propagation' in body, false);

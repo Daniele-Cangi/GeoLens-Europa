@@ -451,6 +451,150 @@ export interface ObservedSurfaceCatchmentProxyEnvelope {
     readonly orientationThresholdM: number;
   } | null;
 }
+export type ObservedConditionedSurfaceClass =
+  | 'vegetated_terrain'
+  | 'unvegetated_terrain'
+  | 'building'
+  | 'surface_water'
+  | 'road'
+  | 'supporting_water'
+  | 'supporting_road'
+  | 'structural_barrier';
+
+export interface ObservedConditionedSurfaceObservation {
+  readonly surfaceClass: ObservedConditionedSurfaceClass;
+  readonly collection: string;
+  readonly featureId: string;
+  readonly localId: string;
+  readonly relativeHeight?: number;
+  readonly physicalAppearance?: string | null;
+  readonly function?: string | null;
+  readonly waterType?: string | null;
+  readonly containingFeatureCount?: number;
+  readonly containingFeatureIds?: readonly string[];
+  readonly selectionMethod?: string;
+}
+
+export interface ObservedConditionedSurfaceCatchmentCell {
+  readonly h3: string;
+  readonly representedAreaM2: number;
+  readonly boundary: readonly (readonly [number, number])[];
+  readonly surface: Evidence<ObservedConditionedSurfaceObservation>;
+  readonly rawElevationM: Evidence<number>;
+  readonly terrainElevationM: Evidence<number>;
+  readonly hydrologicElevationM: Evidence<number>;
+  readonly terrainConditioning: {
+    readonly method: string;
+    readonly interpolationSourceH3Indices: readonly string[];
+    readonly interpolationMaximumGridDistance: number | null;
+  };
+  readonly depressionFillM: number | null;
+  readonly downstreamH3: string | null;
+  readonly termination:
+    | 'conditioned_outfall_terminal'
+    | 'analysis_bbox_exit'
+    | 'observed_surface_water_exit'
+    | 'excluded_observed_surface_water'
+    | 'excluded_observed_structural_barrier'
+    | 'incomplete_conditioning';
+  readonly contributesToConditionedOutfall: boolean | null;
+  readonly pathH3Indices: readonly string[];
+}
+
+export interface ObservedConditionedSurfaceCatchmentProxy {
+  readonly id: string;
+  readonly semantics:
+    'experimental_bgt_ahn_conditioned_surface_contributing_area_proxy';
+  readonly modelVersion: string;
+  readonly status: EvidenceStatus;
+  readonly outfallAttachment: {
+    readonly nodeId: string;
+    readonly position: {
+      readonly lat: number;
+      readonly lon: number;
+    };
+    readonly h3: string;
+    readonly observed: false;
+    readonly method: string;
+    readonly eligibleForSewerPropagation: false;
+    readonly reason: string;
+  };
+  readonly coverage: {
+    readonly bbox: {
+      readonly latMin: number;
+      readonly lonMin: number;
+      readonly latMax: number;
+      readonly lonMax: number;
+    };
+    readonly h3Resolution: number;
+    readonly outletH3: string;
+    readonly targetH3Indices: readonly string[];
+    readonly sampledH3Indices: readonly string[];
+    readonly targetCellCount: number;
+    readonly areaRepresentation: 'full_h3_cell_area';
+  };
+  readonly conditioning: {
+    readonly interpolationMethod: string;
+    readonly interpolationMaxGridDistance: number;
+    readonly interpolationMinSamples: number;
+    readonly depressionMethod: string;
+    readonly terminalPriorityOnExactTie: readonly string[];
+  };
+  readonly contributingAreaM2: Evidence<number>;
+  readonly partialContributingAreaM2: number;
+  readonly contributingH3Indices: readonly string[];
+  readonly cells: Readonly<
+    Record<string, ObservedConditionedSurfaceCatchmentCell>
+  >;
+  readonly counts: {
+    readonly targetCells: number;
+    readonly observedElevationCells: number;
+    readonly interpolatedElevationCells: number;
+    readonly excludedSurfaceWaterCells: number;
+    readonly excludedStructuralBarrierCells: number;
+    readonly unresolvedConditioningCells: number;
+    readonly depressionRaisedCells: number;
+    readonly contributingCells: number;
+    readonly analysisBboxExitCells: number;
+    readonly observedSurfaceWaterExitCells: number;
+  };
+  readonly sewerCatchmentSemantics: 'not_observed';
+  readonly limitations: readonly string[];
+}
+
+export interface ObservedConditionedSurfaceCatchmentProxyEnvelope {
+  readonly status: EvidenceStatus;
+  readonly missingReason: string | null;
+  readonly result: ObservedConditionedSurfaceCatchmentProxy | null;
+  readonly surfaceAcquisition: {
+    readonly provider: 'PDOK';
+    readonly dataset: 'Basisregistratie Grootschalige Topografie (BGT)';
+    readonly license: 'CC0 1.0';
+    readonly acquiredAt: string;
+    readonly requestedAt: string;
+    readonly requestedBboxCrs84: string;
+    readonly sourceCrs: 'OGC:CRS84';
+    readonly storageCrs: 'EPSG:28992';
+    readonly featureCount: number;
+    readonly collections: readonly {
+      readonly collection: string;
+      readonly requestUrl: string;
+      readonly responseTimestamp: string | null;
+      readonly featureCount: number;
+    }[];
+    readonly documentationUrl: string;
+  } | null;
+  readonly surfaceCounts?: Readonly<
+    Record<ObservedConditionedSurfaceClass | 'unclassified', number>
+  >;
+  readonly networkUse: {
+    readonly eligibleForSewerPropagation: false;
+    readonly reasons: readonly string[];
+    readonly outfallConnectivityStatus: string;
+    readonly unresolvedBoundaryPipeIds: readonly string[];
+    readonly orientationThresholdM: number;
+  } | null;
+}
 export interface ObservedGwswArea {
   readonly featureId: string;
   readonly name: string;
@@ -605,6 +749,8 @@ export interface AvailableObservedInfrastructure {
   readonly outfallConnectivity: ObservedOutfallConnectivity;
   readonly outfallAreaContext: ObservedOutfallAreaContextEnvelope;
   readonly surfaceCatchmentProxy: ObservedSurfaceCatchmentProxyEnvelope;
+  readonly conditionedSurfaceCatchmentProxy:
+    ObservedConditionedSurfaceCatchmentProxyEnvelope;
 }
 
 export interface UnavailableObservedInfrastructure {

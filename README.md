@@ -29,10 +29,12 @@ NASA GPM IMERG + Copernicus DEM + CORINE Land Cover
           inspectable state + full provenance
 ```
 
-The completed Proof 0 remains the asserted end-to-end product path. The next
-gate is now visible separately: a bounded public Waternet/Amsterdam stormwater
-topology, PDOK/GWSW management-area context and AHN terrain evidence with full
-receipts, but no invented sewer-catchment attachment or propagated flow.
+The completed Trento Proof 0 remains the asserted end-to-end product path. The
+Amsterdam gate is visible separately: bounded public Waternet topology,
+PDOK/GWSW area context, raw AHN terrain and a BGT/AHN-conditioned surface
+contributing-area proxy. Its outlet is an explicit model boundary condition,
+not an observed sewer-catchment attachment, so it is not propagated through the
+Waternet network.
 
 Latest published refoundation baseline: **v0.1.0-alpha.4**.
 
@@ -65,7 +67,9 @@ The following state has been verified locally through 2026-08-23.
 | Evidence semantics | Observed zero is distinct from missing, incomplete, failed, stale and out-of-coverage evidence. |
 | IMERG boundary | The Python `earthaccess` + `xarray` service is the sole production acquisition path. A fixed 24 h live window ending `2026-08-20T00:00:00Z` was verified as complete Early Run V07 evidence with 48/48 granules. Live execution remains opt-in and credential/network dependent. |
 | Copernicus DEM | Real public GLO-30 sampling is verified for the cross-European Proof 0 evidence path, including traceable elevation and finite-difference slope evidence. |
-| AHN terrain | The bounded Amsterdam surface experiment uses the public [PDOK AHN4 DTM WCS](https://service.pdok.nl/rws/ahn/wcs/v1_0?SERVICE=WCS&REQUEST=GetCapabilities) at 0.5 m source resolution and NAP datum. Each H3 r13 value is the mean of valid 0.5 m source-pixel centres inside the cell; using the published [AHN 5 m product threshold](https://www.ahn.nl/5-producten) as an explicit H3 aggregation rule, more than 60% source no-data keeps the derived H3 value missing. The latest live bbox returned 521 available and 295 missing cells across 816 samples. |
+| AHN terrain | The bounded Amsterdam surface experiment uses the public [PDOK AHN4 DTM WCS](https://service.pdok.nl/rws/ahn/wcs/v1_0?SERVICE=WCS&REQUEST=GetCapabilities) at 0.5 m source resolution and NAP datum. Each H3 r13 value is the mean of valid 0.5 m source-pixel centres inside the cell; using the published [AHN 5 m product threshold](https://www.ahn.nl/5-producten) as an explicit H3 aggregation rule, more than 60% source no-data keeps the raw H3 value missing. The latest live bbox returned 521 available and 295 missing cells across 816 samples. |
+| BGT physical surface | Eight bounded [PDOK BGT OGC API](https://www.pdok.nl/ogc-apis/-/article/basisregistratie-grootschalige-topografie-bgt-) collections provide current level-zero terrain, buildings, roads, water and structural barriers under CC0. Live centroid classification covered all 696 target H3 r13 cells from 258 source features; BGT describes physical surface objects, not drainage destinations. |
+| Conditioned surface proxy | Experimental model `bounded-bgt-ahn-priority-flood-v0.1.0` retains raw AHN missing evidence, interpolates a separate terrain value only for land cells with at least three observed neighbours within four H3 rings, excludes 103 water and 3 wall/quay-barrier cells, and applies a multi-terminal priority-flood. The verified result assigns 100 cells / `3,676.73 m2` to the conditioned outfall, with 435 observed and 155 interpolated terrain values and zero unresolved cells. The attachment is explicitly not observed and remains ineligible for sewer propagation. |
 | CORINE Land Cover | The official CLC 2018 V2020_20u1 European 100 m GeoTIFF is verified locally. A real Trento sample returned available class `111`. |
 | CLC encoding | Official raster palette indices `1..44` are explicitly decoded to CLC level-3 codes `111..523` by transformation `clc-centroid-v0.2.0`. |
 | H3 composition | Catchment cells and network entities are joined through explicit H3 representations while source resolution remains visible. |
@@ -74,19 +78,20 @@ The following state has been verified locally through 2026-08-23.
 | Observed infrastructure | The official Waternet/Amsterdam `Leidingeninfrastructuur` WFS was verified live. The outfall-anchored bounded import produced 47 observed nodes and 47 active stormwater pipes, including 4 explicit `Regenwateruitlaat` outfalls, retained NAP ground/invert attributes, and classified 25 directions as known and 22 as ambiguous at the configured 0.05 m threshold. All 4 outfalls stop at an ambiguous direction boundary, so the known-direction outfall analysis reports 0 supported upstream paths. |
 | Observed area context | The public [PDOK / Stichting RIONED GWSW dataset](https://www.pdok.nl/introductie/-/article/stedelijk-water-riolering-) was verified live. The selected rainwater outfall lies inside `Rioleringsgebied.932` President Kennedylaan, but the public Waternet and GWSW responses publish no relation between that outfall and the polygon. Point containment is therefore exposed as context only: attachment remains ineligible and no catchment is created. |
 | Propagation | Supported directed acyclic topology conserves volume and exposes mass balance. |
-| API and inspector | One root command health-gates IMERG -> API -> web. The Next.js inspector automatically runs the verified window and independently acquires bounded Waternet topology, PDOK/GWSW area context and AHN terrain evidence. Each path exposes a traceable receipt without AI or mineral services. |
+| API and inspector | One root command health-gates IMERG -> API -> web. The Next.js inspector automatically runs the verified window and independently acquires bounded Waternet topology, PDOK/GWSW area context, AHN terrain and BGT physical-surface evidence. Raw and conditioned values remain separately inspectable without AI or mineral services. |
 
 The bounded Trento fixture produces a non-zero downstream result in both
 deterministic verification and the fixed live run. That live run observed `9.24 mm` of
 rainfall, derived `2.957 m3` of catchment contribution and delivered the same
 volume to the outfall with zero mass-balance difference. The network geometry is a
 deterministic fixture, not surveyed municipal infrastructure. The Amsterdam panel is observed municipal infrastructure with explicit
-rainwater outfalls. It now includes a live GWSW management-area polygon and
-AHN-derived surface context, but neither is asserted as a sewer catchment because
-the source datasets publish no outfall-to-area crosswalk. At the configured
-0.05 m threshold, each observed outfall is also separated from the network by
-one ambiguous pipe, so no observed-network propagation is produced. Missing
-rainfall, land cover or elevation never becomes a valid-looking zero.
+rainwater outfalls. GWSW containment remains context only. Its separate BGT/AHN
+proxy now has complete conditioned H3 coverage and a non-zero area, but is still
+not asserted as a sewer catchment because no outfall relation or BGT Inlooptabel
+was published. At the configured 0.05 m threshold, each observed outfall is also
+separated from the network by one ambiguous pipe, so no observed-network
+propagation is produced. Missing rainfall, land cover or raw elevation never
+becomes a valid-looking zero.
 
 ## Active architecture
 
@@ -97,7 +102,7 @@ apps/
 
 packages/
   evidence/            canonical evidence model and invariants
-  providers/           IMERG client, Copernicus DEM and CLC providers
+  providers/           IMERG, Copernicus DEM, CLC, AHN and BGT providers
   stormwater/          runoff, catchments, topology, Waternet/GWSW acquisition and propagation
   proof-zero/          end-to-end composition
 
@@ -159,7 +164,7 @@ is restricted to explicit deterministic fixtures and is always labelled
 - NASA Earthdata credentials for live precipitation;
 - a local official CLC 2018 GeoTIFF for live land-cover evidence.
 
-Copernicus DEM GLO-30, PDOK AHN4 DTM and the public PDOK/GWSW area API need no credential.
+Copernicus DEM GLO-30, PDOK AHN4 DTM, PDOK BGT and the public PDOK/GWSW area API need no credential.
 The active CLC provider reads a local GeoTIFF; a Copernicus service key is only
 needed by download tooling, not by the runtime provider.
 
@@ -351,9 +356,19 @@ An available response exposes:
 - an arithmetic mean over valid source-pixel centres inside every H3 cell,
   source-pixel counts and quality fraction, with the official greater-than-60%
   no-data rule kept explicit;
-- both a resolved partial area and an explicitly unavailable complete area when
-  AHN no-data leaves possible contributing cells unresolved; this result never creates
-  a Waternet catchment attachment or sewer propagation input.
+- the unconditioned AHN experiment with both a resolved partial area and an
+  explicitly unavailable complete area when raw no-data leaves possible cells
+  unresolved;
+- a separate bounded BGT receipt across eight physical-surface collections and
+  per-H3 centroid classification for terrain, buildings, roads, water and
+  structural barriers;
+- a conditioned terrain value beside every raw AHN value: land no-data may be
+  estimated only by the stated IDW rule, while raw missing evidence remains
+  unchanged and traceable;
+- a multi-terminal priority-flood result that distinguishes the conditioned
+  outfall, bbox exits and observed surface water. The verified complete proxy is
+  `3,676.73 m2` across 100 H3 cells, but never creates a Waternet catchment
+  attachment or sewer propagation input.
 
 Authentication, rate limiting, upstream errors, invalid/truncated responses and
 empty coverage are returned explicitly without an empty valid-looking topology.
@@ -437,11 +452,14 @@ $env:GEOLENS_IMERG_REFERENCE_TIME = '2026-08-20T00:00:00Z'
 npm run test:live
 ```
 
-The public Waternet WFS and PDOK/GWSW area API have their own opt-in live verification:
+The public Waternet WFS, PDOK/GWSW area API and PDOK BGT surface API have their own opt-in live verification:
 
 ```powershell
 $env:GEOLENS_LIVE_WATERNET = '1'
+$env:GEO_LENS_LIVE_BGT = '1'
+npm run build --workspace=@geo-lens/providers
 npm run build --workspace=@geo-lens/stormwater
+node --test packages/providers/test/live-bgt.test.cjs
 node --test packages/stormwater/test/live-amsterdam-wfs.test.cjs packages/stormwater/test/live-amsterdam-gwsw.test.cjs
 ```
 
@@ -471,7 +489,8 @@ or incomplete source windows; those failures must never produce zero rainfall.
   metadata.
 - Proof 0 edge direction is never invented when node-elevation evidence is insufficient; observed Waternet direction is derived separately from pipe endpoint invert evidence.
 - The observed Waternet topology exposes only invert-derived direction state; it does not claim catchment contribution or propagated flow until those evidence boundaries are supplied.
-- A GWSW polygon containing an outfall coordinate is area context, not proof that the polygon drains to that outfall; attachment requires a published relation, authoritative crosswalk or separately documented conditioning method.
+- A GWSW polygon containing an outfall coordinate is area context, not proof that the polygon drains to that outfall; attachment requires a published relation or authoritative crosswalk.
+- The BGT/AHN proxy uses a separately documented conditioning method, but its outfall terminal is a model boundary condition rather than an observed sewer attachment. IDW terrain values and priority-flood elevations are derived estimates, not rewritten AHN observations.
 - Propagation operates on supported known directed acyclic topology and does
   not simulate pipe hydraulics, storage, surcharge or overflow.
 - No percentage confidence, flood probability or production-readiness claim is

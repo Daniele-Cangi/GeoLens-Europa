@@ -8,7 +8,11 @@ import {
   EnvironmentalEvidenceComposer,
   runStormwaterProofZero,
 } from '@geo-lens/proof-zero';
-import { AhnDtmClient } from '@geo-lens/providers';
+import {
+  AhnDtmClient,
+  classifyBgtSurfaceH3Cells,
+  PdokBgtSurfaceClient,
+} from '@geo-lens/providers';
 import {
   AmsterdamWaternetAcquisition,
   AmsterdamWaternetBbox,
@@ -16,6 +20,7 @@ import {
   AmsterdamWaternetWfsClient,
   assessGwswOutfallAreaContext,
   buildBoundedSurfaceCatchmentGrid,
+  deriveConditionedSurfaceCatchmentProxy,
   deriveSurfaceCatchmentProxy,
   importAmsterdamWaternetStormwater,
   importStormwaterGeoJson,
@@ -75,6 +80,10 @@ export interface BuildGeoLensApiOptions {
     PdokGwswAreaClient,
     'acquire'
   >;
+  readonly bgtSurfaceClient?: Pick<
+    PdokBgtSurfaceClient,
+    'acquire'
+  >;
 }
 
 interface ParsedProofZeroRequest {
@@ -109,6 +118,8 @@ export function buildGeoLensApi(
     options.surfaceElevationClient ?? new AhnDtmClient({ now });
   const gwswAreaClient =
     options.gwswAreaClient ?? new PdokGwswAreaClient({ now });
+  const bgtSurfaceClient =
+    options.bgtSurfaceClient ?? new PdokBgtSurfaceClient({ now });
 
   server.register(cors);
   server.register(compress, { global: true });
@@ -215,18 +226,19 @@ export function buildGeoLensApi(
         );
         const [
           outfallAreaContext,
-          surfaceCatchmentProxy,
+          surfaceCatchmentEvidence,
         ] = await Promise.all([
           composeObservedGwswOutfallAreaContext({
             topology: imported.topology,
             bbox,
             gwswAreaClient,
           }),
-          composeObservedSurfaceCatchmentProxy({
+          composeObservedSurfaceCatchmentEvidence({
             topology: imported.topology,
             bbox,
             outfallConnectivity,
             surfaceElevationClient,
+            bgtSurfaceClient,
             derivedAt: now().toISOString(),
           }),
         ]);
@@ -248,7 +260,10 @@ export function buildGeoLensApi(
           },
           outfallConnectivity,
           outfallAreaContext,
-          surfaceCatchmentProxy,
+          surfaceCatchmentProxy:
+            surfaceCatchmentEvidence.raw,
+          conditionedSurfaceCatchmentProxy:
+            surfaceCatchmentEvidence.conditioned,
         });
       } catch (error) {
         request.log.error(error);
@@ -404,7 +419,7 @@ function selectedSurfaceProxyOutfall(
   );
 }
 
-async function composeObservedSurfaceCatchmentProxy(input: {
+async function composeObservedSurfaceCatchmentEvidence(input: {
   readonly topology: StormwaterTopology;
   readonly bbox: AmsterdamWaternetBbox;
   readonly outfallConnectivity: OutfallConnectivityAnalysis;
@@ -412,30 +427,52 @@ async function composeObservedSurfaceCatchmentProxy(input: {
     AhnDtmClient,
     'getElevationEvidence'
   >;
+  readonly bgtSurfaceClient: Pick<
+    PdokBgtSurfaceClient,
+    'acquire'
+  >;
   readonly derivedAt: string;
 }) {
   const outfall = selectedSurfaceProxyOutfall(input.topology);
 
   if (outfall === undefined) {
+    const missingReason =
+      `Observed outfall ${SURFACE_PROXY_OUTFALL_SOURCE_RECORD_ID} is absent from the bounded Waternet topology`;
     return {
-      status: 'out_of_coverage' as const,
-      missingReason:
-        `Observed outfall ${SURFACE_PROXY_OUTFALL_SOURCE_RECORD_ID} is absent from the bounded Waternet topology`,
-      result: null,
-      networkUse: null,
+      raw: {
+        status: 'out_of_coverage' as const,
+        missingReason,
+        result: null,
+        networkUse: null,
+      },
+      conditioned: {
+        status: 'out_of_coverage' as const,
+        missingReason,
+        result: null,
+        surfaceAcquisition: null,
+        networkUse: null,
+      },
     };
   }
 
-  const connectivity =
-    input.outfallConnectivity.outfalls[outfall.id];
-
+  const connectivity = input.outfallConnectivity.outfalls[outfall.id];
   if (connectivity === undefined) {
+    const missingReason =
+      `Outfall connectivity omitted observed node ${outfall.id}`;
     return {
-      status: 'invalid_response' as const,
-      missingReason:
-        `Outfall connectivity omitted observed node ${outfall.id}`,
-      result: null,
-      networkUse: null,
+      raw: {
+        status: 'invalid_response' as const,
+        missingReason,
+        result: null,
+        networkUse: null,
+      },
+      conditioned: {
+        status: 'invalid_response' as const,
+        missingReason,
+        result: null,
+        surfaceAcquisition: null,
+        networkUse: null,
+      },
     };
   }
 
@@ -444,14 +481,12 @@ async function composeObservedSurfaceCatchmentProxy(input: {
     reasons: [
       'not_observed_sewer_catchment',
       'environmental_runoff_not_composed',
-      ...(connectivity.status ===
-      'blocked_by_unresolved_direction'
+      ...(connectivity.status === 'blocked_by_unresolved_direction'
         ? ['outfall_network_direction_unresolved']
         : []),
     ],
     outfallConnectivityStatus: connectivity.status,
-    unresolvedBoundaryPipeIds:
-      connectivity.unresolvedBoundaryPipeIds,
+    unresolvedBoundaryPipeIds: connectivity.unresolvedBoundaryPipeIds,
     orientationThresholdM:
       input.outfallConnectivity.minimumResolvableDropM,
   };
@@ -464,82 +499,177 @@ async function composeObservedSurfaceCatchmentProxy(input: {
       outfallPosition: outfall.position,
     });
   } catch (error) {
+    const missingReason =
+      `Surface proxy grid could not be built: ${errorMessage(error)}`;
     return {
-      status: 'invalid_response' as const,
-      missingReason:
-        `Surface proxy grid could not be built: ${errorMessage(error)}`,
-      result: null,
-      networkUse,
+      raw: {
+        status: 'invalid_response' as const,
+        missingReason,
+        result: null,
+        networkUse,
+      },
+      conditioned: {
+        status: 'invalid_response' as const,
+        missingReason,
+        result: null,
+        surfaceAcquisition: null,
+        networkUse,
+      },
     };
   }
 
   if (
-    grid.targetH3Indices.length >
-      MAX_SURFACE_PROXY_TARGET_H3_CELLS ||
-    grid.sampledH3Indices.length >
-      MAX_SURFACE_PROXY_SAMPLED_H3_CELLS
+    grid.targetH3Indices.length > MAX_SURFACE_PROXY_TARGET_H3_CELLS ||
+    grid.sampledH3Indices.length > MAX_SURFACE_PROXY_SAMPLED_H3_CELLS
   ) {
+    const missingReason =
+      `Surface proxy grid exceeds the bounded limit (${grid.targetH3Indices.length} target / ${grid.sampledH3Indices.length} sampled H3 cells)`;
     return {
-      status: 'out_of_coverage' as const,
-      missingReason:
-        `Surface proxy grid exceeds the bounded limit (${grid.targetH3Indices.length} target / ${grid.sampledH3Indices.length} sampled H3 cells)`,
-      result: null,
-      networkUse,
+      raw: {
+        status: 'out_of_coverage' as const,
+        missingReason,
+        result: null,
+        networkUse,
+      },
+      conditioned: {
+        status: 'out_of_coverage' as const,
+        missingReason,
+        result: null,
+        surfaceAcquisition: null,
+        networkUse,
+      },
     };
   }
 
-  let elevation;
-
-  try {
-    elevation = await input.surfaceElevationClient.getElevationEvidence({
+  const [elevationOutcome, bgtOutcome] = await Promise.allSettled([
+    input.surfaceElevationClient.getElevationEvidence({
       h3Indices: grid.sampledH3Indices,
-    });
-  } catch (error) {
-    return {
+    }),
+    input.bgtSurfaceClient.acquire({
+      bbox: input.bbox,
+      requestedAt: input.derivedAt,
+    }),
+  ]);
+
+  let raw;
+  if (elevationOutcome.status === 'rejected') {
+    raw = {
       status: 'upstream_error' as const,
       missingReason:
-        `AHN DTM acquisition failed: ${errorMessage(error)}`,
+        `AHN DTM acquisition failed: ${errorMessage(elevationOutcome.reason)}`,
       result: null,
       networkUse,
+    };
+  } else {
+    try {
+      const result = deriveSurfaceCatchmentProxy({
+        id: 'amsterdam-waternet-outfall-8522-surface-proxy',
+        elevationModel: {
+          semantics: 'digital_terrain_model',
+          description:
+            'AHN4 DTM represents classified ground at 0.5 m source resolution; buildings, vegetation and water are not silently filled, so source no-data remains incomplete evidence.',
+          samplingDescription:
+            'Arithmetic mean of physically valid AHN4 DTM 0.5 m source-pixel centers inside each H3 cell; more than 60% source no-data keeps the H3 value missing',
+        },
+        outfallNodeId: outfall.id,
+        outfallPosition: outfall.position,
+        grid,
+        elevationByH3: elevationOutcome.value.cells,
+        derivedAt: input.derivedAt,
+      });
+      raw = {
+        status: result.status,
+        missingReason:
+          result.contributingAreaM2.quality.missingReason ?? null,
+        result,
+        elevationAcquisition: elevationOutcome.value.coverage,
+        networkUse,
+      };
+    } catch (error) {
+      raw = {
+        status: 'invalid_response' as const,
+        missingReason:
+          `Surface proxy derivation failed: ${errorMessage(error)}`,
+        result: null,
+        networkUse,
+      };
+    }
+  }
+
+  if (elevationOutcome.status === 'rejected') {
+    return {
+      raw,
+      conditioned: {
+        status: 'upstream_error' as const,
+        missingReason:
+          `AHN DTM acquisition failed: ${errorMessage(elevationOutcome.reason)}`,
+        result: null,
+        surfaceAcquisition:
+          bgtOutcome.status === 'fulfilled'
+            ? bgtOutcome.value.receipt
+            : null,
+        networkUse,
+      },
+    };
+  }
+
+  if (bgtOutcome.status === 'rejected') {
+    return {
+      raw,
+      conditioned: {
+        status: 'upstream_error' as const,
+        missingReason:
+          `PDOK BGT acquisition failed: ${errorMessage(bgtOutcome.reason)}`,
+        result: null,
+        surfaceAcquisition: null,
+        networkUse,
+      },
     };
   }
 
   try {
-    const result = deriveSurfaceCatchmentProxy({
-      id: 'amsterdam-waternet-outfall-8522-surface-proxy',
-      elevationModel: {
-        semantics: 'digital_terrain_model',
-        description:
-          'AHN4 DTM represents classified ground at 0.5 m source resolution; buildings, vegetation and water are not silently filled, so source no-data remains incomplete evidence.',
-        samplingDescription:
-          'Arithmetic mean of physically valid AHN4 DTM 0.5 m source-pixel centers inside each H3 cell; more than 60% source no-data keeps the H3 value missing',
-      },
+    const surfaces = classifyBgtSurfaceH3Cells({
+      acquisition: bgtOutcome.value,
+      h3Indices: grid.targetH3Indices,
+    });
+    const result = deriveConditionedSurfaceCatchmentProxy({
+      id: 'amsterdam-waternet-outfall-8522-conditioned-surface-proxy',
       outfallNodeId: outfall.id,
       outfallPosition: outfall.position,
       grid,
-      elevationByH3: elevation.cells,
+      rawElevationByH3: elevationOutcome.value.cells,
+      surfaceByH3: surfaces.cells,
       derivedAt: input.derivedAt,
     });
 
     return {
-      status: result.status,
-      missingReason:
-        result.contributingAreaM2.quality.missingReason ?? null,
-      result,
-      elevationAcquisition: elevation.coverage,
-      networkUse,
+      raw,
+      conditioned: {
+        status: result.status,
+        missingReason:
+          bgtOutcome.value.status === 'available'
+            ? result.contributingAreaM2.quality.missingReason ?? null
+            : bgtOutcome.value.missingReason,
+        result,
+        surfaceAcquisition: bgtOutcome.value.receipt,
+        surfaceCounts: surfaces.counts,
+        networkUse,
+      },
     };
   } catch (error) {
     return {
-      status: 'invalid_response' as const,
-      missingReason:
-        `Surface proxy derivation failed: ${errorMessage(error)}`,
-      result: null,
-      networkUse,
+      raw,
+      conditioned: {
+        status: 'invalid_response' as const,
+        missingReason:
+          `Conditioned surface proxy derivation failed: ${errorMessage(error)}`,
+        result: null,
+        surfaceAcquisition: bgtOutcome.value.receipt,
+        networkUse,
+      },
     };
   }
 }
-
 function errorMessage(error: unknown): string {
   return error instanceof Error
     ? error.message
