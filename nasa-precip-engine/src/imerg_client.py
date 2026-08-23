@@ -882,16 +882,15 @@ def spatial_bounds_from_data(data: xr.DataArray) -> ImergSpatialBounds:
     east = float(np.max(lon_values))
     south = float(np.min(lat_values))
     north = float(np.max(lat_values))
-    # A point-sized slice is still a real source pixel. Represent its cell
-    # footprint instead of inventing a zero-area bounding box.
+    # Coordinates identify source-cell centers. Provenance reports the full
+    # loaded pixel footprint for both singleton and multi-cell grids.
     half_cell = IMERG_RESOLUTION / 2
-    if west == east:
-        west -= half_cell
-        east += half_cell
-    if south == north:
-        south -= half_cell
-        north += half_cell
-    return ImergSpatialBounds(west, south, east, north)
+    return ImergSpatialBounds(
+        west=max(-180.0, west - half_cell),
+        south=max(-90.0, south - half_cell),
+        east=min(180.0, east + half_cell),
+        north=min(90.0, north + half_cell),
+    )
 
 
 def _status_for_exception(

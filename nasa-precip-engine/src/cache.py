@@ -226,6 +226,12 @@ def _read_disk_window(
             now,
         )
         metadata = _metadata_from_payload(payload["windowMetadata"])
+        if _canonical_bounds(
+            metadata.requested_spatial_bounds
+        ) != _canonical_bounds(spatial_bounds):
+            raise ValueError(
+                "Persistent cache metadata spatial bounds mismatch"
+            )
         if metadata.dataset_version != dataset_version:
             raise ValueError(
                 "Persistent cache metadata version mismatch"

@@ -77,10 +77,10 @@ def evidence_window(
             sampling_method="nearest IMERG grid cell at H3 centroid",
             requested_spatial_bounds=requested_bounds,
             loaded_spatial_bounds=ImergSpatialBounds(
-                11.05,
-                45.95,
-                11.15,
-                46.05,
+                11.0,
+                45.9,
+                11.2,
+                46.1,
             ),
             grid_shape=(2, 2),
             status=status,
@@ -200,6 +200,33 @@ class PersistentCacheTests(unittest.TestCase):
             )
 
             self.assertIsNone(get_cached_window(REFERENCE, 1, "07"))
+
+    def test_requested_metadata_bounds_mismatch_is_a_cache_miss(self):
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "src.cache.IMERG_CACHE_DIR",
+            directory,
+        ), patch(
+            "src.cache.IMERG_DISK_CACHE_TTL_SECONDS",
+            3600,
+        ):
+            set_cached_window(REFERENCE, 1, evidence_window())
+            clear_cache()
+            metadata_path = next(Path(directory).glob("*.json"))
+            payload = json.loads(
+                metadata_path.read_text(encoding="utf-8")
+            )
+            payload["windowMetadata"]["requestedSpatialBounds"] = {
+                "west": 11.0,
+                "south": 45.9,
+                "east": 11.2,
+                "north": 46.1,
+            }
+            metadata_path.write_text(
+                json.dumps(payload),
+                encoding="utf-8",
+            )
+
+            self.assertIsNone(get_cached_window(REFERENCE, 1))
 
     def test_grid_shape_mismatch_is_a_cache_miss(self):
         with tempfile.TemporaryDirectory() as directory, patch(

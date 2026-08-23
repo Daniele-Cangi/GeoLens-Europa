@@ -16,6 +16,7 @@ from src.imerg_client import (
     load_imerg_window,
     normalize_reference_time,
     precipitation_amount,
+    spatial_bounds_from_data,
 )
 
 
@@ -112,6 +113,20 @@ class ImergNumericSemanticsTests(unittest.TestCase):
         self.assertEqual(amount.sizes, {"lat": 2, "lon": 2})
         self.assertEqual(list(amount.coords["lat"].values), [44.95, 45.05])
         self.assertEqual(list(amount.coords["lon"].values), [44.95, 45.05])
+
+    def test_loaded_bounds_report_complete_source_cell_footprints(self):
+        source = xr.DataArray(
+            np.ones((2, 2), dtype=float),
+            dims=("lat", "lon"),
+            coords={"lat": [45.95, 46.05], "lon": [11.05, 11.15]},
+        )
+
+        bounds = spatial_bounds_from_data(source)
+
+        self.assertAlmostEqual(bounds.west, 11.0)
+        self.assertAlmostEqual(bounds.south, 45.9)
+        self.assertAlmostEqual(bounds.east, 11.2)
+        self.assertAlmostEqual(bounds.north, 46.1)
 
     def test_invalid_spatial_bounds_are_rejected(self):
         with self.assertRaises(ValueError):
