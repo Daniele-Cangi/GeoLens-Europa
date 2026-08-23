@@ -361,11 +361,17 @@ test('API exposes observed Waternet topology with its import receipt', async (co
   assert.equal(body.status, 'available');
   assert.equal(
     Object.keys(body.topology.nodes).length,
-    18,
+    47,
   );
   assert.equal(
     Object.keys(body.topology.pipes).length,
-    16,
+    47,
+  );
+  assert.equal(
+    Object.values(body.topology.nodes).filter(
+      (node) => node.type === 'outfall',
+    ).length,
+    4,
   );
   assert.equal(
     body.orientation.evidenceBasis,
@@ -380,8 +386,8 @@ test('API exposes observed Waternet topology with its import receipt', async (co
     0.05,
   );
   assert.deepEqual(body.orientation.counts, {
-    known: 11,
-    ambiguous: 5,
+    known: 25,
+    ambiguous: 22,
     unknown: 0,
   });
   assert.ok(
@@ -403,7 +409,7 @@ test('API exposes observed Waternet topology with its import receipt', async (co
   );
   assert.equal(
     body.import.counts.skippedBoundaryPipes,
-    8,
+    10,
   );
   assert.deepEqual(
     body.import.pumpingAreaReferences,
@@ -438,7 +444,7 @@ test('API preserves Waternet provider failure without topology', async (context)
                 'Leidingeninfrastructuur',
               acquiredAt,
               bboxWfsAxisOrder:
-                '52.3393,4.8987,52.3404,4.8998,EPSG:4326',
+                '52.3375,4.8978,52.3395,4.8995,EPSG:4326',
               nodeUrl:
                 'https://fixture.invalid/nodes',
               pipeUrl:
@@ -477,7 +483,7 @@ test('API requires a complete Waternet bbox', async (context) => {
   const response = await server.inject({
     method: 'GET',
     url:
-      '/api/infrastructure/amsterdam-waternet?latMin=52.3393',
+      '/api/infrastructure/amsterdam-waternet?latMin=52.3375',
   });
   const body = response.json();
 

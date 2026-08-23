@@ -17,10 +17,10 @@ test(
       await new AmsterdamWaternetWfsClient()
         .acquire({
           bbox: {
-            latMin: 52.3393,
-            lonMin: 4.8987,
-            latMax: 52.3404,
-            lonMax: 4.8998,
+            latMin: 52.3375,
+            lonMin: 4.8978,
+            latMax: 52.3395,
+            lonMax: 4.8995,
           },
         });
 

@@ -11,8 +11,8 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Live provider verification: Copernicus DEM, the official local CLC2018 V2020_20u1 raster, and a complete 48-granule IMERG Early Run V07 window are established; live execution remains opt-in
 - Refoundation core, Proof 0 API, and minimal inspection UI build/typecheck/test baseline: established; historical legacy sources are excluded from the active TypeScript boundary
 - First refoundation success gate: established through deterministic fixture proof and a fully real environmental-evidence chain over the bounded Trento test network, from IMERG, DEM and CLC through runoff, direction, propagation and zero-difference mass balance
-- Observed-infrastructure gate: established through a live bounded Waternet/Amsterdam WFS path, a valid 18-node/16-pipe topology, explicit provider failures, API receipts and a browser-verified inspection panel
-- Observed-direction gate: established separately from propagation; Waternet endpoint invert NAP evidence yields 11 known and 5 ambiguous directions at an explicit 0.05 m analysis threshold, with no ground-elevation fallback
+- Observed-infrastructure gate: established through a live bounded Waternet/Amsterdam WFS path, a valid 47-node/47-pipe topology containing four explicit rainwater outfalls, explicit provider failures, API receipts and a browser-verified inspection panel
+- Observed-direction gate: established separately from propagation; Waternet endpoint invert NAP evidence yields 25 known and 22 ambiguous directions at an explicit 0.05 m analysis threshold, with no ground-elevation fallback
 - Historical tracked Copernicus private key: removed from the active tree; revocation/rotation remains an external security action because the secret is present in Git history
 
 Verified starting baseline (historical):
@@ -262,9 +262,9 @@ State: completed
 Progress:
 
 - the official Waternet/Amsterdam `Leidingeninfrastructuur` WFS is selected as the first public stormwater asset source under Creative Commons Attribution;
-- a bounded recorded response retains 30 node records and 51 pipe records for deterministic source-schema verification;
-- strict active stormwater filtering and 0.25 m geometry endpoint snapping produce a valid topology of 18 observed nodes and 16 observed pipes;
-- eight pipes crossing the response boundary remain explicit diagnostics rather than receiving invented endpoints;
+- an outfall-anchored bounded recorded response retains 82 node records and 112 pipe records for deterministic source-schema verification;
+- strict active stormwater filtering and 0.25 m geometry endpoint snapping produce a valid topology of 47 observed nodes and 47 observed pipes, including four explicit `Regenwateruitlaat` outfalls;
+- ten pipes crossing the response boundary remain explicit diagnostics rather than receiving invented endpoints;
 - self-referential source endpoint UUID fields are retained as defective source attributes and are never used as topology truth;
 - node ground levels, pipe invert levels, NAP vertical datum, delivery date, source/output CRS, license, source record ids and transformations remain inspectable;
 - synthetic, user-supplied, derived and observed-public-record infrastructure are structurally distinct;
@@ -278,7 +278,7 @@ Gate:
 - a live or explicitly unavailable public infrastructure acquisition is reproducible through the API;
 - replayed source records and live acquisition use the same deterministic importer;
 - boundary gaps, invalid identifiers and missing attributes cannot create synthetic topology or zero-valued evidence;
-- no catchment, direction or downstream flow is claimed before its required evidence exists.
+- no catchment or downstream flow is claimed before its required evidence exists; direction is established independently from retained pipe invert evidence.
 
 Checkpoints:
 
@@ -292,15 +292,15 @@ State: in progress
 Progress:
 
 - the official Waternet schema exposes `bemalingsgebied` as a node string attribute, not a contributing-area polygon in `Leidingeninfrastructuur`;
-- the bounded observed subgraph retains identifier `826` as a source reference with `geometryStatus: not_provided_by_source` and forbids catchment attachment from that identifier alone;
+- the bounded observed subgraph contains four explicit `Regenwateruitlaat` nodes and retains identifier `826` as a source reference with `geometryStatus: not_provided_by_source`; it forbids catchment attachment from that identifier alone;
 - direction model `pipe-invert-direction-v0.1.0` compares the retained `bob_beginpunt` / `bob_eindpunt` NAP evidence at the snapped pipe endpoints;
-- the configured 0.05 m analysis threshold produces 11 known, 5 ambiguous and 0 unknown directions for the 16-pipe recorded response; this threshold is not represented as provider survey accuracy;
+- the configured 0.05 m analysis threshold produces 25 known, 22 ambiguous and 0 unknown directions for the 47-pipe recorded response; this threshold is not represented as provider survey accuracy;
 - missing invert evidence remains an unknown direction and the observed route never falls back to node ground elevation;
 - the API and inspector expose evidence basis, model version, threshold, per-pipe state and counts without claiming catchment contribution or propagated flow.
 
 Work:
 
-- identify an authoritative contributing-area or drainage-area source that can be linked to explicit Waternet outlets/inlets;
+- identify an authoritative contributing-area or drainage-area source that can be linked to the four explicit Waternet rainwater outfalls;
 - reject representative-point, first-coordinate and name-prefix shortcuts;
 - define polygon-to-H3 coverage and outlet attachment with inspectable spatial transformation semantics;
 - compose real IMERG, DEM and CLC evidence over the bounded Amsterdam contributing area before deriving runoff;
@@ -313,6 +313,7 @@ Gate:
 - a bounded observed-infrastructure result either produces traceable non-zero downstream state or stops at an explicit missing-data boundary;
 - the API and inspector distinguish observed assets, derived topology links and environmental evidence.
 
-Checkpoint:
+Checkpoints:
 
 - `refactor: orient observed pipes from invert evidence`
+- `feat: anchor observed topology at rainwater outfalls`
