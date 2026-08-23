@@ -14,7 +14,7 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Observed-infrastructure gate: established through a live bounded Waternet/Amsterdam WFS path, a valid 47-node/47-pipe topology containing four explicit rainwater outfalls, explicit provider failures, API receipts and a browser-verified inspection panel
 - Observed-direction gate: established separately from propagation; Waternet endpoint invert NAP evidence yields 26 known and 21 ambiguous directions at an inclusive 0.05 m analysis boundary with an explicit 0.000001 m numeric tolerance and no ground-elevation fallback; the selected outfall exposes a known 5-node/4-pipe upstream subgraph while four unresolved boundary pipes remain explicit
 - Historical tracked Copernicus private key: removed from the active tree; revocation/rotation remains an external security action because the secret is present in Git history
-- Retrospective reconstruction benchmark gate: in evidence-composition state for a bounded Forli pilot; a typed manifest separates environmental model inputs from post-event evaluation evidence, discloses post-cutoff reprocessing, verifies nine content-addressed official artifacts on D:, and now has a real bounded 48-hour IMERG accumulation
+- Retrospective reconstruction benchmark gate: the bounded Forli pilot now has a frozen 30 m metric grid, content-addressed IMERG/DEM/CLC evidence and an explicit withheld-evaluation policy; physical XDBTR vectors and the permanent-water/barrier masks remain blocked on the authenticated regional extraction service
 
 Verified starting baseline (historical):
 
@@ -402,14 +402,18 @@ Progress:
 - the real Forli event accumulation is materialized outside Git at `D:/GeoLens/cache/imerg/v07_20230518T000000Z_48h_669b94d37ff0.{nc,json}`: 96/96 Final Run V07 half-hour granules, requested AOI `[11.98, 44.17, 12.10, 44.28]`, a 3x3 native 0.1 degree grid, nine finite cells, and 48-hour totals from `82.295` to `105.445 mm` with a `93.982 mm` mean; the NetCDF and provenance envelope total 22,143 bytes and pass an exact persistent-cache round trip;
 - Copernicus DEM GLO-30 2022_1 is the verified pre-event terrain input; the regional DTM 1x1 WCS remains context-only until availability of that exact source by the cutoff is proven, and its redistribution remains restricted because the regional service is not OpenData;
 - the Copernicus EMSN154 geospatial package and technical report are locally verified; P04 uses post-event Sentinel-1 delineation, while P06 is a two-dimensional hydraulic model calibrated with P04/EMSR664 footprints and ARPAE boundary conditions, so both remain secondary comparison evidence rather than independent ground truth;
-- nine official artifacts totalling 600,853,843 bytes are stored outside Git under D:/GeoLens/data/emilia-romagna-2023 and pass streamed byte-count and SHA-256 verification;
-- deterministic tests cover both benchmark modes, forbid evaluation leakage, require explicit disclosure for retrospective post-cutoff inputs, reject IMERG versions outside the canonical published path, verify versioned cache and provenance semantics, and retain Copernicus comparison, portable artifact, content-hash and temporal-cutoff checks.
+- declared IMERG, CLC, GLO-30, XDBTR and event-2 coverage all contain the bounded pilot; manifest v1.2.0 freezes the common EPSG:4326 bounds and a globally aligned EPSG:32632 30 m grid of 335 by 420 cells, while H3 r11 remains a separate representation choice;
+- the cell-centre AOI mask retains 130,307 cells and excludes 10,393 grid-envelope cells; required-input no-data is excluded and reported per dataset, primary overlap metrics remain unbuffered, and the explicit secondary boundary tolerance is one 30 m cell;
+- bounded GLO-30 elevation and four-neighbour slope are materialized for all 130,307 eligible cells with `NaN` missing sentinels: elevation spans 9.009-181.722 m and slope 0-34.376 degrees;
+- bounded CLC2018 level-3 classes are materialized for all eligible cells with `-1` as the explicit missing sentinel; class `0` is never used as missing evidence;
+- the public XDBTR WMS is retained only as five layer-separated styled-map receipts. It does not expose physical vector geometry, and the official bounded DBTR extraction redirects to regional IAM authentication; permanent-water, riverbed, embankment and building masks therefore remain explicitly blocked;
+- the deterministic mask and DEM/CLC arrays add four bounded artifacts; all 13 pinned official and derived artifacts total 602,401,543 bytes. A repeated acquisition reproduced those hashes, while identical XDBTR WMS requests returned different styled-image bytes; the WMS images and timestamped acquisition receipt are therefore verified per run but intentionally excluded from the reproducible artifact set under `D:/GeoLens/data/emilia-romagna-2023` and pass streamed byte-count, SHA-256, binary-sentinel and numeric-range verification;
+- deterministic tests cover both benchmark modes, frozen grid/mask/tolerance semantics, evaluation withholding, retrospective post-cutoff disclosure, IMERG versioning, cache provenance, portable artifact identity and temporal-cutoff checks.
 
 Work:
 
-- intersect the bounded pilot AOI with each official coverage and freeze the final common evaluation extent;
-- select a common evaluation grid, no-data mask, permanent-water mask and explicit boundary-tolerance policy before computing metrics;
-- acquire and persist bounded Copernicus DEM, CLC and XDBTR evidence over the frozen common extent, retaining publication time, observation window, source resolution and transformation provenance;
+- obtain the official bounded XDBTR vector extract through regional IAM and derive source-backed permanent-water, riverbed, embankment and building masks without treating WMS styling as geometry;
+- freeze the input-validity mask after the vector-derived permanent-water policy becomes available;
 - establish transparent baselines for terrain-only routing, IMERG-driven routing and ARPAE-gauge-driven routing;
 - implement the first deterministic surface-flow-concentration replay and evaluate it without calling the result an inundation extent;
 - introduce a conditioned inundation replay only after river levels, discharge, embankments, breaches and downstream boundary conditions have explicit evidence semantics;
@@ -427,3 +431,4 @@ Checkpoints:
 
 - `feat: verify retrospective IMERG event window`
 - `feat: materialize bounded retrospective IMERG`
+- `feat: freeze retrospective evaluation grid`

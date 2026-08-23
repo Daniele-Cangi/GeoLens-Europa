@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "1.1.0",
+  "manifestVersion": "1.2.0",
   "benchmark": {
     "id": "emilia-romagna-2023-forli-retrospective-reconstruction",
     "title": "Case 02 - Emilia-Romagna 2023 / Retrospective Flood Reconstruction",
@@ -20,7 +20,7 @@
         12.1,
         44.28
       ],
-      "selectionBasis": "Bounded engineering pilot around Forli and the Montone-Rabbi system. The bbox must be intersected with official product coverage before the benchmark can become model_ready."
+      "selectionBasis": "Bounded engineering pilot around Forli and the Montone-Rabbi system. Declared IMERG, CLC, Copernicus DEM, XDBTR and regional event-2 coverage all contain this bbox; the common evaluation grid retains an explicit cell-centre AOI mask."
     },
     "evaluationMetrics": [
       "area_intersection_over_union",
@@ -35,6 +35,62 @@
       "validated_inundation_extent",
       "validated_water_depth",
       "operational_forecast"
+    ],
+    "spatialProtocol": {
+      "coverage": {
+        "crs": "EPSG:4326",
+        "commonBounds": [
+          11.98,
+          44.17,
+          12.1,
+          44.28
+        ],
+        "verifiedDatasetIds": [
+          "nasa-imerg-v07",
+          "copernicus-clc-2018",
+          "copernicus-dem-glo-30-2022",
+          "rer-xdbtr-2020-2018",
+          "rer-flood-extent-v7-event-2"
+        ],
+        "rule": "intersection_of_declared_coverage"
+      },
+      "grid": {
+        "crs": "EPSG:32632",
+        "cellSizeM": 30,
+        "bounds": [
+          737790,
+          4895070,
+          747840,
+          4907670
+        ],
+        "width": 335,
+        "height": 420,
+        "rowOrder": "north_to_south",
+        "inclusion": "cell_center_inside_common_bounds",
+        "h3RepresentationResolution": 11
+      },
+      "masks": {
+        "outsideAoi": "exclude",
+        "requiredInputNoData": "exclude_and_report_by_dataset",
+        "permanentWater": {
+          "datasetId": "rer-xdbtr-2020-2018",
+          "layer": "SDA_Specchio_di_acqua_ed2021",
+          "treatment": "exclude_from_land_routing_metrics_and_report"
+        },
+        "evaluationReference": "withheld_until_prediction_is_frozen"
+      },
+      "boundaryTolerance": {
+        "primaryOverlapBufferM": 0,
+        "secondaryToleranceM": 30,
+        "distanceMetrics": "cell_edges_in_grid_crs"
+      }
+    },
+    "localArtifacts": [
+      {
+        "relativePath": "inputs/common-aoi-mask-u8.bin",
+        "bytes": 140700,
+        "sha256": "da9abbf26185d046700b09a742de955968c691d3b433b25e3a49155f4471eda6"
+      }
     ]
   },
   "datasets": [
@@ -84,7 +140,14 @@
         "calibration": false,
         "evaluation": false
       },
-      "availableAt": "2021-04-20T00:00:00Z"
+      "availableAt": "2021-04-20T00:00:00Z",
+      "localArtifacts": [
+        {
+          "relativePath": "inputs/corine-clc2018-class-i16le.bin",
+          "bytes": 281400,
+          "sha256": "44c4f8ed508e2cf5b4ac6bc68094be088a3d1d29fa5419ef78630be7feaabdfa"
+        }
+      ]
     },
     {
       "id": "rer-dtm-1m-pst",
@@ -139,7 +202,19 @@
         "calibration": false,
         "evaluation": false
       },
-      "methodologyNote": "Pre-event terrain input. This is a surface model, not bare-earth terrain; buildings and vegetation may affect routing and must remain explicit in provenance."
+      "methodologyNote": "Pre-event terrain input. This is a surface model, not bare-earth terrain; buildings and vegetation may affect routing and must remain explicit in provenance.",
+      "localArtifacts": [
+        {
+          "relativePath": "inputs/copernicus-dem-glo30-elevation-f32le.bin",
+          "bytes": 562800,
+          "sha256": "1effcf6f877941350939992ae4936349eb9a036d4d75291cf9a48c32ba560f30"
+        },
+        {
+          "relativePath": "inputs/copernicus-dem-glo30-slope-f32le.bin",
+          "bytes": 562800,
+          "sha256": "431d0fa6e7e2347d741c7ed57e690dd79603506b5905e8bfdc7909d13ffef77d"
+        }
+      ]
     },
     {
       "id": "rer-xdbtr-2020-2018",
@@ -149,9 +224,9 @@
       "dataset": "XDBTR alveo, argine and edificato",
       "datasetVersion": "Alveo/Argine 2020; Edificato 2018",
       "sourceUrl": "https://servizigis.regione.emilia-romagna.it/wms/xdbtr",
-      "accessMethod": "bounded WMS acquisition followed by typed feature extraction",
+      "accessMethod": "layer-separated bounded WMS receipt for context; authenticated DBTR extraction service required for physical vector geometry",
       "sourceResolution": "nominal source scale 1:10000 for argine/alveo",
-      "acquisitionStatus": "remote_verified",
+      "acquisitionStatus": "blocked",
       "license": {
         "name": "CC BY 4.0",
         "access": "public",
@@ -169,7 +244,8 @@
           "sha256": "326658858A728B19B7713ECC45CF614D0917571B6C9D83850F08FED6C286E619"
         }
       ],
-      "availableAt": "2020-01-01T00:00:00Z"
+      "availableAt": "2020-01-01T00:00:00Z",
+      "methodologyNote": "The public WMS is verified and can retain layer-separated styled-map receipts, but it does not deliver vector geometry. The official bounded DBTR vector extraction redirects to regional IAM authentication. Styled pixels must not be promoted to physical river, embankment or building geometry."
     },
     {
       "id": "arpae-2023-pluviometry",

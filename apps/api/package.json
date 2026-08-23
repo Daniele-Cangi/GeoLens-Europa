@@ -11,14 +11,14 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@fastify/compress": "^7.0.3",
-    "@fastify/cors": "^8.5.0",
+    "@fastify/compress": "^9.2.0",
+    "@fastify/cors": "^11.3.0",
     "@geo-lens/evidence": "0.1.0",
     "@geo-lens/proof-zero": "0.1.0",
     "@geo-lens/providers": "0.1.0",
     "@geo-lens/stormwater": "0.1.0",
     "dotenv": "^17.2.3",
-    "fastify": "^4.24.3"
+    "fastify": "^5.12.1"
   },
   "devDependencies": {
     "@types/node": "^20.8.10",
