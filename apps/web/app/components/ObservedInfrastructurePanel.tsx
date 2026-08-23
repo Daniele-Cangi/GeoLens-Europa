@@ -20,6 +20,7 @@ interface ObservedInfrastructurePanelProps {
 
 type DisplayStatus =
   | EvidenceStatus
+  | 'unresolved_no_published_crosswalk'
   | 'not_requested';
 
 function statusLabel(status: string): string {
@@ -264,6 +265,9 @@ export default function ObservedInfrastructurePanel({
           selectedPipe.id
         ]
       : undefined;
+  const areaEnvelope =
+    available?.outfallAreaContext;
+  const areaContext = areaEnvelope?.result;
   const surfaceEnvelope =
     available?.surfaceCatchmentProxy;
   const surfaceProxy = surfaceEnvelope?.result;
@@ -289,8 +293,8 @@ export default function ObservedInfrastructurePanel({
         <div className="panel-meta">
           <StatusPill status={status} />
           <span>
-            AHN DTM surface proxy kept separate - no
-            sewer catchment or flow asserted
+            GWSW area context and AHN DTM proxy kept
+            separate - no sewer catchment or flow asserted
           </span>
         </div>
       </div>
@@ -518,6 +522,12 @@ export default function ObservedInfrastructurePanel({
                 )}
               </span>
               <span>
+                {'GWSW area: '}
+                {statusLabel(
+                  available.outfallAreaContext.status,
+                )}
+              </span>
+              <span>
                 Output{' '}
                 {
                   available.import.source
@@ -659,6 +669,103 @@ export default function ObservedInfrastructurePanel({
               <div className="surface-proxy-heading">
                 <div>
                   <p className="eyebrow">
+                    Observed area context
+                  </p>
+                  <h3>PDOK / GWSW management area</h3>
+                </div>
+                <StatusPill
+                  status={
+                    areaEnvelope?.status ??
+                    'not_requested'
+                  }
+                />
+              </div>
+
+              {areaContext ? (
+                <>
+                  <dl className="observed-facts">
+                    <div>
+                      <dt>Containing sewer area</dt>
+                      <dd>
+                        {areaContext
+                          .containingRioleringsgebieden
+                          .map((area) => area.name)
+                          .join(', ') || 'None observed'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Spatial relation</dt>
+                      <dd>
+                        Point in observed multipolygon -
+                        context only
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Waternet reference</dt>
+                      <dd>
+                        {areaContext
+                          .waternetPumpingAreaReference
+                          .value ?? 'Not stated'}
+                        {' · crosswalk '}
+                        {statusLabel(
+                          areaContext
+                            .waternetPumpingAreaReference
+                            .gwswCrosswalk,
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Provider / publisher</dt>
+                      <dd>
+                        {areaContext.acquisition.provider}
+                        {' · '}
+                        {areaContext.acquisition.publisher}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Dataset / collection</dt>
+                      <dd>
+                        {areaContext.acquisition.dataset}
+                        {' · '}
+                        {areaContext.acquisition.collection}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>License</dt>
+                      <dd>
+                        {areaContext.acquisition.license}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Response timestamp</dt>
+                      <dd>
+                        {formatUtcTimestamp(
+                          areaContext.acquisition
+                            .responseTimestamp ?? undefined,
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Catchment attachment</dt>
+                      <dd>Blocked · no relation published</dd>
+                    </div>
+                  </dl>
+                  <p className="observed-warning">
+                    {areaContext.attachment.reason}
+                  </p>
+                </>
+              ) : (
+                <p className="surface-proxy-missing">
+                  {areaEnvelope?.missingReason ??
+                    'GWSW area context not requested.'}
+                </p>
+              )}
+            </section>
+
+            <section className="observed-selection surface-proxy-receipt">
+              <div className="surface-proxy-heading">
+                <div>
+                  <p className="eyebrow">
                     Derived surface evidence
                   </p>
                   <h3>AHN DTM surface proxy</h3>
@@ -734,6 +841,22 @@ export default function ObservedInfrastructurePanel({
                         {surfaceProxy.elevationSources.sourceResolutions.join(
                           ', ',
                         ) || 'Not stated'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Elevation evidence</dt>
+                      <dd>
+                        {surfaceProxy.elevationSources.statuses.available}
+                        {' available · '}
+                        {surfaceProxy.elevationSources.statuses.missing}
+                        {' missing'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Elevation aggregation</dt>
+                      <dd>
+                        {surfaceProxy.elevationModel
+                          .samplingDescription}
                       </dd>
                     </div>
                     <div>

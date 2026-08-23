@@ -51,6 +51,18 @@ test(
     assert.equal(evidence.spatial.sourceResolution, '0.5 m');
     assert.equal(evidence.provenance.provider, 'PDOK');
     assert.equal(evidence.provenance.datasetVersion, 'AHN4');
+    assert.equal(
+      evidence.provenance.transformationVersion,
+      'ahn4-dtm-h3-area-mean-v0.2.0',
+    );
+    assert.ok(
+      evidence.provenance.sourceMetadata.totalSourcePixels > 1,
+    );
+    assert.ok(
+      evidence.provenance.sourceMetadata
+        .observedSourceFraction > 0,
+    );
+    assert.ok(evidence.quality.sourceQuality > 0);
     assert.equal(result.coverage.coverageId, 'dtm_05m');
     assert.ok(result.coverage.responseBytes > 0);
   },

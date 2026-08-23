@@ -227,6 +227,84 @@ function availableWaternetClient() {
   };
 }
 
+function gwswReceipt() {
+  return {
+    provider: 'PDOK',
+    publisher: 'Stichting RIONED',
+    dataset: 'Stedelijk Water (Riolering)',
+    collection: 'beheergebied',
+    license: 'CC0 1.0',
+    acquiredAt,
+    responseTimestamp: '2026-08-21T00:59:00.000Z',
+    requestUrl: 'https://fixture.invalid/gwsw/beheergebied',
+    requestedBboxCrs84: '4.8978,52.3375,4.8995,52.3395',
+    sourceCrs: 'OGC:CRS84',
+    outputCrs: 'OGC:CRS84',
+    featureCount: 1,
+    rioleringsgebiedCount: 1,
+    documentationUrl:
+      'https://www.pdok.nl/introductie/-/article/stedelijk-water-riolering-',
+  };
+}
+
+function availableGwswAreaClient() {
+  return {
+    async acquire() {
+      return {
+        status: 'available',
+        receipt: gwswReceipt(),
+        areas: [
+          {
+            featureId:
+              'NL.WBHCODE.11.Rioleringsgebied.932',
+            name: 'President Kennedylaan',
+            areaType: 'rioleringsgebied',
+            sourceTypeName: 'Rioleringsgebied',
+            sourceTypeUri:
+              'https://data.gwsw.nl/1.6/totaal/Rioleringsgebied',
+            sourceDatasetUrl:
+              'https://apps.gwsw.nl/Beheer/StedelijkWater',
+            sourceUri:
+              'https://data.gwsw.nl/1.6/Amsterdam/Rioleringsgebied/932',
+            geometry: {
+              type: 'MultiPolygon',
+              coordinates: [
+                [
+                  [
+                    [4.897, 52.337],
+                    [4.9005, 52.337],
+                    [4.9005, 52.3405],
+                    [4.897, 52.3405],
+                    [4.897, 52.337],
+                  ],
+                ],
+              ],
+            },
+          },
+        ],
+      };
+    },
+  };
+}
+
+function unavailableGwswAreaClient() {
+  return {
+    async acquire() {
+      return {
+        status: 'upstream_error',
+        missingReason: 'fixture GWSW upstream unavailable',
+        receipt: {
+          ...gwswReceipt(),
+          responseTimestamp: null,
+          featureCount: 0,
+          rioleringsgebiedCount: 0,
+        },
+        areas: [],
+      };
+    },
+  };
+}
+
 function fixtureSurfaceElevationClient(options = {}) {
   return {
     async getElevationEvidence({ h3Indices }) {
@@ -294,6 +372,7 @@ function buildTestServer(
   return buildGeoLensApi({
     evidenceComposer: composer,
     surfaceElevationClient: fixtureSurfaceElevationClient(),
+    gwswAreaClient: availableGwswAreaClient(),
     now: () => new Date(acquiredAt),
     runtime: {
       imergServiceConfigured: false,
@@ -491,6 +570,34 @@ test('API exposes observed Waternet topology with its import receipt', async (co
     ),
   );
   assert.equal(
+    body.outfallAreaContext.status,
+    'unresolved_no_published_crosswalk',
+  );
+  assert.equal(
+    body.outfallAreaContext.result
+      .waternetPumpingAreaReference.value,
+    '826',
+  );
+  assert.equal(
+    body.outfallAreaContext.result
+      .waternetPumpingAreaReference.gwswCrosswalk,
+    'not_published',
+  );
+  assert.deepEqual(
+    body.outfallAreaContext.result
+      .containingRioleringsgebieden.map((area) => area.name),
+    ['President Kennedylaan'],
+  );
+  assert.equal(
+    body.outfallAreaContext.result.attachment.eligible,
+    false,
+  );
+  assert.equal(
+    body.outfallAreaContext.result.attachment
+      .catchmentAttachmentCreated,
+    false,
+  );
+  assert.equal(
     body.surfaceCatchmentProxy.status,
     'synthetic_fixture',
   );
@@ -519,6 +626,11 @@ test('API exposes observed Waternet topology with its import receipt', async (co
   assert.equal(
     body.surfaceCatchmentProxy.result.elevationModel.semantics,
     'digital_terrain_model',
+  );
+  assert.match(
+    body.surfaceCatchmentProxy.result.elevationModel
+      .samplingDescription,
+    /source-pixel centers inside each H3 cell/,
   );
   assert.equal(
     body.surfaceCatchmentProxy.networkUse.eligibleForSewerPropagation,
@@ -599,6 +711,42 @@ test('API keeps observed topology while missing DEM blocks the surface proxy are
   );
   assert.equal('propagation' in body, false);
 });
+test('API keeps GWSW failure explicit without changing observed topology', async (context) => {
+  const server = buildTestServer(
+    fixtureComposer(),
+    {
+      waternetClient: availableWaternetClient(),
+      gwswAreaClient: unavailableGwswAreaClient(),
+    },
+  );
+  context.after(() => server.close());
+
+  const response = await server.inject({
+    method: 'GET',
+    url: '/api/infrastructure/amsterdam-waternet',
+  });
+  const body = response.json();
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(body.status, 'available');
+  assert.equal(body.outfallAreaContext.status, 'upstream_error');
+  assert.match(
+    body.outfallAreaContext.missingReason,
+    /GWSW upstream unavailable/,
+  );
+  assert.equal(
+    body.outfallAreaContext.result.attachment.eligible,
+    false,
+  );
+  assert.equal(
+    body.outfallAreaContext.result.attachment
+      .catchmentAttachmentCreated,
+    false,
+  );
+  assert.deepEqual(body.topology.catchmentAttachments, {});
+  assert.equal('propagation' in body, false);
+});
+
 test('API bounds DEM proxy cells before provider acquisition', async (context) => {
   const server = buildTestServer(
     fixtureComposer(),

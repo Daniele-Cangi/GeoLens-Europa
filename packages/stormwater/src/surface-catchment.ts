@@ -50,6 +50,7 @@ export interface SurfaceElevationModel {
     | 'digital_surface_model'
     | 'synthetic_fixture_surface';
   readonly description: string;
+  readonly samplingDescription: string;
 }
 
 export interface SurfaceCatchmentProxyInput {
@@ -379,7 +380,8 @@ export function deriveSurfaceCatchmentProxy(
     limitations: [
       input.elevationModel.description,
       'H3 is the routing representation, not the native elevation-source resolution.',
-      'The model uses one elevation sample at each H3 centroid and routes to one strictly lower neighboring centroid.',
+      input.elevationModel.samplingDescription +
+        '. Routing then uses one derived elevation value per H3 cell and selects one strictly lower neighboring H3 centroid.',
       'The observed outfall H3 cell is forced to be the terminal pour point; this is explicit model conditioning.',
       'No depression filling, flat routing, road/building conditioning or hydraulic sewer behavior is modeled.',
       'Cells are selected by centroid inside the bounded analysis bbox and represented by full H3 cell area.',
@@ -574,6 +576,8 @@ function areaDescriptor(
     proxyId: input.id,
     elevationModelSemantics: input.elevationModel.semantics,
     elevationModelDescription: input.elevationModel.description,
+    elevationSamplingDescription:
+      input.elevationModel.samplingDescription,
     outfallNodeId: input.outfallNodeId,
     outletH3: input.grid.outletH3,
     h3Resolution: input.grid.h3Resolution,
@@ -613,10 +617,11 @@ function areaDescriptor(
       provider: 'geolens-core',
       dataset: 'DEM-derived surface contributing-area proxy',
       transformation:
-        'bounded single-flow direction over H3-neighbor centroid elevations with an explicitly conditioned outfall terminal',
+        'bounded single-flow direction over one derived elevation value per H3 cell with an explicitly conditioned outfall terminal',
       transformationVersion: SURFACE_CATCHMENT_PROXY_VERSION,
       samplingMethod:
-        'H3 centroid coverage; nearest DEM pixel per sampled cell; one-ring boundary halo; full H3 cell area sum',
+        input.elevationModel.samplingDescription +
+        '; H3-neighbor routing; one-ring boundary halo; full H3 cell area sum',
       sourceMetadata,
     },
   };
@@ -670,6 +675,14 @@ function validateInput(input: SurfaceCatchmentProxyInput): void {
   if (input.elevationModel.description.trim().length === 0) {
     throw new Error(
       'Surface catchment elevation model description must be non-empty',
+    );
+  }
+
+  if (
+    input.elevationModel.samplingDescription.trim().length === 0
+  ) {
+    throw new Error(
+      'Surface catchment elevation sampling description must be non-empty',
     );
   }
 

@@ -4,7 +4,11 @@ import {
   EvidenceStatus,
   unavailableEvidence,
 } from '@geo-lens/evidence';
-import { cellToLatLng, isValidCell } from 'h3-js';
+import {
+  cellToBoundary,
+  cellToLatLng,
+  isValidCell,
+} from 'h3-js';
 import { fromArrayBuffer } from 'geotiff';
 import proj4 from 'proj4';
 import {
@@ -23,6 +27,9 @@ const DATASET_VERSION = 'AHN4' as const;
 const SOURCE_CRS = 'EPSG:28992' as const;
 const VERTICAL_DATUM = 'NAP (EPSG:5709)' as const;
 const SOURCE_RESOLUTION = '0.5 m';
+const MAX_NO_DATA_FRACTION = 0.6;
+const AGGREGATION_RULE_URL =
+  'https://www.ahn.nl/5-producten';
 const MAX_H3_LOCATIONS = 1_000;
 const MAX_COVERAGE_SPAN_M = 500;
 const RD_PROJ4 =
@@ -177,9 +184,12 @@ export class AhnWcsDtmRasterSource
     const projected = locations.map((location) => ({
       ...location,
       coordinate: ahnRdCoordinate(location.lat, location.lon),
+      boundary: cellToBoundary(location.id, true).map(
+        ([lon, lat]) => ahnRdCoordinate(lat, lon),
+      ),
     }));
     const bounds = coverageBounds(
-      projected.map((item) => item.coordinate),
+      projected.flatMap((item) => item.boundary),
     );
     const requestUrl = buildAhnWcsCoverageUrl(bounds);
     const response = await this.fetchImpl(requestUrl, {
@@ -234,15 +244,15 @@ export class AhnWcsDtmRasterSource
     const samples = Object.fromEntries(
       projected.map((location) => [
         location.id,
-        samplePixel(
-          location.coordinate,
+        aggregateAhnDtmArea({
+          polygonRd: location.boundary,
           bbox,
           width,
           height,
           band,
           noData,
-          WCS_ENDPOINT + '#dtm_05m',
-        ),
+          sourceId: WCS_ENDPOINT + '#dtm_05m',
+        }),
       ]),
     );
     return {
@@ -348,11 +358,11 @@ function descriptor(
       dataset: 'Actueel Hoogtebestand Nederland DTM',
       datasetVersion: DATASET_VERSION,
       transformation:
-        'transform H3 centroid from WGS84 to RD and sample nearest AHN DTM raster pixel',
+        'transform the H3 boundary from WGS84 to RD and aggregate AHN DTM pixel centers inside the H3 polygon',
       transformationVersion:
-        'ahn4-dtm-h3-centroid-v0.1.0',
+        'ahn4-dtm-h3-area-mean-v0.2.0',
       samplingMethod:
-        'one bounded WCS coverage request; nearest 0.5 m source raster pixel per H3 centroid',
+        'one bounded WCS coverage request; arithmetic mean of 0.5 m source pixel centers inside each H3 polygon; unavailable when more than 60% are no-data',
       sourceMetadata: {
         coverageId: COVERAGE_ID,
         sourceCrs: SOURCE_CRS,
@@ -360,6 +370,9 @@ function descriptor(
         acquisitionPeriod:
           '2020-2022; per-location flight timestamp is not resolved by this WCS request',
         sourceModel: 'digital terrain model (DTM)',
+        aggregationNoDataRule:
+          'unavailable when more than 60% of source pixels are no-data; threshold mirrors the published AHN 5 m DTM derivation rule',
+        aggregationRuleUrl: AGGREGATION_RULE_URL,
       },
     },
   };
@@ -380,71 +393,221 @@ function result(
   };
 }
 
-function samplePixel(
-  coordinate: readonly [number, number],
-  bbox: readonly [number, number, number, number],
-  width: number,
-  height: number,
-  band: ArrayLike<number>,
-  noData: number | null | undefined,
-  sourceId: string,
-): RasterSample {
-  const [x, y] = coordinate;
+export function aggregateAhnDtmArea(input: {
+  readonly polygonRd: readonly (readonly [number, number])[];
+  readonly bbox: readonly [number, number, number, number];
+  readonly width: number;
+  readonly height: number;
+  readonly band: ArrayLike<number>;
+  readonly noData: number | null | undefined;
+  readonly sourceId: string;
+}): RasterSample {
   if (
-    x < bbox[0] ||
-    x >= bbox[2] ||
-    y < bbox[1] ||
-    y >= bbox[3]
+    input.polygonRd.length < 3 ||
+    !validRaster(input.bbox, input.width, input.height)
   ) {
-    return {
-      status: 'out_of_coverage',
-      value: null,
-      missingReason:
-        'AHN coordinate lies outside returned coverage',
-      sourceId,
-    };
-  }
-  const pixelX = Math.floor(
-    ((x - bbox[0]) / (bbox[2] - bbox[0])) * width,
-  );
-  const pixelY = Math.floor(
-    ((bbox[3] - y) / (bbox[3] - bbox[1])) * height,
-  );
-  const value = Number(band[pixelY * width + pixelX]);
-  if (!Number.isFinite(value)) {
     return {
       status: 'invalid_response',
       value: null,
       missingReason:
-        'AHN raster returned a non-finite pixel',
-      sourceId,
+        'AHN area aggregation received invalid geometry',
+      sourceId: input.sourceId,
     };
   }
+
+  const xs = input.polygonRd.map((point) => point[0]);
+  const ys = input.polygonRd.map((point) => point[1]);
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  const maxX = Math.max(...xs);
+  const maxY = Math.max(...ys);
+  const pixelWidth =
+    (input.bbox[2] - input.bbox[0]) / input.width;
+  const pixelHeight =
+    (input.bbox[3] - input.bbox[1]) / input.height;
+  const minPixelX = clamp(
+    Math.floor((minX - input.bbox[0]) / pixelWidth),
+    0,
+    input.width - 1,
+  );
+  const maxPixelX = clamp(
+    Math.ceil((maxX - input.bbox[0]) / pixelWidth) - 1,
+    0,
+    input.width - 1,
+  );
+  const minPixelY = clamp(
+    Math.floor((input.bbox[3] - maxY) / pixelHeight),
+    0,
+    input.height - 1,
+  );
+  const maxPixelY = clamp(
+    Math.ceil((input.bbox[3] - minY) / pixelHeight) - 1,
+    0,
+    input.height - 1,
+  );
+  let totalSourcePixels = 0;
+  let availableSourcePixels = 0;
+  let noDataSourcePixels = 0;
+  let invalidSourcePixels = 0;
+  let elevationSumM = 0;
+
+  for (
+    let pixelY = minPixelY;
+    pixelY <= maxPixelY;
+    pixelY += 1
+  ) {
+    const y =
+      input.bbox[3] - (pixelY + 0.5) * pixelHeight;
+
+    for (
+      let pixelX = minPixelX;
+      pixelX <= maxPixelX;
+      pixelX += 1
+    ) {
+      const x =
+        input.bbox[0] + (pixelX + 0.5) * pixelWidth;
+
+      if (!pointInPolygon([x, y], input.polygonRd)) {
+        continue;
+      }
+
+      totalSourcePixels += 1;
+      const value = Number(
+        input.band[pixelY * input.width + pixelX],
+      );
+
+      if (isAhnNoData(value, input.noData)) {
+        noDataSourcePixels += 1;
+      } else if (value < -1000 || value > 9000) {
+        invalidSourcePixels += 1;
+      } else {
+        availableSourcePixels += 1;
+        elevationSumM += value;
+      }
+    }
+  }
+
+  const sourceQuality =
+    totalSourcePixels === 0
+      ? 0
+      : availableSourcePixels / totalSourcePixels;
+  const sourceMetadata = {
+    aggregationStatistic: 'arithmetic_mean',
+    totalSourcePixels,
+    availableSourcePixels,
+    noDataSourcePixels,
+    invalidSourcePixels,
+    observedSourceFraction: sourceQuality,
+    maximumNoDataFraction: MAX_NO_DATA_FRACTION,
+    aggregationRuleUrl: AGGREGATION_RULE_URL,
+  } as const;
+
+  if (totalSourcePixels === 0) {
+    return {
+      status: 'out_of_coverage',
+      value: null,
+      missingReason:
+        'No AHN source pixel center lies inside the H3 polygon',
+      sourceId: input.sourceId,
+      sourceQuality,
+      sourceMetadata,
+    };
+  }
+
+  if (invalidSourcePixels > 0) {
+    return {
+      status: 'invalid_response',
+      value: null,
+      missingReason:
+        'AHN DTM contains source pixels outside the physical elevation range',
+      sourceId: input.sourceId,
+      sourceQuality,
+      sourceMetadata,
+    };
+  }
+
+  const noDataFraction =
+    noDataSourcePixels / totalSourcePixels;
+
   if (
-    (noData !== null &&
-      noData !== undefined &&
-      value === noData) ||
-    value <= -32767 ||
-    value >= 1e20
+    availableSourcePixels === 0 ||
+    noDataFraction > MAX_NO_DATA_FRACTION
   ) {
     return {
       status: 'missing',
       value: null,
       missingReason:
-        'AHN DTM pixel is marked as no-data',
-      sourceId,
+        'AHN DTM H3 area exceeds the 60% source no-data threshold',
+      sourceId: input.sourceId,
+      sourceQuality,
+      sourceMetadata: {
+        ...sourceMetadata,
+        noDataFraction,
+      },
     };
   }
-  if (value < -1000 || value > 9000) {
-    return {
-      status: 'invalid_response',
-      value: null,
-      missingReason:
-        'AHN DTM elevation is outside physical range',
-      sourceId,
-    };
+
+  return {
+    status: 'available',
+    value: elevationSumM / availableSourcePixels,
+    sourceId: input.sourceId,
+    sourceQuality,
+    sourceMetadata: {
+      ...sourceMetadata,
+      noDataFraction,
+    },
+  };
+}
+
+function pointInPolygon(
+  point: readonly [number, number],
+  polygon: readonly (readonly [number, number])[],
+): boolean {
+  let inside = false;
+  let previous = polygon.length - 1;
+
+  for (let index = 0; index < polygon.length; index += 1) {
+    const currentPoint = polygon[index];
+    const previousPoint = polygon[previous];
+    const intersects =
+      currentPoint[1] > point[1] !==
+        previousPoint[1] > point[1] &&
+      point[0] <
+        ((previousPoint[0] - currentPoint[0]) *
+          (point[1] - currentPoint[1])) /
+          (previousPoint[1] - currentPoint[1]) +
+          currentPoint[0];
+
+    if (intersects) {
+      inside = !inside;
+    }
+
+    previous = index;
   }
-  return { status: 'available', value, sourceId };
+
+  return inside;
+}
+
+function isAhnNoData(
+  value: number,
+  noData: number | null | undefined,
+): boolean {
+  return (
+    !Number.isFinite(value) ||
+    (noData !== null &&
+      noData !== undefined &&
+      value === noData) ||
+    value <= -32767 ||
+    value >= 1e20
+  );
+}
+
+function clamp(
+  value: number,
+  minimum: number,
+  maximum: number,
+): number {
+  return Math.min(Math.max(value, minimum), maximum);
 }
 
 function firstBand(

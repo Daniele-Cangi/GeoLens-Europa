@@ -14,6 +14,7 @@ import {
   AmsterdamWaternetBbox,
   analyzeOutfallConnectivity,
   AmsterdamWaternetWfsClient,
+  assessGwswOutfallAreaContext,
   buildBoundedSurfaceCatchmentGrid,
   deriveSurfaceCatchmentProxy,
   importAmsterdamWaternetStormwater,
@@ -21,6 +22,7 @@ import {
   ImportedStormwaterNetwork,
   orientStormwaterNetworkByPipeInverts,
   OutfallConnectivityAnalysis,
+  PdokGwswAreaClient,
   StormwaterTopology,
 } from '@geo-lens/stormwater';
 
@@ -69,6 +71,10 @@ export interface BuildGeoLensApiOptions {
     AhnDtmClient,
     'getElevationEvidence'
   >;
+  readonly gwswAreaClient?: Pick<
+    PdokGwswAreaClient,
+    'acquire'
+  >;
 }
 
 interface ParsedProofZeroRequest {
@@ -101,6 +107,8 @@ export function buildGeoLensApi(
     new AmsterdamWaternetWfsClient({ now });
   const surfaceElevationClient =
     options.surfaceElevationClient ?? new AhnDtmClient({ now });
+  const gwswAreaClient =
+    options.gwswAreaClient ?? new PdokGwswAreaClient({ now });
 
   server.register(cors);
   server.register(compress, { global: true });
@@ -205,14 +213,23 @@ export function buildGeoLensApi(
           },
           { known: 0, ambiguous: 0, unknown: 0 },
         );
-        const surfaceCatchmentProxy =
-          await composeObservedSurfaceCatchmentProxy({
+        const [
+          outfallAreaContext,
+          surfaceCatchmentProxy,
+        ] = await Promise.all([
+          composeObservedGwswOutfallAreaContext({
+            topology: imported.topology,
+            bbox,
+            gwswAreaClient,
+          }),
+          composeObservedSurfaceCatchmentProxy({
             topology: imported.topology,
             bbox,
             outfallConnectivity,
             surfaceElevationClient,
             derivedAt: now().toISOString(),
-          });
+          }),
+        ]);
 
         return reply.code(200).send({
           status: 'available',
@@ -230,6 +247,7 @@ export function buildGeoLensApi(
             directions: oriented.directions,
           },
           outfallConnectivity,
+          outfallAreaContext,
           surfaceCatchmentProxy,
         });
       } catch (error) {
@@ -317,6 +335,75 @@ export function buildGeoLensApi(
   return server;
 }
 
+async function composeObservedGwswOutfallAreaContext(input: {
+  readonly topology: StormwaterTopology;
+  readonly bbox: AmsterdamWaternetBbox;
+  readonly gwswAreaClient: Pick<PdokGwswAreaClient, 'acquire'>;
+}) {
+  const outfall = selectedSurfaceProxyOutfall(input.topology);
+
+  if (outfall === undefined) {
+    return {
+      status: 'out_of_coverage' as const,
+      missingReason:
+        'Observed outfall ' +
+        SURFACE_PROXY_OUTFALL_SOURCE_RECORD_ID +
+        ' is absent from the bounded Waternet topology',
+      result: null,
+    };
+  }
+
+  try {
+    const acquisition = await input.gwswAreaClient.acquire({
+      bbox: input.bbox,
+    });
+    const sourceReference =
+      outfall.source.sourceAttributes?.pumpingAreaId;
+    const waternetPumpingAreaReference =
+      typeof sourceReference === 'string'
+        ? sourceReference
+        : typeof sourceReference === 'number'
+          ? String(sourceReference)
+          : null;
+    const result = assessGwswOutfallAreaContext({
+      acquisition,
+      outfallNodeId: outfall.id,
+      outfallPosition: outfall.position,
+      waternetPumpingAreaReference,
+    });
+
+    return {
+      status: result.status,
+      missingReason:
+        acquisition.status === 'available'
+          ? result.status === 'out_of_coverage'
+            ? result.attachment.reason
+            : null
+          : acquisition.missingReason,
+      result,
+    };
+  } catch (error) {
+    return {
+      status: 'upstream_error' as const,
+      missingReason:
+        'PDOK GWSW area acquisition failed: ' +
+        errorMessage(error),
+      result: null,
+    };
+  }
+}
+
+function selectedSurfaceProxyOutfall(
+  topology: StormwaterTopology,
+) {
+  return Object.values(topology.nodes).find(
+    (node) =>
+      node.type === 'outfall' &&
+      node.source.sourceRecordId ===
+        SURFACE_PROXY_OUTFALL_SOURCE_RECORD_ID,
+  );
+}
+
 async function composeObservedSurfaceCatchmentProxy(input: {
   readonly topology: StormwaterTopology;
   readonly bbox: AmsterdamWaternetBbox;
@@ -327,12 +414,7 @@ async function composeObservedSurfaceCatchmentProxy(input: {
   >;
   readonly derivedAt: string;
 }) {
-  const outfall = Object.values(input.topology.nodes).find(
-    (node) =>
-      node.type === 'outfall' &&
-      node.source.sourceRecordId ===
-        SURFACE_PROXY_OUTFALL_SOURCE_RECORD_ID,
-  );
+  const outfall = selectedSurfaceProxyOutfall(input.topology);
 
   if (outfall === undefined) {
     return {
@@ -429,6 +511,8 @@ async function composeObservedSurfaceCatchmentProxy(input: {
         semantics: 'digital_terrain_model',
         description:
           'AHN4 DTM represents classified ground at 0.5 m source resolution; buildings, vegetation and water are not silently filled, so source no-data remains incomplete evidence.',
+        samplingDescription:
+          'Arithmetic mean of physically valid AHN4 DTM 0.5 m source-pixel centers inside each H3 cell; more than 60% source no-data keeps the H3 value missing',
       },
       outfallNodeId: outfall.id,
       outfallPosition: outfall.position,
