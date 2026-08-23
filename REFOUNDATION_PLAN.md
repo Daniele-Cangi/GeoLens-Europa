@@ -312,15 +312,20 @@ Progress:
 - Waternet source reference `826` is not treated as a GWSW key: the national GWSW identifier `Rioleringsgebied.826` denotes Eva Besnyöstraat H6 at a different location, so identifier equality would create a false attachment;
 - no public GWSW `beheerlozing`, Waternet relation or crosswalk was found for the bounded outfall; model `gwsw-outfall-area-link-v0.1.0` therefore exposes point containment as spatial context only with `attachment.eligible=false`;
 - the 2025 STOWA/RIONED BGT Inlooptabel method is identified as the authoritative Dutch path for linking BGT surfaces to soil, open water or sewer destinations, but no public Amsterdam inlooptabel was found;
-- the proxy remains ineligible for sewer propagation because it is not an observed Waternet catchment, runoff is not yet composed, and the outfall pipe direction remains unresolved at 0.05 m.
+- the bounded PDOK BGT provider acquires eight current level-zero physical-surface collections at an explicit time, retains CC0/source CRS/storage CRS/feature-version receipts, rejects truncated mosaics, and classifies H3 centroids without implying BGT-native H3 precision;
+- live BGT verification returned 258 source features and classified all 696 target H3 r13 cells: 156 vegetated terrain, 149 unvegetated terrain, 136 buildings, 147 road, 103 water, 2 supporting-road and 3 wall/quay structural-barrier cells;
+- model `bounded-bgt-ahn-priority-flood-v0.1.0` keeps raw AHN evidence unchanged, derives a separate IDW land elevation only from at least three observed AHN H3 area means within four grid rings, excludes observed water and structural barriers, and applies a deterministic multi-terminal priority-flood;
+- the live conditioned result has zero unresolved cells and assigns 100 cells / `3,676.73 m2` to the conditioned outfall, from 435 observed and 155 interpolated terrain values; 232 cells terminate at the analysis boundary, 258 at observed surface water, 103 water cells and 3 barrier cells are excluded, and 78 cells require depression raising;
+- the conditioned outfall attachment is explicitly `observed: false`; the API and inspector expose the raw DTM, BGT class, interpolation donors, fill depth, competing terminal and model version per cell;
+- the first Phase 8 gate now has a traceable, transparently conditioned H3 contributing area, but the proxy remains ineligible for sewer propagation because it is not an observed Waternet catchment, runoff is not yet composed, and the outfall pipe direction remains unresolved at 0.05 m.
 
 Work:
 
-- obtain an authoritative Amsterdam BGT Inlooptabel/outfall relation, or define and test a documented hydrologic-conditioning method without representing it as observed sewer attachment;
+- continue searching for an authoritative Amsterdam BGT Inlooptabel/outfall relation without weakening the conditioned proxy's `observed: false` semantics;
 - reject representative-point, first-coordinate and name-prefix shortcuts;
-- define polygon-to-H3 coverage and outlet attachment with inspectable spatial transformation semantics;
-- keep the observed GWSW area polygon, Waternet identifier and AHN-derived proxy as separate evidence until a source-backed relation is available; AHN no-data and local depressions currently prevent treating the partial proxy as a complete area;
-- compose real IMERG, DEM and CLC evidence over the bounded Amsterdam contributing area before deriving runoff;
+- keep the observed GWSW area polygon, Waternet identifier, raw AHN evidence and conditioned BGT/AHN proxy as separate evidence;
+- compose real IMERG and CLC evidence over the 100-cell conditioned Amsterdam area, retain each source resolution, and derive inspectable runoff without converting unavailable evidence to zero;
+- resolve or explicitly stop at the selected outfall's ambiguous observed pipe direction before any network propagation;
 - propagate only through the validated, supported observed subgraph.
 
 Gate:
@@ -340,3 +345,5 @@ Checkpoints:
 - `feat: refine Amsterdam surface evidence with AHN DTM`
 - `feat: acquire bounded GWSW area context`
 - `refactor: aggregate AHN terrain over H3 cells`
+- `feat: acquire bounded BGT physical surfaces`
+- `feat: condition Amsterdam surface catchment proxy`
