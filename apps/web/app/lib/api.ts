@@ -369,6 +369,7 @@ export interface ObservedSurfaceCatchmentProxy {
       | 'digital_surface_model'
       | 'synthetic_fixture_surface';
     readonly description: string;
+    readonly samplingDescription: string;
   };
   readonly outfallAnchor: {
     readonly nodeId: string;
@@ -450,6 +451,77 @@ export interface ObservedSurfaceCatchmentProxyEnvelope {
     readonly orientationThresholdM: number;
   } | null;
 }
+export interface ObservedGwswArea {
+  readonly featureId: string;
+  readonly name: string;
+  readonly areaType:
+    | 'rioleringsgebied'
+    | 'zuiveringseenheid'
+    | 'other';
+  readonly sourceTypeName: string;
+  readonly sourceTypeUri: string;
+  readonly sourceDatasetUrl: string;
+  readonly sourceUri: string;
+  readonly geometry: {
+    readonly type: 'MultiPolygon';
+    readonly coordinates: readonly (readonly (readonly (
+      readonly [number, number]
+    )[])[])[];
+  };
+}
+
+export interface ObservedOutfallAreaContext {
+  readonly modelVersion: string;
+  readonly status:
+    | 'unresolved_no_published_crosswalk'
+    | Exclude<EvidenceStatus, 'available' | 'synthetic_fixture'>;
+  readonly outfallNodeId: string;
+  readonly outfallPosition: {
+    readonly lat: number;
+    readonly lon: number;
+  };
+  readonly waternetPumpingAreaReference: {
+    readonly sourceField: 'bemalingsgebied';
+    readonly value: string | null;
+    readonly semantics: 'source_identifier_only';
+    readonly gwswCrosswalk: 'not_published';
+  };
+  readonly containingAreas: readonly ObservedGwswArea[];
+  readonly containingRioleringsgebieden:
+    readonly ObservedGwswArea[];
+  readonly attachment: {
+    readonly eligible: false;
+    readonly catchmentAttachmentCreated: false;
+    readonly method:
+      'point_in_observed_multipolygon_context_only';
+    readonly reason: string;
+  };
+  readonly acquisition: {
+    readonly provider: 'PDOK';
+    readonly publisher: 'Stichting RIONED';
+    readonly dataset: 'Stedelijk Water (Riolering)';
+    readonly collection: 'beheergebied';
+    readonly license: 'CC0 1.0';
+    readonly acquiredAt: string;
+    readonly responseTimestamp: string | null;
+    readonly requestUrl: string;
+    readonly requestedBboxCrs84: string;
+    readonly sourceCrs: 'OGC:CRS84';
+    readonly outputCrs: 'OGC:CRS84';
+    readonly featureCount: number;
+    readonly rioleringsgebiedCount: number;
+    readonly documentationUrl: string;
+  };
+}
+
+export interface ObservedOutfallAreaContextEnvelope {
+  readonly status:
+    | 'unresolved_no_published_crosswalk'
+    | Exclude<EvidenceStatus, 'available' | 'synthetic_fixture'>;
+  readonly missingReason: string | null;
+  readonly result: ObservedOutfallAreaContext | null;
+}
+
 export interface AvailableObservedInfrastructure {
   readonly status: 'available';
   readonly acquisition: {
@@ -531,6 +603,7 @@ export interface AvailableObservedInfrastructure {
     >;
   };
   readonly outfallConnectivity: ObservedOutfallConnectivity;
+  readonly outfallAreaContext: ObservedOutfallAreaContextEnvelope;
   readonly surfaceCatchmentProxy: ObservedSurfaceCatchmentProxyEnvelope;
 }
 

@@ -302,24 +302,30 @@ Progress:
 - missing invert evidence remains an unknown direction and the observed route never falls back to node ground elevation;
 - the API and inspector expose evidence basis, model versions, threshold, per-pipe state, outfall-path counts and highlighted unresolved outfall boundaries without claiming catchment contribution or propagated flow;
 - the first `bounded-h3-single-flow-surface-proxy-v0.1.0` GLO-30/r11 experiment produced only its conditioned outlet cell (`1,801.61 m2`); that result is retained as negative evidence and is no longer the active Amsterdam surface source;
-- the active bounded surface experiment now acquires one public PDOK AHN4 DTM WCS coverage, retains its exact request bounds and raster receipt, samples the 0.5 m NAP terrain source at H3 r13 centroids, uses a one-ring halo, and keeps H3 representation distinct from source resolution;
-- live AHN verification over the fixed bbox returned 470 available and 346 no-data samples across 696 target / 816 sampled H3 cells; four cells resolve to the conditioned outfall for `147.07 m2` of partial area, while the complete area remains `missing` because unresolved source cells could still contribute;
-- the no-data result is not filled, interpolated or converted to zero; the API and inspector expose the partial area, unavailable complete area, provider/dataset/version, WCS 2.0.1 receipt, EPSG:28992 + NAP datum, 14 coverage exits, 20 local depressions and 658 incomplete paths;
-- the official Amsterdam catalogue still exposes `bemalingsgebied` only as a node identifier and no public contributing-area polygon was found in the documented `Leidingeninfrastructuur` dataset;
+- the active bounded surface experiment now acquires one public PDOK AHN4 DTM WCS coverage, retains its exact request bounds and raster receipt, aggregates physically valid 0.5 m NAP source-pixel centres inside each H3 r13 cell, uses a one-ring halo, and keeps H3 representation distinct from source resolution;
+- the aggregation retains observed zero, counts source pixels and source quality per H3 cell, and uses the published AHN 5 m threshold as an explicit H3 model rule: more than 60% no-data keeps the derived evidence missing rather than interpolating or substituting zero;
+- live AHN verification over the fixed bbox returned 521 available and 295 missing samples across 696 target / 816 sampled H3 cells; three cells resolve to the conditioned outfall for `110.30 m2` of partial area, while the complete area remains `missing` because unresolved source cells could still contribute;
+- the API and inspector expose the partial area, unavailable complete area, provider/dataset/version, source-pixel aggregation semantics, WCS 2.0.1 receipt, EPSG:28992 + NAP datum, 16 coverage exits, 81 local depressions and 596 incomplete paths;
+- the official Amsterdam API catalogue exposes `bemalingsgebied` only as a node identifier and no public contributing-area polygon was found in the documented `Leidingeninfrastructuur` dataset;
+- the public PDOK / Stichting RIONED GWSW `beheergebied` collection is now acquired through a bounded, receipt-bearing provider with explicit authentication, rate-limit, upstream, malformed, truncated and empty-coverage states;
+- live point-in-multipolygon evaluation places the selected `Regenwateruitlaat` inside `NL.WBHCODE.11.Rioleringsgebied.932` President Kennedylaan and the broader Amsterdam West treatment unit;
+- Waternet source reference `826` is not treated as a GWSW key: the national GWSW identifier `Rioleringsgebied.826` denotes Eva Besnyöstraat H6 at a different location, so identifier equality would create a false attachment;
+- no public GWSW `beheerlozing`, Waternet relation or crosswalk was found for the bounded outfall; model `gwsw-outfall-area-link-v0.1.0` therefore exposes point containment as spatial context only with `attachment.eligible=false`;
+- the 2025 STOWA/RIONED BGT Inlooptabel method is identified as the authoritative Dutch path for linking BGT surfaces to soil, open water or sewer destinations, but no public Amsterdam inlooptabel was found;
 - the proxy remains ineligible for sewer propagation because it is not an observed Waternet catchment, runoff is not yet composed, and the outfall pipe direction remains unresolved at 0.05 m.
 
 Work:
 
-- identify an authoritative contributing-area or drainage-area source that can be linked to the four explicit Waternet rainwater outfalls;
+- obtain an authoritative Amsterdam BGT Inlooptabel/outfall relation, or define and test a documented hydrologic-conditioning method without representing it as observed sewer attachment;
 - reject representative-point, first-coordinate and name-prefix shortcuts;
 - define polygon-to-H3 coverage and outlet attachment with inspectable spatial transformation semantics;
-- continue searching for an authoritative outfall-linked contributing-area polygon or define a documented hydrologic conditioning method; AHN no-data and local depressions currently prevent treating the partial proxy as a complete area;
+- keep the observed GWSW area polygon, Waternet identifier and AHN-derived proxy as separate evidence until a source-backed relation is available; AHN no-data and local depressions currently prevent treating the partial proxy as a complete area;
 - compose real IMERG, DEM and CLC evidence over the bounded Amsterdam contributing area before deriving runoff;
 - propagate only through the validated, supported observed subgraph.
 
 Gate:
 
-- at least one observed contributing area has a traceable polygon, explicit outlet attachment and testable H3 coverage;
+- at least one contributing area has a traceable polygon, an explicit source-backed or transparently conditioned outlet attachment, and testable H3 coverage;
 - invert-based direction agrees with retained pipe endpoint evidence and never falls back to ground elevation silently;
 - a bounded observed-infrastructure result either produces traceable non-zero downstream state or stops at an explicit missing-data boundary;
 - the API and inspector distinguish observed assets, derived topology links and environmental evidence.
@@ -332,3 +338,5 @@ Checkpoints:
 - `feat: derive bounded DEM surface catchment proxy`
 - `feat: expose bounded DEM surface catchment proxy`
 - `feat: refine Amsterdam surface evidence with AHN DTM`
+- `feat: acquire bounded GWSW area context`
+- `refactor: aggregate AHN terrain over H3 cells`
