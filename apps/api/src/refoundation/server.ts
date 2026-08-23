@@ -8,7 +8,7 @@ import {
   EnvironmentalEvidenceComposer,
   runStormwaterProofZero,
 } from '@geo-lens/proof-zero';
-import { CopernicusDemClient } from '@geo-lens/providers';
+import { AhnDtmClient } from '@geo-lens/providers';
 import {
   AmsterdamWaternetAcquisition,
   AmsterdamWaternetBbox,
@@ -34,11 +34,11 @@ const DEFAULT_WATERNET_BBOX: AmsterdamWaternetBbox = {
 const WATERNET_SNAP_TOLERANCE_M = 0.25;
 const WATERNET_MINIMUM_RESOLVABLE_INVERT_DROP_M =
   0.05;
-const SURFACE_PROXY_H3_RESOLUTION = 11;
+const SURFACE_PROXY_H3_RESOLUTION = 13;
 const SURFACE_PROXY_OUTFALL_SOURCE_RECORD_ID =
   '8522CE11-8DC1-41CC-9375-EDECAB742620';
-const MAX_SURFACE_PROXY_TARGET_H3_CELLS = 100;
-const MAX_SURFACE_PROXY_SAMPLED_H3_CELLS = 180;
+const MAX_SURFACE_PROXY_TARGET_H3_CELLS = 800;
+const MAX_SURFACE_PROXY_SAMPLED_H3_CELLS = 950;
 const DEFAULT_CATCHMENT_H3_RESOLUTION = 13;
 const DEFAULT_SNAP_TOLERANCE_M = 5;
 const DEFAULT_MINIMUM_RESOLVABLE_DROP_M = 0.1;
@@ -65,8 +65,8 @@ export interface BuildGeoLensApiOptions {
     AmsterdamWaternetWfsClient,
     'acquire'
   >;
-  readonly demClient?: Pick<
-    CopernicusDemClient,
+  readonly surfaceElevationClient?: Pick<
+    AhnDtmClient,
     'getElevationEvidence'
   >;
 }
@@ -99,8 +99,8 @@ export function buildGeoLensApi(
   const waternetClient =
     options.waternetClient ??
     new AmsterdamWaternetWfsClient({ now });
-  const demClient =
-    options.demClient ?? new CopernicusDemClient({ now });
+  const surfaceElevationClient =
+    options.surfaceElevationClient ?? new AhnDtmClient({ now });
 
   server.register(cors);
   server.register(compress, { global: true });
@@ -210,7 +210,7 @@ export function buildGeoLensApi(
             topology: imported.topology,
             bbox,
             outfallConnectivity,
-            demClient,
+            surfaceElevationClient,
             derivedAt: now().toISOString(),
           });
 
@@ -321,8 +321,8 @@ async function composeObservedSurfaceCatchmentProxy(input: {
   readonly topology: StormwaterTopology;
   readonly bbox: AmsterdamWaternetBbox;
   readonly outfallConnectivity: OutfallConnectivityAnalysis;
-  readonly demClient: Pick<
-    CopernicusDemClient,
+  readonly surfaceElevationClient: Pick<
+    AhnDtmClient,
     'getElevationEvidence'
   >;
   readonly derivedAt: string;
@@ -409,14 +409,14 @@ async function composeObservedSurfaceCatchmentProxy(input: {
   let elevation;
 
   try {
-    elevation = await input.demClient.getElevationEvidence({
+    elevation = await input.surfaceElevationClient.getElevationEvidence({
       h3Indices: grid.sampledH3Indices,
     });
   } catch (error) {
     return {
       status: 'upstream_error' as const,
       missingReason:
-        `Copernicus DEM acquisition failed: ${errorMessage(error)}`,
+        `AHN DTM acquisition failed: ${errorMessage(error)}`,
       result: null,
       networkUse,
     };
@@ -425,6 +425,11 @@ async function composeObservedSurfaceCatchmentProxy(input: {
   try {
     const result = deriveSurfaceCatchmentProxy({
       id: 'amsterdam-waternet-outfall-8522-surface-proxy',
+      elevationModel: {
+        semantics: 'digital_terrain_model',
+        description:
+          'AHN4 DTM represents classified ground at 0.5 m source resolution; buildings, vegetation and water are not silently filled, so source no-data remains incomplete evidence.',
+      },
       outfallNodeId: outfall.id,
       outfallPosition: outfall.position,
       grid,
@@ -437,6 +442,7 @@ async function composeObservedSurfaceCatchmentProxy(input: {
       missingReason:
         result.contributingAreaM2.quality.missingReason ?? null,
       result,
+      elevationAcquisition: elevation.coverage,
       networkUse,
     };
   } catch (error) {

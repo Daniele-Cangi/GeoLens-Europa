@@ -227,7 +227,7 @@ function availableWaternetClient() {
   };
 }
 
-function fixtureDemClient(options = {}) {
+function fixtureSurfaceElevationClient(options = {}) {
   return {
     async getElevationEvidence({ h3Indices }) {
       const cells = Object.fromEntries(
@@ -243,7 +243,7 @@ function fixtureDemClient(options = {}) {
                   spatial: {
                     h3,
                     sourceResolution:
-                      '1 arc-second (~30 m at equator)',
+                      '0.5 m',
                   },
                   temporal: { acquiredAt },
                   provenance: {
@@ -263,13 +263,13 @@ function fixtureDemClient(options = {}) {
           return [
             h3,
             fixtureEvidence(
-              h3 === '8b19695222b4fff' ? 0 : 100 + index,
+              h3 === '8d19695222b477f' ? 0 : 100 + index,
               {
                 fixtureId: `api-surface-dem:${h3}`,
                 h3,
                 unit: 'm',
                 sourceResolution:
-                  '1 arc-second (~30 m at equator)',
+                  '0.5 m',
               },
             ),
           ];
@@ -277,8 +277,10 @@ function fixtureDemClient(options = {}) {
       );
 
       return {
-        provider: 'Copernicus Data Space Ecosystem',
-        dataset: 'Copernicus DEM GLO-30',
+        provider: 'PDOK',
+        dataset: 'Actueel Hoogtebestand Nederland DTM',
+        datasetVersion: 'AHN4',
+        coverage: null,
         acquiredAt,
         cells,
       };
@@ -291,7 +293,7 @@ function buildTestServer(
 ) {
   return buildGeoLensApi({
     evidenceComposer: composer,
-    demClient: fixtureDemClient(),
+    surfaceElevationClient: fixtureSurfaceElevationClient(),
     now: () => new Date(acquiredAt),
     runtime: {
       imergServiceConfigured: false,
@@ -498,10 +500,10 @@ test('API exposes observed Waternet topology with its import receipt', async (co
   );
   assert.equal(
     body.surfaceCatchmentProxy.result.coverage.targetCellCount,
-    14,
+    696,
   );
   assert.ok(
-    body.surfaceCatchmentProxy.result.coverage.sampledCellCount > 14,
+    body.surfaceCatchmentProxy.result.coverage.sampledCellCount > 696,
   );
   assert.equal(
     body.surfaceCatchmentProxy.result.outfallAnchor.nodeId,
@@ -513,6 +515,10 @@ test('API exposes observed Waternet topology with its import receipt', async (co
   assert.equal(
     body.surfaceCatchmentProxy.result.sewerCatchmentSemantics,
     'not_asserted',
+  );
+  assert.equal(
+    body.surfaceCatchmentProxy.result.elevationModel.semantics,
+    'digital_terrain_model',
   );
   assert.equal(
     body.surfaceCatchmentProxy.networkUse.eligibleForSewerPropagation,
@@ -564,7 +570,7 @@ test('API keeps observed topology while missing DEM blocks the surface proxy are
     fixtureComposer(),
     {
       waternetClient: availableWaternetClient(),
-      demClient: fixtureDemClient({ missing: true }),
+      surfaceElevationClient: fixtureSurfaceElevationClient({ missing: true }),
     },
   );
   context.after(() => server.close());
@@ -585,7 +591,7 @@ test('API keeps observed topology while missing DEM blocks the surface proxy are
   );
   assert.match(
     body.surfaceCatchmentProxy.missingReason,
-    /required DEM evidence is unavailable/,
+    /required DEM samples are unavailable/,
   );
   assert.equal(
     body.surfaceCatchmentProxy.networkUse.eligibleForSewerPropagation,
@@ -598,7 +604,7 @@ test('API bounds DEM proxy cells before provider acquisition', async (context) =
     fixtureComposer(),
     {
       waternetClient: availableWaternetClient(),
-      demClient: {
+      surfaceElevationClient: {
         async getElevationEvidence() {
           throw new Error('DEM client must not be called');
         },

@@ -64,7 +64,8 @@ The following state has been verified locally through 2026-08-23.
 | --- | --- |
 | Evidence semantics | Observed zero is distinct from missing, incomplete, failed, stale and out-of-coverage evidence. |
 | IMERG boundary | The Python `earthaccess` + `xarray` service is the sole production acquisition path. A fixed 24 h live window ending `2026-08-20T00:00:00Z` was verified as complete Early Run V07 evidence with 48/48 granules. Live execution remains opt-in and credential/network dependent. |
-| Copernicus DEM | Real public GLO-30 sampling is verified, including traceable elevation and finite-difference slope evidence. |
+| Copernicus DEM | Real public GLO-30 sampling is verified for the cross-European Proof 0 evidence path, including traceable elevation and finite-difference slope evidence. |
+| AHN terrain | The bounded Amsterdam surface experiment uses the public [PDOK AHN4 DTM WCS](https://service.pdok.nl/rws/ahn/wcs/v1_0?SERVICE=WCS&REQUEST=GetCapabilities) at 0.5 m source resolution and NAP datum. Source no-data remains missing; it is never filled with zero. |
 | CORINE Land Cover | The official CLC 2018 V2020_20u1 European 100 m GeoTIFF is verified locally. A real Trento sample returned available class `111`. |
 | CLC encoding | Official raster palette indices `1..44` are explicitly decoded to CLC level-3 codes `111..523` by transformation `clc-centroid-v0.2.0`. |
 | H3 composition | Catchment cells and network entities are joined through explicit H3 representations while source resolution remains visible. |
@@ -154,7 +155,7 @@ is restricted to explicit deterministic fixtures and is always labelled
 - NASA Earthdata credentials for live precipitation;
 - a local official CLC 2018 GeoTIFF for live land-cover evidence.
 
-Copernicus DEM GLO-30 uses its public raster endpoint and needs no credential.
+Copernicus DEM GLO-30 and PDOK AHN4 DTM use public raster endpoints and need no credential.
 The active CLC provider reads a local GeoTIFF; a Copernicus service key is only
 needed by download tooling, not by the runtime provider.
 
@@ -335,6 +336,12 @@ An available response exposes:
   ambiguous directions;
 - an empty catchment attachment set because the source does not provide the
   required contributing areas.
+- a separate experimental AHN4 DTM surface proxy at H3 r13, including its
+  exact WCS receipt, 0.5 m source resolution, EPSG:28992 + NAP datum and
+  per-cell evidence;
+- both a resolved partial area and an explicitly unavailable complete area when
+  AHN no-data leaves possible contributing cells unresolved; this result never creates
+  a Waternet catchment attachment or sewer propagation input.
 
 Authentication, rate limiting, upstream errors, invalid/truncated responses and
 empty coverage are returned explicitly without an empty valid-looking topology.

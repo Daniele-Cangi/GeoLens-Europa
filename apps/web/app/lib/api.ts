@@ -363,6 +363,13 @@ export interface ObservedSurfaceCatchmentProxy {
     'experimental_dem_derived_surface_contributing_area_proxy';
   readonly modelVersion: string;
   readonly status: EvidenceStatus;
+  readonly elevationModel: {
+    readonly semantics:
+      | 'digital_terrain_model'
+      | 'digital_surface_model'
+      | 'synthetic_fixture_surface';
+    readonly description: string;
+  };
   readonly outfallAnchor: {
     readonly nodeId: string;
     readonly position: {
@@ -418,6 +425,23 @@ export interface ObservedSurfaceCatchmentProxyEnvelope {
   readonly status: EvidenceStatus;
   readonly missingReason: string | null;
   readonly result: ObservedSurfaceCatchmentProxy | null;
+  readonly elevationAcquisition?: {
+    readonly service: 'OGC WCS';
+    readonly serviceVersion: '2.0.1';
+    readonly coverageId: 'dtm_05m';
+    readonly requestUrl: string;
+    readonly requestedBoundsRd: {
+      readonly minX: number;
+      readonly minY: number;
+      readonly maxX: number;
+      readonly maxY: number;
+    };
+    readonly sourceCrs: 'EPSG:28992';
+    readonly verticalDatum: 'NAP (EPSG:5709)';
+    readonly responseWidth: number;
+    readonly responseHeight: number;
+    readonly responseBytes: number;
+  } | null;
   readonly networkUse: {
     readonly eligibleForSewerPropagation: false;
     readonly reasons: readonly string[];

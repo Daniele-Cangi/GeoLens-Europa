@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { latLngToCell } = require('h3-js');
 const {
+  AhnDtmClient,
   CopernicusDemClient,
   CorineLandCoverClient,
 } = require('../dist');
@@ -9,6 +10,11 @@ const {
 const liveEnabled =
   process.env.GEOLENS_RUN_LIVE_PROVIDER_TESTS === '1';
 const copenhagen = latLngToCell(55.6761, 12.5683, 9);
+const amsterdamOutfall = latLngToCell(
+  52.33807928535426,
+  4.898945130628371,
+  13,
+);
 
 test(
   'live Copernicus DEM returns non-synthetic traceable evidence',
@@ -32,6 +38,23 @@ test(
   },
 );
 
+test(
+  'live AHN DTM returns bounded non-synthetic NAP elevation',
+  { skip: !liveEnabled },
+  async () => {
+    const result = await new AhnDtmClient().getElevationEvidence({
+      h3Indices: [amsterdamOutfall],
+    });
+    const evidence = result.cells[amsterdamOutfall];
+
+    assert.equal(evidence.quality.status, 'available');
+    assert.equal(evidence.spatial.sourceResolution, '0.5 m');
+    assert.equal(evidence.provenance.provider, 'PDOK');
+    assert.equal(evidence.provenance.datasetVersion, 'AHN4');
+    assert.equal(result.coverage.coverageId, 'dtm_05m');
+    assert.ok(result.coverage.responseBytes > 0);
+  },
+);
 test(
   'live local CLC raster returns an official non-synthetic class',
   {

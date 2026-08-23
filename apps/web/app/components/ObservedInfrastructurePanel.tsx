@@ -289,7 +289,7 @@ export default function ObservedInfrastructurePanel({
         <div className="panel-meta">
           <StatusPill status={status} />
           <span>
-            DEM surface proxy kept separate - no
+            AHN DTM surface proxy kept separate - no
             sewer catchment or flow asserted
           </span>
         </div>
@@ -357,7 +357,7 @@ export default function ObservedInfrastructurePanel({
                 bounded Amsterdam WFS response,
                 including explicitly typed
                 rainwater outfalls and a separate
-                DEM-derived H3 surface proxy.
+                AHN DTM-derived H3 surface proxy.
               </desc>
               <rect
                 width="820"
@@ -512,7 +512,7 @@ export default function ObservedInfrastructurePanel({
               <span>
                 {available.surfaceCatchmentProxy.result
                   ?.counts.contributingCells ?? 0}
-                {' DEM proxy cells / '}
+                {' AHN partial cells / '}
                 {statusLabel(
                   available.surfaceCatchmentProxy.status,
                 )}
@@ -661,7 +661,7 @@ export default function ObservedInfrastructurePanel({
                   <p className="eyebrow">
                     Derived surface evidence
                   </p>
-                  <h3>DEM surface proxy</h3>
+                  <h3>AHN DTM surface proxy</h3>
                 </div>
                 <StatusPill
                   status={
@@ -675,11 +675,29 @@ export default function ObservedInfrastructurePanel({
                 <>
                   <dl className="observed-facts">
                     <div>
-                      <dt>Contributing area</dt>
+                      <dt>Complete contributing area</dt>
                       <dd>
                         {evidenceText(
                           surfaceProxy.contributingAreaM2,
                           0,
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Resolved partial area</dt>
+                      <dd>
+                        {formatNumber(
+                          surfaceProxy.partialContributingAreaM2,
+                          0,
+                          'm2',
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Elevation model</dt>
+                      <dd>
+                        {statusLabel(
+                          surfaceProxy.elevationModel.semantics,
                         )}
                       </dd>
                     </div>
@@ -695,9 +713,17 @@ export default function ObservedInfrastructurePanel({
                       </dd>
                     </div>
                     <div>
-                      <dt>DEM source</dt>
+                      <dt>Elevation source</dt>
                       <dd>
                         {surfaceProxy.elevationSources.providers.join(
+                          ', ',
+                        )}
+                        {' · '}
+                        {surfaceProxy.elevationSources.datasets.join(
+                          ', ',
+                        )}
+                        {' · '}
+                        {surfaceProxy.elevationSources.datasetVersions.join(
                           ', ',
                         )}
                       </dd>
@@ -747,18 +773,40 @@ export default function ObservedInfrastructurePanel({
                       </dd>
                     </div>
                     <div>
-                      <dt>DEM acquired</dt>
+                      <dt>Elevation acquired</dt>
                       <dd>
                         {surfaceProxy.elevationSources.acquiredAt
                           .map(formatUtcTimestamp)
                           .join(', ')}
                       </dd>
                     </div>
+                    {surfaceEnvelope?.elevationAcquisition ? (
+                      <div>
+                        <dt>WCS receipt</dt>
+                        <dd>
+                          {surfaceEnvelope.elevationAcquisition.coverageId}
+                          {' · '}
+                          {surfaceEnvelope.elevationAcquisition.sourceCrs}
+                          {' + '}
+                          {surfaceEnvelope.elevationAcquisition.verticalDatum}
+                          {' · '}
+                          {surfaceEnvelope.elevationAcquisition.responseWidth}
+                          {' x '}
+                          {surfaceEnvelope.elevationAcquisition.responseHeight}
+                          {' px · '}
+                          {formatNumber(
+                            surfaceEnvelope.elevationAcquisition.responseBytes /
+                              1024,
+                            0,
+                            'KiB',
+                          )}
+                        </dd>
+                      </div>
+                    ) : null}
                   </dl>
                   <p className="observed-warning">
-                    {surfaceProxy.limitations[0]}{' '}
-                    {surfaceProxy.limitations[2]} No Waternet
-                    sewer catchment is asserted.
+                    {surfaceProxy.limitations.slice(0, 4).join(' ')}
+                    {' No Waternet sewer catchment is asserted.'}
                   </p>
                 </>
               ) : (

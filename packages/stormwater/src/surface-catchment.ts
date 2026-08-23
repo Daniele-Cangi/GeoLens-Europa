@@ -44,8 +44,17 @@ export interface SurfaceCatchmentGrid {
   readonly boundaryHaloRings: 1;
 }
 
+export interface SurfaceElevationModel {
+  readonly semantics:
+    | 'digital_terrain_model'
+    | 'digital_surface_model'
+    | 'synthetic_fixture_surface';
+  readonly description: string;
+}
+
 export interface SurfaceCatchmentProxyInput {
   readonly id: string;
+  readonly elevationModel: SurfaceElevationModel;
   readonly outfallNodeId: string;
   readonly outfallPosition: {
     readonly lat: number;
@@ -89,6 +98,7 @@ export interface SurfaceCatchmentProxy {
     'experimental_dem_derived_surface_contributing_area_proxy';
   readonly modelVersion: typeof SURFACE_CATCHMENT_PROXY_VERSION;
   readonly status: EvidenceStatus;
+  readonly elevationModel: SurfaceElevationModel;
   readonly outfallAnchor: {
     readonly nodeId: string;
     readonly position: {
@@ -304,10 +314,12 @@ export function deriveSurfaceCatchmentProxy(
         (h3) =>
           `${h3}=${input.elevationByH3[h3].quality.status}`,
       );
+    const preview = missing.slice(0, 10).join(', ');
+    const omitted = missing.length - Math.min(missing.length, 10);
 
     contributingAreaM2 = unavailableEvidence(
       status,
-      `Surface proxy area is incomplete because required DEM evidence is unavailable: ${missing.join(', ')}`,
+      `Surface proxy area is incomplete because ${missing.length} required DEM samples are unavailable: ${preview}${omitted > 0 ? `; ${omitted} more` : ''}`,
       descriptor,
     );
   } else if (
@@ -343,6 +355,7 @@ export function deriveSurfaceCatchmentProxy(
       'experimental_dem_derived_surface_contributing_area_proxy',
     modelVersion: SURFACE_CATCHMENT_PROXY_VERSION,
     status: contributingAreaM2.quality.status,
+    elevationModel: input.elevationModel,
     outfallAnchor: {
       nodeId: input.outfallNodeId,
       position: input.outfallPosition,
@@ -364,7 +377,8 @@ export function deriveSurfaceCatchmentProxy(
     elevationSources: elevationSourceSummary(requiredEvidence),
     sewerCatchmentSemantics: 'not_asserted',
     limitations: [
-      'Copernicus GLO-30 is a digital surface model that includes buildings, infrastructure and vegetation.',
+      input.elevationModel.description,
+      'H3 is the routing representation, not the native elevation-source resolution.',
       'The model uses one elevation sample at each H3 centroid and routes to one strictly lower neighboring centroid.',
       'The observed outfall H3 cell is forced to be the terminal pour point; this is explicit model conditioning.',
       'No depression filling, flat routing, road/building conditioning or hydraulic sewer behavior is modeled.',
@@ -558,6 +572,8 @@ function areaDescriptor(
 ): EvidenceDescriptor {
   const sourceMetadata: Record<string, EvidenceMetadataValue> = {
     proxyId: input.id,
+    elevationModelSemantics: input.elevationModel.semantics,
+    elevationModelDescription: input.elevationModel.description,
     outfallNodeId: input.outfallNodeId,
     outletH3: input.grid.outletH3,
     h3Resolution: input.grid.h3Resolution,
@@ -649,6 +665,12 @@ function elevationSourceSummary(
 function validateInput(input: SurfaceCatchmentProxyInput): void {
   if (input.id.trim().length === 0) {
     throw new Error('Surface catchment proxy id must be non-empty');
+  }
+
+  if (input.elevationModel.description.trim().length === 0) {
+    throw new Error(
+      'Surface catchment elevation model description must be non-empty',
+    );
   }
 
   if (input.outfallNodeId.trim().length === 0) {
