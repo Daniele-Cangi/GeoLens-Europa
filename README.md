@@ -202,7 +202,7 @@ Set nasa-precip-engine/.env:
 ~~~text
 EARTHDATA_USERNAME=...
 EARTHDATA_PASSWORD=...
-API_HOST=0.0.0.0
+API_HOST=127.0.0.1
 API_PORT=8001
 LOG_LEVEL=INFO
 
@@ -212,7 +212,9 @@ GEOLENS_PYTHON=D:/GeoLens/venvs/nasa-precip/Scripts/python.exe
 GEOLENS_TEMP_DIR=D:/GeoLens/tmp
 ~~~
 
-IMERG source resolution is approximately 0.1 degree. H3 does not change that precision. Only complete available windows may be persisted in the optional cache; missing, failed and incomplete windows are never cached as observations.
+IMERG source resolution is approximately 0.1 degree. H3 does not change that precision. Only complete `available` windows may be persisted in the optional disk cache. The short-lived in-memory cache can replay an explicit unavailable or incomplete result, but its evidence status remains unchanged: it never becomes an observation or a zero.
+
+The default host exposes the unauthenticated development service only on the local machine. Set `API_HOST=0.0.0.0` only when network access is intentional and protected by an appropriate boundary.
 
 ### Configure CORINE Land Cover
 
@@ -258,7 +260,7 @@ $env:GEOLENS_WEB_PORT = '3004'
 npm run dev
 ~~~
 
-The root launcher starts services in dependency order, waits for their health gates and stops the process tree with Ctrl+C. The first uncached IMERG acquisition can take several minutes.
+The root launcher starts services in dependency order and waits for their health gates. On Windows, Ctrl+C stops each complete descendant process tree; on POSIX systems it sends `SIGTERM` to each launched service. The first uncached IMERG acquisition can take several minutes.
 
 ## APIs
 
