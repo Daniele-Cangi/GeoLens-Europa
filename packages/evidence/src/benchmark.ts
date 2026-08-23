@@ -18,6 +18,8 @@ export interface BenchmarkDataset {
   readonly id: string;
   readonly role: BenchmarkDatasetRole;
   readonly temporalRelation: 'pre_event' | 'during_event' | 'post_event';
+  /** Earliest verified time this exact source/version was available. */
+  readonly availableAt?: string;
   readonly publisher: string;
   readonly dataset: string;
   readonly datasetVersion?: string;
@@ -167,6 +169,10 @@ export function assertHistoricalBenchmarkManifest(
       acquisitionStatuses,
       label + '.acquisitionStatus',
     );
+    const availableAt =
+      dataset.availableAt === undefined
+        ? undefined
+        : isoTime(dataset.availableAt, label + '.availableAt');
     stringValue(dataset.publisher, label + '.publisher');
     stringValue(dataset.dataset, label + '.dataset');
     stringValue(dataset.accessMethod, label + '.accessMethod');
@@ -219,6 +225,19 @@ export function assertHistoricalBenchmarkManifest(
       if (modelInput || calibration) {
         throw new Error(
           label + ' cannot be used for model input or calibration',
+        );
+      }
+    }
+
+    if (modelInput || calibration) {
+      if (availableAt === undefined) {
+        throw new Error(
+          label + '.availableAt is required for model input or calibration',
+        );
+      }
+      if (Date.parse(availableAt) > Date.parse(cutoff)) {
+        throw new Error(
+          label + ' was not available by benchmark knowledgeCutoff',
         );
       }
     }

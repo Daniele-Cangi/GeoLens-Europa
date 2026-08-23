@@ -13,7 +13,12 @@
     "aoi": {
       "name": "Forli bounded pilot",
       "crs": "EPSG:4326",
-      "bounds": [11.98, 44.17, 12.1, 44.28],
+      "bounds": [
+        11.98,
+        44.17,
+        12.1,
+        44.28
+      ],
       "selectionBasis": "Bounded engineering pilot around Forli and the Montone-Rabbi system. The bbox must be intersected with official product coverage before the benchmark can become model_ready."
     },
     "evaluationMetrics": [
@@ -33,9 +38,34 @@
   },
   "datasets": [
     {
-      "id": "nasa-imerg-v07",
+      "id": "nasa-imerg-v06c-nrt",
       "role": "model_input",
       "temporalRelation": "during_event",
+      "availableAt": "2022-05-09T00:00:00Z",
+      "publisher": "NASA GES DISC",
+      "dataset": "GPM IMERG Early/Late half-hourly precipitation",
+      "datasetVersion": "06C",
+      "sourceUrl": "https://disc.gsfc.nasa.gov/datasets/GPM_3IMERGHH_06/summary",
+      "accessMethod": "canonical nasa-precip service after explicit V06C historical-mode parameterization",
+      "sourceResolution": "0.1 degree, 30 minute",
+      "acquisitionStatus": "blocked",
+      "license": {
+        "name": "NASA EOSDIS data use policy",
+        "access": "auth_required",
+        "redistribution": "unknown",
+        "note": "Earthdata authentication is required; derived evidence must retain product, run type, granules and actual coverage."
+      },
+      "allowedUses": {
+        "modelInput": true,
+        "calibration": false,
+        "evaluation": false
+      },
+      "methodologyNote": "Replay-eligible product family active during the event. Acquisition remains blocked until the canonical service can select V06C explicitly and verify every granule against the cutoff."
+    },
+    {
+      "id": "nasa-imerg-v07",
+      "role": "context_only",
+      "temporalRelation": "post_event",
       "publisher": "NASA GES DISC",
       "dataset": "GPM IMERG half-hourly precipitation",
       "datasetVersion": "07",
@@ -50,11 +80,12 @@
         "note": "Earthdata authentication is required; derived evidence must retain product, run type, granules and actual coverage."
       },
       "allowedUses": {
-        "modelInput": true,
+        "modelInput": false,
         "calibration": false,
-        "evaluation": false
+        "evaluation": true
       },
-      "methodologyNote": "Historical replay input. IMERG resolution remains distinct from H3 representation."
+      "methodologyNote": "V07 was first released after the event and is excluded from the cutoff-constrained replay. It may be evaluated only as a retrospective product.",
+      "availableAt": "2023-07-10T00:00:00Z"
     },
     {
       "id": "copernicus-clc-2018",
@@ -76,11 +107,12 @@
         "modelInput": true,
         "calibration": false,
         "evaluation": false
-      }
+      },
+      "availableAt": "2021-04-20T00:00:00Z"
     },
     {
       "id": "rer-dtm-1m-pst",
-      "role": "model_input",
+      "role": "context_only",
       "temporalRelation": "pre_event",
       "publisher": "Regione Emilia-Romagna / MASE",
       "dataset": "DTM 1x1 PST",
@@ -95,9 +127,9 @@
         "note": "The regional page explicitly states that the WCS is not OpenData."
       },
       "allowedUses": {
-        "modelInput": true,
+        "modelInput": false,
         "calibration": false,
-        "evaluation": false
+        "evaluation": true
       },
       "localArtifacts": [
         {
@@ -105,7 +137,33 @@
           "bytes": 3541,
           "sha256": "0D66F613BEC4A3D468AD924F4C9ED428D6E1ADA746872270CCA9E9A8110026BF"
         }
-      ]
+      ],
+      "methodologyNote": "The terrain survey predates the event, but availability of this exact WCS/source by the knowledge cutoff is not yet proven. It remains excluded from the cutoff-constrained model path."
+    },
+    {
+      "id": "copernicus-dem-glo-30-2022",
+      "role": "model_input",
+      "temporalRelation": "pre_event",
+      "availableAt": "2022-12-31T23:59:59Z",
+      "publisher": "European Union / ESA",
+      "dataset": "Copernicus DEM GLO-30",
+      "datasetVersion": "2022_1",
+      "sourceUrl": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+      "accessMethod": "bounded tile acquisition through the canonical Copernicus DEM provider",
+      "sourceResolution": "30 m DSM",
+      "acquisitionStatus": "remote_verified",
+      "license": {
+        "name": "Copernicus WorldDEM-30 user licence",
+        "access": "auth_required",
+        "redistribution": "allowed",
+        "note": "Attribution and adapted-product notices apply."
+      },
+      "allowedUses": {
+        "modelInput": true,
+        "calibration": false,
+        "evaluation": false
+      },
+      "methodologyNote": "Pre-event terrain input. This is a surface model, not bare-earth terrain; buildings and vegetation may affect routing and must remain explicit in provenance."
     },
     {
       "id": "rer-xdbtr-2020-2018",
@@ -134,11 +192,12 @@
           "bytes": 72190,
           "sha256": "326658858A728B19B7713ECC45CF614D0917571B6C9D83850F08FED6C286E619"
         }
-      ]
+      ],
+      "availableAt": "2020-01-01T00:00:00Z"
     },
     {
       "id": "arpae-2023-pluviometry",
-      "role": "model_input",
+      "role": "context_only",
       "temporalRelation": "during_event",
       "publisher": "ARPAE Emilia-Romagna",
       "dataset": "Annali idrologici 2023 - Parte I pluviometria",
@@ -153,18 +212,19 @@
         "redistribution": "allowed"
       },
       "allowedUses": {
-        "modelInput": true,
+        "modelInput": false,
         "calibration": false,
-        "evaluation": false
+        "evaluation": true
       },
-      "methodologyNote": "Gauge rainfall is a separate input experiment from IMERG and must not be blended silently.",
+      "methodologyNote": "The annual archive was published after the knowledge cutoff. It is held out as a rainfall comparison until an event-time ARPAE source with verified availability is acquired.",
       "localArtifacts": [
         {
           "relativePath": "source/arpae-annali-idrologici-2023.zip",
           "bytes": 11331242,
           "sha256": "44835A40DDA87474413EE01E54465A3401C858AE246558D158854D4AE90EA63D"
         }
-      ]
+      ],
+      "availableAt": "2024-12-23T00:00:00Z"
     },
     {
       "id": "arpae-2023-hydrometry",
@@ -187,7 +247,8 @@
         "calibration": false,
         "evaluation": true
       },
-      "methodologyNote": "Hydrometry is context/evaluation for the hydrologic-routing gate. It may become a boundary condition only in a separately declared conditioned-inundation replay."
+      "methodologyNote": "Hydrometry is context/evaluation for the hydrologic-routing gate. It may become a boundary condition only in a separately declared conditioned-inundation replay.",
+      "availableAt": "2024-12-23T00:00:00Z"
     },
     {
       "id": "rer-flood-extent-v7-event-2",
@@ -228,7 +289,8 @@
           "bytes": 587961,
           "sha256": "79F7C9471D596A648FD4A0349623EA614D65695ADB3BA64BC1B4DD4569CA28DC"
         }
-      ]
+      ],
+      "availableAt": "2025-11-24T00:00:00Z"
     },
     {
       "id": "rer-rapid-mapping-may-2023",
@@ -291,7 +353,8 @@
           "bytes": 19301053,
           "sha256": "ED9FE823A384227041B858F17589A744191205DD380CC2CF73A97A4D900FCACC"
         }
-      ]
+      ],
+      "availableAt": "2023-07-11T00:00:00Z"
     }
   ]
 }

@@ -393,21 +393,21 @@ State: in progress
 
 Progress:
 
-- a typed historical-benchmark contract now fixes dataset role, temporal relation, permitted use, access/license state, acquisition state and portable content-addressed local artifacts;
+- a typed historical-benchmark contract now fixes dataset role, temporal relation, verified source availability, permitted use, access/license state, acquisition state and portable content-addressed local artifacts;
 - the first manifest declares a bounded Forli pilot, the 16-18 May replay window, an end-of-window knowledge cutoff and a hydrologic-routing claim level that explicitly forbids validated inundation, water-depth, probability and operational-forecast claims;
 - post-event evaluation and comparison evidence is structurally forbidden from model input and calibration paths;
 - the official regional V7 archive is verified as two EPSG:32632 multipolygon layers: 150 event-1 features and 2,022 event-2 features; event 2 is the primary evaluation reference but remains under explicit license review and must not be redistributed;
-- ARPAE 2023 pluviometry is declared as a separate event input from IMERG, while hydrometry remains context/evaluation until a conditioned hydraulic replay declares it as a boundary condition;
-- the official DTM 1x1 WCS, XDBTR alveo/argine/edificato WMS and Rapid Mapping WMS capabilities are locally retained with checksums; DTM redistribution remains restricted because the regional service is not OpenData;
+- source availability is enforced against the knowledge cutoff: IMERG V07 and the ARPAE annual archive are post-event context/evaluation only, while replay precipitation is pinned to the event-time V06C product family and remains blocked until the canonical service supports explicit historical version selection;
+- Copernicus DEM GLO-30 2022_1 is the verified pre-event terrain input; the regional DTM 1x1 WCS remains context-only until availability of that exact source by the cutoff is proven, and its redistribution remains restricted because the regional service is not OpenData;
 - the Copernicus EMSN154 geospatial package and technical report are locally verified; P04 uses post-event Sentinel-1 delineation, while P06 is a two-dimensional hydraulic model calibrated with P04/EMSR664 footprints and ARPAE boundary conditions, so both remain secondary comparison evidence rather than independent ground truth;
 - nine official artifacts totalling 600,853,843 bytes are stored outside Git under D:/GeoLens/data/emilia-romagna-2023 and pass streamed byte-count and SHA-256 verification;
-- deterministic tests cover a valid manifest, post-event leakage prevention, Copernicus comparison semantics, portable artifact paths, content hashes and the temporal knowledge cutoff.
+- deterministic tests cover a valid manifest, post-event and post-cutoff leakage prevention, historical IMERG version selection, Copernicus comparison semantics, portable artifact paths, content hashes and the temporal knowledge cutoff.
 
 Work:
 
 - intersect the bounded pilot AOI with each official coverage and freeze the final common evaluation extent;
 - select a common evaluation grid, no-data mask, permanent-water mask and explicit boundary-tolerance policy before computing metrics;
-- acquire bounded DTM, XDBTR and historical rainfall evidence without adding post-event products to the model path;
+- add explicit V06C historical acquisition to the canonical NASA service, then acquire bounded Copernicus DEM, CLC, XDBTR and rainfall evidence without adding post-event products to the model path;
 - establish transparent baselines for terrain-only routing, IMERG-driven routing and ARPAE-gauge-driven routing;
 - implement the first deterministic surface-flow-concentration replay and evaluate it without calling the result an inundation extent;
 - introduce a conditioned inundation replay only after river levels, discharge, embankments, breaches and downstream boundary conditions have explicit evidence semantics;

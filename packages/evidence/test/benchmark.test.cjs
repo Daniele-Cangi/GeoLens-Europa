@@ -83,6 +83,45 @@ test('local artifact paths must remain portable and content-addressed', () => {
   );
 });
 
+test('model inputs must have been available by the knowledge cutoff', () => {
+  const manifest = manifestFixture();
+  const annualRainfall = manifest.datasets.find(
+    (dataset) => dataset.id === 'arpae-2023-pluviometry',
+  );
+
+  assert.equal(annualRainfall.availableAt, '2024-12-23T00:00:00Z');
+  annualRainfall.role = 'model_input';
+  annualRainfall.allowedUses.modelInput = true;
+  annualRainfall.allowedUses.evaluation = false;
+
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(manifest),
+    /not available by benchmark knowledgeCutoff/,
+  );
+});
+
+test('the post-event IMERG version is excluded from the replay input', () => {
+  const manifest = manifestFixture();
+  const v07 = manifest.datasets.find(
+    (dataset) => dataset.id === 'nasa-imerg-v07',
+  );
+  const v06 = manifest.datasets.find(
+    (dataset) => dataset.id === 'nasa-imerg-v06c-nrt',
+  );
+
+  assert.equal(v07.role, 'context_only');
+  assert.equal(v07.allowedUses.modelInput, false);
+  assert.ok(
+    Date.parse(v07.availableAt) >
+      Date.parse(manifest.benchmark.event.knowledgeCutoff),
+  );
+  assert.equal(v06.role, 'model_input');
+  assert.ok(
+    Date.parse(v06.availableAt) <=
+      Date.parse(manifest.benchmark.event.knowledgeCutoff),
+  );
+});
+
 test('knowledge cutoff cannot move beyond the replay event', () => {
   const manifest = manifestFixture();
   manifest.benchmark.event.knowledgeCutoff = '2023-05-19T00:00:00Z';
