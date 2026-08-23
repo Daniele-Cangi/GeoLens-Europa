@@ -57,6 +57,58 @@ function formatNumber(
   })}${unit ? ` ${unit}` : ''}`;
 }
 
+function conciseReason(
+  value: string,
+  maximumLength = 360,
+): string {
+  if (value.length <= maximumLength) {
+    return value;
+  }
+
+  return value.slice(0, maximumLength - 1) + '…';
+}
+
+function formatRange(
+  values: readonly number[],
+  digits: number,
+  unit: string,
+): string {
+  if (values.length === 0) {
+    return '-';
+  }
+
+  const minimum = Math.min(...values);
+  const maximum = Math.max(...values);
+
+  if (Math.abs(maximum - minimum) < 1e-12) {
+    return formatNumber(minimum, digits, unit);
+  }
+
+  return (
+    formatNumber(minimum, digits, unit) +
+    ' - ' +
+    formatNumber(maximum, digits, unit)
+  );
+}
+
+function formatClassCounts(
+  values: readonly number[],
+): string {
+  if (values.length === 0) {
+    return '-';
+  }
+
+  const counts = new Map<number, number>();
+
+  for (const value of values) {
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+
+  return [...counts.entries()]
+    .sort(([left], [right]) => left - right)
+    .map(([code, count]) => code + ' (' + count + ')')
+    .join(' · ');
+}
 function evidenceText(
   evidence: Evidence<number> | undefined,
   digits = 2,
@@ -302,6 +354,46 @@ export default function ObservedInfrastructurePanel({
   const conditionedEnvelope =
     available?.conditionedSurfaceCatchmentProxy;
   const conditionedProxy = conditionedEnvelope?.result;
+  const conditionedRunoffEnvelope =
+    available?.conditionedSurfaceRunoff;
+  const conditionedRunoff =
+    conditionedRunoffEnvelope?.result;
+  const conditionedEnvironmentalCells =
+    conditionedRunoff
+      ? Object.values(conditionedRunoff.environmental.cells)
+      : [];
+  const conditionedRunoffCells =
+    conditionedRunoff?.catchmentContribution.cells ?? [];
+  const rainfallValues = conditionedEnvironmentalCells
+    .map((cell) => cell.rainfall24hMm.value)
+    .filter(
+      (value): value is number =>
+        typeof value === 'number',
+    );
+  const slopeValues = conditionedEnvironmentalCells
+    .map((cell) => cell.slopeDeg.value)
+    .filter(
+      (value): value is number =>
+        typeof value === 'number',
+    );
+  const landCoverValues = conditionedEnvironmentalCells
+    .map((cell) => cell.landCoverClass.value)
+    .filter(
+      (value): value is number =>
+        typeof value === 'number',
+    );
+  const runoffDepthValues = conditionedRunoffCells
+    .map((cell) => cell.runoff.output.value?.derivedRunoffMm)
+    .filter(
+      (value): value is number =>
+        typeof value === 'number',
+    );
+  const firstConditionedEnvironmentalCell =
+    conditionedEnvironmentalCells[0];
+  const firstConditionedRunoffOutput =
+    conditionedRunoffCells.find(
+      (cell) => cell.runoff.output.value !== null,
+    )?.runoff.output.value;
   const status =
     result?.status ?? 'not_requested';
 
@@ -324,9 +416,9 @@ export default function ObservedInfrastructurePanel({
         <div className="panel-meta">
           <StatusPill status={status} />
           <span>
-            Observed GWSW context, raw AHN and conditioned
-            BGT/AHN proxy remain distinct - no observed sewer
-            catchment or flow asserted
+            Observed GWSW context, raw AHN, conditioned BGT/AHN
+            and environmental runoff remain distinct - network
+            propagation stops before unsupported attachment or direction
           </span>
         </div>
       </div>
@@ -971,6 +1063,179 @@ export default function ObservedInfrastructurePanel({
                 <p className="surface-proxy-missing">
                   {conditionedEnvelope?.missingReason ??
                     'Conditioned surface proxy not requested.'}
+                </p>
+              )}
+            </section>
+            <section className="observed-selection surface-proxy-receipt conditioned-runoff-receipt">
+              <div className="surface-proxy-heading">
+                <div>
+                  <p className="eyebrow">
+                    Environmental source term
+                  </p>
+                  <h3>IMERG + CLC runoff over conditioned area</h3>
+                </div>
+                <StatusPill
+                  status={
+                    conditionedRunoffEnvelope?.status ??
+                    'not_requested'
+                  }
+                />
+              </div>
+
+              {conditionedRunoff ? (
+                <>
+                  <dl className="observed-facts">
+                    <div>
+                      <dt>Bounded H3 selection</dt>
+                      <dd>
+                        {conditionedRunoff.selection.selectedCellCount}
+                        {' / '}
+                        {conditionedRunoff.selection.candidateCellCount}
+                        {' cells · '}
+                        {formatNumber(
+                          conditionedRunoff.selection.representedAreaM2,
+                          0,
+                          'm2',
+                        )}
+                        {conditionedRunoff.selection
+                          .coversAllConditionedContributingCells
+                          ? ' · complete conditioned area'
+                          : ' · bounded subset'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>IMERG rainfall 24 h</dt>
+                      <dd>
+                        {formatRange(rainfallValues, 2, 'mm')}
+                        {' · '}
+                        {firstConditionedEnvironmentalCell
+                          ?.rainfall24hMm.spatial
+                          .sourceResolution ?? 'resolution unavailable'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Observation window</dt>
+                      <dd>
+                        {formatUtcTimestamp(
+                          firstConditionedEnvironmentalCell
+                            ?.rainfall24hMm.temporal.windowStart,
+                        )}
+                        {' → '}
+                        {formatUtcTimestamp(
+                          firstConditionedEnvironmentalCell
+                            ?.rainfall24hMm.temporal.windowEnd,
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Rainfall source</dt>
+                      <dd>
+                        {
+                          conditionedRunoff.environmental.sources
+                            .rainfall.provider
+                        }
+                        {' · '}
+                        {
+                          conditionedRunoff.environmental.sources
+                            .rainfall.dataset
+                        }
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>CLC evidence</dt>
+                      <dd>
+                        {formatClassCounts(landCoverValues)}
+                        {' · '}
+                        {firstConditionedEnvironmentalCell
+                          ?.landCoverClass.spatial
+                          .sourceResolution ?? 'resolution unavailable'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>GLO-30 slope input</dt>
+                      <dd>
+                        {formatRange(slopeValues, 2, 'deg')}
+                        {' · '}
+                        {firstConditionedEnvironmentalCell
+                          ?.slopeDeg.spatial.sourceResolution ??
+                          'resolution unavailable'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Derived runoff depth</dt>
+                      <dd>
+                        {formatRange(runoffDepthValues, 2, 'mm')}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Aggregated runoff volume</dt>
+                      <dd>
+                        {evidenceText(
+                          conditionedRunoff.catchmentContribution
+                            .totalVolumeM3,
+                          3,
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Runoff parameters</dt>
+                      <dd>
+                        {firstConditionedRunoffOutput
+                          ? formatNumber(
+                              firstConditionedRunoffOutput
+                                .runoffCoefficient,
+                              3,
+                            ) +
+                            ' coefficient · ' +
+                            formatNumber(
+                              firstConditionedRunoffOutput
+                                .imperviousnessProxy,
+                              2,
+                            ) +
+                            ' imperviousness proxy'
+                          : 'Unavailable'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Models</dt>
+                      <dd>
+                        {conditionedRunoff.modelVersion}
+                        {' · '}
+                        {firstConditionedRunoffOutput?.modelVersion ??
+                          'runoff unavailable'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Surface attachment</dt>
+                      <dd>
+                        Conditioned, not observed · outfall{' '}
+                        {conditionedRunoff.surfaceDefinition.outfallH3}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Network propagation</dt>
+                      <dd>
+                        Stopped before propagation ·{' '}
+                        {conditionedRunoffEnvelope
+                          ?.networkPropagation.blockingReasons
+                          .map(statusLabel)
+                          .join(' · ') ?? 'not evaluated'}
+                      </dd>
+                    </div>
+                  </dl>
+                  <p className="observed-warning">
+                    {conditionedRunoffEnvelope?.missingReason
+                      ? conciseReason(
+                          conditionedRunoffEnvelope.missingReason,
+                        ) + ' '
+                      : ''}
+                    {conditionedRunoff.limitations.slice(0, 4).join(' ')}
+                  </p>
+                </>
+              ) : (
+                <p className="surface-proxy-missing">
+                  {conditionedRunoffEnvelope?.missingReason ??
+                    'Conditioned environmental runoff not requested.'}
                 </p>
               )}
             </section>

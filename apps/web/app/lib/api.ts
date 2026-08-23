@@ -593,7 +593,53 @@ export interface ObservedConditionedSurfaceCatchmentProxyEnvelope {
     readonly outfallConnectivityStatus: string;
     readonly unresolvedBoundaryPipeIds: readonly string[];
     readonly orientationThresholdM: number;
+    readonly environmentalRunoffStatus: EvidenceStatus;
+    readonly environmentalRunoffComposed: boolean;
+    readonly propagationAttempted: false;
+    readonly propagationStatus: 'blocked_before_propagation';
   } | null;
+}
+export interface ObservedConditionedSurfaceRunoffResult {
+  readonly status: 'complete' | 'incomplete';
+  readonly semantics:
+    'experimental_runoff_over_conditioned_surface_proxy';
+  readonly modelVersion: string;
+  readonly surfaceDefinition: {
+    readonly proxyId: string;
+    readonly proxyModelVersion: string;
+    readonly observedSewerCatchment: false;
+    readonly outfallNodeId: string;
+    readonly outfallH3: string;
+  };
+  readonly selection: {
+    readonly candidateCellCount: number;
+    readonly maximumCellCount: number;
+    readonly selectedCellCount: number;
+    readonly selectedH3Indices: readonly string[];
+    readonly representedAreaM2: number;
+    readonly coversAllConditionedContributingCells: boolean;
+    readonly method:
+      'shortest_conditioned_flow_path_then_h3';
+  };
+  readonly environmental: ProofZeroResult['environmental'];
+  readonly catchmentContribution: CatchmentContribution;
+  readonly limitations: readonly string[];
+}
+
+export interface ObservedConditionedSurfaceRunoffEnvelope {
+  readonly status: EvidenceStatus;
+  readonly missingReason: string | null;
+  readonly result: ObservedConditionedSurfaceRunoffResult | null;
+  readonly networkPropagation: {
+    readonly attempted: false;
+    readonly status:
+      | 'blocked_before_propagation'
+      | 'not_attempted';
+    readonly blockingReasons: readonly string[];
+    readonly outfallConnectivityStatus: string | null;
+    readonly unresolvedBoundaryPipeIds: readonly string[];
+    readonly orientationThresholdM: number | null;
+  };
 }
 export interface ObservedGwswArea {
   readonly featureId: string;
@@ -751,6 +797,8 @@ export interface AvailableObservedInfrastructure {
   readonly surfaceCatchmentProxy: ObservedSurfaceCatchmentProxyEnvelope;
   readonly conditionedSurfaceCatchmentProxy:
     ObservedConditionedSurfaceCatchmentProxyEnvelope;
+  readonly conditionedSurfaceRunoff:
+    ObservedConditionedSurfaceRunoffEnvelope;
 }
 
 export interface UnavailableObservedInfrastructure {

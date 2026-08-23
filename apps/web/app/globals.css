@@ -719,6 +719,11 @@ th {
 }
 
 
+.conditioned-runoff-receipt {
+  border-color: rgba(61, 214, 193, 0.3);
+  background: rgba(61, 214, 193, 0.06);
+}
+
 .surface-proxy-heading {
   display: flex;
   align-items: flex-start;
@@ -735,7 +740,9 @@ th {
   color: #c9bd9d;
   font-size: 0.67rem;
   line-height: 1.5;
-}.observed-warning {
+}
+
+.observed-warning {
   margin: 14px 0 0;
   border-left: 2px solid var(--amber);
   padding-left: 10px;
