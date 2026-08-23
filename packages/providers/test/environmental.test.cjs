@@ -2,6 +2,10 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { cellToLatLng, latLngToCell } = require('h3-js');
 const {
+  AhnDtmClient,
+  AhnWcsDtmRasterSource,
+  ahnRdCoordinate,
+  buildAhnWcsCoverageUrl,
   CopernicusDemClient,
   CorineLandCoverClient,
   classifyRasterError,
@@ -310,5 +314,126 @@ test('raster transport errors retain actionable status classes', () => {
   assert.equal(
     classifyRasterError(new Error('socket closed')),
     'upstream_error',
+  );
+});
+
+test('AHN DTM fixture preserves zero as synthetic evidence with a batch receipt', async () => {
+  const source = {
+    identity: {
+      kind: 'synthetic_fixture',
+      fixtureId: 'ahn-zero',
+    },
+    async sample(locations) {
+      return {
+        samples: Object.fromEntries(
+          locations.map((location) => [
+            location.id,
+            {
+              status: 'available',
+              value: 0,
+              sourceId: 'fixture-ahn-coverage',
+            },
+          ]),
+        ),
+        receipt: {
+          service: 'OGC WCS',
+          serviceVersion: '2.0.1',
+          coverageId: 'dtm_05m',
+          requestUrl: 'https://fixture.invalid/ahn',
+          requestedBoundsRd: {
+            minX: 121000,
+            minY: 483000,
+            maxX: 121010,
+            maxY: 483010,
+          },
+          sourceCrs: 'EPSG:28992',
+          verticalDatum: 'NAP (EPSG:5709)',
+          responseWidth: 20,
+          responseHeight: 20,
+          responseBytes: 400,
+        },
+      };
+    },
+  };
+  const result = await new AhnDtmClient({
+    rasterSource: source,
+    now: fixedNow,
+  }).getElevationEvidence({ h3Indices: [h3] });
+  const evidence = result.cells[h3];
+
+  assert.equal(evidence.value, 0);
+  assert.equal(evidence.quality.status, 'synthetic_fixture');
+  assert.equal(
+    evidence.provenance.sourceMetadata.intendedDataset,
+    'Actueel Hoogtebestand Nederland DTM',
+  );
+  assert.equal(evidence.spatial.sourceResolution, '0.5 m');
+  assert.equal(result.coverage.coverageId, 'dtm_05m');
+});
+
+test('AHN WCS failure remains unavailable evidence instead of zero', async () => {
+  const source = {
+    identity: { kind: 'production' },
+    async sample() {
+      throw new Error('upstream connection failed');
+    },
+  };
+  const result = await new AhnDtmClient({
+    rasterSource: source,
+    now: fixedNow,
+  }).getElevationEvidence({ h3Indices: [h3] });
+  const evidence = result.cells[h3];
+
+  assert.equal(result.coverage, null);
+  assert.equal(evidence.value, null);
+  assert.equal(evidence.quality.status, 'upstream_error');
+  assert.match(evidence.quality.missingReason, /AHN WCS acquisition failed/);
+});
+
+test('AHN request uses bounded RD subsets and traceable coverage identity', () => {
+  const [x, y] = ahnRdCoordinate(52.33807928535426, 4.898945130628371);
+  assert.ok(x > 121000 && x < 122000);
+  assert.ok(y > 483000 && y < 484000);
+
+  const url = new URL(
+    buildAhnWcsCoverageUrl({
+      minX: 121645,
+      minY: 483398,
+      maxX: 121763,
+      maxY: 483621,
+    }),
+  );
+  assert.equal(url.searchParams.get('COVERAGEID'), 'dtm_05m');
+  assert.equal(url.searchParams.get('VERSION'), '2.0.1');
+  assert.deepEqual(url.searchParams.getAll('SUBSET'), [
+    'X(121645,121763)',
+    'Y(483398,483621)',
+  ]);
+});
+test('AHN production source refuses an unbounded coverage before fetch', async () => {
+  let fetchCalls = 0;
+  const source = new AhnWcsDtmRasterSource({
+    async fetchImpl() {
+      fetchCalls += 1;
+      throw new Error('fetch must not be reached');
+    },
+  });
+  const result = await new AhnDtmClient({
+    rasterSource: source,
+    now: fixedNow,
+  }).getElevationEvidence({
+    h3Indices: [
+      latLngToCell(52.338, 4.899, 13),
+      latLngToCell(52.37, 4.94, 13),
+    ],
+  });
+
+  assert.equal(fetchCalls, 0);
+  assert.ok(
+    Object.values(result.cells).every(
+      (evidence) =>
+        evidence.value === null &&
+        evidence.quality.status === 'out_of_coverage',
+    ),
   );
 });
