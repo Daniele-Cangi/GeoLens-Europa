@@ -19,7 +19,8 @@
     "test:ts": "npm run test --workspaces --if-present",
     "test:python": "cd nasa-precip-engine && python -m unittest discover -s tests -v",
     "test:live": "npm run build --workspace=@geo-lens/providers && node --test packages/providers/test/live-environmental.test.cjs && cd nasa-precip-engine && python -m unittest discover -s tests -p test_live_imerg.py -v",
-    "test:live:proof-zero": "node --test apps/api/test/live-proof-zero-runtime.test.cjs"
+    "test:live:proof-zero": "node --test apps/api/test/live-proof-zero-runtime.test.cjs",
+    "verify:ground-truth": "npm run build --workspace=@geo-lens/evidence && node scripts/verify-ground-truth-artifacts.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
