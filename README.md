@@ -70,7 +70,7 @@ The following state has been verified locally through 2026-08-23.
 | H3 composition | Catchment cells and network entities are joined through explicit H3 representations while source resolution remains visible. |
 | Runoff and catchments | Runoff v0 is deterministic and exposes inputs/intermediates; catchment aggregation uses represented H3 area. |
 | Proof 0 network | Topology is validated separately from environmental evidence. Direction is `known`, `unknown` or `ambiguous`. |
-| Observed infrastructure | The official Waternet/Amsterdam `Leidingeninfrastructuur` WFS was verified live. The bounded import produced 18 observed nodes and 16 active stormwater pipes, retained NAP ground/invert attributes, reported 8 boundary-crossing pipes, and classified 11 invert-supported directions as known and 5 as ambiguous at the configured 0.05 m threshold. |
+| Observed infrastructure | The official Waternet/Amsterdam `Leidingeninfrastructuur` WFS was verified live. The outfall-anchored bounded import produced 47 observed nodes and 47 active stormwater pipes, including 4 explicit `Regenwateruitlaat` outfalls, retained NAP ground/invert attributes, reported 10 boundary-crossing pipes, and classified 25 invert-supported directions as known and 22 as ambiguous at the configured 0.05 m threshold. |
 | Propagation | Supported directed acyclic topology conserves volume and exposes mass balance. |
 | API and inspector | One root command health-gates IMERG -> API -> web. The Next.js inspector automatically runs the verified window and independently acquires the bounded Waternet topology. Each path exposes a traceable receipt without AI or mineral services. |
 
@@ -79,7 +79,7 @@ deterministic verification and the fixed live run. That live run observed `9.24 
 rainfall, derived `2.957 m3` of catchment contribution and delivered the same
 volume to the outfall with zero mass-balance difference. The network geometry is a
 deterministic fixture, not surveyed municipal infrastructure. The Amsterdam
-panel is observed municipal infrastructure, but it is not yet connected to a
+panel is observed municipal infrastructure with explicit rainwater outfalls, but it is not yet connected to a
 real contributing-area model. Missing rainfall, land cover or elevation never
 becomes a valid-looking zero.
 
@@ -299,7 +299,7 @@ the official [Amsterdam Data API Waternet dataset](https://api.data.amsterdam.nl
 The default WFS 2.0 bbox is:
 
 ```text
-52.3393,4.8987,52.3404,4.8998,EPSG:4326
+52.3375,4.8978,52.3395,4.8995,EPSG:4326
 ```
 
 WFS 2.0 uses latitude/longitude axis order for this EPSG:4326 bbox. A custom
@@ -312,6 +312,7 @@ An available response exposes:
 - provider, dataset, Creative Commons Attribution license and delivery date;
 - source EPSG:7415 and WFS output EPSG:4326;
 - observed point/line geometry and stable source record ids;
+- four explicit `Regenwateruitlaat` nodes retained as typed outfalls;
 - node ground levels and pipe invert levels in metres with NAP datum metadata;
 - strict active-stormwater filtering and 0.25 m endpoint snap distances;
 - skipped boundary pipes and defective endpoint-UUID state;

@@ -19,10 +19,10 @@ const now = new Date(
   '2026-08-23T00:00:00.000Z',
 );
 const bbox = {
-  latMin: 52.3393,
-  lonMin: 4.8987,
-  latMax: 52.3404,
-  lonMax: 4.8998,
+  latMin: 52.3375,
+  lonMin: 4.8978,
+  latMax: 52.3395,
+  lonMax: 4.8995,
 };
 
 class FixtureTransport {
@@ -81,7 +81,7 @@ test('bounded WFS acquisition composes through the deterministic importer', asyn
     transport.calls.every(
       (call) =>
         new URL(call.url).searchParams.get('bbox') ===
-        '52.3393,4.8987,52.3404,4.8998,EPSG:4326',
+        '52.3375,4.8978,52.3395,4.8995,EPSG:4326',
     ),
   );
 
@@ -106,7 +106,7 @@ test('bounded WFS acquisition composes through the deterministic importer', asyn
   );
   assert.equal(
     imported.receipt.counts.importedPipes,
-    16,
+    47,
   );
 });
 

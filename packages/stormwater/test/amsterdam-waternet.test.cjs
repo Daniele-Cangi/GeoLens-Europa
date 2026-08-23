@@ -47,18 +47,18 @@ test('recorded Waternet response imports a valid bounded stormwater topology', (
 
   assert.equal(validation.valid, true);
   assert.deepEqual(imported.receipt.counts, {
-    nodeFeatures: 30,
-    pipeFeatures: 51,
-    activeNodeFeatures: 30,
-    matchingStormwaterPipes: 24,
-    importedNodes: 18,
-    importedPipes: 16,
-    skippedBoundaryPipes: 8,
+    nodeFeatures: 82,
+    pipeFeatures: 112,
+    activeNodeFeatures: 82,
+    matchingStormwaterPipes: 57,
+    importedNodes: 47,
+    importedPipes: 47,
+    skippedBoundaryPipes: 10,
     skippedAmbiguousPipes: 0,
     skippedSelfLoops: 0,
   });
-  assert.equal(nodes.length, 18);
-  assert.equal(pipes.length, 16);
+  assert.equal(nodes.length, 47);
+  assert.equal(pipes.length, 47);
   assert.ok(
     pipes.every(
       (pipe) =>
@@ -69,11 +69,69 @@ test('recorded Waternet response imports a valid bounded stormwater topology', (
   );
 });
 
+test('bounded topology contains explicit observed rainwater outfalls', () => {
+  const imported = importSnapshot();
+  const outfalls = Object.values(
+    imported.topology.nodes,
+  ).filter((node) => node.type === 'outfall');
+
+  assert.equal(outfalls.length, 4);
+  assert.deepEqual(
+    outfalls.map(
+      (node) => node.source.sourceRecordId,
+    ),
+    [
+      '04D766F2-543E-4452-B005-7C941A9223AD',
+      '41D38A81-65BC-4608-AB50-C82E8BF666DF',
+      '8522CE11-8DC1-41CC-9375-EDECAB742620',
+      '8DE766F4-0916-4A44-93C8-72BBF84498AA',
+    ],
+  );
+  assert.ok(
+    outfalls.every(
+      (node) =>
+        node.source.sourceAttributes.sourceKind ===
+          'Uitlaat' &&
+        node.source.sourceAttributes.sourceNodeType ===
+          'Regenwateruitlaat' &&
+        node.source.sourceAttributes.pumpingAreaId ===
+          '826',
+    ),
+  );
+  assert.deepEqual(
+    Object.values(
+      imported.topology.catchmentAttachments,
+    ),
+    [],
+  );
+});
+
+test('invert evidence directs an observed pipe into a rainwater outfall', () => {
+  const imported = importSnapshot();
+  const oriented = orientStormwaterNetworkByPipeInverts(
+    imported.topology,
+    { minimumResolvableDropM: 0.01 },
+  );
+  const direction =
+    oriented.directions[
+      'waternet:2558D6C2-71D9-42B0-A193-DF5D6BE7FE2D'
+    ];
+
+  assert.equal(direction.status, 'known');
+  assert.equal(
+    direction.toNodeId,
+    'waternet:04D766F2-543E-4452-B005-7C941A9223AD',
+  );
+  assert.equal(
+    imported.topology.nodes[direction.toNodeId].type,
+    'outfall',
+  );
+});
 test('Waternet assets retain public-record provenance and physical pipe attributes', () => {
   const imported = importSnapshot();
   const pipe =
     imported.topology.pipes[
-      'waternet:000129F5-3505-4966-ACE7-0C507F5BB469'
+      'waternet:07C9DD89-1AED-4890-B48E-E49EF1F6FA86'
     ];
 
   assert.equal(
@@ -96,8 +154,8 @@ test('Waternet assets retain public-record provenance and physical pipe attribut
     imported.receipt.deliveryDates,
     ['2026-08-10'],
   );
-  assert.equal(pipe.diameterMm, 375);
-  assert.equal(pipe.invertLevelAM.value, -0.81999999);
+  assert.equal(pipe.diameterMm, 300);
+  assert.equal(pipe.invertLevelAM.value, -0.99000001);
   assert.equal(pipe.invertLevelAM.unit, 'm');
   assert.equal(
     pipe.invertLevelAM.provenance.sourceMetadata.verticalDatum,
@@ -105,7 +163,7 @@ test('Waternet assets retain public-record provenance and physical pipe attribut
   );
   assert.equal(
     pipe.source.sourceRecordId,
-    '000129F5-3505-4966-ACE7-0C507F5BB469',
+    '07C9DD89-1AED-4890-B48E-E49EF1F6FA86',
   );
   assert.equal(
     pipe.source.sourceAttributes.sourceEndpointAttributesUsed,
@@ -125,15 +183,15 @@ test('Waternet pipes orient only from endpoint invert evidence', () => {
   );
   const flat =
     oriented.directions[
-      'waternet:000129F5-3505-4966-ACE7-0C507F5BB469'
+      'waternet:0DBB9C57-691F-4FD3-8E38-0302584C1A99'
     ];
   const descending =
     oriented.directions[
-      'waternet:0CDC1BEF-C744-468D-875B-14DE56FEB347'
+      'waternet:07C9DD89-1AED-4890-B48E-E49EF1F6FA86'
     ];
   const reverse =
     oriented.directions[
-      'waternet:33252F1B-6C15-49AB-BCB2-FB40DF0A425D'
+      'waternet:0D7812F0-6912-483D-80E8-2ACB3EB190A1'
     ];
 
   assert.equal(oriented.evidenceBasis, 'pipe_invert_level');
@@ -142,20 +200,20 @@ test('Waternet pipes orient only from endpoint invert evidence', () => {
     'pipe-invert-direction-v0.1.0',
   );
   assert.equal(flat.status, 'ambiguous');
-  assert.equal(flat.verticalDifferenceM, 0);
+  assert.ok(Math.abs(flat.verticalDifferenceM) <= 0.01);
   assert.equal(descending.status, 'known');
   assert.equal(
     descending.fromNodeId,
     imported.topology.pipes[
-      'waternet:0CDC1BEF-C744-468D-875B-14DE56FEB347'
+      'waternet:07C9DD89-1AED-4890-B48E-E49EF1F6FA86'
     ].nodeAId,
   );
-  assert.ok(descending.verticalDropM > 0.04);
+  assert.ok(descending.verticalDropM > 0.08);
   assert.equal(reverse.status, 'known');
   assert.equal(
     reverse.fromNodeId,
     imported.topology.pipes[
-      'waternet:33252F1B-6C15-49AB-BCB2-FB40DF0A425D'
+      'waternet:0D7812F0-6912-483D-80E8-2ACB3EB190A1'
     ].nodeBId,
   );
 });
@@ -165,7 +223,7 @@ test('missing Waternet invert evidence keeps pipe direction unknown', () => {
   const feature = modified.pipes.features.find(
     (candidate) =>
       candidate.properties.globalid ===
-      '0CDC1BEF-C744-468D-875B-14DE56FEB347',
+      '07C9DD89-1AED-4890-B48E-E49EF1F6FA86',
   );
 
   assert.ok(feature);
@@ -178,7 +236,7 @@ test('missing Waternet invert evidence keeps pipe direction unknown', () => {
   );
   const direction =
     oriented.directions[
-      'waternet:0CDC1BEF-C744-468D-875B-14DE56FEB347'
+      'waternet:07C9DD89-1AED-4890-B48E-E49EF1F6FA86'
     ];
 
   assert.equal(direction.status, 'unknown');
@@ -204,7 +262,7 @@ test('invalid endpoint UUIDs and bounded-response gaps stay explicit', () => {
         diagnostic.code ===
         'pipe_endpoint_outside_snapshot',
     ).length,
-    8,
+    10,
   );
   assert.deepEqual(
     Object.values(

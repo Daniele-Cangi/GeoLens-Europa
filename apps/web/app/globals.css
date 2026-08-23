@@ -595,6 +595,12 @@ th {
   stroke: var(--amber);
 }
 
+.observed-node[data-node-type="outfall"] circle:first-child {
+  fill: var(--coral);
+  stroke: var(--paper-strong);
+  stroke-width: 3;
+}
+
 .observed-node-core {
   fill: var(--paper-strong);
 }

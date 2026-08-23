@@ -207,6 +207,9 @@ function buildMapModel(
   return {
     nodes,
     pipes,
+    outfallCount: nodes.filter(
+      (node) => node.type === 'outfall',
+    ).length,
     pipePoints,
     nodePoints,
   };
@@ -327,7 +330,9 @@ export default function ObservedInfrastructurePanel({
               <desc id="observed-map-description">
                 Observed nodes and active
                 stormwater pipes imported from the
-                bounded Amsterdam WFS response.
+                bounded Amsterdam WFS response,
+                including explicitly typed
+                rainwater outfalls.
               </desc>
               <rect
                 width="820"
@@ -421,7 +426,9 @@ export default function ObservedInfrastructurePanel({
                   available.import.counts
                     .importedPipes
                 }
-                {' pipes'}
+                {' pipes / '}
+                {mapModel.outfallCount}
+                {' outfalls'}
               </span>
               <span>
                 {available.orientation.counts.known}

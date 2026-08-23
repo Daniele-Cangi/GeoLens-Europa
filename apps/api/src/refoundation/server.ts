@@ -20,10 +20,10 @@ import {
 
 const DEFAULT_NODE_H3_RESOLUTION = 11;
 const DEFAULT_WATERNET_BBOX: AmsterdamWaternetBbox = {
-  latMin: 52.3393,
-  lonMin: 4.8987,
-  latMax: 52.3404,
-  lonMax: 4.8998,
+  latMin: 52.3375,
+  lonMin: 4.8978,
+  latMax: 52.3395,
+  lonMax: 4.8995,
 };
 const WATERNET_SNAP_TOLERANCE_M = 0.25;
 const WATERNET_MINIMUM_RESOLVABLE_INVERT_DROP_M =
