@@ -57,6 +57,32 @@ test('DEM fixture exposes elevation and inspectable finite-difference slope', as
   );
 });
 
+test('DEM elevation-only acquisition avoids unnecessary slope samples', async () => {
+  let calls = 0;
+  const source = fixtureSource('elevation-only-dem', async () => {
+    calls += 1;
+    return {
+      status: 'available',
+      value: 0,
+      sourceId: 'fixture-grid',
+    };
+  });
+  const result = await new CopernicusDemClient({
+    rasterSource: source,
+    now: fixedNow,
+  }).getElevationEvidence({ h3Indices: [h3] });
+  const evidence = result.cells[h3];
+
+  assert.equal(calls, 1);
+  assert.equal(evidence.value, 0);
+  assert.equal(evidence.quality.status, 'synthetic_fixture');
+  assert.equal(
+    evidence.provenance.transformationVersion,
+    'dem-centroid-v0.1.0',
+  );
+  assert.equal(evidence.spatial.h3, h3);
+});
+
 test('DEM point sampling distinguishes nodes that share one H3 cell', async () => {
   const source = fixtureSource('node-point-dem', async (lat) => ({
     status: 'available',

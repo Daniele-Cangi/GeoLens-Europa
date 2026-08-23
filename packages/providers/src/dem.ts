@@ -55,6 +55,13 @@ export interface DemProviderResult {
   readonly cells: Readonly<Record<string, DemCellEvidence>>;
 }
 
+export interface DemElevationProviderResult {
+  readonly provider: 'Copernicus Data Space Ecosystem';
+  readonly dataset: 'Copernicus DEM GLO-30';
+  readonly acquiredAt: string;
+  readonly cells: Readonly<Record<string, Evidence<number>>>;
+}
+
 export interface DemPointProviderResult {
   readonly provider: 'Copernicus Data Space Ecosystem';
   readonly dataset: 'Copernicus DEM GLO-30';
@@ -108,6 +115,42 @@ export class CopernicusDemClient {
           acquiredAt,
         );
         return [h3, cell] as const;
+      }),
+    );
+
+    return {
+      provider: 'Copernicus Data Space Ecosystem',
+      dataset: 'Copernicus DEM GLO-30',
+      acquiredAt,
+      cells: Object.fromEntries(entries),
+    };
+  }
+
+  async getElevationEvidence(
+    request: DemRequest,
+  ): Promise<DemElevationProviderResult> {
+    validateH3Request(request.h3Indices, 'DEM elevation');
+    const acquiredAt = this.now().toISOString();
+    const entries = await Promise.all(
+      request.h3Indices.map(async (h3) => {
+        const [lat, lon] = cellToLatLng(h3);
+        const sample = await this.rasterSource.sample(lat, lon);
+        const evidence = rasterSampleEvidence(
+          sample,
+          descriptor({
+            h3,
+            lat,
+            lon,
+            acquiredAt,
+            unit: 'm',
+            transformation: 'sample DEM at H3 centroid',
+            transformationVersion: 'dem-centroid-v0.1.0',
+            samplingMethod: 'nearest source raster pixel',
+          }),
+          this.rasterSource.identity,
+        );
+
+        return [h3, evidence] as const;
       }),
     );
 
