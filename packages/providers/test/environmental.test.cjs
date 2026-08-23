@@ -4,6 +4,7 @@ const { cellToLatLng, latLngToCell } = require('h3-js');
 const {
   AhnDtmClient,
   AhnWcsDtmRasterSource,
+  aggregateAhnDtmArea,
   ahnRdCoordinate,
   buildAhnWcsCoverageUrl,
   CopernicusDemClient,
@@ -436,4 +437,73 @@ test('AHN production source refuses an unbounded coverage before fetch', async (
         evidence.quality.status === 'out_of_coverage',
     ),
   );
+});
+
+test('AHN H3 area mean preserves observed zero and per-cell pixel trace', () => {
+  const sample = aggregateAhnDtmArea({
+    polygonRd: [[0, 0], [4, 0], [4, 4], [0, 4]],
+    bbox: [0, 0, 4, 4],
+    width: 4,
+    height: 4,
+    band: [
+      0, 0, 0, 0,
+      0, 0, 0, 0,
+      -9999, -9999, -9999, -9999,
+      -9999, -9999, -9999, -9999,
+    ],
+    noData: -9999,
+    sourceId: 'fixture-ahn-area',
+  });
+
+  assert.equal(sample.status, 'available');
+  assert.equal(sample.value, 0);
+  assert.equal(sample.sourceQuality, 0.5);
+  assert.equal(sample.sourceMetadata.totalSourcePixels, 16);
+  assert.equal(sample.sourceMetadata.availableSourcePixels, 8);
+  assert.equal(sample.sourceMetadata.noDataFraction, 0.5);
+});
+
+test('AHN H3 area applies the published greater-than-60-percent no-data rule', () => {
+  const atThreshold = aggregateAhnDtmArea({
+    polygonRd: [[0, 0], [5, 0], [5, 2], [0, 2]],
+    bbox: [0, 0, 5, 2],
+    width: 5,
+    height: 2,
+    band: [10, 10, 10, 10, -9999, -9999, -9999, -9999, -9999, -9999],
+    noData: -9999,
+    sourceId: 'fixture-ahn-threshold',
+  });
+  const aboveThreshold = aggregateAhnDtmArea({
+    polygonRd: [[0, 0], [5, 0], [5, 2], [0, 2]],
+    bbox: [0, 0, 5, 2],
+    width: 5,
+    height: 2,
+    band: [10, 10, 10, -9999, -9999, -9999, -9999, -9999, -9999, -9999],
+    noData: -9999,
+    sourceId: 'fixture-ahn-threshold',
+  });
+
+  assert.equal(atThreshold.status, 'available');
+  assert.equal(atThreshold.value, 10);
+  assert.equal(atThreshold.sourceQuality, 0.4);
+  assert.equal(aboveThreshold.status, 'missing');
+  assert.equal(aboveThreshold.value, null);
+  assert.equal(aboveThreshold.sourceMetadata.noDataFraction, 0.7);
+  assert.match(aboveThreshold.missingReason, /60% source no-data threshold/);
+});
+
+test('AHN H3 area rejects non-nodata elevations outside physical range', () => {
+  const sample = aggregateAhnDtmArea({
+    polygonRd: [[0, 0], [2, 0], [2, 2], [0, 2]],
+    bbox: [0, 0, 2, 2],
+    width: 2,
+    height: 2,
+    band: [1, 1, 1, 10000],
+    noData: -9999,
+    sourceId: 'fixture-ahn-invalid',
+  });
+
+  assert.equal(sample.status, 'invalid_response');
+  assert.equal(sample.value, null);
+  assert.equal(sample.sourceMetadata.invalidSourcePixels, 1);
 });

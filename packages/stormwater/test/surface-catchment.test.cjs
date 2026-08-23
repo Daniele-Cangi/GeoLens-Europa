@@ -68,6 +68,8 @@ function fixtureInput() {
     elevationModel: {
       semantics: 'synthetic_fixture_surface',
       description: 'Deterministic descending fixture surface.',
+      samplingDescription:
+        'One deterministic fixture value assigned to each H3 cell',
     },
     outfallNodeId,
     outfallPosition,

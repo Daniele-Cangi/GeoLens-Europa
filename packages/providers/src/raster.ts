@@ -2,23 +2,34 @@ import {
   availableEvidence,
   Evidence,
   EvidenceDescriptor,
+  EvidenceMetadataValue,
   syntheticFixtureEvidence,
   unavailableEvidence,
   UnavailableEvidenceStatus,
 } from '@geo-lens/evidence';
 
+interface RasterSampleTrace {
+  readonly sourceId?: string;
+  readonly sourceQuality?: number;
+  readonly sourceMetadata?: Readonly<
+    Record<string, EvidenceMetadataValue>
+  >;
+}
+
 export type RasterSample =
-  | {
-      readonly status: 'available';
-      readonly value: number;
-      readonly sourceId: string;
-    }
-  | {
-      readonly status: UnavailableEvidenceStatus;
-      readonly value: null;
-      readonly missingReason: string;
-      readonly sourceId?: string;
-    };
+  & (
+    | {
+        readonly status: 'available';
+        readonly value: number;
+        readonly sourceId: string;
+      }
+    | {
+        readonly status: UnavailableEvidenceStatus;
+        readonly value: null;
+        readonly missingReason: string;
+      }
+  )
+  & RasterSampleTrace;
 
 export type RasterSourceIdentity =
   | {
@@ -48,7 +59,8 @@ export function rasterSampleEvidence(
     return unavailableEvidence(
       sample.status,
       sample.missingReason,
-      withSourceId(unavailableDescriptor, sample.sourceId),
+      withSampleTrace(unavailableDescriptor, sample),
+      { sourceQuality: sample.sourceQuality },
     );
   }
 
@@ -56,7 +68,8 @@ export function rasterSampleEvidence(
     return unavailableEvidence(
       'invalid_response',
       'Raster source returned a non-finite value',
-      withSourceId(descriptor, sample.sourceId),
+      withSampleTrace(descriptor, sample),
+      { sourceQuality: sample.sourceQuality },
     );
   }
 
@@ -70,8 +83,10 @@ export function rasterSampleEvidence(
       transformationVersion:
         descriptor.provenance.transformationVersion,
       samplingMethod: descriptor.provenance.samplingMethod,
+      sourceQuality: sample.sourceQuality,
       sourceMetadata: {
         ...descriptor.provenance.sourceMetadata,
+        ...sample.sourceMetadata,
         sourceId: sample.sourceId,
         intendedProvider: descriptor.provenance.provider,
         intendedDataset: descriptor.provenance.dataset,
@@ -81,7 +96,8 @@ export function rasterSampleEvidence(
 
   return availableEvidence(
     sample.value,
-    withSourceId(descriptor, sample.sourceId),
+    withSampleTrace(descriptor, sample),
+    { sourceQuality: sample.sourceQuality },
   );
 }
 
@@ -118,11 +134,14 @@ export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function withSourceId(
+function withSampleTrace(
   descriptor: EvidenceDescriptor,
-  sourceId: string | undefined,
+  sample: RasterSample,
 ): EvidenceDescriptor {
-  if (sourceId === undefined) {
+  if (
+    sample.sourceId === undefined &&
+    sample.sourceMetadata === undefined
+  ) {
     return descriptor;
   }
 
@@ -132,7 +151,10 @@ function withSourceId(
       ...descriptor.provenance,
       sourceMetadata: {
         ...descriptor.provenance.sourceMetadata,
-        sourceId,
+        ...sample.sourceMetadata,
+        ...(sample.sourceId === undefined
+          ? {}
+          : { sourceId: sample.sourceId }),
       },
     },
   };
