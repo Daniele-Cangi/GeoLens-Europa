@@ -133,11 +133,39 @@ function buildMapModel(
   const pipes = result
     ? Object.values(result.topology.pipes)
     : [];
-  const surfaceCells = result?.surfaceCatchmentProxy.result
-    ? Object.values(
-        result.surfaceCatchmentProxy.result.cells,
-      )
-    : [];
+  const conditionedSurfaceCells =
+    result?.conditionedSurfaceCatchmentProxy.result
+      ? Object.values(
+          result.conditionedSurfaceCatchmentProxy.result.cells,
+        )
+      : null;
+  const surfaceCells = conditionedSurfaceCells
+    ? conditionedSurfaceCells.map((cell) => ({
+        h3: cell.h3,
+        boundary: cell.boundary,
+        termination: cell.termination,
+        contributes:
+          cell.contributesToConditionedOutfall,
+        elevation: cell.hydrologicElevationM,
+        surfaceClass:
+          cell.surface.value?.surfaceClass ??
+          'unclassified',
+        conditioning:
+          cell.terrainConditioning.method,
+      }))
+    : result?.surfaceCatchmentProxy.result
+      ? Object.values(
+          result.surfaceCatchmentProxy.result.cells,
+        ).map((cell) => ({
+          h3: cell.h3,
+          boundary: cell.boundary,
+          termination: cell.termination,
+          contributes: cell.contributesToOutletProxy,
+          elevation: cell.elevationM,
+          surfaceClass: 'not_classified',
+          conditioning: cell.flowMethod,
+        }))
+      : [];
   const coordinates = [
     ...pipes.flatMap((pipe) => pipe.path),
     ...nodes.map((node) => node.position),
@@ -271,6 +299,9 @@ export default function ObservedInfrastructurePanel({
   const surfaceEnvelope =
     available?.surfaceCatchmentProxy;
   const surfaceProxy = surfaceEnvelope?.result;
+  const conditionedEnvelope =
+    available?.conditionedSurfaceCatchmentProxy;
+  const conditionedProxy = conditionedEnvelope?.result;
   const status =
     result?.status ?? 'not_requested';
 
@@ -293,8 +324,9 @@ export default function ObservedInfrastructurePanel({
         <div className="panel-meta">
           <StatusPill status={status} />
           <span>
-            GWSW area context and AHN DTM proxy kept
-            separate - no sewer catchment or flow asserted
+            Observed GWSW context, raw AHN and conditioned
+            BGT/AHN proxy remain distinct - no observed sewer
+            catchment or flow asserted
           </span>
         </div>
       </div>
@@ -361,7 +393,8 @@ export default function ObservedInfrastructurePanel({
                 bounded Amsterdam WFS response,
                 including explicitly typed
                 rainwater outfalls and a separate
-                AHN DTM-derived H3 surface proxy.
+                BGT/AHN-conditioned H3 surface proxy,
+                separately marked from observed infrastructure.
               </desc>
               <rect
                 width="820"
@@ -376,14 +409,14 @@ export default function ObservedInfrastructurePanel({
                   }
                   className="surface-proxy-cell"
                   data-contributes={
-                    cell.contributesToOutletProxy === null
+                    cell.contributes === null
                       ? 'unresolved'
-                      : String(cell.contributesToOutletProxy)
+                      : String(cell.contributes)
                   }
                   data-termination={cell.termination}
                 >
                   <title>
-                    {`${cell.h3} · ${statusLabel(cell.termination)} · ${evidenceText(cell.elevationM, 2)}`}
+                    {`${cell.h3} · ${statusLabel(cell.surfaceClass)} · ${statusLabel(cell.termination)} · ${statusLabel(cell.conditioning)} · ${evidenceText(cell.elevation, 2)}`}
                   </title>
                 </polygon>
               ))}
@@ -464,8 +497,8 @@ export default function ObservedInfrastructurePanel({
                       r="1.8"
                       className="observed-node-core"
                     />
-                    {available.surfaceCatchmentProxy.result
-                      ?.outfallAnchor.nodeId === node.id ? (
+                    {(conditionedProxy?.outfallAttachment.nodeId ??
+                      surfaceProxy?.outfallAnchor.nodeId) === node.id ? (
                       <circle
                         cx={point.x}
                         cy={point.y}
@@ -514,11 +547,10 @@ export default function ObservedInfrastructurePanel({
                 {' direction-blocked'}
               </span>
               <span>
-                {available.surfaceCatchmentProxy.result
-                  ?.counts.contributingCells ?? 0}
-                {' AHN partial cells / '}
+                {conditionedProxy?.counts.contributingCells ?? 0}
+                {' conditioned cells / '}
                 {statusLabel(
-                  available.surfaceCatchmentProxy.status,
+                  conditionedEnvelope?.status ?? 'not_requested',
                 )}
               </span>
               <span>
@@ -762,13 +794,193 @@ export default function ObservedInfrastructurePanel({
               )}
             </section>
 
+            <section className="observed-selection surface-proxy-receipt conditioned-surface-receipt">
+              <div className="surface-proxy-heading">
+                <div>
+                  <p className="eyebrow">
+                    Conditioned physical interpretation
+                  </p>
+                  <h3>BGT + AHN priority-flood proxy</h3>
+                </div>
+                <StatusPill
+                  status={
+                    conditionedEnvelope?.status ??
+                    'not_requested'
+                  }
+                />
+              </div>
+
+              {conditionedProxy ? (
+                <>
+                  <dl className="observed-facts">
+                    <div>
+                      <dt>Conditioned contributing area</dt>
+                      <dd>
+                        {evidenceText(
+                          conditionedProxy.contributingAreaM2,
+                          0,
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>H3 representation</dt>
+                      <dd>
+                        r{conditionedProxy.coverage.h3Resolution}
+                        {' · '}
+                        {conditionedProxy.counts.targetCells}
+                        {' target cells'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Observed BGT mosaic</dt>
+                      <dd>
+                        {conditionedEnvelope?.surfaceAcquisition
+                          ?.featureCount ?? 0}
+                        {' features · '}
+                        {conditionedEnvelope?.surfaceAcquisition
+                          ?.license ?? 'license unavailable'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>BGT surface classes</dt>
+                      <dd>
+                        {conditionedEnvelope?.surfaceCounts
+                          ?.vegetated_terrain ?? 0}
+                        {' vegetated · '}
+                        {conditionedEnvelope?.surfaceCounts
+                          ?.unvegetated_terrain ?? 0}
+                        {' terrain · '}
+                        {conditionedEnvelope?.surfaceCounts
+                          ?.building ?? 0}
+                        {' building · '}
+                        {conditionedEnvelope?.surfaceCounts
+                          ?.road ?? 0}
+                        {' road'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Terrain elevation</dt>
+                      <dd>
+                        {conditionedProxy.counts
+                          .observedElevationCells}
+                        {' observed AHN · '}
+                        {conditionedProxy.counts
+                          .interpolatedElevationCells}
+                        {' explicitly interpolated · '}
+                        {conditionedProxy.counts
+                          .unresolvedConditioningCells}
+                        {' unresolved'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Excluded surfaces</dt>
+                      <dd>
+                        {conditionedProxy.counts
+                          .excludedSurfaceWaterCells}
+                        {' water · '}
+                        {conditionedProxy.counts
+                          .excludedStructuralBarrierCells}
+                        {' wall / quay barrier'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Flow allocation</dt>
+                      <dd>
+                        {conditionedProxy.counts.contributingCells}
+                        {' outfall · '}
+                        {conditionedProxy.counts.analysisBboxExitCells}
+                        {' bbox exit · '}
+                        {conditionedProxy.counts
+                          .observedSurfaceWaterExitCells}
+                        {' surface water'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Depression conditioning</dt>
+                      <dd>
+                        {conditionedProxy.counts
+                          .depressionRaisedCells}
+                        {' raised cells · '}
+                        {statusLabel(
+                          conditionedProxy.conditioning
+                            .depressionMethod,
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Missing-elevation model</dt>
+                      <dd>
+                        {statusLabel(
+                          conditionedProxy.conditioning
+                            .interpolationMethod,
+                        )}
+                        {' · max '}
+                        {conditionedProxy.conditioning
+                          .interpolationMaxGridDistance}
+                        {' H3 rings · min '}
+                        {conditionedProxy.conditioning
+                          .interpolationMinSamples}
+                        {' samples'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Outfall attachment</dt>
+                      <dd>
+                        Conditioned, not observed ·{' '}
+                        {statusLabel(
+                          conditionedProxy.outfallAttachment
+                            .method,
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Model</dt>
+                      <dd>{conditionedProxy.modelVersion}</dd>
+                    </div>
+                    <div>
+                      <dt>BGT requested / acquired</dt>
+                      <dd>
+                        {formatUtcTimestamp(
+                          conditionedEnvelope?.surfaceAcquisition
+                            ?.requestedAt,
+                        )}
+                        {' / '}
+                        {formatUtcTimestamp(
+                          conditionedEnvelope?.surfaceAcquisition
+                            ?.acquiredAt,
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Sewer propagation</dt>
+                      <dd>
+                        Blocked ·{' '}
+                        {conditionedEnvelope?.networkUse?.reasons
+                          .map(statusLabel)
+                          .join(' · ') ?? 'not evaluated'}
+                      </dd>
+                    </div>
+                  </dl>
+                  <p className="observed-warning">
+                    {conditionedProxy.outfallAttachment.reason}
+                    {' '}
+                    {conditionedProxy.limitations.slice(0, 3).join(' ')}
+                  </p>
+                </>
+              ) : (
+                <p className="surface-proxy-missing">
+                  {conditionedEnvelope?.missingReason ??
+                    'Conditioned surface proxy not requested.'}
+                </p>
+              )}
+            </section>
             <section className="observed-selection surface-proxy-receipt">
               <div className="surface-proxy-heading">
                 <div>
                   <p className="eyebrow">
-                    Derived surface evidence
+                    Raw elevation experiment
                   </p>
-                  <h3>AHN DTM surface proxy</h3>
+                  <h3>AHN DTM unconditioned proxy</h3>
                 </div>
                 <StatusPill
                   status={
