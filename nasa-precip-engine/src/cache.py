@@ -24,6 +24,7 @@ from .config import (
 from .imerg_client import (
     ImergWindow,
     ImergWindowMetadata,
+    archive_version_for,
     normalize_reference_time,
 )
 
@@ -204,6 +205,10 @@ def _read_disk_window(
         if metadata.dataset_version != dataset_version:
             raise ValueError(
                 "Persistent cache metadata version mismatch"
+            )
+        if metadata.archive_version != archive_version_for(dataset_version):
+            raise ValueError(
+                "Persistent cache archive version mismatch"
             )
         opened = xr.open_dataarray(
             data_path,

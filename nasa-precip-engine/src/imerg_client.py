@@ -272,7 +272,9 @@ def discover_imerg_granules(
         (
             IMERG_PRODUCT_FINAL,
             "final",
-            _results_in_window(final_results, start, end),
+            _deduplicate_results(
+                _results_in_window(final_results, start, end)
+            ),
         )
     )
 
@@ -287,7 +289,9 @@ def discover_imerg_granules(
             (
                 IMERG_PRODUCT_LATE,
                 "late",
-                _results_in_window(late_results, start, end),
+                _deduplicate_results(
+                    _results_in_window(late_results, start, end)
+                ),
             )
         )
 
@@ -306,9 +310,12 @@ def discover_imerg_granules(
             (
                 IMERG_PRODUCT_EARLY,
                 "early",
-                _results_in_window(early_results, start, end),
+                _deduplicate_results(
+                    _results_in_window(early_results, start, end)
+                ),
             )
         )
+
     product, run_type, timestamped_results = max(
         candidate_sets,
         key=lambda candidate: len(candidate[2]),

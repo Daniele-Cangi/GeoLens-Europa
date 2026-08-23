@@ -131,6 +131,29 @@ class PersistentCacheTests(unittest.TestCase):
             self.assertIsNotNone(restored)
             self.assertEqual(restored.metadata.dataset_version, "07")
             self.assertEqual(restored.metadata.archive_version, "07")
+
+    def test_archive_version_mismatch_is_a_cache_miss(self):
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "src.cache.IMERG_CACHE_DIR",
+            directory,
+        ), patch(
+            "src.cache.IMERG_DISK_CACHE_TTL_SECONDS",
+            3600,
+        ):
+            set_cached_window(REFERENCE, 1, evidence_window())
+            clear_cache()
+            metadata_path = next(Path(directory).glob("*.json"))
+            payload = json.loads(
+                metadata_path.read_text(encoding="utf-8")
+            )
+            payload["windowMetadata"]["archiveVersion"] = "08"
+            metadata_path.write_text(
+                json.dumps(payload),
+                encoding="utf-8",
+            )
+
+            self.assertIsNone(get_cached_window(REFERENCE, 1, "07"))
+
     def test_incomplete_window_is_memory_only(self):
         with tempfile.TemporaryDirectory() as directory, patch(
             "src.cache.IMERG_CACHE_DIR",

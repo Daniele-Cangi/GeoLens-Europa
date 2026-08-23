@@ -60,8 +60,8 @@
         "calibration": false,
         "evaluation": false
       },
-      "methodologyNote": "V07 is a post-event reprocessing of observations from the event window. GeoLens uses it only in retrospective_reconstruction mode and never claims it was available by the event knowledge cutoff. Catalog discovery verified all 96 Final Run half-hour granules from 2023-05-16T00:00:00Z through 2023-05-18T00:00:00Z.",
-      "availableAt": "2023-07-10T00:00:00Z"
+      "methodologyNote": "V07 is a post-event reprocessing of observations from the event window. The complete V07 Final Run retrospective reprocessing was verified complete on 2024-01-08. GeoLens uses it only in retrospective_reconstruction mode and never claims it was available by the event knowledge cutoff. Catalog discovery verified all 96 Final Run half-hour granules from 2023-05-16T00:00:00Z through 2023-05-18T00:00:00Z.",
+      "availableAt": "2024-01-08T00:00:00Z"
     },
     {
       "id": "copernicus-clc-2018",

@@ -1,6 +1,7 @@
 import math
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 
 import numpy as np
 import xarray as xr
@@ -8,6 +9,7 @@ import xarray as xr
 from src.imerg_client import (
     accumulate_precip,
     archive_version_for,
+    discover_imerg_granules,
     get_precip_at_point,
     normalize_reference_time,
 )
@@ -90,6 +92,40 @@ class ImergNumericSemanticsTests(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             archive_version_for("06C")
+
+    def test_fallback_selection_counts_unique_granule_timestamps(self):
+        start = datetime(2023, 5, 16, tzinfo=timezone.utc)
+        unique = [
+            {
+                "umm": {
+                    "TemporalExtent": {
+                        "RangeDateTime": {
+                            "BeginningDateTime": (
+                                start + timedelta(minutes=30 * index)
+                            ).isoformat()
+                        }
+                    }
+                }
+            }
+            for index in range(96)
+        ]
+        final_with_duplicate = unique[:-1] + [unique[0]]
+
+        with patch("src.imerg_client.authenticate"), patch(
+            "src.imerg_client._search_product",
+            side_effect=[final_with_duplicate, unique],
+        ) as search:
+            discovery = discover_imerg_granules(
+                datetime(2023, 5, 18, tzinfo=timezone.utc),
+                48,
+                allow_early=False,
+            )
+
+        self.assertEqual(search.call_count, 2)
+        self.assertEqual(discovery.product, "GPM_3IMERGHHL")
+        self.assertEqual(discovery.run_type, "late")
+        self.assertEqual(len(discovery.granule_timestamps), 96)
+
     def test_reference_time_is_utc_half_hour(self):
         normalized = normalize_reference_time(
             datetime(2026, 8, 21, 12, 47, 19)

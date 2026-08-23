@@ -83,7 +83,7 @@ Case 02 is being prepared around a bounded Forlì pilot for the 16–18 May 2023
 - the official regional flood extent is evaluation-only and cannot enter model input or calibration;
 - the current claim is hydrologic routing, not validated inundation extent, flood depth or operational forecasting.
 
-V07 was released after the event and materially differs from retired V06. GeoLens therefore labels the case `retrospective_reconstruction` and retains the event-time knowledge cutoff to make that temporal distinction inspectable.
+V07 was released after the event and materially differs from V06, which GeoLens rejects because it is unavailable through the canonical GES DISC/CMR path. GeoLens therefore labels the case `retrospective_reconstruction` and retains the event-time knowledge cutoff to make that temporal distinction inspectable.
 
 ## What GeoLens is
 

@@ -6,7 +6,7 @@ It never converts absent granules, authentication failures, incomplete windows, 
 
 ## Returned evidence
 
-For each requested 24-hour or 72-hour window, the response retains:
+For each requested 24-hour, 48-hour, or 72-hour window, the response retains:
 
 - product and run type;
 - scientific dataset version and Earthaccess archive version;
@@ -74,7 +74,7 @@ Example request:
 
 The reference timestamp is normalized to an IMERG half-hour boundary. If omitted, the service uses a reference six hours behind current UTC to account for product latency.
 
-The active provider accepts only the currently published NASA collection, IMERG V07, and sends `version=07` explicitly to Earthaccess. NASA has retired V06 from its catalog and archive; the service does not silently substitute V07 for a V06 request. Historical event windows acquired from V07 are therefore retrospective reconstructions using post-event reprocessing, and their provenance retains that version.
+The active provider accepts only the currently published NASA collection, IMERG V07, and sends `version=07` explicitly to Earthaccess. V06 is unavailable through the canonical GES DISC/CMR path and is rejected by GeoLens policy; the service does not silently substitute V07 for a V06 request. Historical event windows acquired from V07 are therefore retrospective reconstructions using post-event reprocessing, and their provenance retains that version.
 
 The acquisition code searches the research-quality Final Run first, then the actual Late Run product, and may use Early Run when neither covers the requested window. It selects exactly one product for a window and reports the selected product and run type. A partial granule set remains `incomplete_window`; partial accumulation is not exposed as an available observation.
 
