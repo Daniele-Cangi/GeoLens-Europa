@@ -88,6 +88,7 @@ test('artifact path aliases cannot represent multiple files', () => {
     (path) => path.replace('/', '\\'),
     (path) => './' + path,
     (path) => path.replace('/', '//'),
+    () => 'C:artifact.zip',
   ];
 
   for (const alias of aliases) {

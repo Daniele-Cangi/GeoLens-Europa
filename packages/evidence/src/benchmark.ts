@@ -379,7 +379,7 @@ function portablePath(value: string, label: string): string {
   if (
     value !== normalized ||
     normalized.startsWith('/') ||
-    /^[a-z]:\//i.test(normalized) ||
+    /^[a-z]:/i.test(normalized) ||
     segments.some(
       (segment) => segment === '' || segment === '.' || segment === '..',
     )
