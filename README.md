@@ -49,7 +49,7 @@ GeoLens has two complementary proofs and one independent historical benchmark in
 | --- | --- | --- | --- |
 | Trento Proof 0 | NASA IMERG rainfall, Copernicus GLO-30 terrain and the official local CLC 2018 raster | Complete evidence → runoff → catchment → network → downstream accumulation chain over a deterministic bounded network fixture | The environmental evidence is real; the small network geometry is a test fixture, not surveyed municipal infrastructure |
 | Amsterdam observed proof | Waternet nodes and pipes, AHN4 terrain, BGT physical surfaces, IMERG rainfall, CLC land cover, GLO-30 slope and PDOK/GWSW context | Real municipal topology and a traceable non-zero conditioned runoff source over a bounded urban area | No owner-published surface-to-pipe relation was found in the current public catalogs, so network propagation is intentionally not attempted |
-| Emilia-Romagna 2023 benchmark (in progress) | Official post-event flood extents, Copernicus/CLC terrain context and 96 version-pinned IMERG Final Run V07 granules over 16–18 May | A bounded hydrologic-routing result will be compared with observed flood evidence withheld from the model | V07 is post-event reprocessing, so this is a retrospective reconstruction—not an as-known-at-the-time forecast; no routing score is claimed yet |
+| Emilia-Romagna 2023 benchmark (in progress) | Official post-event flood extents, Copernicus/CLC terrain context and a materialized 48-hour IMERG Final Run V07 accumulation from 96 granules over 16–18 May | A bounded hydrologic-routing result will be compared with observed flood evidence withheld from the model | V07 is post-event reprocessing, so this is a retrospective reconstruction—not an as-known-at-the-time forecast; no routing score is claimed yet |
 
 ### Trento result
 
@@ -78,7 +78,9 @@ The 11.4145 m³ result is therefore available as an inspectable environmental so
 
 Case 02 is being prepared around a bounded Forlì pilot for the 16–18 May 2023 event. The input/evaluation boundary is explicit:
 
-- IMERG Final Run V07 rainfall is a version-pinned retrospective model input; NASA catalog discovery verified all 96 expected half-hour granules;
+- IMERG Final Run V07 rainfall is a version-pinned retrospective model input; GeoLens opened and accumulated all 96 expected half-hour granules over the bounded Forlì AOI;
+- the persisted native 0.1 degree subset is a 3x3 grid with nine finite 48-hour totals from 82.295 to 105.445 mm and a mean of 93.982 mm;
+- the request AOI, loaded source-grid bounds, source resolution, grid shape, granule timestamps, acquisition time and transformation remain in the cache provenance envelope;
 - terrain and land cover remain independent environmental inputs;
 - the official regional flood extent is evaluation-only and cannot enter model input or calibration;
 - the current claim is hydrologic routing, not validated inundation extent, flood depth or operational forecasting.
@@ -224,7 +226,7 @@ GEOLENS_PYTHON=D:/GeoLens/venvs/nasa-precip/Scripts/python.exe
 GEOLENS_TEMP_DIR=D:/GeoLens/tmp
 ~~~
 
-IMERG source resolution is approximately 0.1 degree. H3 does not change that precision. Only complete `available` windows may be persisted in the optional disk cache. The short-lived in-memory cache can replay an explicit unavailable or incomplete result, but its evidence status remains unchanged: it never becomes an observation or a zero.
+IMERG source resolution is approximately 0.1 degree. H3 does not change that precision. Acquisition is bounded to the requested H3 scope plus one source-cell sampling margin, and cache identities include the AOI so two places cannot share an accumulation. Only complete `available` windows may be persisted in the optional disk cache. The short-lived in-memory cache can replay an explicit unavailable or incomplete result, but its evidence status remains unchanged: it never becomes an observation or a zero.
 
 The default host exposes the unauthenticated development service only on the local machine. Set `API_HOST=0.0.0.0` only when network access is intentional and protected by an appropriate boundary.
 

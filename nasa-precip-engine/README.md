@@ -15,6 +15,7 @@ For each requested 24-hour, 48-hour, or 72-hour window, the response retains:
 - granule timestamps;
 - acquisition time;
 - source resolution;
+- requested AOI, loaded source-grid bounds and grid shape;
 - sampling method;
 - evidence status and missing reason;
 - per-H3-cell evidence.
@@ -78,12 +79,16 @@ The active provider accepts only the currently published NASA collection, IMERG 
 
 The acquisition code searches the research-quality Final Run first, then the actual Late Run product, and may use Early Run when neither covers the requested window. It selects exactly one product for a window and reports the selected product and run type. A partial granule set remains `incomplete_window`; partial accumulation is not exposed as an available observation.
 
+The service derives a geographic scope from the requested H3 centroids, retains a half-source-cell request margin, and loads only that scope plus one 0.1 degree source-cell margin before accumulation. The response keeps both requested and actually loaded bounds. H3 remains a sampling representation; the accumulated raster remains on the native IMERG grid.
+
 The service opens remote granules through the `earthaccess`/`fsspec` transient
 block cache and never intentionally archives those source granules. Completed
 `available` accumulation windows can be persisted when `IMERG_CACHE_DIR` is set.
 Each entry contains the derived NetCDF accumulation and a JSON provenance envelope
 with product, run type, requested/actual coverage, granule timestamps, acquisition
-time, source resolution and sampling method.
+time, source resolution, requested/loaded spatial bounds, grid shape and sampling
+method. Cache keys include dataset version, exact time window and canonical AOI;
+bounded accumulations for different places cannot collide.
 
 Only completed real evidence is eligible. `missing`, `incomplete_window`,
 authentication failures and provider errors remain memory-only and cannot become a
@@ -118,3 +123,12 @@ The Emilia-Romagna catalog-only historical check verifies the complete 48-hour V
 $env:GEOLENS_RUN_HISTORICAL_IMERG_TESTS = '1'
 python -m unittest discover -s tests -p test_live_imerg.py -v
 ```
+
+The full bounded Forlì acquisition is separate because it opens all 96 raster granules and persists the complete accumulation when `IMERG_CACHE_DIR` is configured:
+
+```powershell
+$env:GEOLENS_RUN_HISTORICAL_IMERG_ACQUISITION = '1'
+python -m unittest discover -s tests -p test_live_imerg.py -v
+```
+
+The verified 16–18 May 2023 run loads a 3x3 native 0.1 degree grid for the `[11.98, 44.17, 12.10, 44.28]` AOI. It produced nine finite 48-hour totals between `82.295` and `105.445 mm`; these are retrospective V07 precipitation evidence, not an inundation result.

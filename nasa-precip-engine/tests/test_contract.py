@@ -8,6 +8,7 @@ import numpy as np
 import xarray as xr
 
 from src.cache import clear_cache
+from src.h3_mapping import spatial_bounds_for_h3
 from src.contracts import (
     build_error_window_payload,
     build_window_payload,
@@ -15,6 +16,7 @@ from src.contracts import (
 from src.imerg_client import (
     ImergAuthRequiredError,
     ImergRateLimitedError,
+    ImergSpatialBounds,
     ImergWindow,
     ImergWindowMetadata,
 )
@@ -24,6 +26,8 @@ from src.main import PrecipRequest, get_precipitation_for_h3
 REFERENCE = datetime(2026, 8, 21, 12, 0, tzinfo=timezone.utc)
 START = REFERENCE - timedelta(hours=1)
 H3_CELL = h3.latlng_to_cell(46.0, 11.0, 9)
+REQUESTED_BOUNDS = spatial_bounds_for_h3([H3_CELL])
+LOADED_BOUNDS = ImergSpatialBounds(9.95, 44.95, 12.05, 47.05)
 
 
 def window(
@@ -60,6 +64,9 @@ def window(
             acquired_at=REFERENCE + timedelta(minutes=1),
             source_resolution="0.1 degree",
             sampling_method="nearest IMERG grid cell at H3 centroid",
+            requested_spatial_bounds=REQUESTED_BOUNDS,
+            loaded_spatial_bounds=LOADED_BOUNDS,
+            grid_shape=(2, 2),
             status=status,
             missing_reason=reason,
         ),
@@ -81,6 +88,13 @@ class ContractTests(unittest.TestCase):
             evidence["spatial"]["sourceResolution"],
             "0.1 degree",
         )
+        self.assertEqual(payload["requestedSpatialBounds"], {
+            "west": REQUESTED_BOUNDS.west,
+            "south": REQUESTED_BOUNDS.south,
+            "east": REQUESTED_BOUNDS.east,
+            "north": REQUESTED_BOUNDS.north,
+        })
+        self.assertEqual(payload["gridShape"], {"lat": 2, "lon": 2})
         self.assertEqual(
             evidence["provenance"]["sourceMetadata"][
                 "granuleTimestamps"
@@ -261,6 +275,7 @@ class EndpointTests(unittest.IsolatedAsyncioTestCase):
             datetime(2023, 5, 18, 0, 0, tzinfo=timezone.utc),
             48,
             dataset_version="07",
+            spatial_bounds=REQUESTED_BOUNDS,
         )
         cache.assert_called_once()
         self.assertEqual(payload["datasetVersion"], "07")

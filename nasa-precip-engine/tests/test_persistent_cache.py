@@ -14,7 +14,12 @@ from src.cache import (
     get_cached_window,
     set_cached_window,
 )
-from src.imerg_client import ImergWindow, ImergWindowMetadata
+from src.imerg_client import (
+    IMERG_EUROPE_BOUNDS,
+    ImergSpatialBounds,
+    ImergWindow,
+    ImergWindowMetadata,
+)
 
 
 REFERENCE = datetime(2026, 8, 20, 0, 0, tzinfo=timezone.utc)
@@ -25,6 +30,7 @@ def evidence_window(
     status="available",
     dataset_version="07",
     archive_version="07",
+    requested_bounds=IMERG_EUROPE_BOUNDS,
 ):
     timestamps = (
         START,
@@ -69,6 +75,14 @@ def evidence_window(
             acquired_at=REFERENCE + timedelta(minutes=5),
             source_resolution="0.1 degree",
             sampling_method="nearest IMERG grid cell at H3 centroid",
+            requested_spatial_bounds=requested_bounds,
+            loaded_spatial_bounds=ImergSpatialBounds(
+                11.05,
+                45.95,
+                11.15,
+                46.05,
+            ),
+            grid_shape=(2, 2),
             status=status,
             missing_reason=reason,
         ),
@@ -131,6 +145,39 @@ class PersistentCacheTests(unittest.TestCase):
             self.assertIsNotNone(restored)
             self.assertEqual(restored.metadata.dataset_version, "07")
             self.assertEqual(restored.metadata.archive_version, "07")
+
+    def test_spatial_scopes_never_share_memory_or_disk_entries(self):
+        scope_a = ImergSpatialBounds(11.0, 45.9, 11.2, 46.1)
+        scope_b = ImergSpatialBounds(12.0, 44.1, 12.2, 44.3)
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "src.cache.IMERG_CACHE_DIR",
+            directory,
+        ), patch(
+            "src.cache.IMERG_DISK_CACHE_TTL_SECONDS",
+            3600,
+        ):
+            set_cached_window(
+                REFERENCE,
+                1,
+                evidence_window(requested_bounds=scope_a),
+            )
+            clear_cache()
+
+            self.assertIsNone(
+                get_cached_window(REFERENCE, 1, "07", scope_b)
+            )
+            restored = get_cached_window(
+                REFERENCE,
+                1,
+                "07",
+                scope_a,
+            )
+            self.assertIsNotNone(restored)
+            self.assertEqual(
+                restored.metadata.requested_spatial_bounds,
+                scope_a,
+            )
+            self.assertEqual(len(list(Path(directory).glob("*.nc"))), 1)
 
     def test_archive_version_mismatch_is_a_cache_miss(self):
         with tempfile.TemporaryDirectory() as directory, patch(

@@ -8,13 +8,13 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Canonical base: `main@46b41e70557f18c8ec6852f6af3e796a6d1e2a8d`
 - Protected historical snapshot: `codex/pre-overhaul-snapshot-20260822@9920ee29ed945a55af8e7ff89005724fab19a998`
 - Deterministic core Proof 0: established through environmental bundle, runoff, catchment aggregation, point-sampled node elevation, direction, propagation, and mass balance
-- Live provider verification: Copernicus DEM, the official local CLC2018 V2020_20u1 raster, and a complete 48-granule IMERG Early Run V07 window are established; live execution remains opt-in
+- Live provider verification: Copernicus DEM, the official local CLC2018 V2020_20u1 raster, a complete 48-granule IMERG Early Run V07 window and the bounded 96-granule Emilia-Romagna Final Run V07 event window are established; live execution remains opt-in
 - Refoundation core, Proof 0 API, and minimal inspection UI build/typecheck/test baseline: established; historical legacy sources are excluded from the active TypeScript boundary
 - First refoundation success gate: established through deterministic fixture proof and a fully real environmental-evidence chain over the bounded Trento test network, from IMERG, DEM and CLC through runoff, direction, propagation and zero-difference mass balance
 - Observed-infrastructure gate: established through a live bounded Waternet/Amsterdam WFS path, a valid 47-node/47-pipe topology containing four explicit rainwater outfalls, explicit provider failures, API receipts and a browser-verified inspection panel
 - Observed-direction gate: established separately from propagation; Waternet endpoint invert NAP evidence yields 26 known and 21 ambiguous directions at an inclusive 0.05 m analysis boundary with an explicit 0.000001 m numeric tolerance and no ground-elevation fallback; the selected outfall exposes a known 5-node/4-pipe upstream subgraph while four unresolved boundary pipes remain explicit
 - Historical tracked Copernicus private key: removed from the active tree; revocation/rotation remains an external security action because the secret is present in Git history
-- Retrospective reconstruction benchmark gate: in data-audit state for a bounded Forli pilot; a typed manifest separates environmental model inputs from post-event evaluation evidence, discloses post-cutoff reprocessing, and verifies nine content-addressed official artifacts on D:
+- Retrospective reconstruction benchmark gate: in evidence-composition state for a bounded Forli pilot; a typed manifest separates environmental model inputs from post-event evaluation evidence, discloses post-cutoff reprocessing, verifies nine content-addressed official artifacts on D:, and now has a real bounded 48-hour IMERG accumulation
 
 Verified starting baseline (historical):
 
@@ -398,6 +398,8 @@ Progress:
 - post-event evaluation and comparison evidence is structurally forbidden from model input and calibration paths;
 - the official regional V7 archive is verified as two EPSG:32632 multipolygon layers: 150 event-1 features and 2,022 event-2 features; event 2 is the primary evaluation reference but remains under explicit license review and must not be redistributed;
 - IMERG V06 is unavailable through the canonical GES DISC/CMR path and is rejected by GeoLens policy; the canonical provider accepts only explicitly version-pinned V07, and live catalog verification found all 96 expected Final Run half-hour granules for 16-18 May 2023; V07 is disclosed as post-event reprocessing and may enter only this retrospective reconstruction, never a cutoff-constrained replay;
+- the canonical acquisition now derives a bounded source request from the H3 scope, loads only the source-cell subset plus one 0.1 degree sampling margin, retains requested and loaded bounds plus grid shape, and keys memory/disk caches by dataset version, time window and AOI so evidence from different places cannot collide;
+- the real Forli event accumulation is materialized outside Git at `D:/GeoLens/cache/imerg/v07_20230518T000000Z_48h_669b94d37ff0.{nc,json}`: 96/96 Final Run V07 half-hour granules, requested AOI `[11.98, 44.17, 12.10, 44.28]`, a 3x3 native 0.1 degree grid, nine finite cells, and 48-hour totals from `82.295` to `105.445 mm` with a `93.982 mm` mean; the NetCDF and provenance envelope total 22,144 bytes and pass an exact persistent-cache round trip;
 - Copernicus DEM GLO-30 2022_1 is the verified pre-event terrain input; the regional DTM 1x1 WCS remains context-only until availability of that exact source by the cutoff is proven, and its redistribution remains restricted because the regional service is not OpenData;
 - the Copernicus EMSN154 geospatial package and technical report are locally verified; P04 uses post-event Sentinel-1 delineation, while P06 is a two-dimensional hydraulic model calibrated with P04/EMSR664 footprints and ARPAE boundary conditions, so both remain secondary comparison evidence rather than independent ground truth;
 - nine official artifacts totalling 600,853,843 bytes are stored outside Git under D:/GeoLens/data/emilia-romagna-2023 and pass streamed byte-count and SHA-256 verification;
@@ -407,7 +409,7 @@ Work:
 
 - intersect the bounded pilot AOI with each official coverage and freeze the final common evaluation extent;
 - select a common evaluation grid, no-data mask, permanent-water mask and explicit boundary-tolerance policy before computing metrics;
-- acquire and persist the bounded 48-hour V07 rainfall accumulation plus Copernicus DEM, CLC and XDBTR evidence, retaining publication time, observation window, source resolution and transformation provenance;
+- acquire and persist bounded Copernicus DEM, CLC and XDBTR evidence over the frozen common extent, retaining publication time, observation window, source resolution and transformation provenance;
 - establish transparent baselines for terrain-only routing, IMERG-driven routing and ARPAE-gauge-driven routing;
 - implement the first deterministic surface-flow-concentration replay and evaluate it without calling the result an inundation extent;
 - introduce a conditioned inundation replay only after river levels, discharge, embankments, breaches and downstream boundary conditions have explicit evidence semantics;
@@ -421,4 +423,7 @@ Gate:
 - inundation and water-depth metrics remain unavailable until a conditioned hydraulic model exposes its physical boundary conditions;
 - API and inspector identify the result as an experimental retrospective reconstruction, not an as-known-at-the-time replay or operational forecast.
 
-Checkpoint: `feat: verify retrospective IMERG event window`
+Checkpoints:
+
+- `feat: verify retrospective IMERG event window`
+- `feat: materialize bounded retrospective IMERG`

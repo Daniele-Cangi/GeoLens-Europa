@@ -20,6 +20,18 @@ export interface ImergRequest {
   readonly windowHours: readonly ImergWindowHours[];
 }
 
+export interface ImergSpatialBounds {
+  readonly west: number;
+  readonly south: number;
+  readonly east: number;
+  readonly north: number;
+}
+
+export interface ImergGridShape {
+  readonly lat: number;
+  readonly lon: number;
+}
+
 export interface ImergWindowSummary {
   readonly windowHours: ImergWindowHours;
   readonly status: EvidenceStatus;
@@ -42,6 +54,9 @@ export interface ImergWindowSummary {
   readonly granuleTimestamps: readonly string[];
   readonly sourceResolution: string;
   readonly samplingMethod: string;
+  readonly requestedSpatialBounds: ImergSpatialBounds | null;
+  readonly loadedSpatialBounds: ImergSpatialBounds | null;
+  readonly gridShape: ImergGridShape | null;
   readonly cached: boolean;
 }
 
@@ -501,6 +516,12 @@ function parseWindowSummary(
     !raw.granuleTimestamps.every(validTimestamp) ||
     typeof raw.sourceResolution !== 'string' ||
     typeof raw.samplingMethod !== 'string' ||
+    !isSpatialBounds(raw.requestedSpatialBounds) ||
+    !(
+      raw.loadedSpatialBounds === null ||
+      isSpatialBounds(raw.loadedSpatialBounds)
+    ) ||
+    !(raw.gridShape === null || isGridShape(raw.gridShape)) ||
     typeof raw.cached !== 'boolean'
   ) {
     return null;
@@ -591,6 +612,9 @@ function failureWindow(
       sourceResolution: '0.1 degree',
       samplingMethod:
         'nearest IMERG grid cell at H3 centroid',
+      requestedSpatialBounds: null,
+      loadedSpatialBounds: null,
+      gridShape: null,
       cached: false,
     },
     cells,
@@ -734,6 +758,44 @@ function isTimestampRange(
     validTimestamp(value.start) &&
     validTimestamp(value.end) &&
     Date.parse(value.start) <= Date.parse(value.end)
+  );
+}
+
+function isSpatialBounds(
+  value: unknown,
+): value is ImergSpatialBounds {
+  return (
+    isRecord(value) &&
+    finiteNumber(value.west) &&
+    finiteNumber(value.south) &&
+    finiteNumber(value.east) &&
+    finiteNumber(value.north) &&
+    value.west >= -180 &&
+    value.east <= 180 &&
+    value.south >= -90 &&
+    value.north <= 90 &&
+    value.west < value.east &&
+    value.south < value.north
+  );
+}
+
+function isGridShape(value: unknown): value is ImergGridShape {
+  return (
+    isRecord(value) &&
+    positiveInteger(value.lat) &&
+    positiveInteger(value.lon)
+  );
+}
+
+function finiteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function positiveInteger(value: unknown): value is number {
+  return (
+    typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value > 0
   );
 }
 

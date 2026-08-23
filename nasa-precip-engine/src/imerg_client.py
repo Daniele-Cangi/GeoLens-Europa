@@ -26,6 +26,7 @@ from .config import (
     IMERG_PRODUCT_EARLY,
     IMERG_PRODUCT_FINAL,
     IMERG_PRODUCT_LATE,
+    IMERG_RESOLUTION,
     LAT_MAX,
     LAT_MIN,
     LON_MAX,
@@ -49,6 +50,46 @@ EvidenceStatus = Literal[
 ImergDatasetVersion = Literal["07"]
 
 _auth_initialized = False
+
+
+@dataclass(frozen=True)
+class ImergSpatialBounds:
+    """Requested geographic scope in EPSG:4326 longitude/latitude order."""
+
+    west: float
+    south: float
+    east: float
+    north: float
+
+    def __post_init__(self) -> None:
+        values = (self.west, self.south, self.east, self.north)
+        if not all(np.isfinite(value) for value in values):
+            raise ValueError("IMERG spatial bounds must be finite")
+        if not -180 <= self.west < self.east <= 180:
+            raise ValueError("IMERG west/east bounds are invalid")
+        if not -90 <= self.south < self.north <= 90:
+            raise ValueError("IMERG south/north bounds are invalid")
+
+    def as_tuple(self) -> tuple[float, float, float, float]:
+        return (self.west, self.south, self.east, self.north)
+
+    def expanded(self, margin: float) -> "ImergSpatialBounds":
+        if margin < 0 or not np.isfinite(margin):
+            raise ValueError("IMERG spatial margin must be non-negative")
+        return ImergSpatialBounds(
+            west=max(-180.0, self.west - margin),
+            south=max(-90.0, self.south - margin),
+            east=min(180.0, self.east + margin),
+            north=min(90.0, self.north + margin),
+        )
+
+
+IMERG_EUROPE_BOUNDS = ImergSpatialBounds(
+    west=LON_MIN,
+    south=LAT_MIN,
+    east=LON_MAX,
+    north=LAT_MAX,
+)
 
 
 class ImergAcquisitionError(RuntimeError):
@@ -162,6 +203,9 @@ class ImergWindowMetadata:
     acquired_at: datetime
     source_resolution: str
     sampling_method: str
+    requested_spatial_bounds: ImergSpatialBounds
+    loaded_spatial_bounds: ImergSpatialBounds
+    grid_shape: tuple[int, int]
     status: EvidenceStatus
     missing_reason: str | None
 
@@ -241,6 +285,7 @@ def discover_imerg_granules(
     *,
     dataset_version: ImergDatasetVersion = IMERG_DEFAULT_DATASET_VERSION,
     allow_early: bool = True,
+    spatial_bounds: ImergSpatialBounds = IMERG_EUROPE_BOUNDS,
 ) -> ImergGranuleDiscovery:
     """Discover one version-pinned, single-product IMERG window."""
 
@@ -267,6 +312,7 @@ def discover_imerg_granules(
         start,
         end,
         archive_version=archive_version,
+        spatial_bounds=spatial_bounds,
     )
     candidate_sets.append(
         (
@@ -284,6 +330,7 @@ def discover_imerg_granules(
             start,
             end,
             archive_version=archive_version,
+            spatial_bounds=spatial_bounds,
         )
         candidate_sets.append(
             (
@@ -305,6 +352,7 @@ def discover_imerg_granules(
             start,
             end,
             archive_version=archive_version,
+            spatial_bounds=spatial_bounds,
         )
         candidate_sets.append(
             (
@@ -356,6 +404,7 @@ def load_imerg_window(
     *,
     dataset_version: ImergDatasetVersion = IMERG_DEFAULT_DATASET_VERSION,
     allow_early: bool = True,
+    spatial_bounds: ImergSpatialBounds = IMERG_EUROPE_BOUNDS,
 ) -> ImergWindow:
     """Acquire one complete, version-pinned IMERG accumulation window."""
 
@@ -364,6 +413,7 @@ def load_imerg_window(
         hours,
         dataset_version=dataset_version,
         allow_early=allow_early,
+        spatial_bounds=spatial_bounds,
     )
     start = discovery.requested_window_start
     end = discovery.requested_window_end
@@ -409,7 +459,10 @@ def load_imerg_window(
                 group="Grid",
                 engine="h5netcdf",
             )
-            amount, variable_name = precipitation_amount(dataset)
+            amount, variable_name = precipitation_amount(
+                dataset,
+                spatial_bounds=spatial_bounds,
+            )
             amounts.append(amount.load())
             valid_timestamps.append(timestamp)
             variable_names.append(variable_name)
@@ -422,6 +475,16 @@ def load_imerg_window(
         finally:
             if dataset is not None:
                 dataset.close()
+            close_file = getattr(file_object, "close", None)
+            if callable(close_file):
+                try:
+                    close_file()
+                except Exception as exc:
+                    logger.warning(
+                        "[IMERG] Granule handle %s did not close cleanly: %s",
+                        timestamp.isoformat(),
+                        exc,
+                    )
 
     if not amounts:
         raise ImergInvalidResponseError(
@@ -469,6 +532,12 @@ def load_imerg_window(
         acquired_at=datetime.now(timezone.utc),
         source_resolution="0.1 degree",
         sampling_method="nearest IMERG grid cell at H3 centroid",
+        requested_spatial_bounds=spatial_bounds,
+        loaded_spatial_bounds=_spatial_bounds_from_data(accumulated),
+        grid_shape=(
+            accumulated.sizes["lat"],
+            accumulated.sizes["lon"],
+        ),
         status=status,
         missing_reason=missing_reason,
     )
@@ -478,6 +547,8 @@ def load_imerg_window(
 
 def precipitation_amount(
     dataset: xr.Dataset,
+    *,
+    spatial_bounds: ImergSpatialBounds = IMERG_EUROPE_BOUNDS,
 ) -> tuple[xr.DataArray, str]:
     """Extract one non-negative half-hour precipitation amount."""
 
@@ -489,7 +560,7 @@ def precipitation_amount(
             f"IMERG variable {variable_name} lacks lat/lon dimensions"
         )
 
-    subset = _subset_europe(rate)
+    subset = _subset_spatial(rate, spatial_bounds)
 
     if subset.sizes.get("lat", 0) == 0 or subset.sizes.get("lon", 0) == 0:
         raise ValueError("IMERG granule has no data inside configured bounds")
@@ -514,6 +585,8 @@ def precipitation_amount(
 
 def accumulate_precip(
     datasets: Sequence[xr.Dataset],
+    *,
+    spatial_bounds: ImergSpatialBounds = IMERG_EUROPE_BOUNDS,
 ) -> tuple[xr.DataArray, tuple[str, ...]]:
     """Deterministic helper used by acquisition and fixture tests."""
 
@@ -524,7 +597,10 @@ def accumulate_precip(
     variables: list[str] = []
 
     for dataset in datasets:
-        amount, variable_name = precipitation_amount(dataset)
+        amount, variable_name = precipitation_amount(
+            dataset,
+            spatial_bounds=spatial_bounds,
+        )
         amounts.append(amount)
         variables.append(variable_name)
 
@@ -670,6 +746,7 @@ def _search_product(
     end: datetime,
     *,
     archive_version: str,
+    spatial_bounds: ImergSpatialBounds,
 ) -> list[object]:
     try:
         return list(
@@ -677,7 +754,7 @@ def _search_product(
                 short_name=product,
                 version=archive_version,
                 temporal=(start.isoformat(), end.isoformat()),
-                bounding_box=(LON_MIN, LAT_MIN, LON_MAX, LAT_MAX),
+                bounding_box=spatial_bounds.as_tuple(),
             )
         )
     except Exception as exc:
@@ -773,20 +850,48 @@ def _precipitation_variable(dataset: xr.Dataset) -> str:
     )
 
 
-def _subset_europe(rate: xr.DataArray) -> xr.DataArray:
+def _subset_spatial(
+    rate: xr.DataArray,
+    spatial_bounds: ImergSpatialBounds,
+) -> xr.DataArray:
+    # Include one source-cell margin so nearest-neighbour sampling remains
+    # valid for H3 centroids along the requested AOI boundary.
+    loaded_bounds = spatial_bounds.expanded(IMERG_RESOLUTION)
     lat_values = np.asarray(rate.coords["lat"].values)
     lon_values = np.asarray(rate.coords["lon"].values)
     lat_slice = (
-        slice(LAT_MIN, LAT_MAX)
+        slice(loaded_bounds.south, loaded_bounds.north)
         if lat_values[0] <= lat_values[-1]
-        else slice(LAT_MAX, LAT_MIN)
+        else slice(loaded_bounds.north, loaded_bounds.south)
     )
     lon_slice = (
-        slice(LON_MIN, LON_MAX)
+        slice(loaded_bounds.west, loaded_bounds.east)
         if lon_values[0] <= lon_values[-1]
-        else slice(LON_MAX, LON_MIN)
+        else slice(loaded_bounds.east, loaded_bounds.west)
     )
     return rate.sel(lat=lat_slice, lon=lon_slice)
+
+
+def _spatial_bounds_from_data(data: xr.DataArray) -> ImergSpatialBounds:
+    lat_values = np.asarray(data.coords["lat"].values, dtype=float)
+    lon_values = np.asarray(data.coords["lon"].values, dtype=float)
+    if lat_values.size == 0 or lon_values.size == 0:
+        raise ValueError("IMERG accumulation has an empty spatial grid")
+
+    west = float(np.min(lon_values))
+    east = float(np.max(lon_values))
+    south = float(np.min(lat_values))
+    north = float(np.max(lat_values))
+    # A point-sized slice is still a real source pixel. Represent its cell
+    # footprint instead of inventing a zero-area bounding box.
+    half_cell = IMERG_RESOLUTION / 2
+    if west == east:
+        west -= half_cell
+        east += half_cell
+    if south == north:
+        south -= half_cell
+        north += half_cell
+    return ImergSpatialBounds(west, south, east, north)
 
 
 def _status_for_exception(

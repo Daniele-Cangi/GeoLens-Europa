@@ -85,6 +85,21 @@ function windowPayload({
       : [],
     sourceResolution: '0.1 degree',
     samplingMethod: 'nearest IMERG grid cell at H3 centroid',
+    requestedSpatialBounds: {
+      west: 10.95,
+      south: 45.95,
+      east: 11.05,
+      north: 46.05,
+    },
+    loadedSpatialBounds: status === 'available'
+      ? {
+          west: 10.85,
+          south: 45.85,
+          east: 11.15,
+          north: 46.15,
+        }
+      : null,
+    gridShape: status === 'available' ? { lat: 3, lon: 3 } : null,
     cached: false,
     cells: [
       {
@@ -176,6 +191,14 @@ test('observed zero survives the canonical service client', async () => {
   assert.equal(
     result.windows[24].summary.granuleCount,
     48,
+  );
+  assert.deepEqual(
+    result.windows[24].summary.gridShape,
+    { lat: 3, lon: 3 },
+  );
+  assert.equal(
+    result.windows[24].summary.requestedSpatialBounds.west,
+    10.95,
   );
   assert.equal(
     transport.requests[0].body.reference_time,
