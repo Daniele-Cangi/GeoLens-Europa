@@ -517,11 +517,11 @@ function parseWindowSummary(
     typeof raw.sourceResolution !== 'string' ||
     typeof raw.samplingMethod !== 'string' ||
     !isSpatialBounds(raw.requestedSpatialBounds) ||
-    !(
-      raw.loadedSpatialBounds === null ||
-      isSpatialBounds(raw.loadedSpatialBounds)
+    !validWindowSpatialMetadata(
+      raw.status,
+      raw.loadedSpatialBounds,
+      raw.gridShape,
     ) ||
-    !(raw.gridShape === null || isGridShape(raw.gridShape)) ||
     typeof raw.cached !== 'boolean'
   ) {
     return null;
@@ -776,6 +776,21 @@ function isSpatialBounds(
     value.north <= 90 &&
     value.west < value.east &&
     value.south < value.north
+  );
+}
+
+function validWindowSpatialMetadata(
+  status: unknown,
+  loadedBounds: unknown,
+  gridShape: unknown,
+): boolean {
+  if (status === 'available') {
+    return isSpatialBounds(loadedBounds) && isGridShape(gridShape);
+  }
+
+  return (
+    (loadedBounds === null || isSpatialBounds(loadedBounds)) &&
+    (gridShape === null || isGridShape(gridShape))
   );
 }
 

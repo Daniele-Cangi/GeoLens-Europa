@@ -35,6 +35,10 @@ def spatial_bounds_for_h3(
     centroids = [_cell_to_latlng(index) for index in h3_indices]
     latitudes = [lat for lat, _ in centroids]
     longitudes = [lon for _, lon in centroids]
+    if max(longitudes) - min(longitudes) > 180:
+        raise ValueError(
+            "H3 requests spanning the antimeridian are not supported"
+        )
     margin = IMERG_RESOLUTION / 2
     return ImergSpatialBounds(
         west=max(-180.0, min(longitudes) - margin),

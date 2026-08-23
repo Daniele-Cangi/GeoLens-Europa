@@ -29,6 +29,7 @@ from .imerg_client import (
     ImergWindowMetadata,
     archive_version_for,
     normalize_reference_time,
+    spatial_bounds_from_data,
 )
 
 logger = logging.getLogger(__name__)
@@ -249,6 +250,18 @@ def _read_disk_window(
         ):
             raise ValueError(
                 "Cached IMERG accumulation must be a 2D lat/lon array"
+            )
+        data_shape = (data.sizes["lat"], data.sizes["lon"])
+        if data_shape != metadata.grid_shape:
+            raise ValueError(
+                "Cached IMERG grid shape does not match metadata"
+            )
+        loaded_bounds = spatial_bounds_from_data(data)
+        if _canonical_bounds(loaded_bounds) != _canonical_bounds(
+            metadata.loaded_spatial_bounds
+        ):
+            raise ValueError(
+                "Cached IMERG coordinate extent does not match metadata"
             )
 
         logger.info(

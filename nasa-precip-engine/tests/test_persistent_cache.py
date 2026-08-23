@@ -201,6 +201,50 @@ class PersistentCacheTests(unittest.TestCase):
 
             self.assertIsNone(get_cached_window(REFERENCE, 1, "07"))
 
+    def test_grid_shape_mismatch_is_a_cache_miss(self):
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "src.cache.IMERG_CACHE_DIR",
+            directory,
+        ), patch(
+            "src.cache.IMERG_DISK_CACHE_TTL_SECONDS",
+            3600,
+        ):
+            set_cached_window(REFERENCE, 1, evidence_window())
+            clear_cache()
+            metadata_path = next(Path(directory).glob("*.json"))
+            payload = json.loads(
+                metadata_path.read_text(encoding="utf-8")
+            )
+            payload["windowMetadata"]["gridShape"] = [3, 2]
+            metadata_path.write_text(
+                json.dumps(payload),
+                encoding="utf-8",
+            )
+
+            self.assertIsNone(get_cached_window(REFERENCE, 1))
+
+    def test_loaded_bounds_mismatch_is_a_cache_miss(self):
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "src.cache.IMERG_CACHE_DIR",
+            directory,
+        ), patch(
+            "src.cache.IMERG_DISK_CACHE_TTL_SECONDS",
+            3600,
+        ):
+            set_cached_window(REFERENCE, 1, evidence_window())
+            clear_cache()
+            metadata_path = next(Path(directory).glob("*.json"))
+            payload = json.loads(
+                metadata_path.read_text(encoding="utf-8")
+            )
+            payload["windowMetadata"]["loadedSpatialBounds"]["east"] = 11.25
+            metadata_path.write_text(
+                json.dumps(payload),
+                encoding="utf-8",
+            )
+
+            self.assertIsNone(get_cached_window(REFERENCE, 1))
+
     def test_incomplete_window_is_memory_only(self):
         with tempfile.TemporaryDirectory() as directory, patch(
             "src.cache.IMERG_CACHE_DIR",

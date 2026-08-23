@@ -7,8 +7,10 @@ credentials. The normal deterministic suite reports this test as skipped.
 from __future__ import annotations
 
 import os
+import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
+from unittest.mock import patch
 
 import numpy as np
 
@@ -104,19 +106,28 @@ class HistoricalImergAcquisitionTests(unittest.TestCase):
         self.assertTrue(np.isfinite(window.data.values).any())
         self.assertGreater(float(np.nanmax(window.data.values)), 0.0)
 
-        set_cached_window(reference_time, 48, window)
-        clear_cache()
-        restored = get_cached_window(reference_time, 48, "07", bounds)
-        self.assertIsNotNone(restored)
-        self.assertEqual(
-            restored.metadata.granule_timestamps,
-            metadata.granule_timestamps,
-        )
-        self.assertTrue(np.array_equal(
-            restored.data.values,
-            window.data.values,
-            equal_nan=True,
-        ))
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "src.cache.IMERG_CACHE_DIR",
+            directory,
+        ):
+            set_cached_window(reference_time, 48, window)
+            clear_cache()
+            restored = get_cached_window(
+                reference_time,
+                48,
+                "07",
+                bounds,
+            )
+            self.assertIsNotNone(restored)
+            self.assertEqual(
+                restored.metadata.granule_timestamps,
+                metadata.granule_timestamps,
+            )
+            self.assertTrue(np.array_equal(
+                restored.data.values,
+                window.data.values,
+                equal_nan=True,
+            ))
 
 
 @unittest.skipUnless(

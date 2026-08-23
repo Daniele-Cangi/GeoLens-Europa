@@ -125,6 +125,15 @@ class ContractTests(unittest.TestCase):
             ],
             "07",
         )
+    def test_h3_scope_spanning_antimeridian_is_rejected(self):
+        cells = [
+            h3.latlng_to_cell(0.0, 179.9, 9),
+            h3.latlng_to_cell(0.0, -179.9, 9),
+        ]
+
+        with self.assertRaisesRegex(ValueError, "antimeridian"):
+            spatial_bounds_for_h3(cells)
+
     def test_incomplete_window_never_exposes_partial_zero(self):
         payload = build_window_payload(
             window(

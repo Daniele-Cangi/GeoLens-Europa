@@ -533,7 +533,7 @@ def load_imerg_window(
         source_resolution="0.1 degree",
         sampling_method="nearest IMERG grid cell at H3 centroid",
         requested_spatial_bounds=spatial_bounds,
-        loaded_spatial_bounds=_spatial_bounds_from_data(accumulated),
+        loaded_spatial_bounds=spatial_bounds_from_data(accumulated),
         grid_shape=(
             accumulated.sizes["lat"],
             accumulated.sizes["lon"],
@@ -872,7 +872,7 @@ def _subset_spatial(
     return rate.sel(lat=lat_slice, lon=lon_slice)
 
 
-def _spatial_bounds_from_data(data: xr.DataArray) -> ImergSpatialBounds:
+def spatial_bounds_from_data(data: xr.DataArray) -> ImergSpatialBounds:
     lat_values = np.asarray(data.coords["lat"].values, dtype=float)
     lon_values = np.asarray(data.coords["lon"].values, dtype=float)
     if lat_values.size == 0 or lon_values.size == 0:

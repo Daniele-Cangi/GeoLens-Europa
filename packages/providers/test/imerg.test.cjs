@@ -206,6 +206,29 @@ test('observed zero survives the canonical service client', async () => {
   );
 });
 
+test('available window requires loaded bounds and grid shape', async () => {
+  for (const field of ['loadedSpatialBounds', 'gridShape']) {
+    const malformedWindow = windowPayload();
+    malformedWindow[field] = null;
+    const { client } = clientFor(async () => ({
+      status: 200,
+      body: serviceResponse(malformedWindow),
+    }));
+
+    const result = await client.getEvidence(request);
+    assert.equal(
+      result.windows[24].summary.status,
+      'invalid_response',
+      field,
+    );
+    assert.equal(
+      result.windows[24].cells[h3].quality.status,
+      'invalid_response',
+      field,
+    );
+  }
+});
+
 test('historical V07 is selected and preserved end to end', async () => {
   const { client, transport } = clientFor(async () => ({
     status: 200,

@@ -173,7 +173,16 @@ async def get_precipitation_for_h3(
             detail="One or more H3 indices are invalid",
         ) from None
 
-    spatial_bounds = spatial_bounds_for_h3(h3_indices)
+    try:
+        spatial_bounds = spatial_bounds_for_h3(h3_indices)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "H3 requests spanning the antimeridian are not supported"
+            ),
+        ) from None
+
     reference_time = _reference_time(request.reference_time)
     acquired_at = datetime.now(timezone.utc)
     windows: list[dict[str, object]] = []
