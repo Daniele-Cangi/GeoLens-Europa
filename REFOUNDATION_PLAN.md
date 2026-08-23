@@ -290,7 +290,7 @@ Checkpoints:
 
 ## Phase 8 — Connect observed topology to contributing-area evidence
 
-State: in progress
+State: completed
 
 Progress:
 
@@ -317,7 +317,13 @@ Progress:
 - model `bounded-bgt-ahn-priority-flood-v0.1.0` keeps raw AHN evidence unchanged, derives a separate IDW land elevation only from at least three observed AHN H3 area means within four grid rings, excludes observed water and structural barriers, and applies a deterministic multi-terminal priority-flood;
 - the live conditioned result has zero unresolved cells and assigns 100 cells / `3,676.73 m2` to the conditioned outfall, from 435 observed and 155 interpolated terrain values; 232 cells terminate at the analysis boundary, 258 at observed surface water, 103 water cells and 3 barrier cells are excluded, and 78 cells require depression raising;
 - the conditioned outfall attachment is explicitly `observed: false`; the API and inspector expose the raw DTM, BGT class, interpolation donors, fill depth, competing terminal and model version per cell;
-- the first Phase 8 gate now has a traceable, transparently conditioned H3 contributing area, but the proxy remains ineligible for sewer propagation because it is not an observed Waternet catchment, runoff is not yet composed, and the outfall pipe direction remains unresolved at 0.05 m.
+- model `conditioned-surface-environmental-runoff-v0.1.0` deterministically orders conditioned cells by shortest flow path then H3, caps composition at 100 cells, and reuses the canonical IMERG/DEM/CLC composer plus the existing inspectable runoff and H3-area aggregation models;
+- live composition covered all 100 conditioned cells / `3,676.73 m2` with zero environmental issues: IMERG was `3.8349998 mm` on its retained 0.1 degree grid, CLC 100 m returned class `112` for 97 cells and `141` for 3, and GLO-30 slopes ranged from `0.6497` to `6.0057 deg`;
+- the resulting runoff depth ranged from `3.0763` to `3.1448 mm` and aggregated to `11.4145268 m3` with status `available`;
+- missing IMERG fixture verification retains `null` total volume and zero partial volume, and never attempts network propagation;
+- the API and browser expose the conditioned environmental receipt separately from AHN/BGT conditioning and observed topology; browser verification rendered 696 cells and the `11.415 m3` receipt with no framework overlay or console errors;
+- propagation is explicitly `attempted: false` at the selected outfall because the surface attachment remains unobserved and incident pipe `waternet:2E5F673B-3226-4E2D-9235-565CE30AF5CB` is unresolved at the 0.05 m threshold; no downstream state is invented;
+- the Phase 8 gate is complete with traceable non-zero environmental source state and an explicit observed-network stopping boundary.
 
 Work:
 
@@ -347,3 +353,5 @@ Checkpoints:
 - `refactor: aggregate AHN terrain over H3 cells`
 - `feat: acquire bounded BGT physical surfaces`
 - `feat: condition Amsterdam surface catchment proxy`
+- `feat: compose Amsterdam environmental runoff`
+- `feat: expose conditioned runoff boundary`
