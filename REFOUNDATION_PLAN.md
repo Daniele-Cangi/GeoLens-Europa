@@ -301,16 +301,19 @@ Progress:
 - model `known-direction-outfall-connectivity-v0.1.0` finds 0 known upstream paths to the four outfalls because each incident pipe is within the ambiguity threshold; the four pipes remain explicit unresolved boundaries;
 - missing invert evidence remains an unknown direction and the observed route never falls back to node ground elevation;
 - the API and inspector expose evidence basis, model versions, threshold, per-pipe state, outfall-path counts and highlighted unresolved outfall boundaries without claiming catchment contribution or propagated flow;
-- an explicitly experimental `bounded-h3-single-flow-surface-proxy-v0.1.0` now samples Copernicus GLO-30 elevation over the fixed Waternet bbox at H3 r11, uses a one-ring boundary halo, and conditions the observed `8522CE11-8DC1-41CC-9375-EDECAB742620` outfall cell as a pour point without creating a Waternet catchment attachment;
-- live verification returned 34/34 available non-synthetic GLO-30 samples for 14 target cells: only the conditioned outfall cell contributes (`1,801.61 m2`), while six paths exit coverage and seven terminate at local depressions; this limited result is retained as evidence that the unconditioned 30 m DSM does not support inventing a larger urban sewer catchment;
-- missing DEM evidence makes the proxy area unavailable while leaving the observed Waternet topology available; the proxy remains ineligible for sewer propagation because it is not an observed catchment, runoff is not yet composed, and the outfall pipe direction remains unresolved at 0.05 m.
+- the first `bounded-h3-single-flow-surface-proxy-v0.1.0` GLO-30/r11 experiment produced only its conditioned outlet cell (`1,801.61 m2`); that result is retained as negative evidence and is no longer the active Amsterdam surface source;
+- the active bounded surface experiment now acquires one public PDOK AHN4 DTM WCS coverage, retains its exact request bounds and raster receipt, samples the 0.5 m NAP terrain source at H3 r13 centroids, uses a one-ring halo, and keeps H3 representation distinct from source resolution;
+- live AHN verification over the fixed bbox returned 470 available and 346 no-data samples across 696 target / 816 sampled H3 cells; four cells resolve to the conditioned outfall for `147.07 m2` of partial area, while the complete area remains `missing` because unresolved source cells could still contribute;
+- the no-data result is not filled, interpolated or converted to zero; the API and inspector expose the partial area, unavailable complete area, provider/dataset/version, WCS 2.0.1 receipt, EPSG:28992 + NAP datum, 14 coverage exits, 20 local depressions and 658 incomplete paths;
+- the official Amsterdam catalogue still exposes `bemalingsgebied` only as a node identifier and no public contributing-area polygon was found in the documented `Leidingeninfrastructuur` dataset;
+- the proxy remains ineligible for sewer propagation because it is not an observed Waternet catchment, runoff is not yet composed, and the outfall pipe direction remains unresolved at 0.05 m.
 
 Work:
 
 - identify an authoritative contributing-area or drainage-area source that can be linked to the four explicit Waternet rainwater outfalls;
 - reject representative-point, first-coordinate and name-prefix shortcuts;
 - define polygon-to-H3 coverage and outlet attachment with inspectable spatial transformation semantics;
-- determine whether an authoritative Waternet polygon or a hydrologically conditioned higher-resolution surface is required before treating the trivial GLO-30 proxy as a usable contributing area;
+- continue searching for an authoritative outfall-linked contributing-area polygon or define a documented hydrologic conditioning method; AHN no-data and local depressions currently prevent treating the partial proxy as a complete area;
 - compose real IMERG, DEM and CLC evidence over the bounded Amsterdam contributing area before deriving runoff;
 - propagate only through the validated, supported observed subgraph.
 
@@ -328,3 +331,4 @@ Checkpoints:
 - `refactor: expose known-direction outfall connectivity`
 - `feat: derive bounded DEM surface catchment proxy`
 - `feat: expose bounded DEM surface catchment proxy`
+- `feat: refine Amsterdam surface evidence with AHN DTM`

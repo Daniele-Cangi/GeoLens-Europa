@@ -65,6 +65,10 @@ function fixtureInput() {
 
   return {
     id: 'amsterdam-outfall-surface-proxy',
+    elevationModel: {
+      semantics: 'synthetic_fixture_surface',
+      description: 'Deterministic descending fixture surface.',
+    },
     outfallNodeId,
     outfallPosition,
     grid,
@@ -162,7 +166,7 @@ test('one missing halo elevation makes area explicitly unavailable instead of ze
   assert.equal(result.contributingAreaM2.value, null);
   assert.match(
     result.contributingAreaM2.quality.missingReason,
-    /required DEM evidence is unavailable/,
+    /required DEM samples are unavailable/,
   );
   assert.ok(result.counts.incompleteElevationCells > 0);
   assert.ok(result.partialContributingAreaM2 >= 0);
