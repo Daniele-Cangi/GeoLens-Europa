@@ -20,9 +20,13 @@
     "test:python": "cd nasa-precip-engine && python -m unittest discover -s tests -v",
     "test:live": "npm run build --workspace=@geo-lens/providers && node --test packages/providers/test/live-environmental.test.cjs && cd nasa-precip-engine && python -m unittest discover -s tests -p test_live_imerg.py -v",
     "test:live:proof-zero": "node --test apps/api/test/live-proof-zero-runtime.test.cjs",
-    "verify:ground-truth": "npm run build --workspace=@geo-lens/evidence && node scripts/verify-ground-truth-artifacts.mjs"
+    "verify:ground-truth": "npm run build --workspace=@geo-lens/evidence && node scripts/verify-ground-truth-artifacts.mjs",
+    "materialize:emilia-inputs": "npm run build --workspace=@geo-lens/providers && node scripts/materialize-emilia-bounded-inputs.mjs",
+    "verify:emilia-inputs": "npm run build --workspace=@geo-lens/providers && node scripts/verify-emilia-bounded-inputs.mjs"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "geotiff": "^2.1.4-beta.1",
+    "proj4": "^2.21.0"
   }
 }

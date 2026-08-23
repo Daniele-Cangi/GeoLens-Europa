@@ -49,7 +49,7 @@ GeoLens has two complementary proofs and one independent historical benchmark in
 | --- | --- | --- | --- |
 | Trento Proof 0 | NASA IMERG rainfall, Copernicus GLO-30 terrain and the official local CLC 2018 raster | Complete evidence → runoff → catchment → network → downstream accumulation chain over a deterministic bounded network fixture | The environmental evidence is real; the small network geometry is a test fixture, not surveyed municipal infrastructure |
 | Amsterdam observed proof | Waternet nodes and pipes, AHN4 terrain, BGT physical surfaces, IMERG rainfall, CLC land cover, GLO-30 slope and PDOK/GWSW context | Real municipal topology and a traceable non-zero conditioned runoff source over a bounded urban area | No owner-published surface-to-pipe relation was found in the current public catalogs, so network propagation is intentionally not attempted |
-| Emilia-Romagna 2023 benchmark (in progress) | Official post-event flood extents, Copernicus/CLC terrain context and a materialized 48-hour IMERG Final Run V07 accumulation from 96 granules over 16–18 May | A bounded hydrologic-routing result will be compared with observed flood evidence withheld from the model | V07 is post-event reprocessing, so this is a retrospective reconstruction—not an as-known-at-the-time forecast; no routing score is claimed yet |
+| Emilia-Romagna 2023 benchmark (in progress) | Official post-event flood extents, bounded IMERG Final Run V07, GLO-30 elevation/slope and CLC classes on one frozen 30 m grid | The environmental inputs and evaluation policy are now reproducible and content-addressed; observed flood evidence remains withheld | XDBTR physical vectors still require the regional authenticated extraction service, so the permanent-water/barrier masks and routing result remain blocked |
 
 ### Trento result
 
@@ -81,9 +81,25 @@ Case 02 is being prepared around a bounded Forlì pilot for the 16–18 May 2023
 - IMERG Final Run V07 rainfall is a version-pinned retrospective model input; GeoLens opened and accumulated all 96 expected half-hour granules over the bounded Forlì AOI;
 - the persisted native 0.1 degree subset is a 3x3 grid with nine finite 48-hour totals from 82.295 to 105.445 mm and a mean of 93.982 mm;
 - the request AOI, loaded source-grid bounds, source resolution, grid shape, granule timestamps, acquisition time and transformation remain in the cache provenance envelope;
-- terrain and land cover remain independent environmental inputs;
-- the official regional flood extent is evaluation-only and cannot enter model input or calibration;
+- the common evaluation grid is frozen in EPSG:32632 at 30 m: 335×420 cells over `[737790, 4895070, 747840, 4907670]`;
+- a cell-centre AOI mask retains 130,307 eligible cells and excludes 10,393 envelope cells; H3 r11 is a separate representation choice, not the metric grid or a source resolution;
+- GLO-30 supplies real elevation and four-neighbour slope for every eligible cell: elevation ranges from 9.009 to 181.722 m and slope from 0 to 34.376°;
+- the official CLC raster supplies every eligible cell with a real level-3 class; missing classes use `-1` in the bounded binary artifact and can never become class `0`;
+- primary overlap metrics are unbuffered; an explicit 30 m one-cell tolerance is available only for secondary boundary-aware metrics;
+- the official regional flood extent is evaluation-only, stays withheld until a prediction is frozen and cannot enter model input or calibration;
+- the public XDBTR WMS is retained only as five layer-separated styled-map receipts. The physical vector download redirects to regional IAM authentication, so WMS pixels are not promoted to water, riverbed, embankment or building geometry;
 - the current claim is hydrologic routing, not validated inundation extent, flood depth or operational forecasting.
+
+The bounded inputs live outside Git under `D:/GeoLens/data/emilia-romagna-2023/inputs`. Deterministic mask, DEM and CLC hashes are declared by the benchmark manifest. The separate receipt retains the machine-specific acquisition time and the live WMS hashes; repeated acquisition proved that styled WMS bytes can change for the same request, so those context images are verified per acquisition but are intentionally not presented as reproducible physical evidence. Reproduce and verify them with:
+
+~~~powershell
+npm run materialize:emilia-inputs -- `
+  D:\GeoLens\data\emilia-romagna-2023 `
+  D:\GeoLens\data\clc\u2018_clc2018_v2020_20u1_raster100m\DATA\U2018_CLC2018_V2020_20u1.tif
+
+npm run verify:emilia-inputs -- D:\GeoLens\data\emilia-romagna-2023
+npm run verify:ground-truth -- D:\GeoLens\data\emilia-romagna-2023
+~~~
 
 V07 was released after the event and materially differs from V06, which GeoLens rejects because it is unavailable through the canonical GES DISC/CMR path. GeoLens therefore labels the case `retrospective_reconstruction` and retains the event-time knowledge cutoff to make that temporal distinction inspectable.
 

@@ -33,6 +33,90 @@ test('Emilia-Romagna manifest passes the historical benchmark contract', () => {
   assert.ok(manifest.benchmark.forbiddenClaims.includes('validated_water_depth'));
 });
 
+test('benchmark freezes the common metric grid and mask policy', () => {
+  const manifest = manifestFixture();
+  const protocol = manifest.benchmark.spatialProtocol;
+
+  assert.deepEqual(protocol.coverage.commonBounds, [
+    11.98,
+    44.17,
+    12.1,
+    44.28,
+  ]);
+  assert.deepEqual(protocol.grid, {
+    crs: 'EPSG:32632',
+    cellSizeM: 30,
+    bounds: [737790, 4895070, 747840, 4907670],
+    width: 335,
+    height: 420,
+    rowOrder: 'north_to_south',
+    inclusion: 'cell_center_inside_common_bounds',
+    h3RepresentationResolution: 11,
+  });
+  assert.equal(protocol.boundaryTolerance.primaryOverlapBufferM, 0);
+  assert.equal(protocol.boundaryTolerance.secondaryToleranceM, 30);
+  assert.equal(
+    protocol.masks.evaluationReference,
+    'withheld_until_prediction_is_frozen',
+  );
+});
+
+test('benchmark rejects grid drift and evaluation leakage', () => {
+  const wrongDimensions = manifestFixture();
+  wrongDimensions.benchmark.spatialProtocol.grid.width = 334;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(wrongDimensions),
+    /grid dimensions do not match/,
+  );
+
+  const bufferedPrimary = manifestFixture();
+  bufferedPrimary.benchmark.spatialProtocol.boundaryTolerance
+    .primaryOverlapBufferM = 30;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(bufferedPrimary),
+    /primary overlap metrics must remain unbuffered/,
+  );
+
+  const leakedReference = manifestFixture();
+  leakedReference.benchmark.spatialProtocol.masks.evaluationReference =
+    'load_before_prediction';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(leakedReference),
+    /evaluation reference must remain withheld/,
+  );
+});
+
+test('spatial coverage references declared datasets only', () => {
+  const manifest = manifestFixture();
+  manifest.benchmark.spatialProtocol.coverage.verifiedDatasetIds.push(
+    'undeclared-dataset',
+  );
+
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(manifest),
+    /spatial coverage references unknown dataset/,
+  );
+});
+test('styled XDBTR WMS receipts cannot satisfy physical geometry', () => {
+  const manifest = manifestFixture();
+  const xdbtr = manifest.datasets.find(
+    (dataset) => dataset.id === 'rer-xdbtr-2020-2018',
+  );
+
+  assert.equal(xdbtr.role, 'model_input');
+  assert.equal(xdbtr.acquisitionStatus, 'blocked');
+  assert.match(xdbtr.accessMethod, /authenticated DBTR extraction/);
+  assert.match(
+    xdbtr.methodologyNote,
+    /Styled pixels must not be promoted to physical/,
+  );
+  assert.equal(
+    xdbtr.localArtifacts.some((artifact) =>
+      artifact.relativePath.includes('styled-map'),
+    ),
+    false,
+  );
+});
 test('post-event evidence is structurally excluded from model and calibration', () => {
   const manifest = manifestFixture();
   const reference = manifest.datasets.find(
@@ -87,6 +171,19 @@ test('local artifact paths must remain portable and content-addressed', () => {
   );
 });
 
+test('benchmark and dataset artifacts share one portable namespace', () => {
+  const manifest = manifestFixture();
+  const benchmarkArtifact = manifest.benchmark.localArtifacts[0];
+  const dataset = manifest.datasets.find(
+    (candidate) => candidate.localArtifacts?.length > 0,
+  );
+  dataset.localArtifacts.push({ ...benchmarkArtifact });
+
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(manifest),
+    /Duplicate local artifact path/,
+  );
+});
 test('artifact path aliases cannot represent multiple files', () => {
   const aliases = [
     (path) => path.replace('/', '\\'),

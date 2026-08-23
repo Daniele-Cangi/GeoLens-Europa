@@ -31,8 +31,16 @@ const dataRoot = path.resolve(requestedRoot);
 let artifactCount = 0;
 let totalBytes = 0;
 
-for (const dataset of manifest.datasets) {
-  for (const artifact of dataset.localArtifacts ?? []) {
+const artifactGroups = [
+  {
+    id: 'benchmark',
+    localArtifacts: manifest.benchmark.localArtifacts ?? [],
+  },
+  ...manifest.datasets,
+];
+
+for (const group of artifactGroups) {
+  for (const artifact of group.localArtifacts ?? []) {
     const artifactPath = path.resolve(dataRoot, artifact.relativePath);
     const relative = path.relative(dataRoot, artifactPath);
     if (relative.startsWith('..') || path.isAbsolute(relative)) {
