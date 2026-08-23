@@ -6,3 +6,4 @@ export * from './infrastructure';
 export * from './network';
 export * from './runoff';
 export * from './surface-catchment';
+export * from './gwsw-area';
