@@ -546,6 +546,30 @@ th {
   fill: transparent;
 }
 
+.surface-proxy-cell {
+  fill: rgba(119, 185, 255, 0.035);
+  stroke: rgba(119, 185, 255, 0.3);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.surface-proxy-cell[data-contributes="true"] {
+  fill: rgba(61, 214, 193, 0.13);
+  stroke: rgba(61, 214, 193, 0.52);
+}
+
+.surface-proxy-cell[data-termination="coverage_exit"],
+.surface-proxy-cell[data-termination="local_depression"] {
+  fill: rgba(113, 143, 152, 0.06);
+  stroke-dasharray: 3 3;
+}
+
+.surface-proxy-cell[data-termination="incomplete_elevation"] {
+  fill: rgba(240, 176, 84, 0.12);
+  stroke: rgba(240, 176, 84, 0.68);
+  stroke-dasharray: 2 3;
+}
+
 .observed-pipe {
   cursor: pointer;
 }
@@ -611,6 +635,13 @@ th {
   fill: var(--paper-strong);
 }
 
+.surface-proxy-anchor-ring {
+  fill: none;
+  stroke: var(--blue);
+  stroke-dasharray: 2 2;
+  stroke-width: 2;
+}
+
 .observed-map-meta {
   display: flex;
   flex-wrap: wrap;
@@ -673,7 +704,24 @@ th {
   overflow-wrap: anywhere;
 }
 
-.observed-warning {
+
+.surface-proxy-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.surface-proxy-heading h3 {
+  margin-bottom: 13px;
+}
+
+.surface-proxy-missing {
+  margin: 0;
+  color: #c9bd9d;
+  font-size: 0.67rem;
+  line-height: 1.5;
+}.observed-warning {
   margin: 14px 0 0;
   border-left: 2px solid var(--amber);
   padding-left: 10px;

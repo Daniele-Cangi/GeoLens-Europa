@@ -132,9 +132,17 @@ function buildMapModel(
   const pipes = result
     ? Object.values(result.topology.pipes)
     : [];
+  const surfaceCells = result?.surfaceCatchmentProxy.result
+    ? Object.values(
+        result.surfaceCatchmentProxy.result.cells,
+      )
+    : [];
   const coordinates = [
     ...pipes.flatMap((pipe) => pipe.path),
     ...nodes.map((node) => node.position),
+    ...surfaceCells.flatMap((cell) =>
+      cell.boundary.map(([lon, lat]) => ({ lon, lat })),
+    ),
   ];
   let lonMin = Number.POSITIVE_INFINITY;
   let lonMax = Number.NEGATIVE_INFINITY;
@@ -203,10 +211,23 @@ function buildMapModel(
       ),
     ]),
   );
+  const surfaceCellPoints = Object.fromEntries(
+    surfaceCells.map((cell) => [
+      cell.h3,
+      cell.boundary
+        .map(([lon, lat]) => {
+          const projected = project(lon, lat);
+          return `${projected.x},${projected.y}`;
+        })
+        .join(' '),
+    ]),
+  );
 
   return {
     nodes,
     pipes,
+    surfaceCells,
+    surfaceCellPoints,
     outfallCount: nodes.filter(
       (node) => node.type === 'outfall',
     ).length,
@@ -243,6 +264,9 @@ export default function ObservedInfrastructurePanel({
           selectedPipe.id
         ]
       : undefined;
+  const surfaceEnvelope =
+    available?.surfaceCatchmentProxy;
+  const surfaceProxy = surfaceEnvelope?.result;
   const status =
     result?.status ?? 'not_requested';
 
@@ -265,8 +289,8 @@ export default function ObservedInfrastructurePanel({
         <div className="panel-meta">
           <StatusPill status={status} />
           <span>
-            Invert orientation only - no
-            catchment or flow asserted
+            DEM surface proxy kept separate - no
+            sewer catchment or flow asserted
           </span>
         </div>
       </div>
@@ -332,13 +356,33 @@ export default function ObservedInfrastructurePanel({
                 stormwater pipes imported from the
                 bounded Amsterdam WFS response,
                 including explicitly typed
-                rainwater outfalls.
+                rainwater outfalls and a separate
+                DEM-derived H3 surface proxy.
               </desc>
               <rect
                 width="820"
                 height="360"
                 className="observed-map-background"
               />
+              {mapModel.surfaceCells.map((cell) => (
+                <polygon
+                  key={cell.h3}
+                  points={
+                    mapModel.surfaceCellPoints[cell.h3]
+                  }
+                  className="surface-proxy-cell"
+                  data-contributes={
+                    cell.contributesToOutletProxy === null
+                      ? 'unresolved'
+                      : String(cell.contributesToOutletProxy)
+                  }
+                  data-termination={cell.termination}
+                >
+                  <title>
+                    {`${cell.h3} · ${statusLabel(cell.termination)} · ${evidenceText(cell.elevationM, 2)}`}
+                  </title>
+                </polygon>
+              ))}
               {mapModel.pipes.map((pipe) => {
                 const selected =
                   selectedPipe?.id === pipe.id;
@@ -416,6 +460,15 @@ export default function ObservedInfrastructurePanel({
                       r="1.8"
                       className="observed-node-core"
                     />
+                    {available.surfaceCatchmentProxy.result
+                      ?.outfallAnchor.nodeId === node.id ? (
+                      <circle
+                        cx={point.x}
+                        cy={point.y}
+                        r="10"
+                        className="surface-proxy-anchor-ring"
+                      />
+                    ) : null}
                   </g>
                 );
               })}
@@ -455,6 +508,14 @@ export default function ObservedInfrastructurePanel({
                     .blockedByUnresolvedDirection
                 }
                 {' direction-blocked'}
+              </span>
+              <span>
+                {available.surfaceCatchmentProxy.result
+                  ?.counts.contributingCells ?? 0}
+                {' DEM proxy cells / '}
+                {statusLabel(
+                  available.surfaceCatchmentProxy.status,
+                )}
               </span>
               <span>
                 Output{' '}
@@ -593,6 +654,120 @@ export default function ObservedInfrastructurePanel({
                 </dd>
               </div>
             </dl>
+
+            <section className="observed-selection surface-proxy-receipt">
+              <div className="surface-proxy-heading">
+                <div>
+                  <p className="eyebrow">
+                    Derived surface evidence
+                  </p>
+                  <h3>DEM surface proxy</h3>
+                </div>
+                <StatusPill
+                  status={
+                    surfaceEnvelope?.status ??
+                    'not_requested'
+                  }
+                />
+              </div>
+
+              {surfaceProxy ? (
+                <>
+                  <dl className="observed-facts">
+                    <div>
+                      <dt>Contributing area</dt>
+                      <dd>
+                        {evidenceText(
+                          surfaceProxy.contributingAreaM2,
+                          0,
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>H3 representation</dt>
+                      <dd>
+                        r{surfaceProxy.coverage.h3Resolution}
+                        {' · '}
+                        {surfaceProxy.coverage.targetCellCount}
+                        {' target / '}
+                        {surfaceProxy.coverage.sampledCellCount}
+                        {' sampled' }
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>DEM source</dt>
+                      <dd>
+                        {surfaceProxy.elevationSources.providers.join(
+                          ', ',
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Source resolution</dt>
+                      <dd>
+                        {surfaceProxy.elevationSources.sourceResolutions.join(
+                          ', ',
+                        ) || 'Not stated'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Contributing cells</dt>
+                      <dd>
+                        {surfaceProxy.counts.contributingCells}
+                        {' / '}
+                        {surfaceProxy.coverage.targetCellCount}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Other terminations</dt>
+                      <dd>
+                        {surfaceProxy.counts.coverageExitCells}
+                        {' exit · '}
+                        {surfaceProxy.counts.localDepressionCells}
+                        {' depression · '}
+                        {surfaceProxy.counts.incompleteElevationCells}
+                        {' incomplete'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Conditioned pour point</dt>
+                      <dd>{surfaceProxy.outfallAnchor.h3}</dd>
+                    </div>
+                    <div>
+                      <dt>Model</dt>
+                      <dd>{surfaceProxy.modelVersion}</dd>
+                    </div>
+                    <div>
+                      <dt>Sewer propagation</dt>
+                      <dd>
+                        Blocked ·{' '}
+                        {surfaceEnvelope?.networkUse?.reasons
+                          .map(statusLabel)
+                          .join(' · ') ?? 'not evaluated'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>DEM acquired</dt>
+                      <dd>
+                        {surfaceProxy.elevationSources.acquiredAt
+                          .map(formatUtcTimestamp)
+                          .join(', ')}
+                      </dd>
+                    </div>
+                  </dl>
+                  <p className="observed-warning">
+                    {surfaceProxy.limitations[0]}{' '}
+                    {surfaceProxy.limitations[2]} No Waternet
+                    sewer catchment is asserted.
+                  </p>
+                </>
+              ) : (
+                <p className="surface-proxy-missing">
+                  {surfaceEnvelope?.missingReason ??
+                    'Surface proxy not requested.'}
+                </p>
+              )}
+            </section>
 
             {selectedPipe ? (
               <section className="observed-selection">
