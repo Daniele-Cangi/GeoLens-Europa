@@ -26,10 +26,13 @@ EARTHDATA_USERNAME = os.getenv('EARTHDATA_USERNAME', '')
 EARTHDATA_PASSWORD = os.getenv('EARTHDATA_PASSWORD', '')
 
 # === IMERG DATA CONFIGURATION ===
-# GPM IMERG V07 product identifiers
-IMERG_PRODUCT_LATE = "GPM_3IMERGHH"  # Late Run (4-18h latency, more accurate)
-IMERG_PRODUCT_EARLY = "GPM_3IMERGHHE"  # Early Run (4-6h latency, less accurate)
-IMERG_DATASET_VERSION = "07"
+# GPM IMERG V07 product identifiers (the official published collection)
+IMERG_PRODUCT_FINAL = "GPM_3IMERGHH"  # Final Run research product
+IMERG_PRODUCT_LATE = "GPM_3IMERGHHL"  # Late Run near-real-time product
+IMERG_PRODUCT_EARLY = "GPM_3IMERGHHE"  # Early Run near-real-time product
+IMERG_DEFAULT_DATASET_VERSION = "07"
+IMERG_SUPPORTED_DATASET_VERSIONS = ("07",)
+IMERG_EARTHACCESS_VERSION_BY_DATASET = {"07": "07"}
 IMERG_INTERVAL_MINUTES = 30
 
 # Resolution: 0.1° (~10km at equator)

@@ -18,6 +18,7 @@ from .config import (
     CACHE_MAX_SIZE,
     CACHE_TTL_SECONDS,
     IMERG_CACHE_DIR,
+    IMERG_DEFAULT_DATASET_VERSION,
     IMERG_DISK_CACHE_TTL_SECONDS,
 )
 from .imerg_client import (
@@ -28,7 +29,7 @@ from .imerg_client import (
 
 logger = logging.getLogger(__name__)
 
-_CACHE_SCHEMA_VERSION = 1
+_CACHE_SCHEMA_VERSION = 2
 
 
 @dataclass(frozen=True)
@@ -40,20 +41,29 @@ class CacheEntry:
         return now - self.cached_at > CACHE_TTL_SECONDS
 
 
-_CACHE: dict[tuple[str, int], CacheEntry] = {}
+_CACHE: dict[tuple[str, str, int], CacheEntry] = {}
 _LOCK = RLock()
 
 
-def _key(t_ref: datetime, hours: int) -> tuple[str, int]:
-    return normalize_reference_time(t_ref).isoformat(), hours
+def _key(
+    t_ref: datetime,
+    hours: int,
+    dataset_version: str,
+) -> tuple[str, str, int]:
+    return (
+        dataset_version,
+        normalize_reference_time(t_ref).isoformat(),
+        hours,
+    )
 
 
 def get_cached_window(
     t_ref: datetime,
     hours: int,
+    dataset_version: str = IMERG_DEFAULT_DATASET_VERSION,
 ) -> ImergWindow | None:
     now = time.time()
-    key = _key(t_ref, hours)
+    key = _key(t_ref, hours, dataset_version)
 
     with _LOCK:
         entry = _CACHE.get(key)
@@ -64,7 +74,12 @@ def get_cached_window(
             else:
                 return entry.window
 
-    disk_window = _read_disk_window(t_ref, hours, now)
+    disk_window = _read_disk_window(
+        t_ref,
+        hours,
+        dataset_version,
+        now,
+    )
 
     if disk_window is None:
         return None
@@ -81,7 +96,7 @@ def set_cached_window(
     window: ImergWindow,
 ) -> None:
     now = time.time()
-    key = _key(t_ref, hours)
+    key = _key(t_ref, hours, window.metadata.dataset_version)
 
     with _LOCK:
         _set_memory_entry(key, window, now)
@@ -120,7 +135,7 @@ def get_cache_stats() -> dict[str, int]:
 
 
 def _set_memory_entry(
-    key: tuple[str, int],
+    key: tuple[str, str, int],
     window: ImergWindow,
     cached_at: float,
 ) -> None:
@@ -140,12 +155,17 @@ def _set_memory_entry(
 def _cache_paths(
     t_ref: datetime,
     hours: int,
+    dataset_version: str,
 ) -> tuple[Path, Path] | None:
     if not IMERG_CACHE_DIR:
         return None
 
     normalized = normalize_reference_time(t_ref)
-    stem = normalized.strftime("%Y%m%dT%H%M%SZ") + f"_{hours}h"
+    stem = (
+        f"v{dataset_version}_"
+        + normalized.strftime("%Y%m%dT%H%M%SZ")
+        + f"_{hours}h"
+    )
     directory = Path(IMERG_CACHE_DIR).expanduser()
     return (
         directory / f"{stem}.nc",
@@ -156,9 +176,10 @@ def _cache_paths(
 def _read_disk_window(
     t_ref: datetime,
     hours: int,
+    dataset_version: str,
     now: float,
 ) -> ImergWindow | None:
-    paths = _cache_paths(t_ref, hours)
+    paths = _cache_paths(t_ref, hours, dataset_version)
 
     if paths is None:
         return None
@@ -172,8 +193,18 @@ def _read_disk_window(
         payload = json.loads(
             metadata_path.read_text(encoding="utf-8")
         )
-        _validate_cache_envelope(payload, t_ref, hours, now)
+        _validate_cache_envelope(
+            payload,
+            t_ref,
+            hours,
+            dataset_version,
+            now,
+        )
         metadata = _metadata_from_payload(payload["windowMetadata"])
+        if metadata.dataset_version != dataset_version:
+            raise ValueError(
+                "Persistent cache metadata version mismatch"
+            )
         opened = xr.open_dataarray(
             data_path,
             engine="h5netcdf",
@@ -212,7 +243,11 @@ def _write_disk_window(
     window: ImergWindow,
     cached_at: float,
 ) -> None:
-    paths = _cache_paths(t_ref, hours)
+    paths = _cache_paths(
+        t_ref,
+        hours,
+        window.metadata.dataset_version,
+    )
 
     if paths is None:
         return
@@ -224,6 +259,7 @@ def _write_disk_window(
         "schemaVersion": _CACHE_SCHEMA_VERSION,
         "referenceTime": normalize_reference_time(t_ref).isoformat(),
         "windowHours": hours,
+        "datasetVersion": window.metadata.dataset_version,
         "cachedAtEpoch": cached_at,
         "windowMetadata": _metadata_to_payload(window.metadata),
     }
@@ -259,6 +295,7 @@ def _validate_cache_envelope(
     payload: Any,
     t_ref: datetime,
     hours: int,
+    dataset_version: str,
     now: float,
 ) -> None:
     if not isinstance(payload, dict):
@@ -274,6 +311,9 @@ def _validate_cache_envelope(
 
     if payload.get("windowHours") != hours:
         raise ValueError("Persistent cache window length mismatch")
+
+    if payload.get("datasetVersion") != dataset_version:
+        raise ValueError("Persistent cache dataset version mismatch")
 
     cached_at = payload.get("cachedAtEpoch")
 
@@ -293,6 +333,7 @@ def _metadata_to_payload(
         "product": metadata.product,
         "runType": metadata.run_type,
         "datasetVersion": metadata.dataset_version,
+        "archiveVersion": metadata.archive_version,
         "requestedWindowStart": metadata.requested_window_start.isoformat(),
         "requestedWindowEnd": metadata.requested_window_end.isoformat(),
         "actualWindowStart": _optional_iso(
@@ -324,7 +365,7 @@ def _metadata_from_payload(
     run_type = payload.get("runType")
     status = payload.get("status")
 
-    if run_type not in ("late", "early"):
+    if run_type not in ("final", "late", "early"):
         raise ValueError("Cached IMERG run type is invalid")
 
     if status != "available":
@@ -361,6 +402,7 @@ def _metadata_from_payload(
         product=_string(payload, "product"),
         run_type=run_type,
         dataset_version=_string(payload, "datasetVersion"),
+        archive_version=_string(payload, "archiveVersion"),
         requested_window_start=_parse_datetime(
             _string(payload, "requestedWindowStart")
         ),

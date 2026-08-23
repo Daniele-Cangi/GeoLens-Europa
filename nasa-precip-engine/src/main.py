@@ -23,6 +23,8 @@ from .config import (
     EARTHDATA_PASSWORD,
     EARTHDATA_USERNAME,
     IMERG_CACHE_DIR,
+    IMERG_DEFAULT_DATASET_VERSION,
+    IMERG_SUPPORTED_DATASET_VERSIONS,
     LOG_LEVEL,
     MAX_H3_CELLS_PER_REQUEST,
 )
@@ -35,6 +37,7 @@ from .h3_mapping import validate_h3_indices
 from .imerg_client import (
     EvidenceStatus,
     ImergAcquisitionError,
+    ImergDatasetVersion,
     ImergAuthRequiredError,
     ImergIncompleteWindowError,
     ImergInvalidResponseError,
@@ -43,6 +46,7 @@ from .imerg_client import (
     ImergRateLimitedError,
     ImergStaleError,
     ImergUpstreamError,
+    archive_version_for,
     load_imerg_window,
     normalize_reference_time,
 )
@@ -95,7 +99,10 @@ class PrecipRequest(BaseModel):
         max_length=MAX_H3_CELLS_PER_REQUEST,
     )
     reference_time: str | None = None
-    window_hours: list[Literal[24, 72]] = Field(
+    dataset_version: ImergDatasetVersion = Field(
+        default=IMERG_DEFAULT_DATASET_VERSION
+    )
+    window_hours: list[Literal[24, 48, 72]] = Field(
         default_factory=lambda: [24, 72],
         min_length=1,
         max_length=2,
@@ -123,8 +130,8 @@ class PrecipRequest(BaseModel):
     @classmethod
     def validate_window_hours(
         cls,
-        value: list[Literal[24, 72]],
-    ) -> list[Literal[24, 72]]:
+        value: list[Literal[24, 48, 72]],
+    ) -> list[Literal[24, 48, 72]]:
         if len(value) != len(set(value)):
             raise ValueError("window_hours cannot contain duplicates")
 
@@ -142,6 +149,10 @@ async def health_check() -> dict[str, object]:
             EARTHDATA_USERNAME and EARTHDATA_PASSWORD
         ),
         "persistentCacheConfigured": bool(IMERG_CACHE_DIR),
+        "defaultDatasetVersion": IMERG_DEFAULT_DATASET_VERSION,
+        "supportedDatasetVersions": list(
+            IMERG_SUPPORTED_DATASET_VERSIONS
+        ),
     }
 
 
@@ -168,7 +179,11 @@ async def get_precipitation_for_h3(
 
     for hours in request.window_hours:
         requested_start = reference_time - timedelta(hours=hours)
-        cached_window = get_cached_window(reference_time, hours)
+        cached_window = get_cached_window(
+            reference_time,
+            hours,
+            request.dataset_version,
+        )
 
         if cached_window is not None:
             windows.append(
@@ -186,6 +201,7 @@ async def get_precipitation_for_h3(
                 load_imerg_window,
                 reference_time,
                 hours,
+                dataset_version=request.dataset_version,
             )
         except ImergMissingError:
             error_status = "missing"
@@ -237,12 +253,17 @@ async def get_precipitation_for_h3(
                 requested_start=requested_start,
                 requested_end=reference_time,
                 acquired_at=acquired_at,
+                dataset_version=request.dataset_version,
             )
         )
 
     return {
         "provider": "NASA GES DISC",
         "datasetFamily": "GPM IMERG",
+        "datasetVersion": request.dataset_version,
+        "archiveVersion": archive_version_for(
+            request.dataset_version
+        ),
         "contractVersion": TRANSFORMATION_VERSION,
         "referenceTime": _iso(reference_time),
         "acquiredAt": _iso(acquired_at),

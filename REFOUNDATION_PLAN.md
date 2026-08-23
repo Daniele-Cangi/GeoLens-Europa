@@ -14,7 +14,7 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Observed-infrastructure gate: established through a live bounded Waternet/Amsterdam WFS path, a valid 47-node/47-pipe topology containing four explicit rainwater outfalls, explicit provider failures, API receipts and a browser-verified inspection panel
 - Observed-direction gate: established separately from propagation; Waternet endpoint invert NAP evidence yields 26 known and 21 ambiguous directions at an inclusive 0.05 m analysis boundary with an explicit 0.000001 m numeric tolerance and no ground-elevation fallback; the selected outfall exposes a known 5-node/4-pipe upstream subgraph while four unresolved boundary pipes remain explicit
 - Historical tracked Copernicus private key: removed from the active tree; revocation/rotation remains an external security action because the secret is present in Git history
-- Historical replay benchmark gate: in data-audit state for a bounded Forli pilot; a typed manifest separates pre/during-event model inputs from post-event evaluation evidence, and nine official local artifacts on D: are content-addressed and verified
+- Retrospective reconstruction benchmark gate: in data-audit state for a bounded Forli pilot; a typed manifest separates environmental model inputs from post-event evaluation evidence, discloses post-cutoff reprocessing, and verifies nine content-addressed official artifacts on D:
 
 Verified starting baseline (historical):
 
@@ -387,27 +387,27 @@ Gate:
 
 Checkpoint: `feat: attach observed surface contribution to Waternet`
 
-## Phase 10 - Establish the Emilia-Romagna 2023 historical replay benchmark
+## Phase 10 - Establish the Emilia-Romagna 2023 retrospective reconstruction benchmark
 
 State: in progress
 
 Progress:
 
-- a typed historical-benchmark contract now fixes dataset role, temporal relation, verified source availability, permitted use, access/license state, acquisition state and portable content-addressed local artifacts;
-- the first manifest declares a bounded Forli pilot, the 16-18 May replay window, an end-of-window knowledge cutoff and a hydrologic-routing claim level that explicitly forbids validated inundation, water-depth, probability and operational-forecast claims;
+- the versioned historical-benchmark contract now distinguishes cutoff-constrained replay from retrospective reconstruction while fixing dataset role, observation-time relation, verified publication time, permitted use, access/license state, acquisition state and portable content-addressed local artifacts;
+- the manifest declares a bounded Forli pilot, the 16-18 May event window, a retained end-of-window knowledge cutoff, retrospective_reconstruction mode and a hydrologic-routing claim level that explicitly forbids validated inundation, water-depth, probability and operational-forecast claims;
 - post-event evaluation and comparison evidence is structurally forbidden from model input and calibration paths;
 - the official regional V7 archive is verified as two EPSG:32632 multipolygon layers: 150 event-1 features and 2,022 event-2 features; event 2 is the primary evaluation reference but remains under explicit license review and must not be redistributed;
-- source availability is enforced against the knowledge cutoff: IMERG V07 and the ARPAE annual archive are post-event context/evaluation only, while replay precipitation is pinned to the event-time V06C product family and remains blocked until the canonical service supports explicit historical version selection;
+- NASA has retired IMERG V06 from the official catalog and archive; the canonical provider now accepts only explicitly version-pinned V07, and live catalog verification found all 96 expected Final Run half-hour granules for 16-18 May 2023; V07 is disclosed as post-event reprocessing and may enter only this retrospective reconstruction, never a cutoff-constrained replay;
 - Copernicus DEM GLO-30 2022_1 is the verified pre-event terrain input; the regional DTM 1x1 WCS remains context-only until availability of that exact source by the cutoff is proven, and its redistribution remains restricted because the regional service is not OpenData;
 - the Copernicus EMSN154 geospatial package and technical report are locally verified; P04 uses post-event Sentinel-1 delineation, while P06 is a two-dimensional hydraulic model calibrated with P04/EMSR664 footprints and ARPAE boundary conditions, so both remain secondary comparison evidence rather than independent ground truth;
 - nine official artifacts totalling 600,853,843 bytes are stored outside Git under D:/GeoLens/data/emilia-romagna-2023 and pass streamed byte-count and SHA-256 verification;
-- deterministic tests cover a valid manifest, post-event and post-cutoff leakage prevention, historical IMERG version selection, Copernicus comparison semantics, portable artifact paths, content hashes and the temporal knowledge cutoff.
+- deterministic tests cover both benchmark modes, forbid evaluation leakage, require explicit disclosure for retrospective post-cutoff inputs, reject retired IMERG versions, verify versioned cache and provenance semantics, and retain Copernicus comparison, portable artifact, content-hash and temporal-cutoff checks.
 
 Work:
 
 - intersect the bounded pilot AOI with each official coverage and freeze the final common evaluation extent;
 - select a common evaluation grid, no-data mask, permanent-water mask and explicit boundary-tolerance policy before computing metrics;
-- add explicit V06C historical acquisition to the canonical NASA service, then acquire bounded Copernicus DEM, CLC, XDBTR and rainfall evidence without adding post-event products to the model path;
+- acquire and persist the bounded 48-hour V07 rainfall accumulation plus Copernicus DEM, CLC and XDBTR evidence, retaining publication time, observation window, source resolution and transformation provenance;
 - establish transparent baselines for terrain-only routing, IMERG-driven routing and ARPAE-gauge-driven routing;
 - implement the first deterministic surface-flow-concentration replay and evaluate it without calling the result an inundation extent;
 - introduce a conditioned inundation replay only after river levels, discharge, embankments, breaches and downstream boundary conditions have explicit evidence semantics;
@@ -419,6 +419,6 @@ Gate:
 - no post-event regional or Copernicus extent can enter model input or calibration;
 - the bounded hydrologic-routing result is traceable and evaluated against a withheld observed extent with declared grid, masks and tolerances;
 - inundation and water-depth metrics remain unavailable until a conditioned hydraulic model exposes its physical boundary conditions;
-- API and inspector identify the result as a historical experimental replay, not an operational forecast.
+- API and inspector identify the result as an experimental retrospective reconstruction, not an as-known-at-the-time replay or operational forecast.
 
-Checkpoint: `test: establish Emilia-Romagna historical replay benchmark`
+Checkpoint: `feat: verify retrospective IMERG event window`

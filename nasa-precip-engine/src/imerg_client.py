@@ -20,9 +20,11 @@ import xarray as xr
 from .config import (
     EARTHDATA_PASSWORD,
     EARTHDATA_USERNAME,
-    IMERG_DATASET_VERSION,
+    IMERG_DEFAULT_DATASET_VERSION,
+    IMERG_EARTHACCESS_VERSION_BY_DATASET,
     IMERG_INTERVAL_MINUTES,
     IMERG_PRODUCT_EARLY,
+    IMERG_PRODUCT_FINAL,
     IMERG_PRODUCT_LATE,
     LAT_MAX,
     LAT_MIN,
@@ -43,6 +45,8 @@ EvidenceStatus = Literal[
     "invalid_response",
     "incomplete_window",
 ]
+
+ImergDatasetVersion = Literal["07"]
 
 _auth_initialized = False
 
@@ -127,10 +131,25 @@ def _acquisition_error(
 
 
 @dataclass(frozen=True)
+class ImergGranuleDiscovery:
+    product: str
+    run_type: Literal["final", "late", "early"]
+    dataset_version: ImergDatasetVersion
+    archive_version: str
+    requested_window_start: datetime
+    requested_window_end: datetime
+    expected_granule_count: int
+    searched_granule_count: int
+    granule_timestamps: tuple[datetime, ...]
+    timestamped_results: tuple[tuple[datetime, object], ...]
+
+
+@dataclass(frozen=True)
 class ImergWindowMetadata:
     product: str
-    run_type: Literal["late", "early"]
+    run_type: Literal["final", "late", "early"]
     dataset_version: str
+    archive_version: str
     requested_window_start: datetime
     requested_window_end: datetime
     actual_window_start: datetime | None
@@ -203,50 +222,85 @@ def authenticate() -> None:
     logger.info("[IMERG] NASA Earthdata authentication succeeded")
 
 
-def load_imerg_window(
+def archive_version_for(dataset_version: str) -> str:
+    """Resolve one evidence version to its explicit Earthaccess collection."""
+
+    try:
+        return IMERG_EARTHACCESS_VERSION_BY_DATASET[dataset_version]
+    except KeyError:
+        supported = ", ".join(IMERG_EARTHACCESS_VERSION_BY_DATASET)
+        raise ValueError(
+            f"Unsupported IMERG dataset version {dataset_version!r}; "
+            f"expected one of {supported}"
+        ) from None
+
+
+def discover_imerg_granules(
     t_ref: datetime,
     hours: int,
     *,
+    dataset_version: ImergDatasetVersion = IMERG_DEFAULT_DATASET_VERSION,
     allow_early: bool = True,
-) -> ImergWindow:
-    """Acquire one complete, single-product IMERG accumulation window."""
+) -> ImergGranuleDiscovery:
+    """Discover one version-pinned, single-product IMERG window."""
 
     if hours <= 0:
         raise ValueError("hours must be positive")
 
+    archive_version = archive_version_for(dataset_version)
     end = normalize_reference_time(t_ref)
     start = end - timedelta(hours=hours)
-    interval = timedelta(minutes=IMERG_INTERVAL_MINUTES)
-    expected_timestamps = tuple(
-        start + index * interval
-        for index in range(hours * 60 // IMERG_INTERVAL_MINUTES)
-    )
-    expected_count = len(expected_timestamps)
+    expected_count = hours * 60 // IMERG_INTERVAL_MINUTES
 
     authenticate()
 
     candidate_sets: list[
-        tuple[str, Literal["late", "early"], list[tuple[datetime, object]]]
+        tuple[
+            str,
+            Literal["final", "late", "early"],
+            list[tuple[datetime, object]],
+        ]
     ] = []
 
-    late_results = _search_product(
-        IMERG_PRODUCT_LATE,
+    final_results = _search_product(
+        IMERG_PRODUCT_FINAL,
         start,
         end,
+        archive_version=archive_version,
     )
     candidate_sets.append(
         (
-            IMERG_PRODUCT_LATE,
-            "late",
-            _results_in_window(late_results, start, end),
+            IMERG_PRODUCT_FINAL,
+            "final",
+            _results_in_window(final_results, start, end),
         )
     )
 
-    if allow_early and len(candidate_sets[0][2]) < expected_count:
+    if len(candidate_sets[0][2]) < expected_count:
+        late_results = _search_product(
+            IMERG_PRODUCT_LATE,
+            start,
+            end,
+            archive_version=archive_version,
+        )
+        candidate_sets.append(
+            (
+                IMERG_PRODUCT_LATE,
+                "late",
+                _results_in_window(late_results, start, end),
+            )
+        )
+
+    if (
+        allow_early
+        and max(len(candidate[2]) for candidate in candidate_sets)
+        < expected_count
+    ):
         early_results = _search_product(
             IMERG_PRODUCT_EARLY,
             start,
             end,
+            archive_version=archive_version,
         )
         candidate_sets.append(
             (
@@ -255,7 +309,6 @@ def load_imerg_window(
                 _results_in_window(early_results, start, end),
             )
         )
-
     product, run_type, timestamped_results = max(
         candidate_sets,
         key=lambda candidate: len(candidate[2]),
@@ -264,15 +317,59 @@ def load_imerg_window(
     if not timestamped_results:
         raise ImergMissingError(
             (
-                "No IMERG granules overlap requested window "
-                f"{start.isoformat()} to {end.isoformat()}"
+                f"No IMERG {dataset_version} granules overlap requested "
+                f"window {start.isoformat()} to {end.isoformat()}"
             ),
             product=product,
             run_type=run_type,
         )
 
     searched_count = len(timestamped_results)
-    timestamped_results = _deduplicate_results(timestamped_results)
+    deduplicated = tuple(_deduplicate_results(timestamped_results))
+
+    return ImergGranuleDiscovery(
+        product=product,
+        run_type=run_type,
+        dataset_version=dataset_version,
+        archive_version=archive_version,
+        requested_window_start=start,
+        requested_window_end=end,
+        expected_granule_count=expected_count,
+        searched_granule_count=searched_count,
+        granule_timestamps=tuple(
+            timestamp for timestamp, _ in deduplicated
+        ),
+        timestamped_results=deduplicated,
+    )
+
+
+def load_imerg_window(
+    t_ref: datetime,
+    hours: int,
+    *,
+    dataset_version: ImergDatasetVersion = IMERG_DEFAULT_DATASET_VERSION,
+    allow_early: bool = True,
+) -> ImergWindow:
+    """Acquire one complete, version-pinned IMERG accumulation window."""
+
+    discovery = discover_imerg_granules(
+        t_ref,
+        hours,
+        dataset_version=dataset_version,
+        allow_early=allow_early,
+    )
+    start = discovery.requested_window_start
+    end = discovery.requested_window_end
+    interval = timedelta(minutes=IMERG_INTERVAL_MINUTES)
+    expected_timestamps = tuple(
+        start + index * interval
+        for index in range(discovery.expected_granule_count)
+    )
+    expected_count = discovery.expected_granule_count
+    product = discovery.product
+    run_type = discovery.run_type
+    searched_count = discovery.searched_granule_count
+    timestamped_results = list(discovery.timestamped_results)
     results = [result for _, result in timestamped_results]
 
     try:
@@ -351,7 +448,8 @@ def load_imerg_window(
     metadata = ImergWindowMetadata(
         product=product,
         run_type=run_type,
-        dataset_version=IMERG_DATASET_VERSION,
+        dataset_version=discovery.dataset_version,
+        archive_version=discovery.archive_version,
         requested_window_start=start,
         requested_window_end=end,
         actual_window_start=actual_start,
@@ -563,11 +661,14 @@ def _search_product(
     product: str,
     start: datetime,
     end: datetime,
+    *,
+    archive_version: str,
 ) -> list[object]:
     try:
         return list(
             earthaccess.search_data(
                 short_name=product,
+                version=archive_version,
                 temporal=(start.isoformat(), end.isoformat()),
                 bounding_box=(LON_MIN, LAT_MIN, LON_MAX, LAT_MAX),
             )
@@ -575,7 +676,10 @@ def _search_product(
     except Exception as exc:
         raise _acquisition_error(
             _status_for_exception(exc),
-            f"IMERG search failed for {product}: {exc}",
+            (
+                f"IMERG search failed for {product} "
+                f"archive version {archive_version}: {exc}"
+            ),
             product=product,
         ) from exc
 

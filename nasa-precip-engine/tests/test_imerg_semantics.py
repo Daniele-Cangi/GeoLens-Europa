@@ -7,6 +7,7 @@ import xarray as xr
 
 from src.imerg_client import (
     accumulate_precip,
+    archive_version_for,
     get_precip_at_point,
     normalize_reference_time,
 )
@@ -84,6 +85,11 @@ class ImergNumericSemanticsTests(unittest.TestCase):
         self.assertEqual(outside.status, "out_of_coverage")
         self.assertIsNone(outside.value_mm)
 
+    def test_dataset_versions_map_to_explicit_archive_collections(self):
+        self.assertEqual(archive_version_for("07"), "07")
+
+        with self.assertRaises(ValueError):
+            archive_version_for("06C")
     def test_reference_time_is_utc_half_hour(self):
         normalized = normalize_reference_time(
             datetime(2026, 8, 21, 12, 47, 19)

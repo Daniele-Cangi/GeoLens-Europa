@@ -6,16 +6,17 @@ from datetime import datetime
 from typing import Any, Sequence
 
 from .config import (
-    IMERG_DATASET_VERSION,
+    IMERG_DEFAULT_DATASET_VERSION,
     IMERG_INTERVAL_MINUTES,
 )
 from .h3_mapping import sample_precip_for_h3
 from .imerg_client import (
     EvidenceStatus,
     ImergWindow,
+    archive_version_for,
 )
 
-TRANSFORMATION_VERSION = "imerg-h3-evidence-v0.1.0"
+TRANSFORMATION_VERSION = "imerg-h3-evidence-v0.2.0"
 
 
 def build_window_payload(
@@ -78,6 +79,8 @@ def build_window_payload(
             sampled_lon=sampled_lon,
             product=metadata.product,
             run_type=metadata.run_type,
+            dataset_version=metadata.dataset_version,
+            archive_version=metadata.archive_version,
             requested_start=metadata.requested_window_start,
             requested_end=metadata.requested_window_end,
             acquired_at=metadata.acquired_at,
@@ -104,6 +107,7 @@ def build_window_payload(
         "product": metadata.product,
         "runType": metadata.run_type,
         "datasetVersion": metadata.dataset_version,
+        "archiveVersion": metadata.archive_version,
         "requestedWindow": {
             "start": _iso(metadata.requested_window_start),
             "end": _iso(metadata.requested_window_end),
@@ -139,6 +143,7 @@ def build_error_window_payload(
     requested_start: datetime,
     requested_end: datetime,
     acquired_at: datetime,
+    dataset_version: str = IMERG_DEFAULT_DATASET_VERSION,
     product: str | None = None,
     run_type: str | None = None,
 ) -> dict[str, Any]:
@@ -149,6 +154,7 @@ def build_error_window_payload(
 
     expected_count = hours * 60 // IMERG_INTERVAL_MINUTES
     resolved_product = product or "GPM IMERG"
+    archive_version = archive_version_for(dataset_version)
     cells = [
         {
             "h3": h3_index,
@@ -163,6 +169,8 @@ def build_error_window_payload(
                 sampled_lon=None,
                 product=resolved_product,
                 run_type=run_type,
+                dataset_version=dataset_version,
+                archive_version=archive_version,
                 requested_start=requested_start,
                 requested_end=requested_end,
                 acquired_at=acquired_at,
@@ -187,7 +195,8 @@ def build_error_window_payload(
         "missingReason": missing_reason,
         "product": resolved_product,
         "runType": run_type,
-        "datasetVersion": IMERG_DATASET_VERSION,
+        "datasetVersion": dataset_version,
+        "archiveVersion": archive_version,
         "requestedWindow": {
             "start": _iso(requested_start),
             "end": _iso(requested_end),
@@ -218,6 +227,8 @@ def _evidence_payload(
     sampled_lon: float | None,
     product: str,
     run_type: str | None,
+    dataset_version: str,
+    archive_version: str,
     requested_start: datetime,
     requested_end: datetime,
     acquired_at: datetime,
@@ -264,7 +275,7 @@ def _evidence_payload(
         "provenance": {
             "provider": "NASA GES DISC",
             "dataset": product,
-            "datasetVersion": IMERG_DATASET_VERSION,
+            "datasetVersion": dataset_version,
             "transformation": (
                 "sum half-hour precipitation rates then sample "
                 "at H3 centroid"
@@ -273,6 +284,7 @@ def _evidence_payload(
             "samplingMethod": sampling_method,
             "sourceMetadata": {
                 "runType": run_type,
+                "archiveVersion": archive_version,
                 "actualWindowStart": (
                     _iso(actual_start)
                     if actual_start is not None
