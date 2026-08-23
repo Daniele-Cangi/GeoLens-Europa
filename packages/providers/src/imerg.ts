@@ -8,11 +8,15 @@ import {
 } from '@geo-lens/evidence';
 import { isValidCell } from 'h3-js';
 
-export type ImergWindowHours = 24 | 72;
+export type ImergWindowHours = 24 | 48 | 72;
+export type ImergDatasetVersion = '07';
+
+const DEFAULT_IMERG_DATASET_VERSION: ImergDatasetVersion = '07';
 
 export interface ImergRequest {
   readonly h3Indices: readonly string[];
   readonly referenceTime: Date;
+  readonly datasetVersion?: ImergDatasetVersion;
   readonly windowHours: readonly ImergWindowHours[];
 }
 
@@ -21,8 +25,9 @@ export interface ImergWindowSummary {
   readonly status: EvidenceStatus;
   readonly missingReason?: string;
   readonly product: string;
-  readonly runType: 'late' | 'early' | null;
-  readonly datasetVersion: string;
+  readonly runType: 'final' | 'late' | 'early' | null;
+  readonly datasetVersion: ImergDatasetVersion;
+  readonly archiveVersion: string;
   readonly requestedWindow: {
     readonly start: string;
     readonly end: string;
@@ -168,6 +173,7 @@ export class NasaImergClient {
         {
           h3_indices: [...request.h3Indices],
           reference_time: normalizedReferenceTime.toISOString(),
+          dataset_version: selectedDatasetVersion(request),
           window_hours: [...request.windowHours],
         },
         this.timeoutMs,
@@ -230,6 +236,7 @@ function parseProviderResponse(
     raw.contractVersion.trim().length > 0
       ? raw.contractVersion
       : 'invalid-or-missing';
+  const datasetVersion = selectedDatasetVersion(request);
   const windows: Partial<
     Record<ImergWindowHours, ImergWindowEvidence>
   > = {};
@@ -246,6 +253,7 @@ function parseProviderResponse(
         requestedReferenceTime,
         hours,
         acquiredAt,
+        datasetVersion,
         'invalid_response',
         `Expected one ${hours}h IMERG window, received ${candidates.length}`,
       );
@@ -258,6 +266,7 @@ function parseProviderResponse(
       requestedReferenceTime,
       hours,
       acquiredAt,
+      datasetVersion,
     );
   }
 
@@ -277,8 +286,9 @@ function parseWindow(
   requestedReferenceTime: Date,
   hours: ImergWindowHours,
   acquiredAt: string,
+  datasetVersion: ImergDatasetVersion,
 ): ImergWindowEvidence {
-  const summary = parseWindowSummary(raw, hours);
+  const summary = parseWindowSummary(raw, hours, datasetVersion);
 
   if (summary === null || !Array.isArray(raw.cells)) {
     return failureWindow(
@@ -286,6 +296,7 @@ function parseWindow(
       requestedReferenceTime,
       hours,
       acquiredAt,
+      datasetVersion,
       'invalid_response',
       `IMERG ${hours}h window metadata is invalid`,
     );
@@ -331,6 +342,7 @@ function parseWindow(
       requestedReferenceTime,
       hours,
       acquiredAt,
+      datasetVersion,
       'invalid_response',
       structuralError,
     );
@@ -347,13 +359,14 @@ function parseWindow(
         requestedReferenceTime,
         hours,
         acquiredAt,
+        datasetVersion,
         'invalid_response',
         `IMERG response omitted requested cell ${h3}`,
       );
       continue;
     }
 
-    const parsed = parseEvidence(rawEvidence, h3);
+    const parsed = parseEvidence(rawEvidence, h3, datasetVersion);
 
     cells[h3] =
       parsed.evidence ??
@@ -362,6 +375,7 @@ function parseWindow(
         requestedReferenceTime,
         hours,
         acquiredAt,
+        datasetVersion,
         'invalid_response',
         parsed.error ?? 'Invalid IMERG evidence',
       );
@@ -376,6 +390,7 @@ function parseWindow(
 function parseEvidence(
   raw: Record<string, unknown>,
   expectedH3: string,
+  expectedDatasetVersion: ImergDatasetVersion,
 ): {
   readonly evidence?: Evidence<number>;
   readonly error?: string;
@@ -395,6 +410,19 @@ function parseEvidence(
     return {
       error:
         `IMERG evidence H3 ${String(raw.spatial.h3)} does not match ${expectedH3}`,
+    };
+  }
+
+  if (
+    raw.provenance.datasetVersion !== expectedDatasetVersion ||
+    !isRecord(raw.provenance.sourceMetadata) ||
+    raw.provenance.sourceMetadata.archiveVersion !==
+      archiveVersionFor(expectedDatasetVersion)
+  ) {
+    return {
+      error:
+        `IMERG evidence for ${expectedH3} does not match requested ` +
+        `dataset ${expectedDatasetVersion}`,
     };
   }
 
@@ -443,6 +471,7 @@ function parseEvidence(
 function parseWindowSummary(
   raw: Record<string, unknown>,
   expectedHours: ImergWindowHours,
+  expectedDatasetVersion: ImergDatasetVersion,
 ): ImergWindowSummary | null {
   if (
     raw.windowHours !== expectedHours ||
@@ -453,11 +482,13 @@ function parseWindowSummary(
     raw.status === 'synthetic_fixture' ||
     typeof raw.product !== 'string' ||
     !(
+      raw.runType === 'final' ||
       raw.runType === 'late' ||
       raw.runType === 'early' ||
       raw.runType === null
     ) ||
-    typeof raw.datasetVersion !== 'string' ||
+    raw.datasetVersion !== expectedDatasetVersion ||
+    raw.archiveVersion !== archiveVersionFor(expectedDatasetVersion) ||
     !isTimestampRange(raw.requestedWindow) ||
     !(
       raw.actualWindow === null ||
@@ -485,6 +516,7 @@ function failureResult(
   status: UnavailableEvidenceStatus,
   reason: string,
 ): ImergProviderResult {
+  const datasetVersion = selectedDatasetVersion(request);
   const windows: Partial<
     Record<ImergWindowHours, ImergWindowEvidence>
   > = {};
@@ -495,6 +527,7 @@ function failureResult(
       referenceTime,
       hours,
       acquiredAt,
+      datasetVersion,
       status,
       reason,
     );
@@ -503,7 +536,7 @@ function failureResult(
   return {
     provider: 'NASA GES DISC',
     datasetFamily: 'GPM IMERG',
-    contractVersion: 'imerg-client-failure-v0.1.0',
+    contractVersion: 'imerg-client-failure-v0.2.0',
     referenceTime: referenceTime.toISOString(),
     acquiredAt,
     windows,
@@ -515,6 +548,7 @@ function failureWindow(
   referenceTime: Date,
   hours: ImergWindowHours,
   acquiredAt: string,
+  datasetVersion: ImergDatasetVersion,
   status: UnavailableEvidenceStatus,
   reason: string,
 ): ImergWindowEvidence {
@@ -529,6 +563,7 @@ function failureWindow(
         referenceTime,
         hours,
         acquiredAt,
+        datasetVersion,
         status,
         reason,
       ),
@@ -542,7 +577,8 @@ function failureWindow(
       missingReason: reason,
       product: 'GPM IMERG',
       runType: null,
-      datasetVersion: '07',
+      datasetVersion,
+      archiveVersion: archiveVersionFor(datasetVersion),
       requestedWindow: {
         start: start.toISOString(),
         end: referenceTime.toISOString(),
@@ -566,6 +602,7 @@ function failureEvidence(
   referenceTime: Date,
   hours: ImergWindowHours,
   acquiredAt: string,
+  datasetVersion: ImergDatasetVersion,
   status: UnavailableEvidenceStatus,
   reason: string,
 ): Evidence<number> {
@@ -591,18 +628,42 @@ function failureEvidence(
       provenance: {
         provider: 'NASA GES DISC',
         dataset: 'GPM IMERG',
-        datasetVersion: '07',
+        datasetVersion,
         transformation:
           'canonical Python IMERG service request',
-        transformationVersion: 'imerg-client-v0.1.0',
+        transformationVersion: 'imerg-client-v0.2.0',
         samplingMethod:
           'nearest IMERG grid cell at H3 centroid',
+        sourceMetadata: {
+          archiveVersion: archiveVersionFor(datasetVersion),
+        },
       },
     },
   );
 }
 
+function selectedDatasetVersion(
+  request: ImergRequest,
+): ImergDatasetVersion {
+  return request.datasetVersion ?? DEFAULT_IMERG_DATASET_VERSION;
+}
+
+function archiveVersionFor(
+  _datasetVersion: ImergDatasetVersion,
+): string {
+  return '07';
+}
+
 function validateRequest(request: ImergRequest): void {
+  if (
+    request.datasetVersion !== undefined &&
+    request.datasetVersion !== '07'
+  ) {
+    throw new Error(
+      `Unsupported IMERG dataset version ${String(request.datasetVersion)}`,
+    );
+  }
+
   if (request.h3Indices.length === 0) {
     throw new Error('IMERG request requires at least one H3 cell');
   }

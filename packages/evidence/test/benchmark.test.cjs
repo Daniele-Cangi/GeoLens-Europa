@@ -25,6 +25,10 @@ test('Emilia-Romagna manifest passes the historical benchmark contract', () => {
 
   assert.doesNotThrow(() => assertHistoricalBenchmarkManifest(manifest));
   assert.equal(manifest.benchmark.state, 'data_audit');
+  assert.equal(
+    manifest.benchmark.replayMode,
+    'retrospective_reconstruction',
+  );
   assert.equal(manifest.benchmark.claimLevel, 'hydrologic_routing');
   assert.ok(manifest.benchmark.forbiddenClaims.includes('validated_water_depth'));
 });
@@ -111,6 +115,7 @@ test('artifact path aliases cannot represent multiple files', () => {
 
 test('model inputs must have been available by the knowledge cutoff', () => {
   const manifest = manifestFixture();
+  manifest.benchmark.replayMode = 'cutoff_constrained';
   const annualRainfall = manifest.datasets.find(
     (dataset) => dataset.id === 'arpae-2023-pluviometry',
   );
@@ -126,28 +131,28 @@ test('model inputs must have been available by the knowledge cutoff', () => {
   );
 });
 
-test('the post-event IMERG version is excluded from the replay input', () => {
+test('retrospective IMERG input discloses its post-cutoff release', () => {
   const manifest = manifestFixture();
   const v07 = manifest.datasets.find(
     (dataset) => dataset.id === 'nasa-imerg-v07',
   );
-  const v06 = manifest.datasets.find(
-    (dataset) => dataset.id === 'nasa-imerg-v06c-nrt',
-  );
 
-  assert.equal(v07.role, 'context_only');
-  assert.equal(v07.allowedUses.modelInput, false);
+  assert.equal(manifest.benchmark.replayMode, 'retrospective_reconstruction');
+  assert.equal(v07.role, 'model_input');
+  assert.equal(v07.temporalRelation, 'during_event');
+  assert.equal(v07.allowedUses.modelInput, true);
   assert.ok(
     Date.parse(v07.availableAt) >
       Date.parse(manifest.benchmark.event.knowledgeCutoff),
   );
-  assert.equal(v06.role, 'model_input');
-  assert.ok(
-    Date.parse(v06.availableAt) <=
-      Date.parse(manifest.benchmark.event.knowledgeCutoff),
+  assert.match(v07.methodologyNote, /post-event reprocessing/);
+
+  delete v07.methodologyNote;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(manifest),
+    /retrospective post-cutoff input requires methodologyNote/,
   );
 });
-
 test('knowledge cutoff cannot move beyond the replay event', () => {
   const manifest = manifestFixture();
   manifest.benchmark.event.knowledgeCutoff = '2023-05-19T00:00:00Z';

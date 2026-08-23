@@ -26,7 +26,12 @@ START = REFERENCE - timedelta(hours=1)
 H3_CELL = h3.latlng_to_cell(46.0, 11.0, 9)
 
 
-def window(status="available", reason=None):
+def window(
+    status="available",
+    reason=None,
+    dataset_version="07",
+    archive_version="07",
+):
     data = xr.DataArray(
         np.zeros((2, 2), dtype=float),
         dims=("lat", "lon"),
@@ -40,8 +45,9 @@ def window(status="available", reason=None):
         data=data,
         metadata=ImergWindowMetadata(
             product="GPM_3IMERGHH",
-            run_type="late",
-            dataset_version="07",
+            run_type="final",
+            dataset_version=dataset_version,
+            archive_version=archive_version,
             requested_window_start=START,
             requested_window_end=REFERENCE,
             actual_window_start=START,
@@ -50,7 +56,7 @@ def window(status="available", reason=None):
             searched_granule_count=2,
             granule_count=2,
             granule_timestamps=timestamps,
-            variable_names=("precipitationCal",),
+            variable_names=("precipitation",),
             acquired_at=REFERENCE + timedelta(minutes=1),
             source_resolution="0.1 degree",
             sampling_method="nearest IMERG grid cell at H3 centroid",
@@ -85,6 +91,26 @@ class ContractTests(unittest.TestCase):
             ],
         )
 
+    def test_dataset_and_archive_versions_are_serialized(self):
+        payload = build_window_payload(
+            window(),
+            [H3_CELL],
+            cached=False,
+        )
+        evidence = payload["cells"][0]["rainfallMm"]
+
+        self.assertEqual(payload["datasetVersion"], "07")
+        self.assertEqual(payload["archiveVersion"], "07")
+        self.assertEqual(
+            evidence["provenance"]["datasetVersion"],
+            "07",
+        )
+        self.assertEqual(
+            evidence["provenance"]["sourceMetadata"][
+                "archiveVersion"
+            ],
+            "07",
+        )
     def test_incomplete_window_never_exposes_partial_zero(self):
         payload = build_window_payload(
             window(
@@ -216,6 +242,32 @@ class EndpointTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             raised.exception.detail,
             "One or more H3 indices are invalid",
+        )
+    async def test_historical_v07_reaches_canonical_loader(self):
+        request = PrecipRequest(
+            h3_indices=[H3_CELL],
+            reference_time="2023-05-18T00:00:00Z",
+            dataset_version="07",
+            window_hours=[48],
+        )
+
+        with patch(
+            "src.main.load_imerg_window",
+            return_value=window(),
+        ) as loader, patch("src.main.set_cached_window") as cache:
+            payload = await get_precipitation_for_h3(request)
+
+        loader.assert_called_once_with(
+            datetime(2023, 5, 18, 0, 0, tzinfo=timezone.utc),
+            48,
+            dataset_version="07",
+        )
+        cache.assert_called_once()
+        self.assertEqual(payload["datasetVersion"], "07")
+        self.assertEqual(payload["archiveVersion"], "07")
+        self.assertEqual(
+            payload["windows"][0]["datasetVersion"],
+            "07",
         )
     def test_duplicate_windows_are_rejected(self):
         with self.assertRaises(ValueError):

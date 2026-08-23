@@ -6,10 +6,10 @@ It never converts absent granules, authentication failures, incomplete windows, 
 
 ## Returned evidence
 
-For each requested 24-hour or 72-hour window, the response retains:
+For each requested 24-hour, 48-hour, or 72-hour window, the response retains:
 
 - product and run type;
-- dataset version;
+- scientific dataset version and Earthaccess archive version;
 - requested and actual covered window;
 - expected, searched, and usable granule counts;
 - granule timestamps;
@@ -67,13 +67,16 @@ Example request:
 {
   "h3_indices": ["872a1070fffffff"],
   "reference_time": "2026-08-20T00:00:00Z",
+  "dataset_version": "07",
   "window_hours": [24]
 }
 ```
 
 The reference timestamp is normalized to an IMERG half-hour boundary. If omitted, the service uses a reference six hours behind current UTC to account for product latency.
 
-The acquisition code searches Late Run first and may use Early Run when Late Run does not cover the requested window. It selects one product for a window and reports the selected product and run type. A partial granule set remains `incomplete_window`; partial accumulation is not exposed as an available observation.
+The active provider accepts only the currently published NASA collection, IMERG V07, and sends `version=07` explicitly to Earthaccess. V06 is unavailable through the canonical GES DISC/CMR path and is rejected by GeoLens policy; the service does not silently substitute V07 for a V06 request. Historical event windows acquired from V07 are therefore retrospective reconstructions using post-event reprocessing, and their provenance retains that version.
+
+The acquisition code searches the research-quality Final Run first, then the actual Late Run product, and may use Early Run when neither covers the requested window. It selects exactly one product for a window and reports the selected product and run type. A partial granule set remains `incomplete_window`; partial accumulation is not exposed as an available observation.
 
 The service opens remote granules through the `earthaccess`/`fsspec` transient
 block cache and never intentionally archives those source granules. Completed
@@ -108,3 +111,10 @@ python -m unittest discover -s tests -p test_live_imerg.py -v
 ```
 
 Set `GEOLENS_IMERG_REFERENCE_TIME` to an explicit ISO timestamp when repeatability is needed. The normal deterministic suite skips the live test.
+
+The Emilia-Romagna catalog-only historical check verifies the complete 48-hour V07 window without opening or downloading raster granules:
+
+```powershell
+$env:GEOLENS_RUN_HISTORICAL_IMERG_TESTS = '1'
+python -m unittest discover -s tests -p test_live_imerg.py -v
+```

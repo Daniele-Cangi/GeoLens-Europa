@@ -47,10 +47,13 @@ export interface BenchmarkDataset {
 }
 
 export interface HistoricalBenchmarkManifest {
-  readonly manifestVersion: '1.0.0';
+  readonly manifestVersion: '1.1.0';
   readonly benchmark: {
     readonly id: string;
     readonly title: string;
+    readonly replayMode:
+      | 'cutoff_constrained'
+      | 'retrospective_reconstruction';
     readonly state: 'data_audit' | 'model_ready' | 'evaluation_ready';
     readonly claimLevel:
       | 'hydrologic_routing'
@@ -75,6 +78,10 @@ export interface HistoricalBenchmarkManifest {
 
 const roles = new Set<string>(BENCHMARK_DATASET_ROLES);
 const states = new Set(['data_audit', 'model_ready', 'evaluation_ready']);
+const replayModes = new Set([
+  'cutoff_constrained',
+  'retrospective_reconstruction',
+]);
 const claims = new Set([
   'hydrologic_routing',
   'conditioned_inundation_replay',
@@ -96,13 +103,18 @@ export function assertHistoricalBenchmarkManifest(
   value: unknown,
 ): asserts value is HistoricalBenchmarkManifest {
   const root = objectValue(value, 'manifest');
-  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.0.0') {
-    throw new Error('manifestVersion must be "1.0.0"');
+  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.1.0') {
+    throw new Error('manifestVersion must be "1.1.0"');
   }
 
   const benchmark = objectValue(root.benchmark, 'benchmark');
   stringValue(benchmark.id, 'benchmark.id');
   stringValue(benchmark.title, 'benchmark.title');
+  const replayMode = allowedString(
+    benchmark.replayMode,
+    replayModes,
+    'benchmark.replayMode',
+  );
   allowedString(benchmark.state, states, 'benchmark.state');
   allowedString(benchmark.claimLevel, claims, 'benchmark.claimLevel');
 
@@ -236,8 +248,19 @@ export function assertHistoricalBenchmarkManifest(
         );
       }
       if (Date.parse(availableAt) > Date.parse(cutoff)) {
-        throw new Error(
-          label + ' was not available by benchmark knowledgeCutoff',
+        if (replayMode === 'cutoff_constrained') {
+          throw new Error(
+            label + ' was not available by benchmark knowledgeCutoff',
+          );
+        }
+        if (dataset.methodologyNote === undefined) {
+          throw new Error(
+            label + ' retrospective post-cutoff input requires methodologyNote',
+          );
+        }
+        stringValue(
+          dataset.methodologyNote,
+          label + '.methodologyNote',
         );
       }
     }

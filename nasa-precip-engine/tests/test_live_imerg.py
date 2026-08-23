@@ -11,6 +11,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 
 from src.imerg_client import (
+    discover_imerg_granules,
     get_precip_at_point,
     load_imerg_window,
     normalize_reference_time,
@@ -32,16 +33,18 @@ class LiveImergTests(unittest.TestCase):
         window = load_imerg_window(
             normalize_reference_time(reference_time),
             24,
+            dataset_version="07",
         )
         metadata = window.metadata
 
         self.assertEqual(metadata.status, "available")
         self.assertEqual(metadata.dataset_version, "07")
+        self.assertEqual(metadata.archive_version, "07")
         self.assertEqual(metadata.expected_granule_count, 48)
         self.assertEqual(metadata.granule_count, 48)
         self.assertEqual(len(metadata.granule_timestamps), 48)
         self.assertEqual(metadata.source_resolution, "0.1 degree")
-        self.assertIn(metadata.run_type, ("late", "early"))
+        self.assertIn(metadata.run_type, ("final", "late", "early"))
         self.assertLess(
             metadata.requested_window_start,
             metadata.requested_window_end,
@@ -56,6 +59,48 @@ class LiveImergTests(unittest.TestCase):
         self.assertIsNotNone(sample.value_mm)
         self.assertGreaterEqual(sample.value_mm, 0)
 
+
+
+@unittest.skipUnless(
+    os.getenv("GEOLENS_RUN_HISTORICAL_IMERG_TESTS") == "1",
+    "historical IMERG discovery verification is opt-in",
+)
+class HistoricalImergDiscoveryTests(unittest.TestCase):
+    def test_may_2023_v07_window_has_complete_granule_discovery(
+        self,
+    ) -> None:
+        reference_time = datetime(
+            2023,
+            5,
+            18,
+            0,
+            0,
+            tzinfo=timezone.utc,
+        )
+        discovery = discover_imerg_granules(
+            reference_time,
+            48,
+            dataset_version="07",
+        )
+
+        self.assertEqual(discovery.dataset_version, "07")
+        self.assertEqual(discovery.archive_version, "07")
+        self.assertEqual(discovery.expected_granule_count, 96)
+        self.assertEqual(len(discovery.granule_timestamps), 96)
+        self.assertEqual(
+            discovery.granule_timestamps[0],
+            datetime(2023, 5, 16, 0, 0, tzinfo=timezone.utc),
+        )
+        self.assertEqual(
+            discovery.granule_timestamps[-1],
+            datetime(2023, 5, 17, 23, 30, tzinfo=timezone.utc),
+        )
+        self.assertLessEqual(
+            discovery.searched_granule_count,
+            96,
+        )
+        self.assertEqual(discovery.product, "GPM_3IMERGHH")
+        self.assertEqual(discovery.run_type, "final")
 
 if __name__ == "__main__":
     unittest.main()

@@ -19,7 +19,7 @@ class FakeTransport {
   }
 }
 
-function evidence(value, status, missingReason) {
+function evidence(value, status, missingReason, datasetVersion = '07') {
   return {
     value,
     unit: 'mm',
@@ -36,12 +36,13 @@ function evidence(value, status, missingReason) {
     provenance: {
       provider: 'NASA GES DISC',
       dataset: 'GPM_3IMERGHH',
-      datasetVersion: '07',
+      datasetVersion,
       transformation: 'test contract',
       transformationVersion: 'imerg-h3-evidence-v0.1.0',
       samplingMethod: 'nearest IMERG grid cell at H3 centroid',
       sourceMetadata: {
-        runType: 'late',
+        archiveVersion: datasetVersion === '06C' ? '06' : '07',
+        runType: 'final',
         granuleCount: 48,
       },
     },
@@ -56,14 +57,16 @@ function windowPayload({
   cellEvidence = evidence(0, 'available'),
   status = 'available',
   missingReason,
+  datasetVersion = '07',
 } = {}) {
   return {
     windowHours: 24,
     status,
     ...(missingReason ? { missingReason } : {}),
     product: 'GPM_3IMERGHH',
-    runType: status === 'auth_required' ? null : 'late',
-    datasetVersion: '07',
+    runType: status === 'auth_required' ? null : 'final',
+    datasetVersion,
+    archiveVersion: datasetVersion === '06C' ? '06' : '07',
     requestedWindow: {
       start: '2026-08-20T12:00:00.000Z',
       end: '2026-08-21T12:00:00.000Z',
@@ -180,6 +183,49 @@ test('observed zero survives the canonical service client', async () => {
   );
 });
 
+test('historical V07 is selected and preserved end to end', async () => {
+  const { client, transport } = clientFor(async () => ({
+    status: 200,
+    body: serviceResponse(windowPayload()),
+  }));
+  const result = await client.getEvidence({
+    ...request,
+    datasetVersion: '07',
+  });
+  const window = result.windows[24];
+
+  assert.equal(transport.requests[0].body.dataset_version, '07');
+  assert.equal(window.summary.datasetVersion, '07');
+  assert.equal(window.summary.archiveVersion, '07');
+  assert.equal(window.cells[h3].value, 0);
+  assert.equal(window.cells[h3].provenance.datasetVersion, '07');
+  assert.equal(
+    window.cells[h3].provenance.sourceMetadata.archiveVersion,
+    '07',
+  );
+});
+test('dataset mismatch is explicit invalid_response evidence', async () => {
+  const { client } = clientFor(async () => ({
+    status: 200,
+    body: serviceResponse(
+      windowPayload({
+        datasetVersion: '06C',
+        cellEvidence: evidence(12.5, 'available', undefined, '06C'),
+      }),
+    ),
+  }));
+  const result = await client.getEvidence({
+    ...request,
+    datasetVersion: '07',
+  });
+  const window = result.windows[24];
+
+  assert.equal(window.summary.status, 'invalid_response');
+  assert.equal(window.summary.datasetVersion, '07');
+  assert.equal(window.summary.archiveVersion, '07');
+  assert.equal(window.cells[h3].value, null);
+  assert.equal(window.cells[h3].quality.status, 'invalid_response');
+});
 test('auth_required from Python remains unavailable evidence', async () => {
   const missing = 'NASA credentials are not configured';
   const { client } = clientFor(async () => ({
@@ -261,6 +307,22 @@ test('omitted windows become invalid_response evidence', async () => {
     result.windows[24].cells[h3].quality.status,
     'invalid_response',
   );
+});
+
+test('unsupported dataset version is a structural error', async () => {
+  const { client, transport } = clientFor(async () => ({
+    status: 200,
+    body: serviceResponse(),
+  }));
+
+  await assert.rejects(
+    () => client.getEvidence({
+      ...request,
+      datasetVersion: '06C',
+    }),
+    /Unsupported IMERG dataset version/,
+  );
+  assert.equal(transport.requests.length, 0);
 });
 
 test('invalid H3 request is a structural error', async () => {

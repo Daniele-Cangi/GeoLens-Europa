@@ -21,7 +21,11 @@ REFERENCE = datetime(2026, 8, 20, 0, 0, tzinfo=timezone.utc)
 START = REFERENCE - timedelta(hours=1)
 
 
-def evidence_window(status="available"):
+def evidence_window(
+    status="available",
+    dataset_version="07",
+    archive_version="07",
+):
     timestamps = (
         START,
         START + timedelta(minutes=30),
@@ -47,7 +51,8 @@ def evidence_window(status="available"):
         metadata=ImergWindowMetadata(
             product="GPM_3IMERGHHE",
             run_type="early",
-            dataset_version="07",
+            dataset_version=dataset_version,
+            archive_version=archive_version,
             requested_window_start=START,
             requested_window_end=REFERENCE,
             actual_window_start=START,
@@ -60,7 +65,7 @@ def evidence_window(status="available"):
             searched_granule_count=granule_count,
             granule_count=granule_count,
             granule_timestamps=timestamps,
-            variable_names=("precipitationCal",),
+            variable_names=("precipitation",),
             acquired_at=REFERENCE + timedelta(minutes=5),
             source_resolution="0.1 degree",
             sampling_method="nearest IMERG grid cell at H3 centroid",
@@ -107,6 +112,47 @@ class PersistentCacheTests(unittest.TestCase):
             stats = get_cache_stats()
             self.assertEqual(stats["disk_valid_entries"], 1)
             self.assertGreater(stats["disk_bytes"], 0)
+
+    def test_dataset_versions_never_share_memory_or_disk_entries(self):
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "src.cache.IMERG_CACHE_DIR",
+            directory,
+        ), patch(
+            "src.cache.IMERG_DISK_CACHE_TTL_SECONDS",
+            3600,
+        ):
+            set_cached_window(REFERENCE, 1, evidence_window())
+            clear_cache()
+
+            self.assertIsNone(
+                get_cached_window(REFERENCE, 1, "08")
+            )
+            restored = get_cached_window(REFERENCE, 1, "07")
+            self.assertIsNotNone(restored)
+            self.assertEqual(restored.metadata.dataset_version, "07")
+            self.assertEqual(restored.metadata.archive_version, "07")
+
+    def test_archive_version_mismatch_is_a_cache_miss(self):
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "src.cache.IMERG_CACHE_DIR",
+            directory,
+        ), patch(
+            "src.cache.IMERG_DISK_CACHE_TTL_SECONDS",
+            3600,
+        ):
+            set_cached_window(REFERENCE, 1, evidence_window())
+            clear_cache()
+            metadata_path = next(Path(directory).glob("*.json"))
+            payload = json.loads(
+                metadata_path.read_text(encoding="utf-8")
+            )
+            payload["windowMetadata"]["archiveVersion"] = "08"
+            metadata_path.write_text(
+                json.dumps(payload),
+                encoding="utf-8",
+            )
+
+            self.assertIsNone(get_cached_window(REFERENCE, 1, "07"))
 
     def test_incomplete_window_is_memory_only(self):
         with tempfile.TemporaryDirectory() as directory, patch(

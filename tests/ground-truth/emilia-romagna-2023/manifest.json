@@ -1,8 +1,9 @@
 {
-  "manifestVersion": "1.0.0",
+  "manifestVersion": "1.1.0",
   "benchmark": {
-    "id": "emilia-romagna-2023-forli-historical-replay",
-    "title": "Case 02 - Emilia-Romagna 2023 / Historical Flood Replay",
+    "id": "emilia-romagna-2023-forli-retrospective-reconstruction",
+    "title": "Case 02 - Emilia-Romagna 2023 / Retrospective Flood Reconstruction",
+    "replayMode": "retrospective_reconstruction",
     "state": "data_audit",
     "claimLevel": "hydrologic_routing",
     "event": {
@@ -38,17 +39,16 @@
   },
   "datasets": [
     {
-      "id": "nasa-imerg-v06c-nrt",
+      "id": "nasa-imerg-v07",
       "role": "model_input",
       "temporalRelation": "during_event",
-      "availableAt": "2022-05-09T00:00:00Z",
       "publisher": "NASA GES DISC",
-      "dataset": "GPM IMERG Early/Late half-hourly precipitation",
-      "datasetVersion": "06C",
-      "sourceUrl": "https://disc.gsfc.nasa.gov/datasets/GPM_3IMERGHH_06/summary",
-      "accessMethod": "canonical nasa-precip service after explicit V06C historical-mode parameterization",
+      "dataset": "GPM IMERG Final Run half-hourly precipitation",
+      "datasetVersion": "07",
+      "sourceUrl": "https://disc.gsfc.nasa.gov/datasets/GPM_3IMERGHH_07/summary",
+      "accessMethod": "version-pinned Earthaccess discovery and xarray acquisition through the canonical nasa-precip service",
       "sourceResolution": "0.1 degree, 30 minute",
-      "acquisitionStatus": "blocked",
+      "acquisitionStatus": "remote_verified",
       "license": {
         "name": "NASA EOSDIS data use policy",
         "access": "auth_required",
@@ -60,32 +60,8 @@
         "calibration": false,
         "evaluation": false
       },
-      "methodologyNote": "Replay-eligible product family active during the event. Acquisition remains blocked until the canonical service can select V06C explicitly and verify every granule against the cutoff."
-    },
-    {
-      "id": "nasa-imerg-v07",
-      "role": "context_only",
-      "temporalRelation": "post_event",
-      "publisher": "NASA GES DISC",
-      "dataset": "GPM IMERG half-hourly precipitation",
-      "datasetVersion": "07",
-      "sourceUrl": "https://disc.gsfc.nasa.gov/datasets/GPM_3IMERGHH_07/summary",
-      "accessMethod": "earthaccess plus xarray through the canonical nasa-precip service",
-      "sourceResolution": "0.1 degree, 30 minute",
-      "acquisitionStatus": "remote_verified",
-      "license": {
-        "name": "NASA EOSDIS data use policy",
-        "access": "auth_required",
-        "redistribution": "unknown",
-        "note": "Earthdata authentication is required; derived evidence must retain product, run type, granules and actual coverage."
-      },
-      "allowedUses": {
-        "modelInput": false,
-        "calibration": false,
-        "evaluation": true
-      },
-      "methodologyNote": "V07 was first released after the event and is excluded from the cutoff-constrained replay. It may be evaluated only as a retrospective product.",
-      "availableAt": "2023-07-10T00:00:00Z"
+      "methodologyNote": "V07 is a post-event reprocessing of observations from the event window. The complete V07 Final Run retrospective reprocessing was verified complete on 2024-01-08. GeoLens uses it only in retrospective_reconstruction mode and never claims it was available by the event knowledge cutoff. Catalog discovery verified all 96 Final Run half-hour granules from 2023-05-16T00:00:00Z through 2023-05-18T00:00:00Z.",
+      "availableAt": "2024-01-08T00:00:00Z"
     },
     {
       "id": "copernicus-clc-2018",
