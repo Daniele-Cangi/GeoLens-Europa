@@ -1,149 +1,125 @@
 # GeoLens
 
-> A spatial evidence engine for composing real environmental observations,
-> terrain and infrastructure into traceable derived physical state.
+**GeoLens turns real environmental observations and stormwater infrastructure into physical results that can be inspected and traced back to their sources.**
 
-GeoLens is being refounded around one bounded, inspectable chain: environmental
-evidence flowing through a stormwater network. The current release is an
-experimental Proof 0 baseline, not a finished flood-risk product.
+Give GeoLens a bounded place and a reference time, and it answers a concrete chain of questions:
 
-```text
-NASA GPM IMERG + Copernicus DEM + CORINE Land Cover
-                         |
-                         v
-                spatial evidence bundle
-                         |
-                         v
-                  runoff model v0
-                         |
-                         v
-                catchment aggregation
-                         |
-                         v
-                 stormwater topology
-                         |
-                         v
-              downstream propagation
-                         |
-                         v
-          inspectable state + full provenance
-```
+1. How much rain was actually observed?
+2. What terrain and land cover describe the area?
+3. How much runoff does the stated model derive?
+4. Which surface or catchment contributes that runoff?
+5. Where can the water move through the known stormwater network?
+6. Which source, resolution, timestamp and transformation produced every value?
 
-The completed Trento Proof 0 remains the asserted end-to-end product path. The
-Amsterdam gate is visible separately: bounded public Waternet topology,
-PDOK/GWSW area context, raw AHN terrain and a BGT/AHN-conditioned surface
-contributing-area proxy. Real IMERG, CLC and GLO-30 evidence now produces an
-inspectable runoff source term over its 100 cells. The outlet remains an explicit
-model boundary condition rather than an observed sewer-catchment attachment, so
-propagation stops before the unresolved Waternet pipe.
+If evidence is missing, GeoLens stops or returns an explicit missing state. It does not replace missing rainfall, elevation or land cover with zero.
 
-Latest published refoundation baseline: **v0.1.0-alpha.4**.
+> GeoLens is currently an experimental spatial-evidence and runoff system. It is not a flood forecast, a hydraulic sewer simulator or a generic risk-score dashboard.
+
+## The idea in one diagram
+
+~~~text
+real rainfall + real terrain + real land cover
+                       |
+                       v
+             spatial evidence bundle
+                       |
+                       v
+             inspectable runoff model
+                       |
+                       v
+       contributing surface or catchment
+                       |
+                       v
+          validated stormwater topology
+                       |
+                       v
+          known downstream network state
+                       |
+                       v
+        result + provenance + missing state
+~~~
+
+H3 connects evidence and infrastructure spatially. H3 is an indexing and representation choice; the original resolution of IMERG, DEM, CLC, AHN and BGT remains visible.
+
+## What works today
+
+GeoLens has two complementary proofs.
+
+| Proof | What is real | What is demonstrated | Current boundary |
+| --- | --- | --- | --- |
+| Trento Proof 0 | NASA IMERG rainfall, Copernicus GLO-30 terrain and the official local CLC 2018 raster | Complete evidence → runoff → catchment → network → downstream accumulation chain over a deterministic bounded network fixture | The environmental evidence is real; the small network geometry is a test fixture, not surveyed municipal infrastructure |
+| Amsterdam observed proof | Waternet nodes and pipes, AHN4 terrain, BGT physical surfaces, IMERG rainfall, CLC land cover, GLO-30 slope and PDOK/GWSW context | Real municipal topology and a traceable non-zero conditioned runoff source over a bounded urban area | No owner-published surface-to-pipe relation was found in the current public catalogs, so network propagation is intentionally not attempted |
+
+### Trento result
+
+The fixed verified live window observed 9.24 mm of rainfall, derived 2.957 m³ of runoff contribution and delivered the same volume to the fixture outfall with zero mass-balance difference.
+
+This proves the complete transformation chain and its failure semantics. It does not claim that the fixture network represents the real Trento drainage system.
+
+### Amsterdam result
+
+The bounded Amsterdam proof currently exposes:
+
+- 47 observed Waternet nodes and 47 active stormwater pipes;
+- 4 explicitly typed rainwater outfalls;
+- 26 known and 21 ambiguous pipe directions from retained endpoint invert levels;
+- an inclusive 0.05 m resolvable-drop boundary with a separately visible 0.000001 m numeric comparison tolerance;
+- a known 5-node, 4-pipe upstream path to the selected rainwater outfall;
+- 696 H3 r13 surface cells classified from BGT and conditioned with AHN4 terrain;
+- 100 contributing cells representing 3,676.73 m²;
+- 3.835 mm of real IMERG rainfall across the selected window;
+- a derived runoff source of 11.4145 m³;
+- an explicit missing STOWA 2025 BGT Inlooptabel or equivalent owner-published Waternet asset crosswalk.
+
+The 11.4145 m³ result is therefore available as an inspectable environmental source term, but it is not represented as observed sewer inflow. The API shows the authoritative attachment as missing and keeps propagation blocked. The experimental BGT/AHN outlet remains clearly marked as conditioned and not observed.
 
 ## What GeoLens is
 
-GeoLens composes physical quantities while retaining their origin, resolution,
-time window, transformation and missing-data state. H3 is used to connect
-evidence and infrastructure; it does not replace or exaggerate source
-resolution.
+GeoLens is:
 
-Proof 0 currently exposes quantities such as:
+- a spatial evidence engine;
+- a common evidence and missing-data contract;
+- a set of real environmental-data providers;
+- an inspectable deterministic runoff derivation;
+- typed catchment and stormwater-network models;
+- a bounded API and visual evidence inspector;
+- a foundation for later environmental and infrastructure applications.
 
-- `rainfall_mm`;
-- `elevation_m` and `slope_deg`;
-- `land_cover_class`;
-- `imperviousness_parameter` and `runoff_parameter`;
-- `runoff_mm` and catchment volume;
-- node inflow, edge transfer and downstream accumulation.
+GeoLens prefers physical quantities such as rainfall in millimetres, elevation in metres, slope in degrees, runoff depth, runoff volume and downstream accumulation.
 
-It is not a flood-probability model, hydraulic sewer simulation, drainage
-capacity model, groundwater model or damage model. It does not claim that
-runoff depth is flood depth.
+## What GeoLens is not
 
-## Verified baseline
+GeoLens does not currently claim to provide:
 
-The following state has been verified locally through 2026-08-23.
+- flood probability or flood depth;
+- pipe capacity, surcharge or sewer overflow probability;
+- a calibrated hydraulic simulation;
+- groundwater recharge;
+- damage or financial-loss estimates;
+- a generic 0–1 risk score;
+- continent-scale real-time operation;
+- AI-generated assessment, recommendations or confidence.
 
-| Layer or subsystem | Verified state |
-| --- | --- |
-| Evidence semantics | Observed zero is distinct from missing, incomplete, failed, stale and out-of-coverage evidence. |
-| IMERG boundary | The Python `earthaccess` + `xarray` service is the sole production acquisition path. A fixed 24 h live window ending `2026-08-20T00:00:00Z` was verified as complete Early Run V07 evidence with 48/48 granules. Live execution remains opt-in and credential/network dependent. |
-| Copernicus DEM | Real public GLO-30 sampling is verified for the cross-European Proof 0 evidence path, including traceable elevation and finite-difference slope evidence. |
-| AHN terrain | The bounded Amsterdam surface experiment uses the public [PDOK AHN4 DTM WCS](https://service.pdok.nl/rws/ahn/wcs/v1_0?SERVICE=WCS&REQUEST=GetCapabilities) at 0.5 m source resolution and NAP datum. Each H3 r13 value is the mean of valid 0.5 m source-pixel centres inside the cell; using the published [AHN 5 m product threshold](https://www.ahn.nl/5-producten) as an explicit H3 aggregation rule, more than 60% source no-data keeps the raw H3 value missing. The latest live bbox returned 521 available and 295 missing cells across 816 samples. |
-| BGT physical surface | Eight bounded [PDOK BGT OGC API](https://www.pdok.nl/ogc-apis/-/article/basisregistratie-grootschalige-topografie-bgt-) collections provide current level-zero terrain, buildings, roads, water and structural barriers under CC0. Live centroid classification covered all 696 target H3 r13 cells from 258 source features; BGT describes physical surface objects, not drainage destinations. |
-| Conditioned surface proxy | Experimental model `bounded-bgt-ahn-priority-flood-v0.1.0` retains raw AHN missing evidence, interpolates a separate terrain value only for land cells with at least three observed neighbours within four H3 rings, excludes 103 water and 3 wall/quay-barrier cells, and applies a multi-terminal priority-flood. The verified result assigns 100 cells / `3,676.73 m2` to the conditioned outfall, with 435 observed and 155 interpolated terrain values and zero unresolved cells. The attachment is explicitly not observed and remains ineligible for sewer propagation. |
-| Conditioned environmental runoff | Model `conditioned-surface-environmental-runoff-v0.1.0` composes the canonical providers over all 100 conditioned Amsterdam cells. The verified 24 h window returned `3.835 mm` IMERG rainfall for every cell, CLC `112` for 97 cells and `141` for 3, GLO-30 slopes from `0.650..6.006 deg`, derived runoff from `3.076..3.145 mm`, and an aggregated `11.4145 m3` source term. The output remains experimental and is stopped before network propagation at the unobserved attachment and ambiguous outfall pipe. |
-| CORINE Land Cover | The official CLC 2018 V2020_20u1 European 100 m GeoTIFF is verified locally. A real Trento sample returned available class `111`. |
-| CLC encoding | Official raster palette indices `1..44` are explicitly decoded to CLC level-3 codes `111..523` by transformation `clc-centroid-v0.2.0`. |
-| H3 composition | Catchment cells and network entities are joined through explicit H3 representations while source resolution remains visible. |
-| Runoff and catchments | Runoff v0 is deterministic and exposes inputs/intermediates; catchment aggregation uses represented H3 area. |
-| Proof 0 network | Topology is validated separately from environmental evidence. Direction is `known`, `unknown` or `ambiguous`. |
-| Observed infrastructure | The official Waternet/Amsterdam `Leidingeninfrastructuur` WFS was verified live. The outfall-anchored bounded import produced 47 observed nodes and 47 active stormwater pipes, including 4 explicit `Regenwateruitlaat` outfalls, retained NAP ground/invert attributes, and classified 25 directions as known and 22 as ambiguous at the configured 0.05 m threshold. All 4 outfalls stop at an ambiguous direction boundary, so the known-direction outfall analysis reports 0 supported upstream paths. |
-| Observed area context | The public [PDOK / Stichting RIONED GWSW dataset](https://www.pdok.nl/introductie/-/article/stedelijk-water-riolering-) was verified live. The selected rainwater outfall lies inside `Rioleringsgebied.932` President Kennedylaan, but the public Waternet and GWSW responses publish no relation between that outfall and the polygon. Point containment is therefore exposed as context only: attachment remains ineligible and no catchment is created. |
-| Propagation | Supported directed acyclic topology conserves volume and exposes mass balance. |
-| API and inspector | One root command health-gates IMERG -> API -> web. The Next.js inspector automatically runs the verified window and independently acquires bounded Waternet topology, PDOK/GWSW area context, AHN terrain, BGT physical surfaces and conditioned environmental runoff. Browser verification displayed the 100-cell `11.415 m3` receipt with 696 map cells, no framework overlay and no console errors. Raw, conditioned and runoff values remain separately inspectable without AI or mineral services. |
+AI, Gemini, RAG, mineral prospectivity and the old generic multi-hazard product framing are outside the active runtime.
 
-The bounded Trento fixture produces a non-zero downstream result in both
-deterministic verification and the fixed live run. That live run observed `9.24 mm` of
-rainfall, derived `2.957 m3` of catchment contribution and delivered the same
-volume to the outfall with zero mass-balance difference. The network geometry is a
-deterministic fixture, not surveyed municipal infrastructure. The Amsterdam panel is observed municipal infrastructure with explicit
-rainwater outfalls. GWSW containment remains context only. Its separate BGT/AHN
-proxy now has complete conditioned H3 coverage and a non-zero area. Its 100
-contributing cells have a complete real IMERG/CLC/GLO-30 runoff derivation, but
-the result is still not asserted as a sewer catchment because no outfall relation
-or BGT Inlooptabel was published. At the configured 0.05 m threshold, each
-observed outfall is also separated from the network by one ambiguous pipe. The
-selected outfall therefore exposes `11.4145 m3` before propagation and identifies
-the unresolved boundary pipe instead of inventing downstream state. Missing
-rainfall, land cover or raw elevation never becomes a valid-looking zero.
+## Evidence is the product boundary
 
-## Active architecture
+Every important evidence value retains:
 
-```text
-apps/
-  api/                 Fastify Proof 0 API
-  web/                 bounded Next.js evidence inspector
-
-packages/
-  evidence/            canonical evidence model and invariants
-  providers/           IMERG, Copernicus DEM, CLC, AHN and BGT providers
-  stormwater/          runoff, catchments, topology, Waternet/GWSW acquisition and propagation
-  proof-zero/          end-to-end composition
-
-nasa-precip-engine/    canonical Python IMERG acquisition service
-copernicus-engine/     local acquisition tooling, outside active npm runtime
-```
-
-Only these npm workspaces are active:
-
-```text
-apps/api
-apps/web
-packages/evidence
-packages/providers
-packages/stormwater
-packages/proof-zero
-```
-
-Legacy AI, Gemini, mineral, generic-risk, SDK, data-cube and elaborate 3D
-sources may remain recoverable in the tree or Git history, but they are not
-registered by the active API entry point or npm workspace graph.
-
-## Evidence contract
-
-Every important evidence value carries:
-
-- provider, dataset and version;
-- observation/reference time, requested window and acquisition time;
-- physical coordinate or H3 representation;
-- source spatial resolution;
-- sampling and transformation method/version;
+- provider and dataset;
+- dataset version when available;
+- observation time or requested window;
+- acquisition time;
+- coordinate or H3 representation;
+- original spatial resolution;
+- sampling and transformation method;
+- transformation version;
 - quality status and missing reason;
-- source-specific metadata required for traceability.
+- provider-specific source metadata.
 
-Canonical statuses are:
+Canonical evidence states are:
 
-```text
+~~~text
 available
 missing
 stale
@@ -154,274 +130,181 @@ upstream_error
 invalid_response
 incomplete_window
 synthetic_fixture
-```
+~~~
 
-`0` is valid only when it is observed or legitimately derived. Synthetic data
-is restricted to explicit deterministic fixtures and is always labelled
-`synthetic_fixture`.
+Observed zero is valid evidence. Missing is not zero. Synthetic fixtures are structurally labelled and cannot masquerade as production evidence.
 
-## Requirements
+## Active architecture
+
+~~~text
+apps/
+  api/                 Fastify spatial-evidence API
+  web/                 Next.js evidence inspector
+
+packages/
+  evidence/            canonical Evidence<T> model and invariants
+  providers/           IMERG, GLO-30, CLC, AHN and BGT providers
+  stormwater/          runoff, catchments, topology and Waternet/GWSW models
+  proof-zero/          end-to-end environmental composition
+
+nasa-precip-engine/    canonical Python earthaccess + xarray IMERG service
+copernicus-engine/     local acquisition tooling outside the active npm runtime
+~~~
+
+Only these npm workspaces are active:
+
+~~~text
+apps/api
+apps/web
+packages/evidence
+packages/providers
+packages/stormwater
+packages/proof-zero
+~~~
+
+The canonical production precipitation path is the Python IMERG service. GeoLens does not maintain a second TypeScript precipitation implementation with synthetic zero fallback.
+
+## Quick start
+
+### Requirements
 
 - Node.js 20 or newer;
 - npm 10 or newer;
-- Python 3.11 or newer for IMERG;
-- NASA Earthdata credentials for live precipitation;
-- a local official CLC 2018 GeoTIFF for live land-cover evidence.
+- Python 3.11 or newer;
+- NASA Earthdata credentials for live IMERG;
+- an official local CLC 2018 V2020_20u1 100 m GeoTIFF for live land-cover evidence.
 
-Copernicus DEM GLO-30, PDOK AHN4 DTM, PDOK BGT and the public PDOK/GWSW area API need no credential.
-The active CLC provider reads a local GeoTIFF; a Copernicus service key is only
-needed by download tooling, not by the runtime provider.
+Copernicus GLO-30, PDOK AHN4, PDOK BGT, Waternet public infrastructure and the public PDOK/GWSW context do not require credentials.
 
-## Install
+### Install
 
-```bash
+~~~bash
 npm install
 
 cd nasa-precip-engine
 python -m pip install -r requirements.txt
 cd ..
-```
+~~~
 
-Create local environment files:
+Create local configuration files:
 
-```bash
-cp nasa-precip-engine/.env.example nasa-precip-engine/.env
-cp apps/api/.env.example apps/api/.env
-```
-
-PowerShell equivalents:
-
-```powershell
+~~~powershell
 Copy-Item nasa-precip-engine/.env.example nasa-precip-engine/.env
 Copy-Item apps/api/.env.example apps/api/.env
-```
+~~~
 
-Never commit `.env`, service-key JSON or PEM files. The repository ignores
-`.env` and `*.pem`.
+Never commit environment files, credentials, service-key JSON or PEM files.
 
-## Configure real evidence
+### Configure NASA IMERG
 
-### NASA IMERG
+Set nasa-precip-engine/.env:
 
-Set `nasa-precip-engine/.env`:
-
-```text
+~~~text
 EARTHDATA_USERNAME=...
 EARTHDATA_PASSWORD=...
-API_HOST=0.0.0.0
+API_HOST=127.0.0.1
 API_PORT=8001
 LOG_LEVEL=INFO
 
-# Optional completed-window cache and one-command runtime overrides
 IMERG_CACHE_DIR=D:/GeoLens/cache/imerg
 IMERG_DISK_CACHE_TTL_SECONDS=2592000
 GEOLENS_PYTHON=D:/GeoLens/venvs/nasa-precip/Scripts/python.exe
 GEOLENS_TEMP_DIR=D:/GeoLens/tmp
-```
+~~~
 
-Set the API boundary in `apps/api/.env`:
+IMERG source resolution is approximately 0.1 degree. H3 does not change that precision. Only complete `available` windows may be persisted in the optional disk cache. The short-lived in-memory cache can replay an explicit unavailable or incomplete result, but its evidence status remains unchanged: it never becomes an observation or a zero.
 
-```text
-PORT=3003
-NASA_PRECIP_SERVICE_URL=http://127.0.0.1:8001
-```
+The default host exposes the unauthenticated development service only on the local machine. Set `API_HOST=0.0.0.0` only when network access is intentional and protected by an appropriate boundary.
 
-IMERG source resolution is approximately `0.1 degree`. H3 is only the sampling
-and indexing representation. Remote granules use the provider's transient block
-cache and are not intentionally retained. When `IMERG_CACHE_DIR` is configured,
-GeoLens persists only completed `available` accumulation windows plus their original
-provenance. Missing, failed and incomplete windows are never cached as observations.
-A restored window is marked `cached: true` while retaining its original acquisition
-time; it is real evidence replay, not a synthetic fixture. `GEOLENS_TEMP_DIR` keeps
-operating-system temporaries off `C:` when the root development command starts the
-service.
+### Configure CORINE Land Cover
 
-### CORINE Land Cover
+Keep the official European raster outside the repository. A suitable Windows layout is:
 
-Download the official **CORINE Land Cover 2018 V2020_20u1, raster 100 m,
-Europe** package from the Copernicus Land Monitoring Service and extract the
-main European GeoTIFF.
-
-Keeping environmental rasters outside the repository is recommended. Example
-Windows layout:
-
-```text
+~~~text
 D:/GeoLens/data/clc/
   u2018_clc2018_v2020_20u1_raster100m/
     DATA/
       U2018_CLC2018_V2020_20u1.tif
-```
+~~~
 
-Configure `apps/api/.env` with forward slashes:
+Set apps/api/.env:
 
-```text
+~~~text
+PORT=3003
+NASA_PRECIP_SERVICE_URL=http://127.0.0.1:8001
 CLC_RASTER_PATH=D:/GeoLens/data/clc/u2018_clc2018_v2020_20u1_raster100m/DATA/U2018_CLC2018_V2020_20u1.tif
-```
+~~~
 
-The provider accepts EPSG:3035 or EPSG:4326. If the file is absent, unreadable
-or outside coverage, the result remains explicit unavailable evidence.
+If the raster is absent, unreadable or outside coverage, CLC remains explicitly unavailable.
 
-## Run locally
+### Run
 
-Start the canonical IMERG service, Proof 0 API and inspector together:
+Start IMERG, the API and the inspector together:
 
-```bash
+~~~bash
 npm run dev
-```
+~~~
 
-The inspector uses port `3000` by default. If that port is already occupied,
-the launcher rejects a successful response from the wrong application instead of
-reporting GeoLens as ready. Select a free port explicitly in PowerShell:
+Default local endpoints:
 
-```powershell
+- inspector: http://localhost:3000
+- GeoLens API: http://localhost:3003
+- API health: http://localhost:3003/health
+- IMERG service: http://localhost:8001
+- observed Amsterdam proof: http://localhost:3003/api/infrastructure/amsterdam-waternet
+
+If port 3000 is occupied, choose another port in PowerShell:
+
+~~~powershell
 $env:GEOLENS_WEB_PORT = '3004'
 npm run dev
-```
+~~~
 
-The command reads `nasa-precip-engine/.env`, starts services in dependency
-order, waits for each health gate, and shuts down the complete process tree with
-`Ctrl+C`. The inspector then runs the fixed verified window ending
-`2026-08-20T00:00:00Z` automatically. The first uncached IMERG acquisition may
-take several minutes; subsequent exact-window runs restore the completed real
-accumulation from the configured persistent cache.
+The root launcher starts services in dependency order and waits for their health gates. On Windows, Ctrl+C stops each complete descendant process tree; on POSIX systems it sends `SIGTERM` to each launched service. The first uncached IMERG acquisition can take several minutes.
 
-Use `npm run dev:api-web` only when the IMERG service is already managed
-separately.
+## APIs
 
-Local endpoints:
+### Observed Amsterdam infrastructure
 
-- inspector: <http://localhost:3000> (or the configured `GEOLENS_WEB_PORT`);
-- GeoLens API: <http://localhost:3003>;
-- API health: <http://localhost:3003/health>;
-- IMERG service: <http://localhost:8001>;
-- IMERG health: <http://localhost:8001/health>;
-- observed Waternet topology: <http://localhost:3003/api/infrastructure/amsterdam-waternet>.
+GET /api/infrastructure/amsterdam-waternet acquires a small bounded response from the official [Amsterdam Waternet infrastructure API](https://api.data.amsterdam.nl/v1/docs/datasets/leidingeninfrastructuur.html).
 
-Example API health response:
+Default bbox:
 
-```json
-{
-  "status": "ok",
-  "service": "geolens-proof-zero-api",
-  "coreRequiresAi": false,
-  "coreRequiresMineralModel": false,
-  "runtime": {
-    "imergServiceConfigured": true,
-    "clcRasterConfigured": true
-  }
-}
-```
+~~~text
+latitude  52.3375 – 52.3395
+longitude 4.8978 – 4.8995
+~~~
 
-Configuration flags confirm that endpoints/paths were supplied; evidence
-status in a Proof 0 response is the authority on actual provider availability.
+The response keeps these layers separate:
 
-## Observed infrastructure API
+- observed Waternet topology and source receipts;
+- pipe-invert direction and outfall connectivity;
+- PDOK/GWSW management-area context;
+- raw AHN4 terrain evidence;
+- BGT physical-surface classification;
+- the experimental conditioned BGT/AHN surface proxy;
+- real IMERG, CLC and GLO-30 evidence over the selected cells;
+- derived runoff and catchment contribution;
+- the authoritative STOWA BGT Inlooptabel attachment boundary;
+- the reason network propagation was or was not attempted.
 
-`GET /api/infrastructure/amsterdam-waternet` requests a bounded response from
-the official [Amsterdam Data API Waternet dataset](https://api.data.amsterdam.nl/v1/docs/datasets/leidingeninfrastructuur.html).
-The default WFS 2.0 bbox is:
+The public GWSW polygon containing the selected outfall is context only. Point containment does not prove that a surface drains to an outfall.
 
-```text
-52.3375,4.8978,52.3395,4.8995,EPSG:4326
-```
+### Generic Proof 0
 
-WFS 2.0 uses latitude/longitude axis order for this EPSG:4326 bbox. A custom
-request must provide `latMin`, `lonMin`, `latMax` and `lonMax` together,
-and each span is limited to `0.01 degree`. Optional `referenceTime` selects the
-IMERG observation window; it defaults to the reproducible
-`2026-08-20T00:00:00Z` verification window.
+POST /api/proof-zero/run accepts a bounded typed GeoJSON network and an explicit reference time. A complete example is available in [apps/web/app/lib/fixture.ts](apps/web/app/lib/fixture.ts).
 
-An available response exposes:
+Supported entities are:
 
-- acquisition and import receipts;
-- provider, dataset, Creative Commons Attribution license and delivery date;
-- source EPSG:7415 and WFS output EPSG:4326;
-- observed point/line geometry and stable source record ids;
-- four explicit `Regenwateruitlaat` nodes retained as typed outfalls;
-- node ground levels and pipe invert levels in metres with NAP datum metadata;
-- strict active-stormwater filtering and 0.25 m endpoint snap distances;
-- skipped boundary pipes and defective endpoint-UUID state;
-- known-direction outfall connectivity with its own model version and explicit
-  supported-path / unresolved-boundary counts;
-- invert-derived edge direction with evidence basis, model version, configured
-  ambiguity threshold and `known` / `ambiguous` / `unknown` counts;
-- `bemalingsgebied` values retained only as source identifiers; the response
-  explicitly states that no contributing-area geometry was supplied;
-- a bounded public PDOK/GWSW `beheergebied` receipt and the management areas
-  containing the selected outfall;
-- `Rioleringsgebied.932` President Kennedylaan exposed as spatial context only;
-  neither point containment nor Waternet identifier `826` creates an attachment
-  because no public crosswalk or source relation was found;
-- the four unresolved outfall-boundary pipes highlighted separately from other
-  ambiguous directions;
-- an empty catchment attachment set because the source does not provide the
-  required contributing areas.
-- a separate experimental AHN4 DTM surface proxy at H3 r13, including its
-  exact WCS receipt, 0.5 m source resolution, EPSG:28992 + NAP datum and
-  per-cell evidence;
-- an arithmetic mean over valid source-pixel centres inside every H3 cell,
-  source-pixel counts and quality fraction, with the official greater-than-60%
-  no-data rule kept explicit;
-- the unconditioned AHN experiment with both a resolved partial area and an
-  explicitly unavailable complete area when raw no-data leaves possible cells
-  unresolved;
-- a separate bounded BGT receipt across eight physical-surface collections and
-  per-H3 centroid classification for terrain, buildings, roads, water and
-  structural barriers;
-- a conditioned terrain value beside every raw AHN value: land no-data may be
-  estimated only by the stated IDW rule, while raw missing evidence remains
-  unchanged and traceable;
-- a multi-terminal priority-flood result that distinguishes the conditioned
-  outfall, bbox exits and observed surface water. The verified complete proxy is
-  `3,676.73 m2` across 100 H3 cells, but never creates a Waternet catchment
-  attachment;
-- a bounded `conditionedSurfaceRunoff` receipt that preserves IMERG 0.1 degree,
-  CLC 100 m and GLO-30 source resolution, every per-cell runoff intermediate and
-  the aggregated source volume;
-- an explicit `networkPropagation.attempted=false` result with the unobserved
-  attachment and unresolved outfall pipe listed as blocking boundaries.
+- Point node with type inlet, manhole or outfall;
+- LineString pipe with type pipe;
+- Polygon catchment with type catchment and an explicit outlet_node_id.
 
-Authentication, rate limiting, upstream errors, invalid/truncated responses and
-empty coverage are returned explicitly without an empty valid-looking topology.
-
-## Proof 0 API
-
-`POST /api/proof-zero/run` accepts:
-
-```json
-{
-  "network": {
-    "type": "FeatureCollection",
-    "features": []
-  },
-  "networkId": "bounded-network-id",
-  "referenceTime": "2026-08-20T00:00:00Z",
-  "nodeH3Resolution": 11,
-  "catchmentH3Resolution": 13,
-  "snapToleranceM": 5,
-  "minimumResolvableDropM": 0.1
-}
-```
-
-The shown empty feature collection documents the request shape but is not
-executable. A complete typed fixture is available in
-[`apps/web/app/lib/fixture.ts`](apps/web/app/lib/fixture.ts).
-
-Supported GeoJSON entities use explicit properties:
-
-- node: `Point` with `type` equal to `inlet`, `manhole` or `outfall`;
-- pipe: `LineString` with `type: pipe`;
-- catchment: `Polygon` with `type: catchment` and `outlet_node_id`.
-
-The response exposes provider summaries, H3 environmental cells, point-sampled
-node elevation, issues, topology, edge direction, runoff intermediates,
-catchment contributions, node source terms, propagation and mass balance.
-
-### Bounded execution limits
+Proof 0 guardrails:
 
 | Limit | Value |
 | --- | ---: |
-| Geographic span | `0.25 degree x 0.25 degree` |
+| Geographic span | 0.25° × 0.25° |
 | GeoJSON features | 500 |
 | Coordinates | 10,000 |
 | Nodes | 100 |
@@ -430,103 +313,68 @@ catchment contributions, node source terms, propagation and mass balance.
 | Catchment H3 cells | 500 |
 | Request body | 1 MiB |
 
-These are Proof 0 guardrails, not continent-scale performance claims.
+These are bounded research-system limits, not continent-scale performance claims.
 
 ## Verification
 
-Deterministic verification:
+Run deterministic verification:
 
-```bash
+~~~bash
 npm run typecheck
 npm test
 npm run build
-```
+~~~
 
-The normal suite keeps live-provider checks separate from deterministic
-fixtures.
+Live providers remain opt-in and separate from deterministic fixtures.
 
-Opt-in live verification on Bash:
-
-```bash
-GEOLENS_RUN_LIVE_PROVIDER_TESTS=1 \
-CLC_RASTER_PATH=/absolute/path/to/U2018_CLC2018_V2020_20u1.tif \
-GEOLENS_IMERG_REFERENCE_TIME=2026-08-20T00:00:00Z \
-npm run test:live
-```
-
-PowerShell:
-
-```powershell
+~~~powershell
 $env:GEOLENS_RUN_LIVE_PROVIDER_TESTS = '1'
 $env:CLC_RASTER_PATH = 'D:/GeoLens/data/clc/u2018_clc2018_v2020_20u1_raster100m/DATA/U2018_CLC2018_V2020_20u1.tif'
 $env:GEOLENS_IMERG_REFERENCE_TIME = '2026-08-20T00:00:00Z'
 npm run test:live
-```
+~~~
 
-The public Waternet WFS, PDOK/GWSW area API and PDOK BGT surface API have their own opt-in live verification:
+Waternet, BGT and GWSW live checks:
 
-```powershell
+~~~powershell
 $env:GEOLENS_LIVE_WATERNET = '1'
 $env:GEO_LENS_LIVE_BGT = '1'
 npm run build --workspace=@geo-lens/providers
 npm run build --workspace=@geo-lens/stormwater
 node --test packages/providers/test/live-bgt.test.cjs
 node --test packages/stormwater/test/live-amsterdam-wfs.test.cjs packages/stormwater/test/live-amsterdam-gwsw.test.cjs
-```
+~~~
 
-With the IMERG service and GeoLens API already running, verify the complete live
-chain separately:
-
-```powershell
-$env:GEOLENS_RUN_LIVE_PROOF_ZERO_TESTS = '1'
-$env:GEOLENS_IMERG_REFERENCE_TIME = '2026-08-20T00:00:00Z'
-npm run test:live:proof-zero
-```
-
-The end-to-end test requires the API process to have loaded both
-`NASA_PRECIP_SERVICE_URL` and `CLC_RASTER_PATH` from `apps/api/.env`.
-
-Use a reference time old enough for the selected IMERG run to be published.
-Live checks may fail because of credentials, provider availability, rate limits
-or incomplete source windows; those failures must never produce zero rainfall.
+A live-provider failure may reflect credentials, network, rate limits or incomplete upstream coverage. It must never produce a valid-looking zero.
 
 ## Scientific limits
 
-- Runoff v0 is an inspectable deterministic derivation, not calibration or
-  flood validation.
-- Land-cover-derived imperviousness and runoff parameters are model inputs or
-  proxies, not observed drainage capacity.
-- Slope is derived from sampled DEM elevations and retains its transformation
-  metadata.
-- Proof 0 edge direction is never invented when node-elevation evidence is insufficient; observed Waternet direction is derived separately from pipe endpoint invert evidence.
-- The observed Waternet topology exposes only invert-derived direction state; it does not claim catchment contribution or propagated flow until those evidence boundaries are supplied.
-- A GWSW polygon containing an outfall coordinate is area context, not proof that the polygon drains to that outfall; attachment requires a published relation or authoritative crosswalk.
-- The BGT/AHN proxy uses a separately documented conditioning method, but its outfall terminal is a model boundary condition rather than an observed sewer attachment. IDW terrain values and priority-flood elevations are derived estimates, not rewritten AHN observations.
-- Amsterdam runoff uses GLO-30 slope as a separate model input over the AHN/BGT-conditioned area; it does not reinterpret H3 r13 as provider resolution or turn the conditioned outlet into an observed sewer relation.
-- Propagation operates on supported known directed acyclic topology and does
-  not simulate pipe hydraulics, storage, surcharge or overflow.
-- No percentage confidence, flood probability or production-readiness claim is
-  generated without a separate validation procedure.
+- Runoff v0 is deterministic and inspectable, but not calibrated flood validation.
+- Land-cover-derived imperviousness and runoff parameters are model inputs or proxies.
+- GLO-30 slope and AHN/BGT terrain conditioning have different roles and remain separate.
+- H3 resolution never replaces provider resolution.
+- Waternet direction uses endpoint invert evidence; missing or insufficient evidence remains unknown or ambiguous.
+- Numeric comparison tolerance handles serialization noise and is not provider survey accuracy.
+- The conditioned Amsterdam outlet is a model boundary, not an observed sewer attachment.
+- Sewer propagation requires an owner-published BGT Inlooptabel, hydraulic surface relation or equivalent exact asset crosswalk.
+- Propagation does not model pipe capacity, storage, travel time, surcharge or overflow.
+- No percentage confidence or production-readiness claim is generated without a separate validation procedure.
 
-## Release policy
+## Refoundation and project history
 
-`v0.1.0-alpha.4` is the latest published refoundation baseline. It packages code,
-contracts and deterministic/remote verification only. NASA granules, CLC rasters,
-credentials, caches and generated provider data are deliberately excluded.
+GeoLens originally contained a broad multi-hazard product, AI analysis, mineral exploration and several contradictory data paths. The refoundation deliberately reduced the active system to one physically meaningful, provenance-complete chain.
 
-Future releases must keep fixture verification separate from live-data
-verification and describe unavailable providers explicitly.
+The pre-overhaul repository is preserved on branch codex/pre-overhaul-snapshot-20260822. Do not rewrite that branch.
 
-## Project authority
+The latest repository tag is v0.1.0-alpha.4. Current main may contain later verified refoundation work.
 
 When repository materials disagree, use this order:
 
-1. [`AGENTS.md`](AGENTS.md);
-2. [`REFOUNDATION_PLAN.md`](REFOUNDATION_PLAN.md);
-3. verified runtime behavior;
-4. tests expressing current intended behavior;
-5. implementation;
-6. old documentation.
+1. [AGENTS.md](AGENTS.md)
+2. [REFOUNDATION_PLAN.md](REFOUNDATION_PLAN.md)
+3. verified runtime behavior
+4. tests expressing intended behavior
+5. implementation
+6. historical documentation
 
-Historical completion reports and legacy production-readiness claims are not
-authoritative.
+The durable execution state belongs in the plan, code, tests and commits—not in generated completion reports.
