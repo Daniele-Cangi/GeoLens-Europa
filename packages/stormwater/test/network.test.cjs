@@ -5,6 +5,7 @@ const path = require('node:path');
 
 const {
   aggregateCatchmentRunoff,
+  analyzeOutfallConnectivity,
   composeNodeSourceTerms,
   createStormwaterTopology,
   importStormwaterGeoJson,
@@ -242,6 +243,42 @@ test('missing and vertically unresolved elevations preserve direction uncertaint
   assert.equal(
     ambiguous.directions.pipe_2_B_to_C.status,
     'known',
+  );
+});
+
+test('known directions expose the traceable path terminating at an outfall', () => {
+  const imported = importWithElevations({
+    node_A_inlet: 103,
+    node_B_manhole: 102,
+    node_C_outfall: 101,
+  });
+  const oriented = orientStormwaterNetwork(imported.topology, {
+    minimumResolvableDropM: 0.1,
+  });
+  const connectivity = analyzeOutfallConnectivity(oriented);
+
+  assert.deepEqual(connectivity.counts, {
+    outfalls: 1,
+    knownUpstreamPaths: 1,
+    blockedByUnresolvedDirection: 0,
+    isolated: 0,
+    directionConflicts: 0,
+    knownPathNodes: 3,
+    knownPathPipes: 2,
+    unresolvedBoundaryPipes: 0,
+  });
+  assert.deepEqual(connectivity.knownPathNodeIds, [
+    'node_A_inlet',
+    'node_B_manhole',
+    'node_C_outfall',
+  ]);
+  assert.deepEqual(connectivity.knownPathPipeIds, [
+    'pipe_1_A_to_B',
+    'pipe_2_B_to_C',
+  ]);
+  assert.deepEqual(
+    connectivity.outfalls.node_C_outfall.knownUpstreamNodeIds,
+    ['node_A_inlet', 'node_B_manhole'],
   );
 });
 

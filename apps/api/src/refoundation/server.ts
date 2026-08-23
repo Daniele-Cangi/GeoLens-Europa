@@ -11,6 +11,7 @@ import {
 import {
   AmsterdamWaternetAcquisition,
   AmsterdamWaternetBbox,
+  analyzeOutfallConnectivity,
   AmsterdamWaternetWfsClient,
   importAmsterdamWaternetStormwater,
   importStormwaterGeoJson,
@@ -177,6 +178,8 @@ export function buildGeoLensApi(
                 WATERNET_MINIMUM_RESOLVABLE_INVERT_DROP_M,
             },
           );
+        const outfallConnectivity =
+          analyzeOutfallConnectivity(oriented);
         const directionCounts = Object.values(
           oriented.directions,
         ).reduce(
@@ -202,6 +205,7 @@ export function buildGeoLensApi(
             counts: directionCounts,
             directions: oriented.directions,
           },
+          outfallConnectivity,
         });
       } catch (error) {
         request.log.error(error);

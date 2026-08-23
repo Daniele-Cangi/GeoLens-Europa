@@ -572,6 +572,12 @@ th {
   stroke: #ff8f80;
   stroke-dasharray: 3 7;
 }
+
+.observed-pipe[data-outfall-boundary="true"] .observed-pipe-line {
+  stroke: var(--coral);
+  stroke-width: 5;
+}
+
 .observed-pipe-hit {
   fill: none;
   stroke: transparent;

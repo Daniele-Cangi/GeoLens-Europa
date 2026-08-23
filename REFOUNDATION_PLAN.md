@@ -12,7 +12,7 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Refoundation core, Proof 0 API, and minimal inspection UI build/typecheck/test baseline: established; historical legacy sources are excluded from the active TypeScript boundary
 - First refoundation success gate: established through deterministic fixture proof and a fully real environmental-evidence chain over the bounded Trento test network, from IMERG, DEM and CLC through runoff, direction, propagation and zero-difference mass balance
 - Observed-infrastructure gate: established through a live bounded Waternet/Amsterdam WFS path, a valid 47-node/47-pipe topology containing four explicit rainwater outfalls, explicit provider failures, API receipts and a browser-verified inspection panel
-- Observed-direction gate: established separately from propagation; Waternet endpoint invert NAP evidence yields 25 known and 22 ambiguous directions at an explicit 0.05 m analysis threshold, with no ground-elevation fallback
+- Observed-direction gate: established separately from propagation; Waternet endpoint invert NAP evidence yields 25 known and 22 ambiguous directions at an explicit 0.05 m analysis threshold, with no ground-elevation fallback; outfall connectivity remains blocked at four unresolved incident pipes
 - Historical tracked Copernicus private key: removed from the active tree; revocation/rotation remains an external security action because the secret is present in Git history
 
 Verified starting baseline (historical):
@@ -295,8 +295,9 @@ Progress:
 - the bounded observed subgraph contains four explicit `Regenwateruitlaat` nodes and retains identifier `826` as a source reference with `geometryStatus: not_provided_by_source`; it forbids catchment attachment from that identifier alone;
 - direction model `pipe-invert-direction-v0.1.0` compares the retained `bob_beginpunt` / `bob_eindpunt` NAP evidence at the snapped pipe endpoints;
 - the configured 0.05 m analysis threshold produces 25 known, 22 ambiguous and 0 unknown directions for the 47-pipe recorded response; this threshold is not represented as provider survey accuracy;
+- model `known-direction-outfall-connectivity-v0.1.0` finds 0 known upstream paths to the four outfalls because each incident pipe is within the ambiguity threshold; the four pipes remain explicit unresolved boundaries;
 - missing invert evidence remains an unknown direction and the observed route never falls back to node ground elevation;
-- the API and inspector expose evidence basis, model version, threshold, per-pipe state and counts without claiming catchment contribution or propagated flow.
+- the API and inspector expose evidence basis, model versions, threshold, per-pipe state, outfall-path counts and highlighted unresolved outfall boundaries without claiming catchment contribution or propagated flow.
 
 Work:
 
@@ -317,3 +318,4 @@ Checkpoints:
 
 - `refactor: orient observed pipes from invert evidence`
 - `feat: anchor observed topology at rainwater outfalls`
+- `refactor: expose known-direction outfall connectivity`

@@ -26,6 +26,8 @@ export const NETWORK_ORIENTATION_VERSION =
   NODE_ELEVATION_ORIENTATION_VERSION;
 export const NETWORK_PROPAGATION_VERSION =
   'no-loss-downstream-accumulation-v0.1.0';
+export const OUTFALL_CONNECTIVITY_VERSION =
+  'known-direction-outfall-connectivity-v0.1.0';
 
 export type StormwaterNodeType =
   | 'inlet'
@@ -176,6 +178,44 @@ export interface OrientedStormwaterNetwork {
 
 export interface OrientationOptions {
   readonly minimumResolvableDropM: number;
+}
+
+export type OutfallConnectivityStatus =
+  | 'known_upstream_path'
+  | 'blocked_by_unresolved_direction'
+  | 'isolated'
+  | 'direction_conflict';
+
+export interface OutfallConnectivityState {
+  readonly outfallNodeId: string;
+  readonly status: OutfallConnectivityStatus;
+  readonly knownUpstreamNodeIds: readonly string[];
+  readonly knownUpstreamPipeIds: readonly string[];
+  readonly unresolvedBoundaryPipeIds: readonly string[];
+  readonly outwardKnownPipeIds: readonly string[];
+}
+
+export interface OutfallConnectivityAnalysis {
+  readonly modelVersion: typeof OUTFALL_CONNECTIVITY_VERSION;
+  readonly orientationVersion: DirectionOrientationVersion;
+  readonly evidenceBasis: DirectionEvidenceBasis;
+  readonly minimumResolvableDropM: number;
+  readonly outfalls: Readonly<
+    Record<string, OutfallConnectivityState>
+  >;
+  readonly knownPathNodeIds: readonly string[];
+  readonly knownPathPipeIds: readonly string[];
+  readonly unresolvedBoundaryPipeIds: readonly string[];
+  readonly counts: {
+    readonly outfalls: number;
+    readonly knownUpstreamPaths: number;
+    readonly blockedByUnresolvedDirection: number;
+    readonly isolated: number;
+    readonly directionConflicts: number;
+    readonly knownPathNodes: number;
+    readonly knownPathPipes: number;
+    readonly unresolvedBoundaryPipes: number;
+  };
 }
 
 export interface NodeSourceTerms {
@@ -639,6 +679,156 @@ function orientStormwaterNetworkFromEvidence(
     evidenceBasis,
     minimumResolvableDropM: options.minimumResolvableDropM,
     directions,
+  };
+}
+
+export function analyzeOutfallConnectivity(
+  network: OrientedStormwaterNetwork,
+): OutfallConnectivityAnalysis {
+  const knownIncoming = new Map<
+    string,
+    Array<{ readonly pipeId: string; readonly fromNodeId: string }>
+  >();
+  const knownOutgoing = new Map<string, string[]>();
+  const unresolvedIncident = new Map<string, string[]>();
+
+  for (const pipe of Object.values(network.topology.pipes)) {
+    const direction = network.directions[pipe.id];
+
+    if (direction === undefined) {
+      throw new Error(
+        'Oriented network has no direction state for pipe ' + pipe.id,
+      );
+    }
+
+    if (direction.status === 'known') {
+      const incoming =
+        knownIncoming.get(direction.toNodeId) ?? [];
+      incoming.push({
+        pipeId: pipe.id,
+        fromNodeId: direction.fromNodeId,
+      });
+      knownIncoming.set(direction.toNodeId, incoming);
+
+      const outgoing =
+        knownOutgoing.get(direction.fromNodeId) ?? [];
+      outgoing.push(pipe.id);
+      knownOutgoing.set(direction.fromNodeId, outgoing);
+      continue;
+    }
+
+    for (const nodeId of [pipe.nodeAId, pipe.nodeBId]) {
+      const incident = unresolvedIncident.get(nodeId) ?? [];
+      incident.push(pipe.id);
+      unresolvedIncident.set(nodeId, incident);
+    }
+  }
+
+  const outfallNodes = Object.values(network.topology.nodes)
+    .filter((node) => node.type === 'outfall')
+    .sort((left, right) => left.id.localeCompare(right.id));
+  const outfalls: Record<string, OutfallConnectivityState> = {};
+  const knownPathNodeIds = new Set<string>();
+  const knownPathPipeIds = new Set<string>();
+  const unresolvedBoundaryPipeIds = new Set<string>();
+
+  for (const outfall of outfallNodes) {
+    const visitedNodeIds = new Set<string>([outfall.id]);
+    const upstreamPipeIds = new Set<string>();
+    const pendingNodeIds = [outfall.id];
+
+    while (pendingNodeIds.length > 0) {
+      const nodeId = pendingNodeIds.pop() as string;
+
+      for (const incoming of knownIncoming.get(nodeId) ?? []) {
+        upstreamPipeIds.add(incoming.pipeId);
+
+        if (!visitedNodeIds.has(incoming.fromNodeId)) {
+          visitedNodeIds.add(incoming.fromNodeId);
+          pendingNodeIds.push(incoming.fromNodeId);
+        }
+      }
+    }
+
+    const boundaryPipeIds = new Set<string>();
+
+    for (const nodeId of visitedNodeIds) {
+      for (const pipeId of unresolvedIncident.get(nodeId) ?? []) {
+        boundaryPipeIds.add(pipeId);
+      }
+    }
+
+    const outwardKnownPipeIds = [
+      ...(knownOutgoing.get(outfall.id) ?? []),
+    ].sort();
+    const status: OutfallConnectivityStatus =
+      outwardKnownPipeIds.length > 0
+        ? 'direction_conflict'
+        : upstreamPipeIds.size > 0
+          ? 'known_upstream_path'
+          : boundaryPipeIds.size > 0
+            ? 'blocked_by_unresolved_direction'
+            : 'isolated';
+    const knownUpstreamNodeIds = [...visitedNodeIds]
+      .filter((nodeId) => nodeId !== outfall.id)
+      .sort();
+    const sortedUpstreamPipeIds = [...upstreamPipeIds].sort();
+    const sortedBoundaryPipeIds = [...boundaryPipeIds].sort();
+
+    outfalls[outfall.id] = {
+      outfallNodeId: outfall.id,
+      status,
+      knownUpstreamNodeIds,
+      knownUpstreamPipeIds: sortedUpstreamPipeIds,
+      unresolvedBoundaryPipeIds: sortedBoundaryPipeIds,
+      outwardKnownPipeIds,
+    };
+
+    if (upstreamPipeIds.size > 0) {
+      for (const nodeId of visitedNodeIds) {
+        knownPathNodeIds.add(nodeId);
+      }
+      for (const pipeId of upstreamPipeIds) {
+        knownPathPipeIds.add(pipeId);
+      }
+    }
+    for (const pipeId of boundaryPipeIds) {
+      unresolvedBoundaryPipeIds.add(pipeId);
+    }
+  }
+
+  const states = Object.values(outfalls);
+
+  return {
+    modelVersion: OUTFALL_CONNECTIVITY_VERSION,
+    orientationVersion: network.orientationVersion,
+    evidenceBasis: network.evidenceBasis,
+    minimumResolvableDropM: network.minimumResolvableDropM,
+    outfalls,
+    knownPathNodeIds: [...knownPathNodeIds].sort(),
+    knownPathPipeIds: [...knownPathPipeIds].sort(),
+    unresolvedBoundaryPipeIds: [
+      ...unresolvedBoundaryPipeIds,
+    ].sort(),
+    counts: {
+      outfalls: states.length,
+      knownUpstreamPaths: states.filter(
+        (state) => state.status === 'known_upstream_path',
+      ).length,
+      blockedByUnresolvedDirection: states.filter(
+        (state) =>
+          state.status === 'blocked_by_unresolved_direction',
+      ).length,
+      isolated: states.filter(
+        (state) => state.status === 'isolated',
+      ).length,
+      directionConflicts: states.filter(
+        (state) => state.status === 'direction_conflict',
+      ).length,
+      knownPathNodes: knownPathNodeIds.size,
+      knownPathPipes: knownPathPipeIds.size,
+      unresolvedBoundaryPipes: unresolvedBoundaryPipeIds.size,
+    },
   };
 }
 

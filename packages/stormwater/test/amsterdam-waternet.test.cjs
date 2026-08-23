@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const {
+  analyzeOutfallConnectivity,
   importAmsterdamWaternetStormwater,
   infrastructureAssetSource,
   orientStormwaterNetworkByPipeInverts,
@@ -127,6 +128,83 @@ test('invert evidence directs an observed pipe into a rainwater outfall', () => 
     'outfall',
   );
 });
+
+test('configured threshold keeps marginal outfall connections explicitly blocked', () => {
+  const imported = importSnapshot();
+  const oriented = orientStormwaterNetworkByPipeInverts(
+    imported.topology,
+    { minimumResolvableDropM: 0.05 },
+  );
+  const connectivity = analyzeOutfallConnectivity(oriented);
+
+  assert.equal(
+    connectivity.modelVersion,
+    'known-direction-outfall-connectivity-v0.1.0',
+  );
+  assert.equal(connectivity.minimumResolvableDropM, 0.05);
+  assert.deepEqual(connectivity.counts, {
+    outfalls: 4,
+    knownUpstreamPaths: 0,
+    blockedByUnresolvedDirection: 4,
+    isolated: 0,
+    directionConflicts: 0,
+    knownPathNodes: 0,
+    knownPathPipes: 0,
+    unresolvedBoundaryPipes: 4,
+  });
+  assert.deepEqual(connectivity.knownPathNodeIds, []);
+  assert.deepEqual(connectivity.knownPathPipeIds, []);
+  assert.deepEqual(
+    connectivity.unresolvedBoundaryPipeIds,
+    [
+      'waternet:2558D6C2-71D9-42B0-A193-DF5D6BE7FE2D',
+      'waternet:2E5F673B-3226-4E2D-9235-565CE30AF5CB',
+      'waternet:535EF83A-1A9B-4E7A-8604-D78A3268C81A',
+      'waternet:C090D71E-0D96-4ED1-B2F3-8CBAB533D84A',
+    ],
+  );
+  assert.ok(
+    Object.values(connectivity.outfalls).every(
+      (outfall) =>
+        outfall.status ===
+          'blocked_by_unresolved_direction' &&
+        outfall.knownUpstreamPipeIds.length === 0 &&
+        outfall.unresolvedBoundaryPipeIds.length === 1,
+    ),
+  );
+});
+
+test('lower experimental threshold changes connectivity without rewriting evidence', () => {
+  const imported = importSnapshot();
+  const oriented = orientStormwaterNetworkByPipeInverts(
+    imported.topology,
+    { minimumResolvableDropM: 0.01 },
+  );
+  const connectivity = analyzeOutfallConnectivity(oriented);
+  const selected =
+    connectivity.outfalls[
+      'waternet:04D766F2-543E-4452-B005-7C941A9223AD'
+    ];
+
+  assert.deepEqual(connectivity.counts, {
+    outfalls: 4,
+    knownUpstreamPaths: 4,
+    blockedByUnresolvedDirection: 0,
+    isolated: 0,
+    directionConflicts: 0,
+    knownPathNodes: 10,
+    knownPathPipes: 8,
+    unresolvedBoundaryPipes: 1,
+  });
+  assert.equal(selected.status, 'known_upstream_path');
+  assert.deepEqual(selected.knownUpstreamNodeIds, [
+    'waternet:A0F9AE4D-50D7-4B3C-93B6-9245369EA618',
+  ]);
+  assert.deepEqual(selected.knownUpstreamPipeIds, [
+    'waternet:2558D6C2-71D9-42B0-A193-DF5D6BE7FE2D',
+  ]);
+});
+
 test('Waternet assets retain public-record provenance and physical pipe attributes', () => {
   const imported = importSnapshot();
   const pipe =

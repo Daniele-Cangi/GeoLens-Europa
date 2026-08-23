@@ -302,6 +302,42 @@ export interface ObservedInfrastructurePipe {
   readonly source: InfrastructureAssetSource;
 }
 
+export interface ObservedOutfallConnectivityState {
+  readonly outfallNodeId: string;
+  readonly status:
+    | 'known_upstream_path'
+    | 'blocked_by_unresolved_direction'
+    | 'isolated'
+    | 'direction_conflict';
+  readonly knownUpstreamNodeIds: readonly string[];
+  readonly knownUpstreamPipeIds: readonly string[];
+  readonly unresolvedBoundaryPipeIds: readonly string[];
+  readonly outwardKnownPipeIds: readonly string[];
+}
+
+export interface ObservedOutfallConnectivity {
+  readonly modelVersion: string;
+  readonly orientationVersion: string;
+  readonly evidenceBasis: 'pipe_invert_level';
+  readonly minimumResolvableDropM: number;
+  readonly outfalls: Readonly<
+    Record<string, ObservedOutfallConnectivityState>
+  >;
+  readonly knownPathNodeIds: readonly string[];
+  readonly knownPathPipeIds: readonly string[];
+  readonly unresolvedBoundaryPipeIds: readonly string[];
+  readonly counts: {
+    readonly outfalls: number;
+    readonly knownUpstreamPaths: number;
+    readonly blockedByUnresolvedDirection: number;
+    readonly isolated: number;
+    readonly directionConflicts: number;
+    readonly knownPathNodes: number;
+    readonly knownPathPipes: number;
+    readonly unresolvedBoundaryPipes: number;
+  };
+}
+
 export interface AvailableObservedInfrastructure {
   readonly status: 'available';
   readonly acquisition: {
@@ -382,6 +418,7 @@ export interface AvailableObservedInfrastructure {
       Record<string, PipeDirection>
     >;
   };
+  readonly outfallConnectivity: ObservedOutfallConnectivity;
 }
 
 export interface UnavailableObservedInfrastructure {
