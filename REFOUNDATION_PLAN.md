@@ -12,7 +12,7 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Refoundation core, Proof 0 API, and minimal inspection UI build/typecheck/test baseline: established; historical legacy sources are excluded from the active TypeScript boundary
 - First refoundation success gate: established through deterministic fixture proof and a fully real environmental-evidence chain over the bounded Trento test network, from IMERG, DEM and CLC through runoff, direction, propagation and zero-difference mass balance
 - Observed-infrastructure gate: established through a live bounded Waternet/Amsterdam WFS path, a valid 47-node/47-pipe topology containing four explicit rainwater outfalls, explicit provider failures, API receipts and a browser-verified inspection panel
-- Observed-direction gate: established separately from propagation; Waternet endpoint invert NAP evidence yields 25 known and 22 ambiguous directions at an explicit 0.05 m analysis threshold, with no ground-elevation fallback; outfall connectivity remains blocked at four unresolved incident pipes
+- Observed-direction gate: established separately from propagation; Waternet endpoint invert NAP evidence yields 26 known and 21 ambiguous directions at an inclusive 0.05 m analysis boundary with an explicit 0.000001 m numeric tolerance and no ground-elevation fallback; the selected outfall exposes a known 5-node/4-pipe upstream subgraph while four unresolved boundary pipes remain explicit
 - Historical tracked Copernicus private key: removed from the active tree; revocation/rotation remains an external security action because the secret is present in Git history
 
 Verified starting baseline (historical):
@@ -296,9 +296,9 @@ Progress:
 
 - the official Waternet schema exposes `bemalingsgebied` as a node string attribute, not a contributing-area polygon in `Leidingeninfrastructuur`;
 - the bounded observed subgraph contains four explicit `Regenwateruitlaat` nodes and retains identifier `826` as a source reference with `geometryStatus: not_provided_by_source`; it forbids catchment attachment from that identifier alone;
-- direction model `pipe-invert-direction-v0.1.0` compares the retained `bob_beginpunt` / `bob_eindpunt` NAP evidence at the snapped pipe endpoints;
-- the configured 0.05 m analysis threshold produces 25 known, 22 ambiguous and 0 unknown directions for the 47-pipe recorded response; this threshold is not represented as provider survey accuracy;
-- model `known-direction-outfall-connectivity-v0.1.0` finds 0 known upstream paths to the four outfalls because each incident pipe is within the ambiguity threshold; the four pipes remain explicit unresolved boundaries;
+- direction model `pipe-invert-direction-v0.2.0` compares the retained `bob_beginpunt` / `bob_eindpunt` NAP evidence at the snapped pipe endpoints;
+- the configured 0.05 m analysis boundary is inclusive and produces 26 known, 21 ambiguous and 0 unknown directions for the 47-pipe recorded response; a separately exposed 0.000001 m comparison tolerance absorbs numeric serialization noise and is not represented as provider survey accuracy;
+- model `known-direction-outfall-connectivity-v0.1.0` finds one known upstream path: the selected rainwater outfall is reached by a 5-node / 4-pipe observed subgraph, while three other outfalls remain direction-blocked and four upstream boundary pipes remain explicit;
 - missing invert evidence remains an unknown direction and the observed route never falls back to node ground elevation;
 - the API and inspector expose evidence basis, model versions, threshold, per-pipe state, outfall-path counts and highlighted unresolved outfall boundaries without claiming catchment contribution or propagated flow;
 - the first `bounded-h3-single-flow-surface-proxy-v0.1.0` GLO-30/r11 experiment produced only its conditioned outlet cell (`1,801.61 m2`); that result is retained as negative evidence and is no longer the active Amsterdam surface source;
@@ -310,7 +310,7 @@ Progress:
 - the public PDOK / Stichting RIONED GWSW `beheergebied` collection is now acquired through a bounded, receipt-bearing provider with explicit authentication, rate-limit, upstream, malformed, truncated and empty-coverage states;
 - live point-in-multipolygon evaluation places the selected `Regenwateruitlaat` inside `NL.WBHCODE.11.Rioleringsgebied.932` President Kennedylaan and the broader Amsterdam West treatment unit;
 - Waternet source reference `826` is not treated as a GWSW key: the national GWSW identifier `Rioleringsgebied.826` denotes Eva Besnyöstraat H6 at a different location, so identifier equality would create a false attachment;
-- no public GWSW `beheerlozing`, Waternet relation or crosswalk was found for the bounded outfall; model `gwsw-outfall-area-link-v0.1.0` therefore exposes point containment as spatial context only with `attachment.eligible=false`;
+- no public GWSW `beheerlozing`, `beheerleiding`, `beheerput`, `aansluitingpunt` or `aansluitingleiding` feature is published in the bounded area; no Waternet relation or crosswalk was found for the outfall, so model `gwsw-outfall-area-link-v0.1.0` exposes point containment as spatial context only with `attachment.eligible=false`;
 - the 2025 STOWA/RIONED BGT Inlooptabel method is identified as the authoritative Dutch path for linking BGT surfaces to soil, open water or sewer destinations, but no public Amsterdam inlooptabel was found;
 - the bounded PDOK BGT provider acquires eight current level-zero physical-surface collections at an explicit time, retains CC0/source CRS/storage CRS/feature-version receipts, rejects truncated mosaics, and classifies H3 centroids without implying BGT-native H3 precision;
 - live BGT verification returned 258 source features and classified all 696 target H3 r13 cells: 156 vegetated terrain, 149 unvegetated terrain, 136 buildings, 147 road, 103 water, 2 supporting-road and 3 wall/quay structural-barrier cells;
@@ -322,7 +322,7 @@ Progress:
 - the resulting runoff depth ranged from `3.0763` to `3.1448 mm` and aggregated to `11.4145268 m3` with status `available`;
 - missing IMERG fixture verification retains `null` total volume and zero partial volume, and never attempts network propagation;
 - the API and browser expose the conditioned environmental receipt separately from AHN/BGT conditioning and observed topology; browser verification rendered 696 cells and the `11.415 m3` receipt with no framework overlay or console errors;
-- propagation is explicitly `attempted: false` at the selected outfall because the surface attachment remains unobserved and incident pipe `waternet:2E5F673B-3226-4E2D-9235-565CE30AF5CB` is unresolved at the 0.05 m threshold; no downstream state is invented;
+- propagation is explicitly `attempted: false` at the selected outfall only because the surface attachment remains unobserved; incident pipe `waternet:2E5F673B-3226-4E2D-9235-565CE30AF5CB` now resolves toward that outfall from its retained raw `0.04999995 m` drop at the inclusive 0.05 m boundary, while numeric tolerance and upstream uncertainty remain visible;
 - the Phase 8 gate is complete with traceable non-zero environmental source state and an explicit observed-network stopping boundary.
 
 Work:
@@ -331,7 +331,7 @@ Work:
 - reject representative-point, first-coordinate and name-prefix shortcuts;
 - keep the observed GWSW area polygon, Waternet identifier, raw AHN evidence and conditioned BGT/AHN proxy as separate evidence;
 - compose real IMERG and CLC evidence over the 100-cell conditioned Amsterdam area, retain each source resolution, and derive inspectable runoff without converting unavailable evidence to zero;
-- resolve or explicitly stop at the selected outfall's ambiguous observed pipe direction before any network propagation;
+- retain the selected outfall's known observed subgraph and its unresolved upstream boundary independently from any future surface attachment;
 - propagate only through the validated, supported observed subgraph.
 
 Gate:
@@ -355,3 +355,33 @@ Checkpoints:
 - `feat: condition Amsterdam surface catchment proxy`
 - `feat: compose Amsterdam environmental runoff`
 - `feat: expose conditioned runoff boundary`
+
+## Phase 9 — Establish an authoritative surface-to-network attachment
+
+State: in progress
+
+Progress:
+
+- the official Amsterdam Waternet record confirms BOB start/end semantics in metres NAP and currently publishes the selected incident pipe as `-2.54999995 m` to `-2.5999999 m`;
+- the inclusive orientation boundary resolves that nominal five-centimetre drop without rounding or changing the retained source values;
+- official PDOK GWSW asset collections expose no bounded sewer assets around the selected outfall, and the national `beheergebied` polygon remains context-only;
+- official STOWA/RIONED guidance identifies a BGT Inlooptabel as the appropriate first-public-system destination relation; its 2025 schema retains the BGT identifier, 99–101% allocation total and optional exact sewer asset codes;
+- `bgt-inflow-table-network-attachment-v0.1.0` now validates that boundary, keeps destination evidence separate from exact observed-pipe attachment, and prevents synthetic fixtures from becoming propagation-eligible;
+- the API and inspector expose the authoritative attachment as explicitly `missing`, with the standard, intended authority, exact-match rule and blocker separate from the conditioned BGT/AHN proxy;
+- no public Amsterdam BGT Inlooptabel or equivalent owner-published exact Waternet asset crosswalk has been located.
+
+Work:
+
+- acquire an Amsterdam owner-published BGT Inlooptabel, hydraulic-model surface relation, or equivalent source-backed inlet/outfall attachment;
+- keep the conditioned BGT/AHN outlet proxy `observed: false` until such a relation is available;
+- attach runoff to a typed observed inlet or outfall only through that authoritative relation;
+- propagate the resulting source term only through the validated known-direction subgraph and retain unresolved upstream boundaries.
+
+Gate:
+
+- at least one bounded surface contribution has a source-backed attachment to an observed Waternet network entity;
+- attachment provenance identifies publisher, dataset/version, acquisition time, relationship semantics and missing state;
+- the selected non-zero runoff contribution reaches the observed rainwater outfall through known pipe directions without silently consuming unresolved boundaries;
+- API, inspector and tests distinguish the authoritative attachment from the conditioned surface proxy.
+
+Checkpoint: `feat: attach observed surface contribution to Waternet`

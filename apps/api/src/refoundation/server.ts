@@ -26,6 +26,7 @@ import {
   deriveSurfaceCatchmentProxy,
   importAmsterdamWaternetStormwater,
   importStormwaterGeoJson,
+  missingBgtInflowTableAttachmentAssessment,
   ImportedStormwaterNetwork,
   orientStormwaterNetworkByPipeInverts,
   OutfallConnectivityAnalysis,
@@ -263,13 +264,22 @@ export function buildGeoLensApi(
             evidenceBasis: oriented.evidenceBasis,
             minimumResolvableDropM:
               oriented.minimumResolvableDropM,
+            numericComparisonToleranceM:
+              oriented.numericComparisonToleranceM,
             thresholdSemantics:
-              'configured analysis threshold; not provider survey accuracy',
+              'direction is resolvable at or above the configured drop; ' +
+              'numeric tolerance is capped at one micrometre and one percent of the boundary; it is not provider survey accuracy',
             counts: directionCounts,
             directions: oriented.directions,
           },
           outfallConnectivity,
           outfallAreaContext,
+          authoritativeSurfaceNetworkAttachment:
+            missingBgtInflowTableAttachmentAssessment({
+              acquiredAt: now().toISOString(),
+              missingReason:
+                'No Amsterdam owner-published BGT Inlooptabel, hydraulic surface relation, or equivalent exact Waternet asset crosswalk is configured; none was located in the current public catalogs for this bounded proof',
+            }),
           surfaceCatchmentProxy:
             surfaceCatchmentEvidence.raw,
           conditionedSurfaceCatchmentProxy:

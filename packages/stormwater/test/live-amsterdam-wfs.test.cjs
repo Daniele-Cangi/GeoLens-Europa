@@ -59,12 +59,12 @@ test(
 
     assert.deepEqual(connectivity.counts, {
       outfalls: 4,
-      knownUpstreamPaths: 0,
-      blockedByUnresolvedDirection: 4,
+      knownUpstreamPaths: 1,
+      blockedByUnresolvedDirection: 3,
       isolated: 0,
       directionConflicts: 0,
-      knownPathNodes: 0,
-      knownPathPipes: 0,
+      knownPathNodes: 5,
+      knownPathPipes: 4,
       unresolvedBoundaryPipes: 4,
     });
     assert.ok(

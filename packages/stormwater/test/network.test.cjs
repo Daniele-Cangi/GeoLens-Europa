@@ -246,6 +246,45 @@ test('missing and vertically unresolved elevations preserve direction uncertaint
   );
 });
 
+test('numeric tolerance absorbs threshold serialization noise without resolving a materially smaller drop', () => {
+  const nominalBoundary = importWithElevations({
+    node_A_inlet: 103,
+    node_B_manhole: 102.90000005,
+    node_C_outfall: 101,
+  });
+  const resolved = orientStormwaterNetwork(
+    nominalBoundary.topology,
+    { minimumResolvableDropM: 0.1 },
+  );
+  const materiallyBelow = importWithElevations({
+    node_A_inlet: 103,
+    node_B_manhole: 102.90001,
+    node_C_outfall: 101,
+  });
+  const unresolved = orientStormwaterNetwork(
+    materiallyBelow.topology,
+    { minimumResolvableDropM: 0.1 },
+  );
+
+  assert.equal(resolved.numericComparisonToleranceM, 0.000001);
+  const tinyBoundary = orientStormwaterNetwork(
+    nominalBoundary.topology,
+    { minimumResolvableDropM: 0.00000001 },
+  );
+  assert.equal(
+    tinyBoundary.numericComparisonToleranceM,
+    0.0000000001,
+  );
+  assert.equal(
+    resolved.directions.pipe_1_A_to_B.status,
+    'known',
+  );
+  assert.equal(
+    unresolved.directions.pipe_1_A_to_B.status,
+    'ambiguous',
+  );
+});
+
 test('known directions expose the traceable path terminating at an outfall', () => {
   const imported = importWithElevations({
     node_A_inlet: 103,

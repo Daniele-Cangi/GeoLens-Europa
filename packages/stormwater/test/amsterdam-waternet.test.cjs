@@ -129,48 +129,73 @@ test('invert evidence directs an observed pipe into a rainwater outfall', () => 
   );
 });
 
-test('configured threshold keeps marginal outfall connections explicitly blocked', () => {
+test('inclusive threshold resolves the nominal five-centimetre Waternet drop without hiding upstream uncertainty', () => {
   const imported = importSnapshot();
   const oriented = orientStormwaterNetworkByPipeInverts(
     imported.topology,
     { minimumResolvableDropM: 0.05 },
   );
   const connectivity = analyzeOutfallConnectivity(oriented);
+  const selectedPipeId =
+    'waternet:2E5F673B-3226-4E2D-9235-565CE30AF5CB';
+  const selectedOutfallId =
+    'waternet:8522CE11-8DC1-41CC-9375-EDECAB742620';
+  const selectedDirection =
+    oriented.directions[selectedPipeId];
+  const selectedConnectivity =
+    connectivity.outfalls[selectedOutfallId];
 
   assert.equal(
     connectivity.modelVersion,
     'known-direction-outfall-connectivity-v0.1.0',
   );
   assert.equal(connectivity.minimumResolvableDropM, 0.05);
+  assert.equal(
+    connectivity.numericComparisonToleranceM,
+    0.000001,
+  );
+  assert.equal(selectedDirection.status, 'known');
+  assert.equal(selectedDirection.toNodeId, selectedOutfallId);
+  assert.ok(selectedDirection.verticalDropM < 0.05);
+  assert.ok(
+    0.05 - selectedDirection.verticalDropM <
+      connectivity.numericComparisonToleranceM,
+  );
   assert.deepEqual(connectivity.counts, {
     outfalls: 4,
-    knownUpstreamPaths: 0,
-    blockedByUnresolvedDirection: 4,
+    knownUpstreamPaths: 1,
+    blockedByUnresolvedDirection: 3,
     isolated: 0,
     directionConflicts: 0,
-    knownPathNodes: 0,
-    knownPathPipes: 0,
+    knownPathNodes: 5,
+    knownPathPipes: 4,
     unresolvedBoundaryPipes: 4,
   });
-  assert.deepEqual(connectivity.knownPathNodeIds, []);
-  assert.deepEqual(connectivity.knownPathPipeIds, []);
+  assert.equal(
+    selectedConnectivity.status,
+    'known_upstream_path',
+  );
+  assert.deepEqual(
+    selectedConnectivity.knownUpstreamPipeIds,
+    [
+      'waternet:268FA439-0CF3-4604-8500-19F6DFDB3DC7',
+      selectedPipeId,
+      'waternet:411E1909-C07E-498B-9CE7-E704D88E3160',
+      'waternet:BEFDCC16-D2C5-4E8E-B137-5010E94F8E24',
+    ],
+  );
+  assert.deepEqual(
+    selectedConnectivity.unresolvedBoundaryPipeIds,
+    ['waternet:4A138DAD-0918-4314-827A-28EEDBB468AE'],
+  );
   assert.deepEqual(
     connectivity.unresolvedBoundaryPipeIds,
     [
       'waternet:2558D6C2-71D9-42B0-A193-DF5D6BE7FE2D',
-      'waternet:2E5F673B-3226-4E2D-9235-565CE30AF5CB',
+      'waternet:4A138DAD-0918-4314-827A-28EEDBB468AE',
       'waternet:535EF83A-1A9B-4E7A-8604-D78A3268C81A',
       'waternet:C090D71E-0D96-4ED1-B2F3-8CBAB533D84A',
     ],
-  );
-  assert.ok(
-    Object.values(connectivity.outfalls).every(
-      (outfall) =>
-        outfall.status ===
-          'blocked_by_unresolved_direction' &&
-        outfall.knownUpstreamPipeIds.length === 0 &&
-        outfall.unresolvedBoundaryPipeIds.length === 1,
-    ),
   );
 });
 
@@ -257,7 +282,7 @@ test('Waternet pipes orient only from endpoint invert evidence', () => {
   const imported = importSnapshot();
   const oriented = orientStormwaterNetworkByPipeInverts(
     imported.topology,
-    { minimumResolvableDropM: 0.01 },
+    { minimumResolvableDropM: 0.011 },
   );
   const flat =
     oriented.directions[
@@ -275,10 +300,10 @@ test('Waternet pipes orient only from endpoint invert evidence', () => {
   assert.equal(oriented.evidenceBasis, 'pipe_invert_level');
   assert.equal(
     oriented.orientationVersion,
-    'pipe-invert-direction-v0.1.0',
+    'pipe-invert-direction-v0.2.0',
   );
   assert.equal(flat.status, 'ambiguous');
-  assert.ok(Math.abs(flat.verticalDifferenceM) <= 0.01);
+  assert.ok(Math.abs(flat.verticalDifferenceM) < 0.011);
   assert.equal(descending.status, 'known');
   assert.equal(
     descending.fromNodeId,
@@ -322,6 +347,7 @@ test('missing Waternet invert evidence keeps pipe direction unknown', () => {
   assert.equal(direction.reason, 'missing_vertical_evidence');
   assert.equal(direction.endpointAStatus, 'missing');
 });
+
 test('invalid endpoint UUIDs and bounded-response gaps stay explicit', () => {
   const imported = importSnapshot();
 

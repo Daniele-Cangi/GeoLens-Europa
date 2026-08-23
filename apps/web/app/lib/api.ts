@@ -320,6 +320,7 @@ export interface ObservedOutfallConnectivity {
   readonly orientationVersion: string;
   readonly evidenceBasis: 'pipe_invert_level';
   readonly minimumResolvableDropM: number;
+  readonly numericComparisonToleranceM: number;
   readonly outfalls: Readonly<
     Record<string, ObservedOutfallConnectivityState>
   >;
@@ -712,6 +713,48 @@ export interface ObservedOutfallAreaContextEnvelope {
   readonly result: ObservedOutfallAreaContext | null;
 }
 
+export interface ObservedAuthoritativeSurfaceNetworkAttachment {
+  readonly modelVersion: string;
+  readonly standard: 'STOWA-2025-02';
+  readonly documentationUrl: string;
+  readonly destinationObservations: Evidence<
+    readonly {
+      readonly recordId: string;
+      readonly bgtIdentification: string;
+      readonly destination: string;
+      readonly percentage: number;
+      readonly networkAssetCode: string | null;
+      readonly firstPublicSystemDestination: true;
+      readonly lastModified: string;
+      readonly manuallyModified: boolean | null;
+    }[]
+  >;
+  readonly networkAttachments: Evidence<
+    readonly {
+      readonly recordId: string;
+      readonly bgtIdentification: string;
+      readonly destination: string;
+      readonly percentage: number;
+      readonly firstPublicSystemDestination: true;
+      readonly target: {
+        readonly entityType: 'pipe';
+        readonly pipeId: string;
+        readonly sourceRecordId: string;
+        readonly matchedCode: string;
+        readonly matchMethod: string;
+      };
+    }[]
+  >;
+  readonly unresolvedNetworkDestinations: readonly {
+    readonly recordId: string;
+    readonly bgtIdentification: string;
+    readonly destination: string;
+    readonly percentage: number;
+    readonly networkAssetCode: string | null;
+    readonly reason: string;
+  }[];
+  readonly propagationEligible: boolean;
+}
 export interface AvailableObservedInfrastructure {
   readonly status: 'available';
   readonly acquisition: {
@@ -782,6 +825,7 @@ export interface AvailableObservedInfrastructure {
     readonly modelVersion: string;
     readonly evidenceBasis: 'pipe_invert_level';
     readonly minimumResolvableDropM: number;
+    readonly numericComparisonToleranceM: number;
     readonly thresholdSemantics: string;
     readonly counts: {
       readonly known: number;
@@ -794,6 +838,8 @@ export interface AvailableObservedInfrastructure {
   };
   readonly outfallConnectivity: ObservedOutfallConnectivity;
   readonly outfallAreaContext: ObservedOutfallAreaContextEnvelope;
+  readonly authoritativeSurfaceNetworkAttachment:
+    ObservedAuthoritativeSurfaceNetworkAttachment;
   readonly surfaceCatchmentProxy: ObservedSurfaceCatchmentProxyEnvelope;
   readonly conditionedSurfaceCatchmentProxy:
     ObservedConditionedSurfaceCatchmentProxyEnvelope;

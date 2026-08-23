@@ -19,9 +19,12 @@ import {
 import { selectUnavailableEvidenceStatus } from './runoff';
 
 export const NODE_ELEVATION_ORIENTATION_VERSION =
-  'node-ground-elevation-direction-v0.2.0';
+  'node-ground-elevation-direction-v0.3.0';
 export const PIPE_INVERT_ORIENTATION_VERSION =
-  'pipe-invert-direction-v0.1.0';
+  'pipe-invert-direction-v0.2.0';
+export const MAX_VERTICAL_DROP_NUMERIC_TOLERANCE_M =
+  1e-6;
+const MAX_NUMERIC_TOLERANCE_FRACTION_OF_BOUNDARY = 0.01;
 export const NETWORK_ORIENTATION_VERSION =
   NODE_ELEVATION_ORIENTATION_VERSION;
 export const NETWORK_PROPAGATION_VERSION =
@@ -173,6 +176,7 @@ export interface OrientedStormwaterNetwork {
   readonly orientationVersion: DirectionOrientationVersion;
   readonly evidenceBasis: DirectionEvidenceBasis;
   readonly minimumResolvableDropM: number;
+  readonly numericComparisonToleranceM: number;
   readonly directions: Readonly<Record<string, PipeDirection>>;
 }
 
@@ -200,6 +204,7 @@ export interface OutfallConnectivityAnalysis {
   readonly orientationVersion: DirectionOrientationVersion;
   readonly evidenceBasis: DirectionEvidenceBasis;
   readonly minimumResolvableDropM: number;
+  readonly numericComparisonToleranceM: number;
   readonly outfalls: Readonly<
     Record<string, OutfallConnectivityState>
   >;
@@ -609,6 +614,12 @@ function orientStormwaterNetworkFromEvidence(
     );
   }
 
+  const numericComparisonToleranceM = Math.min(
+    MAX_VERTICAL_DROP_NUMERIC_TOLERANCE_M,
+    options.minimumResolvableDropM *
+      MAX_NUMERIC_TOLERANCE_FRACTION_OF_BOUNDARY,
+  );
+
   const directions: Record<string, PipeDirection> = {};
 
   for (const pipe of Object.values(topology.pipes)) {
@@ -644,9 +655,14 @@ function orientStormwaterNetworkFromEvidence(
 
     const differenceM = levelA - levelB;
 
-    if (
-      Math.abs(differenceM) <= options.minimumResolvableDropM
-    ) {
+    const absoluteDifferenceM = Math.abs(differenceM);
+    const comparisonDropM =
+      absoluteDifferenceM + numericComparisonToleranceM;
+    const belowResolvableBoundary =
+      absoluteDifferenceM === 0 ||
+      comparisonDropM < options.minimumResolvableDropM;
+
+    if (belowResolvableBoundary) {
       directions[pipe.id] = {
         status: 'ambiguous',
         evidenceBasis,
@@ -668,8 +684,8 @@ function orientStormwaterNetworkFromEvidence(
       toNodeId: endpointAIsHigher
         ? pipe.nodeBId
         : pipe.nodeAId,
-      verticalDropM: Math.abs(differenceM),
-      grade: Math.abs(differenceM) / pipe.lengthM,
+      verticalDropM: absoluteDifferenceM,
+      grade: absoluteDifferenceM / pipe.lengthM,
     };
   }
 
@@ -678,6 +694,7 @@ function orientStormwaterNetworkFromEvidence(
     orientationVersion,
     evidenceBasis,
     minimumResolvableDropM: options.minimumResolvableDropM,
+    numericComparisonToleranceM,
     directions,
   };
 }
@@ -804,6 +821,8 @@ export function analyzeOutfallConnectivity(
     orientationVersion: network.orientationVersion,
     evidenceBasis: network.evidenceBasis,
     minimumResolvableDropM: network.minimumResolvableDropM,
+    numericComparisonToleranceM:
+      network.numericComparisonToleranceM,
     outfalls,
     knownPathNodeIds: [...knownPathNodeIds].sort(),
     knownPathPipeIds: [...knownPathPipeIds].sort(),
