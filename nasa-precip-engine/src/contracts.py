@@ -11,12 +11,14 @@ from .config import (
 )
 from .h3_mapping import sample_precip_for_h3
 from .imerg_client import (
+    IMERG_EUROPE_BOUNDS,
     EvidenceStatus,
+    ImergSpatialBounds,
     ImergWindow,
     archive_version_for,
 )
 
-TRANSFORMATION_VERSION = "imerg-h3-evidence-v0.2.0"
+TRANSFORMATION_VERSION = "imerg-h3-evidence-v0.3.0"
 
 
 def build_window_payload(
@@ -92,6 +94,9 @@ def build_window_payload(
             variable_names=metadata.variable_names,
             cached=cached,
             sampling_method=metadata.sampling_method,
+            requested_spatial_bounds=metadata.requested_spatial_bounds,
+            loaded_spatial_bounds=metadata.loaded_spatial_bounds,
+            grid_shape=metadata.grid_shape,
         )
         cells.append(
             {
@@ -129,6 +134,16 @@ def build_window_payload(
         ],
         "sourceResolution": metadata.source_resolution,
         "samplingMethod": metadata.sampling_method,
+        "requestedSpatialBounds": _bounds_payload(
+            metadata.requested_spatial_bounds
+        ),
+        "loadedSpatialBounds": _bounds_payload(
+            metadata.loaded_spatial_bounds
+        ),
+        "gridShape": {
+            "lat": metadata.grid_shape[0],
+            "lon": metadata.grid_shape[1],
+        },
         "cached": cached,
         "cells": cells,
     }
@@ -146,6 +161,7 @@ def build_error_window_payload(
     dataset_version: str = IMERG_DEFAULT_DATASET_VERSION,
     product: str | None = None,
     run_type: str | None = None,
+    spatial_bounds: ImergSpatialBounds = IMERG_EUROPE_BOUNDS,
 ) -> dict[str, Any]:
     if status == "available":
         raise ValueError(
@@ -184,6 +200,9 @@ def build_error_window_payload(
                 sampling_method=(
                     "nearest IMERG grid cell at H3 centroid"
                 ),
+                requested_spatial_bounds=spatial_bounds,
+                loaded_spatial_bounds=None,
+                grid_shape=None,
             ),
         }
         for h3_index in h3_indices
@@ -210,6 +229,9 @@ def build_error_window_payload(
         "samplingMethod": (
             "nearest IMERG grid cell at H3 centroid"
         ),
+        "requestedSpatialBounds": _bounds_payload(spatial_bounds),
+        "loadedSpatialBounds": None,
+        "gridShape": None,
         "cached": False,
         "cells": cells,
     }
@@ -240,6 +262,9 @@ def _evidence_payload(
     variable_names: Sequence[str],
     cached: bool,
     sampling_method: str,
+    requested_spatial_bounds: ImergSpatialBounds,
+    loaded_spatial_bounds: ImergSpatialBounds | None,
+    grid_shape: tuple[int, int] | None,
 ) -> dict[str, Any]:
     if status == "available" and value is None:
         raise ValueError("Available IMERG evidence requires a value")
@@ -305,9 +330,31 @@ def _evidence_payload(
                 "cached": cached,
                 "sampledGridLat": sampled_lat,
                 "sampledGridLon": sampled_lon,
+                "requestedSpatialBounds": list(
+                    requested_spatial_bounds.as_tuple()
+                ),
+                "loadedSpatialBounds": (
+                    list(loaded_spatial_bounds.as_tuple())
+                    if loaded_spatial_bounds is not None
+                    else None
+                ),
+                "gridShape": (
+                    list(grid_shape)
+                    if grid_shape is not None
+                    else None
+                ),
             },
         },
         "quality": quality,
+    }
+
+
+def _bounds_payload(bounds: ImergSpatialBounds) -> dict[str, float]:
+    return {
+        "west": bounds.west,
+        "south": bounds.south,
+        "east": bounds.east,
+        "north": bounds.north,
     }
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -22,15 +23,18 @@ from .config import (
     IMERG_DISK_CACHE_TTL_SECONDS,
 )
 from .imerg_client import (
+    IMERG_EUROPE_BOUNDS,
+    ImergSpatialBounds,
     ImergWindow,
     ImergWindowMetadata,
     archive_version_for,
     normalize_reference_time,
+    spatial_bounds_from_data,
 )
 
 logger = logging.getLogger(__name__)
 
-_CACHE_SCHEMA_VERSION = 2
+_CACHE_SCHEMA_VERSION = 3
 
 
 @dataclass(frozen=True)
@@ -42,7 +46,7 @@ class CacheEntry:
         return now - self.cached_at > CACHE_TTL_SECONDS
 
 
-_CACHE: dict[tuple[str, str, int], CacheEntry] = {}
+_CACHE: dict[tuple[str, str, int, tuple[float, ...]], CacheEntry] = {}
 _LOCK = RLock()
 
 
@@ -50,11 +54,13 @@ def _key(
     t_ref: datetime,
     hours: int,
     dataset_version: str,
-) -> tuple[str, str, int]:
+    spatial_bounds: ImergSpatialBounds,
+) -> tuple[str, str, int, tuple[float, ...]]:
     return (
         dataset_version,
         normalize_reference_time(t_ref).isoformat(),
         hours,
+        _canonical_bounds(spatial_bounds),
     )
 
 
@@ -62,9 +68,10 @@ def get_cached_window(
     t_ref: datetime,
     hours: int,
     dataset_version: str = IMERG_DEFAULT_DATASET_VERSION,
+    spatial_bounds: ImergSpatialBounds = IMERG_EUROPE_BOUNDS,
 ) -> ImergWindow | None:
     now = time.time()
-    key = _key(t_ref, hours, dataset_version)
+    key = _key(t_ref, hours, dataset_version, spatial_bounds)
 
     with _LOCK:
         entry = _CACHE.get(key)
@@ -79,6 +86,7 @@ def get_cached_window(
         t_ref,
         hours,
         dataset_version,
+        spatial_bounds,
         now,
     )
 
@@ -97,7 +105,12 @@ def set_cached_window(
     window: ImergWindow,
 ) -> None:
     now = time.time()
-    key = _key(t_ref, hours, window.metadata.dataset_version)
+    key = _key(
+        t_ref,
+        hours,
+        window.metadata.dataset_version,
+        window.metadata.requested_spatial_bounds,
+    )
 
     with _LOCK:
         _set_memory_entry(key, window, now)
@@ -136,7 +149,7 @@ def get_cache_stats() -> dict[str, int]:
 
 
 def _set_memory_entry(
-    key: tuple[str, str, int],
+    key: tuple[str, str, int, tuple[float, ...]],
     window: ImergWindow,
     cached_at: float,
 ) -> None:
@@ -157,15 +170,19 @@ def _cache_paths(
     t_ref: datetime,
     hours: int,
     dataset_version: str,
+    spatial_bounds: ImergSpatialBounds,
 ) -> tuple[Path, Path] | None:
     if not IMERG_CACHE_DIR:
         return None
 
     normalized = normalize_reference_time(t_ref)
+    scope_token = hashlib.sha256(
+        repr(_canonical_bounds(spatial_bounds)).encode("ascii")
+    ).hexdigest()[:12]
     stem = (
         f"v{dataset_version}_"
         + normalized.strftime("%Y%m%dT%H%M%SZ")
-        + f"_{hours}h"
+        + f"_{hours}h_{scope_token}"
     )
     directory = Path(IMERG_CACHE_DIR).expanduser()
     return (
@@ -178,9 +195,15 @@ def _read_disk_window(
     t_ref: datetime,
     hours: int,
     dataset_version: str,
+    spatial_bounds: ImergSpatialBounds,
     now: float,
 ) -> ImergWindow | None:
-    paths = _cache_paths(t_ref, hours, dataset_version)
+    paths = _cache_paths(
+        t_ref,
+        hours,
+        dataset_version,
+        spatial_bounds,
+    )
 
     if paths is None:
         return None
@@ -199,9 +222,16 @@ def _read_disk_window(
             t_ref,
             hours,
             dataset_version,
+            spatial_bounds,
             now,
         )
         metadata = _metadata_from_payload(payload["windowMetadata"])
+        if _canonical_bounds(
+            metadata.requested_spatial_bounds
+        ) != _canonical_bounds(spatial_bounds):
+            raise ValueError(
+                "Persistent cache metadata spatial bounds mismatch"
+            )
         if metadata.dataset_version != dataset_version:
             raise ValueError(
                 "Persistent cache metadata version mismatch"
@@ -226,6 +256,18 @@ def _read_disk_window(
         ):
             raise ValueError(
                 "Cached IMERG accumulation must be a 2D lat/lon array"
+            )
+        data_shape = (data.sizes["lat"], data.sizes["lon"])
+        if data_shape != metadata.grid_shape:
+            raise ValueError(
+                "Cached IMERG grid shape does not match metadata"
+            )
+        loaded_bounds = spatial_bounds_from_data(data)
+        if _canonical_bounds(loaded_bounds) != _canonical_bounds(
+            metadata.loaded_spatial_bounds
+        ):
+            raise ValueError(
+                "Cached IMERG coordinate extent does not match metadata"
             )
 
         logger.info(
@@ -252,6 +294,7 @@ def _write_disk_window(
         t_ref,
         hours,
         window.metadata.dataset_version,
+        window.metadata.requested_spatial_bounds,
     )
 
     if paths is None:
@@ -265,6 +308,9 @@ def _write_disk_window(
         "referenceTime": normalize_reference_time(t_ref).isoformat(),
         "windowHours": hours,
         "datasetVersion": window.metadata.dataset_version,
+        "spatialBounds": _spatial_bounds_payload(
+            window.metadata.requested_spatial_bounds
+        ),
         "cachedAtEpoch": cached_at,
         "windowMetadata": _metadata_to_payload(window.metadata),
     }
@@ -301,6 +347,7 @@ def _validate_cache_envelope(
     t_ref: datetime,
     hours: int,
     dataset_version: str,
+    spatial_bounds: ImergSpatialBounds,
     now: float,
 ) -> None:
     if not isinstance(payload, dict):
@@ -319,6 +366,13 @@ def _validate_cache_envelope(
 
     if payload.get("datasetVersion") != dataset_version:
         raise ValueError("Persistent cache dataset version mismatch")
+
+    cached_bounds = _spatial_bounds_from_payload(
+        payload.get("spatialBounds"),
+        "spatialBounds",
+    )
+    if _canonical_bounds(cached_bounds) != _canonical_bounds(spatial_bounds):
+        raise ValueError("Persistent cache spatial bounds mismatch")
 
     cached_at = payload.get("cachedAtEpoch")
 
@@ -356,6 +410,13 @@ def _metadata_to_payload(
         "acquiredAt": metadata.acquired_at.isoformat(),
         "sourceResolution": metadata.source_resolution,
         "samplingMethod": metadata.sampling_method,
+        "requestedSpatialBounds": _spatial_bounds_payload(
+            metadata.requested_spatial_bounds
+        ),
+        "loadedSpatialBounds": _spatial_bounds_payload(
+            metadata.loaded_spatial_bounds
+        ),
+        "gridShape": list(metadata.grid_shape),
         "status": metadata.status,
         "missingReason": metadata.missing_reason,
     }
@@ -431,6 +492,15 @@ def _metadata_from_payload(
         acquired_at=_parse_datetime(_string(payload, "acquiredAt")),
         source_resolution=_string(payload, "sourceResolution"),
         sampling_method=_string(payload, "samplingMethod"),
+        requested_spatial_bounds=_spatial_bounds_from_payload(
+            payload.get("requestedSpatialBounds"),
+            "requestedSpatialBounds",
+        ),
+        loaded_spatial_bounds=_spatial_bounds_from_payload(
+            payload.get("loadedSpatialBounds"),
+            "loadedSpatialBounds",
+        ),
+        grid_shape=_grid_shape(payload.get("gridShape")),
         status="available",
         missing_reason=None,
     )
@@ -495,6 +565,56 @@ def _disk_cache_stats(now: float) -> dict[str, int]:
         "disk_bytes": disk_bytes,
         "disk_ttl_seconds": IMERG_DISK_CACHE_TTL_SECONDS,
     }
+
+
+def _canonical_bounds(
+    bounds: ImergSpatialBounds,
+) -> tuple[float, float, float, float]:
+    return tuple(round(value, 8) for value in bounds.as_tuple())
+
+
+def _spatial_bounds_payload(
+    bounds: ImergSpatialBounds,
+) -> dict[str, float]:
+    return {
+        "west": bounds.west,
+        "south": bounds.south,
+        "east": bounds.east,
+        "north": bounds.north,
+    }
+
+
+def _spatial_bounds_from_payload(
+    value: Any,
+    key: str,
+) -> ImergSpatialBounds:
+    if not isinstance(value, dict):
+        raise ValueError(f"Cached {key} must be an object")
+    coordinates = []
+    for coordinate in ("west", "south", "east", "north"):
+        candidate = value.get(coordinate)
+        if not isinstance(candidate, (int, float)) or isinstance(
+            candidate,
+            bool,
+        ):
+            raise ValueError(
+                f"Cached {key}.{coordinate} must be numeric"
+            )
+        coordinates.append(float(candidate))
+    return ImergSpatialBounds(*coordinates)
+
+
+def _grid_shape(value: Any) -> tuple[int, int]:
+    if (
+        not isinstance(value, list)
+        or len(value) != 2
+        or any(
+            not isinstance(item, int) or isinstance(item, bool) or item <= 0
+            for item in value
+        )
+    ):
+        raise ValueError("Cached gridShape must contain two positive integers")
+    return (value[0], value[1])
 
 
 def _optional_iso(value: datetime | None) -> str | None:

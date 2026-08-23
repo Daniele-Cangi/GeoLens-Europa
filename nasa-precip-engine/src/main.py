@@ -33,7 +33,7 @@ from .contracts import (
     build_error_window_payload,
     build_window_payload,
 )
-from .h3_mapping import validate_h3_indices
+from .h3_mapping import spatial_bounds_for_h3, validate_h3_indices
 from .imerg_client import (
     EvidenceStatus,
     ImergAcquisitionError,
@@ -173,6 +173,16 @@ async def get_precipitation_for_h3(
             detail="One or more H3 indices are invalid",
         ) from None
 
+    try:
+        spatial_bounds = spatial_bounds_for_h3(h3_indices)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "H3 requests spanning the antimeridian are not supported"
+            ),
+        ) from None
+
     reference_time = _reference_time(request.reference_time)
     acquired_at = datetime.now(timezone.utc)
     windows: list[dict[str, object]] = []
@@ -183,6 +193,7 @@ async def get_precipitation_for_h3(
             reference_time,
             hours,
             request.dataset_version,
+            spatial_bounds,
         )
 
         if cached_window is not None:
@@ -202,6 +213,7 @@ async def get_precipitation_for_h3(
                 reference_time,
                 hours,
                 dataset_version=request.dataset_version,
+                spatial_bounds=spatial_bounds,
             )
         except ImergMissingError:
             error_status = "missing"
@@ -254,6 +266,7 @@ async def get_precipitation_for_h3(
                 requested_end=reference_time,
                 acquired_at=acquired_at,
                 dataset_version=request.dataset_version,
+                spatial_bounds=spatial_bounds,
             )
         )
 

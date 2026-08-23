@@ -8,7 +8,12 @@ from typing import Sequence
 import h3
 import xarray as xr
 
-from .imerg_client import PointSample, get_precip_at_point
+from .config import IMERG_RESOLUTION
+from .imerg_client import (
+    ImergSpatialBounds,
+    PointSample,
+    get_precip_at_point,
+)
 
 
 @dataclass(frozen=True)
@@ -17,6 +22,30 @@ class H3PrecipSample:
     centroid_lat: float
     centroid_lon: float
     sample: PointSample
+
+
+def spatial_bounds_for_h3(
+    h3_indices: Sequence[str],
+) -> ImergSpatialBounds:
+    """Bound H3 centroids and retain one half source-cell sampling margin."""
+
+    if not h3_indices:
+        raise ValueError("At least one H3 index is required")
+
+    centroids = [_cell_to_latlng(index) for index in h3_indices]
+    latitudes = [lat for lat, _ in centroids]
+    longitudes = [lon for _, lon in centroids]
+    if max(longitudes) - min(longitudes) > 180:
+        raise ValueError(
+            "H3 requests spanning the antimeridian are not supported"
+        )
+    margin = IMERG_RESOLUTION / 2
+    return ImergSpatialBounds(
+        west=max(-180.0, min(longitudes) - margin),
+        south=max(-90.0, min(latitudes) - margin),
+        east=min(180.0, max(longitudes) + margin),
+        north=min(90.0, max(latitudes) + margin),
+    )
 
 
 def sample_precip_for_h3(
