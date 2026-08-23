@@ -257,11 +257,14 @@ export function assertHistoricalBenchmarkManifest(
           artifact.relativePath,
           artifactLabel + '.relativePath',
         );
-        portablePath(path, artifactLabel + '.relativePath');
-        if (artifactPaths.has(path)) {
+        const canonicalPath = portablePath(
+          path,
+          artifactLabel + '.relativePath',
+        );
+        if (artifactPaths.has(canonicalPath)) {
           throw new Error('Duplicate local artifact path "' + path + '"');
         }
-        artifactPaths.add(path);
+        artifactPaths.add(canonicalPath);
         const bytes = finiteNumber(artifact.bytes, artifactLabel + '.bytes');
         if (!Number.isInteger(bytes) || bytes <= 0) {
           throw new Error(artifactLabel + '.bytes must be a positive integer');
@@ -370,13 +373,18 @@ function stringArray(value: unknown, label: string): void {
   );
 }
 
-function portablePath(value: string, label: string): void {
+function portablePath(value: string, label: string): string {
   const normalized = value.replace(/\\/g, '/');
+  const segments = normalized.split('/');
   if (
+    value !== normalized ||
     normalized.startsWith('/') ||
     /^[a-z]:\//i.test(normalized) ||
-    normalized.split('/').includes('..')
+    segments.some(
+      (segment) => segment === '' || segment === '.' || segment === '..',
+    )
   ) {
-    throw new Error(label + ' must be a portable relative path');
+    throw new Error(label + ' must be a canonical portable relative path');
   }
+  return normalized;
 }

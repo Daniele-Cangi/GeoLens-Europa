@@ -83,6 +83,31 @@ test('local artifact paths must remain portable and content-addressed', () => {
   );
 });
 
+test('artifact path aliases cannot represent multiple files', () => {
+  const aliases = [
+    (path) => path.replace('/', '\\'),
+    (path) => './' + path,
+    (path) => path.replace('/', '//'),
+  ];
+
+  for (const alias of aliases) {
+    const manifest = manifestFixture();
+    const dataset = manifest.datasets.find(
+      (candidate) => candidate.localArtifacts?.length > 0,
+    );
+    const artifact = dataset.localArtifacts[0];
+    dataset.localArtifacts.push({
+      ...artifact,
+      relativePath: alias(artifact.relativePath),
+    });
+
+    assert.throws(
+      () => assertHistoricalBenchmarkManifest(manifest),
+      /canonical portable relative path/,
+    );
+  }
+});
+
 test('model inputs must have been available by the knowledge cutoff', () => {
   const manifest = manifestFixture();
   const annualRainfall = manifest.datasets.find(
