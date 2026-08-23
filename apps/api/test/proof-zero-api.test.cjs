@@ -135,7 +135,7 @@ function fixtureComposer(options = {}) {
         nodes[node.id] = {
           ...node,
           elevationM: fixtureEvidence(
-            elevations[node.id],
+            elevations[node.id] ?? 1,
             {
               fixtureId: `api-dem-node:${node.id}`,
               h3: node.h3,
@@ -781,6 +781,59 @@ test('API exposes observed Waternet topology with its import receipt', async (co
     body.conditionedSurfaceCatchmentProxy.surfaceAcquisition.featureCount,
     1,
   );
+  assert.equal(
+    body.conditionedSurfaceRunoff.status,
+    'synthetic_fixture',
+  );
+  assert.equal(
+    body.conditionedSurfaceRunoff.result.semantics,
+    'experimental_runoff_over_conditioned_surface_proxy',
+  );
+  assert.ok(
+    body.conditionedSurfaceRunoff.result.selection.candidateCellCount >
+      100,
+  );
+  assert.equal(
+    body.conditionedSurfaceRunoff.result.selection.selectedCellCount,
+    100,
+  );
+  assert.equal(
+    body.conditionedSurfaceRunoff.result.selection.maximumCellCount,
+    100,
+  );
+  assert.equal(
+    body.conditionedSurfaceRunoff.result.selection.coversAllConditionedContributingCells,
+    false,
+  );
+  assert.equal(
+    body.conditionedSurfaceRunoff.result.environmental.referenceTime,
+    '2026-08-20T00:00:00.000Z',
+  );
+  assert.ok(
+    body.conditionedSurfaceRunoff.result.catchmentContribution.totalVolumeM3.value > 0,
+  );
+  assert.equal(
+    body.conditionedSurfaceRunoff.networkPropagation.attempted,
+    false,
+  );
+  assert.deepEqual(
+    body.conditionedSurfaceRunoff.networkPropagation.blockingReasons,
+    [
+      'not_observed_sewer_catchment',
+      'outfall_network_direction_unresolved',
+    ],
+  );
+  assert.equal(
+    body.conditionedSurfaceCatchmentProxy.networkUse.environmentalRunoffComposed,
+    true,
+  );
+  assert.deepEqual(
+    body.conditionedSurfaceCatchmentProxy.networkUse.reasons,
+    [
+      'not_observed_sewer_catchment',
+      'outfall_network_direction_unresolved',
+    ],
+  );
   assert.equal('propagation' in body, false);
   assert.equal(
     body.import.source.origin,
@@ -810,6 +863,52 @@ test('API exposes observed Waternet topology with its import receipt', async (co
   );
 });
 
+test('API keeps missing IMERG explicit in conditioned runoff without attempting propagation', async (context) => {
+  const server = buildTestServer(
+    fixtureComposer({ missingRainfall: true }),
+    {
+      waternetClient: availableWaternetClient(),
+    },
+  );
+  context.after(() => server.close());
+
+  const response = await server.inject({
+    method: 'GET',
+    url: '/api/infrastructure/amsterdam-waternet',
+  });
+  const body = response.json();
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(body.status, 'available');
+  assert.equal(body.conditionedSurfaceRunoff.status, 'missing');
+  assert.equal(
+    body.conditionedSurfaceRunoff.result.status,
+    'incomplete',
+  );
+  assert.equal(
+    body.conditionedSurfaceRunoff.result.catchmentContribution
+      .totalVolumeM3.value,
+    null,
+  );
+  assert.equal(
+    body.conditionedSurfaceRunoff.result.catchmentContribution
+      .partialAvailableVolumeM3,
+    0,
+  );
+  assert.equal(
+    body.conditionedSurfaceRunoff.networkPropagation.attempted,
+    false,
+  );
+  assert.deepEqual(
+    body.conditionedSurfaceRunoff.networkPropagation.blockingReasons,
+    [
+      'not_observed_sewer_catchment',
+      'environmental_runoff_incomplete',
+      'outfall_network_direction_unresolved',
+    ],
+  );
+  assert.equal('propagation' in body, false);
+});
 test('API keeps observed topology while missing DEM blocks the surface proxy area', async (context) => {
   const server = buildTestServer(
     fixtureComposer(),
@@ -850,6 +949,12 @@ test('API keeps observed topology while missing DEM blocks the surface proxy are
   assert.ok(
     body.conditionedSurfaceCatchmentProxy.result.counts
       .unresolvedConditioningCells > 0,
+  );
+  assert.equal(body.conditionedSurfaceRunoff.status, 'missing');
+  assert.equal(body.conditionedSurfaceRunoff.result, null);
+  assert.equal(
+    body.conditionedSurfaceRunoff.networkPropagation.attempted,
+    false,
   );
   assert.equal('propagation' in body, false);
 });
@@ -924,6 +1029,8 @@ test('API keeps BGT failure explicit without invalidating AHN or observed topolo
     696,
   );
   assert.deepEqual(body.topology.catchmentAttachments, {});
+  assert.equal(body.conditionedSurfaceRunoff.status, 'upstream_error');
+  assert.equal(body.conditionedSurfaceRunoff.result, null);
   assert.equal('propagation' in body, false);
 });
 
@@ -959,6 +1066,11 @@ test('API bounds DEM proxy cells before provider acquisition', async (context) =
     body.surfaceCatchmentProxy.missingReason,
     /exceeds the bounded limit/,
   );
+  assert.equal(
+    body.conditionedSurfaceRunoff.status,
+    'out_of_coverage',
+  );
+  assert.equal(body.conditionedSurfaceRunoff.result, null);
 });
 test('API preserves Waternet provider failure without topology', async (context) => {
   const server = buildTestServer(
@@ -1026,6 +1138,20 @@ test('API requires a complete Waternet bbox', async (context) => {
   assert.match(body.error, /requires latMin/);
 });
 
+test('API rejects an invalid observed-environment reference time before provider calls', async (context) => {
+  const server = buildTestServer();
+  context.after(() => server.close());
+
+  const response = await server.inject({
+    method: 'GET',
+    url: '/api/infrastructure/amsterdam-waternet?referenceTime=not-a-date',
+  });
+  const body = response.json();
+
+  assert.equal(response.statusCode, 400);
+  assert.equal(body.status, 'invalid_request');
+  assert.match(body.error, /referenceTime/);
+});
 test('API rejects a Waternet bbox outside the bounded-area limit', async (context) => {
   const server = buildTestServer();
   context.after(() => server.close());
