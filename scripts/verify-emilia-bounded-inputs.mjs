@@ -58,6 +58,11 @@ assertDeepEqual(
   manifest.benchmark.spatialProtocol.grid,
   'receipt grid',
 );
+assertDeepEqual(
+  receipt.masks.policy,
+  manifest.benchmark.spatialProtocol.masks,
+  'receipt mask policy',
+);
 if (receipt.xdbtr.status !== 'blocked') {
   throw new Error('XDBTR must remain blocked until vector geometry exists');
 }
@@ -98,9 +103,18 @@ if (
   throw new Error('AOI mask counts disagree with the receipt');
 }
 
+const elevationArtifact = artifactByName(
+  receipt.dem.artifacts,
+  'copernicus-dem-glo30-elevation-f32le.bin',
+);
+const slopeArtifact = artifactByName(
+  receipt.dem.artifacts,
+  'copernicus-dem-glo30-slope-f32le.bin',
+);
+
 const elevation = await verifyFloat32Evidence({
   dataRoot,
-  artifact: receipt.dem.artifacts[0],
+  artifact: elevationArtifact,
   mask,
   minimum: -1000,
   maximum: 9000,
@@ -109,7 +123,7 @@ const elevation = await verifyFloat32Evidence({
 });
 const slope = await verifyFloat32Evidence({
   dataRoot,
-  artifact: receipt.dem.artifacts[1],
+  artifact: slopeArtifact,
   mask,
   minimum: 0,
   maximum: 90,
@@ -251,6 +265,24 @@ async function verifyArtifact(root, artifact) {
 
 async function readArtifact(root, artifact) {
   return readFile(resolveArtifact(root, artifact.relativePath));
+}
+
+function artifactByName(artifacts, filename) {
+  const suffix = '/inputs/' + filename;
+  const matches = artifacts.filter(
+    (artifact) =>
+      artifact.relativePath === 'inputs/' + filename ||
+      artifact.relativePath.endsWith(suffix),
+  );
+  if (matches.length !== 1) {
+    throw new Error(
+      'Expected exactly one artifact named ' +
+        filename +
+        '; found ' +
+        matches.length,
+    );
+  }
+  return matches[0];
 }
 
 function resolveArtifact(root, relativePath) {

@@ -16,6 +16,8 @@ const { corineRasterValueToClassCode } = require(
   '../packages/providers/dist',
 );
 
+const NETWORK_TIMEOUT_MS = 120_000;
+
 if (os.endianness() !== 'LE') {
   throw new Error('Bounded evidence arrays require little-endian encoding');
 }
@@ -60,6 +62,7 @@ const [west, south, east, north] = protocol.coverage.commonBounds;
 const [minX, minY, maxX, maxY] = protocol.grid.bounds;
 const { width, height, cellSizeM } = protocol.grid;
 const cellCount = width * height;
+// Freeze guard for the 335x420 Proof 0 evaluation grid.
 if (cellCount !== 140_700) {
   throw new Error(`Unexpected frozen grid cell count ${cellCount}`);
 }
@@ -171,9 +174,16 @@ async function materializeDem(cells) {
   for (const [lat, lon] of sampleCoordinates) {
     const url = demTileUrl(lat, lon);
     if (!tileMetadata.has(url)) {
-      const tiff = await fromUrl(url);
+      const tiff = await fromUrl(
+        url,
+        {},
+        AbortSignal.timeout(NETWORK_TIMEOUT_MS),
+      );
       const image = await tiff.getImage();
-      const head = await fetch(url, { method: 'HEAD' });
+      const head = await fetch(url, {
+        method: 'HEAD',
+        signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
+      });
       if (!head.ok) {
         throw new Error(`DEM HEAD failed ${head.status} for ${url}`);
       }
@@ -208,6 +218,7 @@ async function materializeDem(cells) {
     const y1 = Math.min(metadata.height, metadata.pixelBounds[3] + 1);
     const rasters = await metadata.image.readRasters({
       window: [x0, y0, x1, y1],
+      signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
     });
     metadata.window = [x0, y0, x1, y1];
     metadata.windowWidth = x1 - x0;
@@ -363,6 +374,14 @@ async function materializeClc(cells) {
   let available = 0;
 
   for (const cell of projectedCells) {
+    if (
+      cell.sourceX < 0 ||
+      cell.sourceX >= sourceWidth ||
+      cell.sourceY < 0 ||
+      cell.sourceY >= sourceHeight
+    ) {
+      continue;
+    }
     const localX = cell.sourceX - x0;
     const localY = cell.sourceY - y0;
     const value = Number(values[localY * windowWidth + localX]);
@@ -437,7 +456,9 @@ async function materializeXdbtrReceipts() {
       format: 'image/tiff',
       transparent: 'true',
     }).toString();
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(NETWORK_TIMEOUT_MS),
+    });
     if (!response.ok) {
       throw new Error(
         `XDBTR WMS ${layer} failed with HTTP ${response.status}`,

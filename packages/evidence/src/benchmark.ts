@@ -373,15 +373,10 @@ function assertLocalArtifacts(
       );
     }
     artifactPaths.add(canonicalPath);
-    const bytes = finiteNumber(
+    positiveInteger(
       artifact.bytes,
       artifactLabel + '.bytes',
     );
-    if (!Number.isInteger(bytes) || bytes <= 0) {
-      throw new Error(
-        artifactLabel + '.bytes must be a positive integer',
-      );
-    }
     const sha256 = stringValue(
       artifact.sha256,
       artifactLabel + '.sha256',
@@ -460,15 +455,10 @@ function assertBenchmarkSpatialProtocol(
       'benchmark evaluation grid must use EPSG:32632',
     );
   }
-  const cellSizeM = finiteNumber(
+  const cellSizeM = positiveInteger(
     grid.cellSizeM,
     'benchmark.spatialProtocol.grid.cellSizeM',
   );
-  if (!Number.isInteger(cellSizeM) || cellSizeM <= 0) {
-    throw new Error(
-      'benchmark grid cellSizeM must be a positive integer',
-    );
-  }
   const gridBounds = numberArray(
     grid.bounds,
     'benchmark.spatialProtocol.grid.bounds',
