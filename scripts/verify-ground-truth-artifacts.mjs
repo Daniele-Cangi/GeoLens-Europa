@@ -36,6 +36,7 @@ const artifactGroups = [
     id: 'benchmark',
     localArtifacts: manifest.benchmark.localArtifacts ?? [],
   },
+  ...(manifest.benchmark.routingBaselines ?? []),
   ...manifest.datasets,
 ];
 

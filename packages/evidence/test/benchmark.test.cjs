@@ -30,7 +30,40 @@ test('Emilia-Romagna manifest passes the historical benchmark contract', () => {
     'retrospective_reconstruction',
   );
   assert.equal(manifest.benchmark.claimLevel, 'hydrologic_routing');
+  assert.equal(manifest.manifestVersion, '1.4.0');
   assert.ok(manifest.benchmark.forbiddenClaims.includes('validated_water_depth'));
+});
+
+test('terrain-routing baseline is materialized without evaluation leakage', () => {
+  const manifest = manifestFixture();
+  const baseline = manifest.benchmark.routingBaselines.find(
+    (candidate) => candidate.id === 'forli-terrain-d8-v0',
+  );
+
+  assert.equal(baseline.state, 'materialized');
+  assert.equal(baseline.semantics, 'terrain_flow_concentration');
+  assert.equal(baseline.evaluationReferenceAccess, 'withheld');
+  assert.equal(baseline.quality, 'incomplete_window');
+  assert.equal(baseline.localArtifacts.length, 4);
+  assert.match(baseline.methodologyNote, /not inundation/);
+});
+
+test('routing baselines reject evaluation inputs and unwithheld references', () => {
+  const leakedInput = manifestFixture();
+  const baseline = leakedInput.benchmark.routingBaselines[0];
+  baseline.inputDatasetIds.push('rer-flood-extent-v7-event-2');
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(leakedInput),
+    /not an eligible model input/,
+  );
+
+  const unwithheld = manifestFixture();
+  unwithheld.benchmark.routingBaselines[0].evaluationReferenceAccess =
+    'loaded';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(unwithheld),
+    /must keep evaluation reference withheld/,
+  );
 });
 
 test('benchmark freezes the common metric grid and mask policy', () => {

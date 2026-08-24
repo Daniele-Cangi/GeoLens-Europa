@@ -92,7 +92,9 @@ Case 02 is being prepared around a bounded Forlì pilot for the 16–18 May 2023
 - each DBTR class retains a centre-cell known-presence mask and one `float32` coverage fraction per cell, computed from 16 distinct 4x4 subcells; overlapping hits are unioned, `NaN` marks cells outside the AOI, and zero is a valid no-hit value; the current extract cannot reconstruct geometry deleted or overwritten after the event, so its historical quality remains `incomplete_window`;
 - the current claim is hydrologic routing, not validated inundation extent, flood depth or operational forecasting.
 
-The bounded inputs live outside Git under `D:/GeoLens/data/emilia-romagna-2023`. Manifest v1.3.0 pins 29 official and derived artifacts totaling 643,847,307 bytes, including the canonical DBTR GeoPackage, its five metadata records and ten derived masks/coverage arrays. Styled WMS images remain per-run context receipts and are never promoted to physical evidence. `--source` points to the delivered `estraz_procons.gpkg` file; its parent directory must also contain the five `V_*_GPG.xml` metadata files. The materializer imports them into a stable path before deriving the arrays.
+The bounded inputs live outside Git under `D:/GeoLens/data/emilia-romagna-2023`. Manifest v1.4.0 pins 33 official and derived artifacts totaling 645,817,107 bytes, including the canonical DBTR GeoPackage, its five metadata records, ten derived masks/coverage arrays and four terrain-routing baseline arrays. Styled WMS images remain per-run context receipts and are never promoted to physical evidence. `--source` points to the delivered `estraz_procons.gpkg` file; its parent directory must also contain the five `V_*_GPG.xml` metadata files. The materializer imports them into a stable path before deriving the arrays.
+
+The first Forli routing baseline is `bounded-d8-steepest-descent-v0.1.0`. It uses GLO-30 elevation and DBTR known permanent-water cell centres, routes only over a strictly positive D8 downslope gradient, preserves local depressions, and stops AOI-edge cells instead of inventing off-grid elevations. It conserves all `116,856,900 m2` of eligible land area, but the raw 30 m surface produces `7,840` local-depression terminals and a largest terminal catchment of only `491,400 m2`. This fragmentation is retained as diagnostic evidence: the result is terrain-flow concentration with `incomplete_window` quality, not inundation extent or water depth. The regional observed flood extent is not loaded during materialization.
 
 ~~~powershell
 npm run materialize:emilia-inputs -- `
@@ -104,6 +106,8 @@ npm run materialize:emilia-xdbtr -- `
   --source D:\path\to\dati_dbtr\estraz_procons.gpkg
 
 npm run verify:emilia-inputs -- D:\GeoLens\data\emilia-romagna-2023
+npm run materialize:emilia-terrain-routing -- D:\GeoLens\data\emilia-romagna-2023
+npm run verify:emilia-terrain-routing -- D:\GeoLens\data\emilia-romagna-2023
 npm run verify:ground-truth -- D:\GeoLens\data\emilia-romagna-2023
 ~~~
 

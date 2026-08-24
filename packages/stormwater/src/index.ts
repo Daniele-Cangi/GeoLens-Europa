@@ -8,4 +8,5 @@ export * from './infrastructure';
 export * from './network';
 export * from './runoff';
 export * from './surface-catchment';
+export * from './terrain-flow';
 export * from './gwsw-area';

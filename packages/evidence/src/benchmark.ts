@@ -47,7 +47,7 @@ export interface BenchmarkDataset {
 }
 
 export interface HistoricalBenchmarkManifest {
-  readonly manifestVersion: '1.3.0';
+  readonly manifestVersion: '1.4.0';
   readonly benchmark: {
     readonly id: string;
     readonly title: string;
@@ -72,10 +72,24 @@ export interface HistoricalBenchmarkManifest {
     };
     readonly spatialProtocol: BenchmarkSpatialProtocol;
     readonly localArtifacts?: readonly BenchmarkLocalArtifact[];
+    readonly routingBaselines: readonly BenchmarkRoutingBaseline[];
     readonly evaluationMetrics: readonly string[];
     readonly forbiddenClaims: readonly string[];
   };
   readonly datasets: readonly BenchmarkDataset[];
+}
+
+export interface BenchmarkRoutingBaseline {
+  readonly id: string;
+  readonly semantics: 'terrain_flow_concentration';
+  readonly state: 'materialized';
+  readonly claimLevel: 'hydrologic_routing';
+  readonly modelVersion: string;
+  readonly inputDatasetIds: readonly string[];
+  readonly evaluationReferenceAccess: 'withheld';
+  readonly quality: 'available' | 'incomplete_window';
+  readonly methodologyNote: string;
+  readonly localArtifacts: readonly BenchmarkLocalArtifact[];
 }
 
 export interface BenchmarkSpatialProtocol {
@@ -139,8 +153,8 @@ export function assertHistoricalBenchmarkManifest(
   value: unknown,
 ): asserts value is HistoricalBenchmarkManifest {
   const root = objectValue(value, 'manifest');
-  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.3.0') {
-    throw new Error('manifestVersion must be "1.3.0"');
+  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.4.0') {
+    throw new Error('manifestVersion must be "1.4.0"');
   }
 
   const benchmark = objectValue(root.benchmark, 'benchmark');
@@ -209,6 +223,61 @@ export function assertHistoricalBenchmarkManifest(
       artifactPaths,
     );
   }
+  if (
+    !Array.isArray(benchmark.routingBaselines) ||
+    benchmark.routingBaselines.length === 0
+  ) {
+    throw new Error('benchmark.routingBaselines must be a non-empty array');
+  }
+  const routingBaselineIds = new Set<string>();
+  const routingBaselineInputReferences: Array<{
+    readonly label: string;
+    readonly ids: readonly string[];
+  }> = [];
+  benchmark.routingBaselines.forEach((rawBaseline, index) => {
+    const label = `benchmark.routingBaselines[${index}]`;
+    const baseline = objectValue(rawBaseline, label);
+    const id = stringValue(baseline.id, `${label}.id`);
+    if (routingBaselineIds.has(id)) {
+      throw new Error(`Duplicate routing baseline id "${id}"`);
+    }
+    routingBaselineIds.add(id);
+    if (baseline.semantics !== 'terrain_flow_concentration') {
+      throw new Error(`${label}.semantics is unsupported`);
+    }
+    if (baseline.state !== 'materialized') {
+      throw new Error(`${label}.state must be materialized`);
+    }
+    if (baseline.claimLevel !== 'hydrologic_routing') {
+      throw new Error(`${label}.claimLevel must be hydrologic_routing`);
+    }
+    stringValue(baseline.modelVersion, `${label}.modelVersion`);
+    const inputDatasetIds = uniqueStringArray(
+      baseline.inputDatasetIds,
+      `${label}.inputDatasetIds`,
+    );
+    if (inputDatasetIds.length < 2) {
+      throw new Error(`${label} requires at least two input datasets`);
+    }
+    if (baseline.evaluationReferenceAccess !== 'withheld') {
+      throw new Error(`${label} must keep evaluation reference withheld`);
+    }
+    allowedString(
+      baseline.quality,
+      new Set(['available', 'incomplete_window']),
+      `${label}.quality`,
+    );
+    stringValue(baseline.methodologyNote, `${label}.methodologyNote`);
+    assertLocalArtifacts(
+      baseline.localArtifacts,
+      `${label}.localArtifacts`,
+      artifactPaths,
+    );
+    routingBaselineInputReferences.push({
+      label,
+      ids: inputDatasetIds,
+    });
+  });
   let modelInputs = 0;
   let evaluationReferences = 0;
 
@@ -345,6 +414,32 @@ export function assertHistoricalBenchmarkManifest(
     throw new Error(
       'benchmark requires at least one model input and one evaluation reference',
     );
+  }
+  for (const baseline of routingBaselineInputReferences) {
+    for (const datasetId of baseline.ids) {
+      const dataset = root.datasets.find(
+        (candidate) =>
+          objectValue(candidate, 'routing baseline dataset').id === datasetId,
+      );
+      if (dataset === undefined) {
+        throw new Error(
+          `${baseline.label} references unknown dataset "${datasetId}"`,
+        );
+      }
+      const typedDataset = objectValue(dataset, 'routing baseline dataset');
+      const uses = objectValue(
+        typedDataset.allowedUses,
+        'routing baseline dataset.allowedUses',
+      );
+      if (
+        typedDataset.role !== 'model_input' ||
+        uses.modelInput !== true
+      ) {
+        throw new Error(
+          `${baseline.label} dataset "${datasetId}" is not an eligible model input`,
+        );
+      }
+    }
   }
 }
 
