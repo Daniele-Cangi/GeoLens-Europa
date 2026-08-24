@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 from array import array
+from contextlib import closing
 import hashlib
 import json
 import math
@@ -412,8 +413,8 @@ def main():
         raise FileNotFoundError(f"Extracted V7 GeoPackage is missing: {gpkg_path}")
     verify_extracted_gpkg(archive_path, gpkg_path)
 
-    with sqlite3.connect(
-        f"file:{gpkg_path.as_posix()}?mode=ro", uri=True
+    with closing(
+        sqlite3.connect(f"file:{gpkg_path.as_posix()}?mode=ro", uri=True)
     ) as connection:
         connection.execute("PRAGMA query_only=ON")
         observed_mask, observed_counts = materialize_observed_mask(

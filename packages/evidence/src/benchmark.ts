@@ -355,13 +355,11 @@ export function assertHistoricalBenchmarkManifest(
       `${label}.localArtifacts`,
       artifactPaths,
     );
-    if (!Array.isArray(baseline.localArtifacts)) {
-      throw new Error(`${label}.localArtifacts must be an array`);
-    }
     routingBaselineArtifactPaths.set(
       id,
       new Set(
-        baseline.localArtifacts.map((artifact, artifactIndex) =>
+        (baseline.localArtifacts as readonly unknown[]).map(
+          (artifact, artifactIndex) =>
           portablePath(
             stringValue(
               objectValue(
