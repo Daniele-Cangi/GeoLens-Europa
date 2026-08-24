@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { readFile, stat } from 'node:fs/promises';
+import { open, readFile, stat } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
@@ -187,6 +187,13 @@ const xdbtrLayers = [];
 for (const layer of receipt.xdbtr.layers) {
   xdbtrLayers.push(await verifyXdbtrLayer(layer, mask));
 }
+const excludedPostCutoff = receipt.xdbtr.layers.reduce(
+  (sum, layer) => sum + layer.excludedPostCutoff,
+  0,
+);
+if (excludedPostCutoff !== 119) {
+  throw new Error('DBTR post-cutoff feature count drifted from the manifest');
+}
 for (const styledMap of receipt.xdbtr.contextReceipts) {
   const bytes = await readArtifact(dataRoot, styledMap);
   if (!isTiff(bytes)) {
@@ -196,10 +203,27 @@ for (const styledMap of receipt.xdbtr.contextReceipts) {
 const gpkgArtifact = receipt.xdbtr.sourceArtifacts.find((item) =>
   item.relativePath.endsWith('.gpkg'),
 );
-const gpkgBytes = await readArtifact(dataRoot, gpkgArtifact);
-if (gpkgBytes.subarray(0, 16).toString('ascii') !== 'SQLite format 3\u0000') {
+if (gpkgArtifact === undefined) {
+  throw new Error('DBTR source artifacts do not include a GeoPackage');
+}
+const gpkgHeader = Buffer.alloc(16);
+const gpkgHandle = await open(
+  resolveArtifact(dataRoot, gpkgArtifact.relativePath),
+  'r',
+);
+try {
+  const { bytesRead } = await gpkgHandle.read(gpkgHeader, 0, 16, 0);
+  if (bytesRead !== 16) {
+    throw new Error('Pinned DBTR GeoPackage has a truncated header');
+  }
+} finally {
+  await gpkgHandle.close();
+}
+if (gpkgHeader.toString('ascii') !== 'SQLite format 3\u0000') {
   throw new Error('Pinned DBTR source is not a GeoPackage/SQLite file');
-}console.log(
+}
+
+console.log(
   JSON.stringify(
     {
       cellCount,
@@ -214,10 +238,7 @@ if (gpkgBytes.subarray(0, 16).toString('ascii') !== 'SQLite format 3\u0000') {
           receipt.xdbtr.physicalGeometryEligible,
         historicalSnapshotComplete:
           receipt.xdbtr.historicalSnapshotComplete,
-        excludedPostCutoff: receipt.xdbtr.layers.reduce(
-          (sum, layer) => sum + layer.excludedPostCutoff,
-          0,
-        ),
+        excludedPostCutoff,
         layers: xdbtrLayers,
         contextReceipts: receipt.xdbtr.contextReceipts.length,
       },
@@ -252,7 +273,8 @@ async function verifyXdbtrLayer(layer, aoiMask) {
     layer.eligibleFeatures +
     layer.excludedPostCutoff +
     layer.excludedMissingUpdateDate +
-    layer.excludedMissingGeometry;
+    layer.excludedMissingGeometry +
+    layer.excludedEmptyGeometry;
   if (accountedFeatures !== layer.totalFeatures) {
     throw new Error(`${layer.role} feature accounting is incomplete`);
   }

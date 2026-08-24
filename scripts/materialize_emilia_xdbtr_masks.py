@@ -247,7 +247,9 @@ def scanline_intervals(polygon, y):
     return zip(crossings[0::2], crossings[1::2])
 
 
-def mark_scanline(intervals, y_sample, samples_per_cell, values, aoi_mask, grid):
+def mark_scanline(
+    intervals, y_sample, samples_per_cell, sample_row, values, aoi_mask, grid
+):
     grid_min_x, _, grid_max_x, grid_max_y = grid["bounds"]
     cell_size = grid["cellSizeM"]
     width = grid["width"]
@@ -270,10 +272,13 @@ def mark_scanline(intervals, y_sample, samples_per_cell, values, aoi_mask, grid)
             index = row * width + column
             if aoi_mask[index] == 0:
                 continue
-            if samples_per_cell == 1:
+            if sample_row is None:
                 values[index] = 1
-            elif values[index] < samples_per_cell * samples_per_cell:
-                values[index] += 1
+            else:
+                sample_column_in_cell = sample_column % samples_per_cell
+                bit = sample_row * samples_per_cell + sample_column_in_cell
+                values[index] |= 1 << bit
+
 
 
 def rasterize_polygon(polygon, center_mask, coverage_samples, aoi_mask, grid):
@@ -293,6 +298,7 @@ def rasterize_polygon(polygon, center_mask, coverage_samples, aoi_mask, grid):
             scanline_intervals(polygon, center_y),
             center_y,
             1,
+            None,
             center_mask,
             aoi_mask,
             grid,
@@ -303,10 +309,13 @@ def rasterize_polygon(polygon, center_mask, coverage_samples, aoi_mask, grid):
                 scanline_intervals(polygon, sample_y),
                 sample_y,
                 4,
+                sample_index,
                 coverage_samples,
                 aoi_mask,
                 grid,
             )
+
+
 def float32_bytes(values):
     packed = array("f", values)
     if sys.byteorder != "little":
@@ -343,13 +352,14 @@ def materialize_layer(
         raise ValueError(f"{table} lacks columns {sorted(required - columns)}")
     cell_count = grid["width"] * grid["height"]
     center_mask = bytearray(255 if value == 0 else 0 for value in aoi_mask)
-    coverage_samples = bytearray(cell_count)
+    coverage_samples = array("H", [0]) * cell_count
     counts = {
         "totalFeatures": 0,
         "eligibleFeatures": 0,
         "excludedPostCutoff": 0,
         "excludedMissingUpdateDate": 0,
         "excludedMissingGeometry": 0,
+        "excludedEmptyGeometry": 0,
         "decodedPolygons": 0,
     }
     for geometry, updated_at in connection.execute(
@@ -366,8 +376,11 @@ def materialize_layer(
         if geometry is None:
             counts["excludedMissingGeometry"] += 1
             continue
-        counts["eligibleFeatures"] += 1
         polygons = decode_geopackage_geometry(geometry)
+        if not polygons:
+            counts["excludedEmptyGeometry"] += 1
+            continue
+        counts["eligibleFeatures"] += 1
         counts["decodedPolygons"] += len(polygons)
         for polygon in polygons:
             rasterize_polygon(
@@ -376,7 +389,9 @@ def materialize_layer(
     if len(center_mask) != cell_count or len(coverage_samples) != cell_count:
         raise AssertionError("Raster dimensions drifted from the frozen grid")
     coverage = [
-        math.nan if aoi_mask[index] == 0 else coverage_samples[index] / 16
+        math.nan
+        if aoi_mask[index] == 0
+        else coverage_samples[index].bit_count() / 16
         for index in range(cell_count)
     ]
     center_cells = sum(value == 1 for value in center_mask)
@@ -395,7 +410,7 @@ def materialize_layer(
         data_root,
         inputs_root / f"xdbtr-{slug}-known-coverage-f32le.bin",
         float32_bytes(coverage),
-        encoding="float32 little-endian row-major north-to-south; deterministic 4x4 subcell presence sampling, overlapping hits clamped to [0,1]",
+        encoding="float32 little-endian row-major north-to-south; deterministic 4x4 distinct-subcell presence sampling; overlapping feature hits are unioned",
         missingSentinel="NaN",
         unit="fraction",
     )
@@ -575,7 +590,7 @@ def main():
         "rasterization": {
             "grid": grid,
             "centerMask": "cell_center_in_polygon",
-            "coverage": "deterministic 4x4 subcell sampling, overlapping hits clamped to one",
+            "coverage": "deterministic 4x4 distinct-subcell sampling with overlapping feature hits unioned",
             "outsideAoi": "explicit missing sentinel",
         },
         "sourceArtifacts": source_artifacts,

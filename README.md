@@ -92,7 +92,7 @@ Case 02 is being prepared around a bounded Forlì pilot for the 16–18 May 2023
 - each DBTR class retains a centre-cell known-presence mask and a deterministic 4x4 subcell coverage array; the current extract cannot reconstruct geometry deleted or overwritten after the event, so its historical quality remains `incomplete_window`;
 - the current claim is hydrologic routing, not validated inundation extent, flood depth or operational forecasting.
 
-The bounded inputs live outside Git under `D:/GeoLens/data/emilia-romagna-2023`. Manifest v1.3.0 pins 29 official and derived artifacts totaling 643,847,307 bytes, including the canonical DBTR GeoPackage, its five metadata records and ten derived masks/coverage arrays. Styled WMS images remain per-run context receipts and are never promoted to physical evidence. The `--source` directory must contain `estraz_procons.gpkg` and the five `V_*_GPG.xml` files delivered together by the regional service; the materializer imports them into a stable path before deriving the arrays.
+The bounded inputs live outside Git under `D:/GeoLens/data/emilia-romagna-2023`. Manifest v1.3.0 pins 29 official and derived artifacts totaling 643,847,307 bytes, including the canonical DBTR GeoPackage, its five metadata records and ten derived masks/coverage arrays. Styled WMS images remain per-run context receipts and are never promoted to physical evidence. `--source` points to the delivered `estraz_procons.gpkg` file; its parent directory must also contain the five `V_*_GPG.xml` metadata files. The materializer imports them into a stable path before deriving the arrays.
 
 ~~~powershell
 npm run materialize:emilia-inputs -- `

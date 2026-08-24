@@ -292,7 +292,7 @@
         {
           "relativePath": "inputs/xdbtr-wet-area-known-coverage-f32le.bin",
           "bytes": 562800,
-          "sha256": "3ad4cf54137024db3712014f8c8bc7999c7f6c8c622b50b2c3dc49d443b5059f"
+          "sha256": "a47957c93803739f77398652b1c4f75ce9c5495676196c9457abaa53ea5409ea"
         },
         {
           "relativePath": "inputs/xdbtr-riverbed-known-center-mask-u8.bin",

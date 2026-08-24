@@ -11,11 +11,16 @@ assert SPEC.loader is not None
 SPEC.loader.exec_module(MODULE)
 
 
-def square_gpkg():
-    ring = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0), (0.0, 0.0)]
+def polygon_gpkg(ring):
     wkb = struct.pack("<BI", 1, 3) + struct.pack("<II", 1, len(ring))
     wkb += b"".join(struct.pack("<dd", *point) for point in ring)
     return b"GP" + bytes((0, 1)) + struct.pack("<i", 32632) + wkb
+
+
+def square_gpkg():
+    return polygon_gpkg(
+        [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0), (0.0, 0.0)]
+    )
 
 
 class EmiliaXdbtrMaterializerTest(unittest.TestCase):
@@ -39,10 +44,37 @@ class EmiliaXdbtrMaterializerTest(unittest.TestCase):
         }
         aoi = bytes((1, 1, 1, 1))
         center = bytearray(4)
-        samples = bytearray(4)
+        samples = MODULE.array("H", [0]) * 4
         MODULE.rasterize_polygon(polygon, center, samples, aoi, grid)
         self.assertEqual(list(center), [0, 0, 1, 0])
-        self.assertEqual(list(samples), [0, 0, 16, 0])
+        self.assertEqual(list(samples), [0, 0, 0xFFFF, 0])
+
+    def test_partial_and_overlapping_coverage_counts_distinct_subcells(self):
+        half_cell = polygon_gpkg(
+            [(0.0, 0.0), (5.0, 0.0), (5.0, 10.0), (0.0, 10.0), (0.0, 0.0)]
+        )
+        polygon = MODULE.decode_geopackage_geometry(half_cell)[0]
+        grid = {
+            "bounds": [0, 0, 10, 10],
+            "cellSizeM": 10,
+            "width": 1,
+            "height": 1,
+        }
+        center = bytearray(1)
+        subcells = MODULE.array("H", [0])
+        MODULE.rasterize_polygon(polygon, center, subcells, bytes((1,)), grid)
+        first_mask = subcells[0]
+        self.assertGreater(first_mask.bit_count() / 16, 0)
+        self.assertLess(first_mask.bit_count() / 16, 1)
+        self.assertEqual(first_mask.bit_count(), 8)
+
+        MODULE.rasterize_polygon(polygon, center, subcells, bytes((1,)), grid)
+        self.assertEqual(subcells[0], first_mask)
+        self.assertEqual(subcells[0].bit_count(), 8)
+
+    def test_empty_geopackage_geometry_is_explicit(self):
+        empty = b"GP" + bytes((0, 0x11)) + struct.pack("<i", 32632)
+        self.assertEqual(MODULE.decode_geopackage_geometry(empty), [])
 
     def test_temporal_filter_never_turns_unknown_into_zero(self):
         self.assertEqual(MODULE.integer_date(20230515112233), 20230515)
