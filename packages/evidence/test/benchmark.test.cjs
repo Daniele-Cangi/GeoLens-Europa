@@ -30,7 +30,7 @@ test('Emilia-Romagna manifest passes the historical benchmark contract', () => {
     'retrospective_reconstruction',
   );
   assert.equal(manifest.benchmark.claimLevel, 'hydrologic_routing');
-  assert.equal(manifest.manifestVersion, '1.6.0');
+  assert.equal(manifest.manifestVersion, '1.7.0');
   assert.ok(manifest.benchmark.forbiddenClaims.includes('validated_water_depth'));
 });
 
@@ -127,6 +127,58 @@ test('evaluation protocol rejects leakage, calibration and unpinned predictions'
   assert.throws(
     () => assertHistoricalBenchmarkManifest(inputReference),
     /cannot be used for model input or calibration/,
+  );
+});
+
+test('blind evaluation run retains a negative result without changing claims', () => {
+  const manifest = manifestFixture();
+  const run = manifest.benchmark.evaluationRuns.find(
+    (candidate) =>
+      candidate.id === 'forli-event-runoff-concentration-v0-v7-event2',
+  );
+
+  assert.equal(run.evaluationReferenceAccess, 'loaded_after_protocol_freeze');
+  assert.equal(run.calibration, false);
+  assert.equal(
+    run.claimLevel,
+    'hydrologic_routing_spatial_ranking_diagnostics',
+  );
+  assert.equal(run.counts.sourceFeatureCount, 2022);
+  assert.equal(run.counts.evaluatedCells, 130307);
+  assert.equal(run.results.rocAuc, 0.49162439445221917);
+  assert.equal(run.results.averagePrecision, 0.2776793857866033);
+  assert.equal(run.localArtifacts.length, 2);
+  assert.match(run.methodologyNote, /near-random result/);
+});
+
+test('evaluation run rejects post-freeze drift and inconsistent metrics', () => {
+  const calibrated = manifestFixture();
+  calibrated.benchmark.evaluationRuns[0].calibration = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(calibrated),
+    /must not calibrate on evaluation data/,
+  );
+
+  const unknownProtocol = manifestFixture();
+  unknownProtocol.benchmark.evaluationRuns[0].protocolId = 'unknown';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(unknownProtocol),
+    /references unknown evaluation protocol/,
+  );
+
+  const driftedFraction = manifestFixture();
+  driftedFraction.benchmark.evaluationRuns[0].results
+    .overlapAtFrozenAreaFractions[0].areaFraction = 0.02;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(driftedFraction),
+    /internally inconsistent|area fractions drifted/,
+  );
+
+  const falsePrevalence = manifestFixture();
+  falsePrevalence.benchmark.evaluationRuns[0].results.observedPrevalence = 0.5;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(falsePrevalence),
+    /prevalence disagrees with counts/,
   );
 });
 

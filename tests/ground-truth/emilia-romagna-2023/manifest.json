@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "1.6.0",
+  "manifestVersion": "1.7.0",
   "benchmark": {
     "id": "emilia-romagna-2023-forli-retrospective-reconstruction",
     "title": "Case 02 - Emilia-Romagna 2023 / Retrospective Flood Reconstruction",
@@ -209,6 +209,100 @@
         "tiePolicy": "fractional_uniform_weight_at_threshold_score",
         "calibrationPolicy": "none",
         "methodologyNote": "Frozen before reading the official event-2 geometry. The score is routed upstream excess volume on the finite frozen AOI grid. ROC AUC and average precision are threshold-free ranking diagnostics; overlap is reported only at predeclared area fractions with fractional tie weighting. These diagnostics evaluate spatial concentration against observed inundation labels but do not convert concentration into predicted inundation extent, validate water depth or calibrate a threshold."
+      }
+    ],
+    "evaluationRuns": [
+      {
+        "id": "forli-event-runoff-concentration-v0-v7-event2",
+        "protocolId": "forli-event-runoff-concentration-v0",
+        "state": "materialized",
+        "resultVersion": "blind-concentration-evaluation-v0.1.0",
+        "claimLevel": "hydrologic_routing_spatial_ranking_diagnostics",
+        "evaluationReferenceAccess": "loaded_after_protocol_freeze",
+        "calibration": false,
+        "counts": {
+          "sourceFeatureCount": 2022,
+          "decodedPolygonCount": 2032,
+          "observedCenterCellsInsideAoi": 37374,
+          "observedPositiveCells": 37374,
+          "evaluatedCells": 130307,
+          "excludedAccumulatedNoData": 0,
+          "excludedLocalNoData": 0,
+          "knownWaterStructuralZeroSubtractions": 466,
+          "clampedRoundoffNegatives": 0
+        },
+        "results": {
+          "observedPrevalence": 0.2868149830784225,
+          "rocAuc": 0.49162439445221917,
+          "averagePrecision": 0.2776793857866033,
+          "overlapAtFrozenAreaFractions": [
+            {
+              "areaFraction": 0.01,
+              "thresholdM3": 1728.5538294489288,
+              "fullCellsAboveThreshold": 1303,
+              "cellsEqualThreshold": 1,
+              "fractionalTieWeight": 0.06999999999993634,
+              "selectedEquivalentCells": 1303.07,
+              "selectedEquivalentAreaM2": 1172763.0,
+              "weightedIntersectionCells": 207.0,
+              "precision": 0.15885562556117477,
+              "recall": 0.005538609728688393,
+              "intersectionOverUnion": 0.005380806429517804
+            },
+            {
+              "areaFraction": 0.05,
+              "thresholdM3": 677.5189875502265,
+              "fullCellsAboveThreshold": 6515,
+              "cellsEqualThreshold": 1,
+              "fractionalTieWeight": 0.3500000000003638,
+              "selectedEquivalentCells": 6515.35,
+              "selectedEquivalentAreaM2": 5863815.0,
+              "weightedIntersectionCells": 1562.0,
+              "precision": 0.23974153345560867,
+              "recall": 0.04179376036817039,
+              "intersectionOverUnion": 0.03690285359229907
+            },
+            {
+              "areaFraction": 0.1,
+              "thresholdM3": 377.1941760519553,
+              "fullCellsAboveThreshold": 13030,
+              "cellsEqualThreshold": 1,
+              "fractionalTieWeight": 0.7000000000007276,
+              "selectedEquivalentCells": 13030.7,
+              "selectedEquivalentAreaM2": 11727630.0,
+              "weightedIntersectionCells": 3461.0,
+              "precision": 0.2656035362643603,
+              "recall": 0.09260448440092042,
+              "intersectionOverUnion": 0.0737266129427378
+            },
+            {
+              "areaFraction": 0.2,
+              "thresholdM3": 143.48606161266665,
+              "fullCellsAboveThreshold": 26061,
+              "cellsEqualThreshold": 1,
+              "fractionalTieWeight": 0.4000000000014552,
+              "selectedEquivalentCells": 26061.4,
+              "selectedEquivalentAreaM2": 23455260.0,
+              "weightedIntersectionCells": 7057.0,
+              "precision": 0.27078361101092036,
+              "recall": 0.18882110558142023,
+              "intersectionOverUnion": 0.12517205170774623
+            }
+          ]
+        },
+        "methodologyNote": "The V7 geometry was first loaded only after protocol commit 110a217 was published. Independent scikit-learn verification reproduces the ROC AUC and average precision. The near-random result is retained as negative evidence that unconditioned D8 runoff concentration does not reconstruct the observed event-2 flood extent; no threshold was calibrated and no inundation, water-depth or forecast claim is made.",
+        "localArtifacts": [
+          {
+            "relativePath": "restricted-evaluation/rer-v7-event2-observed-center-mask-u8.bin",
+            "bytes": 140700,
+            "sha256": "8c393c137dd1e7f1ff7fea19c9e8e2f8efd9cf53a293ef239670eff4ae07e3b3"
+          },
+          {
+            "relativePath": "restricted-evaluation/forli-event-runoff-concentration-v0.json",
+            "bytes": 6275,
+            "sha256": "c341206bee07bebaa3e46ef76c926281dbce53e5d4ed4a8329e6af459adab747"
+          }
+        ]
       }
     ]
   },

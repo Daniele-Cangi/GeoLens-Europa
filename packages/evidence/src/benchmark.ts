@@ -47,7 +47,7 @@ export interface BenchmarkDataset {
 }
 
 export interface HistoricalBenchmarkManifest {
-  readonly manifestVersion: '1.6.0';
+  readonly manifestVersion: '1.7.0';
   readonly benchmark: {
     readonly id: string;
     readonly title: string;
@@ -74,6 +74,7 @@ export interface HistoricalBenchmarkManifest {
     readonly localArtifacts?: readonly BenchmarkLocalArtifact[];
     readonly routingBaselines: readonly BenchmarkRoutingBaseline[];
     readonly evaluationProtocols: readonly BenchmarkEvaluationProtocol[];
+    readonly evaluationRuns: readonly BenchmarkEvaluationRun[];
     readonly evaluationMetrics: readonly string[];
     readonly forbiddenClaims: readonly string[];
   };
@@ -124,6 +125,49 @@ export interface BenchmarkEvaluationProtocol {
   readonly tiePolicy: 'fractional_uniform_weight_at_threshold_score';
   readonly calibrationPolicy: 'none';
   readonly methodologyNote: string;
+}
+
+export interface BenchmarkEvaluationRun {
+  readonly id: string;
+  readonly protocolId: string;
+  readonly state: 'materialized';
+  readonly resultVersion: string;
+  readonly claimLevel: 'hydrologic_routing_spatial_ranking_diagnostics';
+  readonly evaluationReferenceAccess: 'loaded_after_protocol_freeze';
+  readonly calibration: false;
+  readonly counts: {
+    readonly sourceFeatureCount: number;
+    readonly decodedPolygonCount: number;
+    readonly observedCenterCellsInsideAoi: number;
+    readonly observedPositiveCells: number;
+    readonly evaluatedCells: number;
+    readonly excludedAccumulatedNoData: number;
+    readonly excludedLocalNoData: number;
+    readonly knownWaterStructuralZeroSubtractions: number;
+    readonly clampedRoundoffNegatives: number;
+  };
+  readonly results: {
+    readonly observedPrevalence: number;
+    readonly rocAuc: number;
+    readonly averagePrecision: number;
+    readonly overlapAtFrozenAreaFractions: readonly BenchmarkOverlapResult[];
+  };
+  readonly methodologyNote: string;
+  readonly localArtifacts: readonly BenchmarkLocalArtifact[];
+}
+
+export interface BenchmarkOverlapResult {
+  readonly areaFraction: number;
+  readonly thresholdM3: number;
+  readonly fullCellsAboveThreshold: number;
+  readonly cellsEqualThreshold: number;
+  readonly fractionalTieWeight: number;
+  readonly selectedEquivalentCells: number;
+  readonly selectedEquivalentAreaM2: number;
+  readonly weightedIntersectionCells: number;
+  readonly precision: number;
+  readonly recall: number;
+  readonly intersectionOverUnion: number;
 }
 
 export interface BenchmarkSpatialProtocol {
@@ -187,8 +231,8 @@ export function assertHistoricalBenchmarkManifest(
   value: unknown,
 ): asserts value is HistoricalBenchmarkManifest {
   const root = objectValue(value, 'manifest');
-  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.6.0') {
-    throw new Error('manifestVersion must be "1.6.0"');
+  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.7.0') {
+    throw new Error('manifestVersion must be "1.7.0"');
   }
 
   const benchmark = objectValue(root.benchmark, 'benchmark');
@@ -349,6 +393,7 @@ export function assertHistoricalBenchmarkManifest(
     readonly predictionArtifactPaths: readonly string[];
   }> = [];
   const evaluationProtocolIds = new Set<string>();
+  const evaluationProtocolFractions = new Map<string, readonly number[]>();
   const expectedMetrics = [
     'roc_auc',
     'average_precision',
@@ -484,6 +529,7 @@ export function assertHistoricalBenchmarkManifest(
       evaluationDatasetId,
       predictionArtifactPaths,
     });
+    evaluationProtocolFractions.set(id, areaFractions);
   });
   const declaredEvaluationMetrics = uniqueStringArray(
     benchmark.evaluationMetrics,
@@ -499,6 +545,204 @@ export function assertHistoricalBenchmarkManifest(
       'benchmark.evaluationMetrics must match the frozen metric set',
     );
   }
+  if (
+    !Array.isArray(benchmark.evaluationRuns) ||
+    benchmark.evaluationRuns.length === 0
+  ) {
+    throw new Error('benchmark.evaluationRuns must be a non-empty array');
+  }
+  const evaluationRunIds = new Set<string>();
+  const evaluationRunReferences: Array<{
+    readonly label: string;
+    readonly protocolId: string;
+    readonly areaFractions: readonly number[];
+  }> = [];
+  benchmark.evaluationRuns.forEach((rawRun, index) => {
+    const label = `benchmark.evaluationRuns[${index}]`;
+    const run = objectValue(rawRun, label);
+    const id = stringValue(run.id, `${label}.id`);
+    if (evaluationRunIds.has(id)) {
+      throw new Error(`Duplicate evaluation run id "${id}"`);
+    }
+    evaluationRunIds.add(id);
+    const protocolId = stringValue(run.protocolId, `${label}.protocolId`);
+    if (run.state !== 'materialized') {
+      throw new Error(`${label}.state must be materialized`);
+    }
+    stringValue(run.resultVersion, `${label}.resultVersion`);
+    if (
+      run.claimLevel !==
+      'hydrologic_routing_spatial_ranking_diagnostics'
+    ) {
+      throw new Error(`${label}.claimLevel is unsupported`);
+    }
+    if (run.evaluationReferenceAccess !== 'loaded_after_protocol_freeze') {
+      throw new Error(`${label} must record post-freeze reference access`);
+    }
+    if (booleanValue(run.calibration, `${label}.calibration`)) {
+      throw new Error(`${label} must not calibrate on evaluation data`);
+    }
+
+    const counts = objectValue(run.counts, `${label}.counts`);
+    const sourceFeatureCount = positiveInteger(
+      counts.sourceFeatureCount,
+      `${label}.counts.sourceFeatureCount`,
+    );
+    const decodedPolygonCount = positiveInteger(
+      counts.decodedPolygonCount,
+      `${label}.counts.decodedPolygonCount`,
+    );
+    if (decodedPolygonCount < sourceFeatureCount) {
+      throw new Error(`${label} decoded fewer polygons than source features`);
+    }
+    const observedCenterCellsInsideAoi = positiveInteger(
+      counts.observedCenterCellsInsideAoi,
+      `${label}.counts.observedCenterCellsInsideAoi`,
+    );
+    const observedPositiveCells = positiveInteger(
+      counts.observedPositiveCells,
+      `${label}.counts.observedPositiveCells`,
+    );
+    const evaluatedCells = positiveInteger(
+      counts.evaluatedCells,
+      `${label}.counts.evaluatedCells`,
+    );
+    if (
+      observedPositiveCells > observedCenterCellsInsideAoi ||
+      observedPositiveCells >= evaluatedCells
+    ) {
+      throw new Error(`${label} observed-positive cell counts are invalid`);
+    }
+    for (const countName of [
+      'excludedAccumulatedNoData',
+      'excludedLocalNoData',
+      'knownWaterStructuralZeroSubtractions',
+      'clampedRoundoffNegatives',
+    ]) {
+      nonNegativeInteger(counts[countName], `${label}.counts.${countName}`);
+    }
+
+    const results = objectValue(run.results, `${label}.results`);
+    const observedPrevalence = probability(
+      results.observedPrevalence,
+      `${label}.results.observedPrevalence`,
+    );
+    if (
+      !approximatelyEqual(
+        observedPrevalence,
+        observedPositiveCells / evaluatedCells,
+      )
+    ) {
+      throw new Error(`${label} observed prevalence disagrees with counts`);
+    }
+    probability(results.rocAuc, `${label}.results.rocAuc`);
+    probability(
+      results.averagePrecision,
+      `${label}.results.averagePrecision`,
+    );
+    if (!Array.isArray(results.overlapAtFrozenAreaFractions)) {
+      throw new Error(
+        `${label}.results.overlapAtFrozenAreaFractions must be an array`,
+      );
+    }
+    const areaFractions = results.overlapAtFrozenAreaFractions.map(
+      (rawOverlap, overlapIndex) => {
+        const overlapLabel =
+          `${label}.results.overlapAtFrozenAreaFractions[${overlapIndex}]`;
+        const overlap = objectValue(rawOverlap, overlapLabel);
+        const areaFraction = probability(
+          overlap.areaFraction,
+          `${overlapLabel}.areaFraction`,
+        );
+        if (areaFraction === 0) {
+          throw new Error(`${overlapLabel}.areaFraction must be positive`);
+        }
+        const thresholdM3 = finiteNumber(
+          overlap.thresholdM3,
+          `${overlapLabel}.thresholdM3`,
+        );
+        if (thresholdM3 < 0) {
+          throw new Error(`${overlapLabel}.thresholdM3 must be non-negative`);
+        }
+        const fullCellsAboveThreshold = nonNegativeInteger(
+          overlap.fullCellsAboveThreshold,
+          `${overlapLabel}.fullCellsAboveThreshold`,
+        );
+        const cellsEqualThreshold = positiveInteger(
+          overlap.cellsEqualThreshold,
+          `${overlapLabel}.cellsEqualThreshold`,
+        );
+        const fractionalTieWeight = probability(
+          overlap.fractionalTieWeight,
+          `${overlapLabel}.fractionalTieWeight`,
+        );
+        const selectedEquivalentCells = finiteNumber(
+          overlap.selectedEquivalentCells,
+          `${overlapLabel}.selectedEquivalentCells`,
+        );
+        const selectedEquivalentAreaM2 = finiteNumber(
+          overlap.selectedEquivalentAreaM2,
+          `${overlapLabel}.selectedEquivalentAreaM2`,
+        );
+        const weightedIntersectionCells = finiteNumber(
+          overlap.weightedIntersectionCells,
+          `${overlapLabel}.weightedIntersectionCells`,
+        );
+        const precision = probability(
+          overlap.precision,
+          `${overlapLabel}.precision`,
+        );
+        const recall = probability(
+          overlap.recall,
+          `${overlapLabel}.recall`,
+        );
+        const intersectionOverUnion = probability(
+          overlap.intersectionOverUnion,
+          `${overlapLabel}.intersectionOverUnion`,
+        );
+        if (
+          !approximatelyEqual(
+            selectedEquivalentCells,
+            areaFraction * evaluatedCells,
+          ) ||
+          !approximatelyEqual(
+            selectedEquivalentAreaM2,
+            selectedEquivalentCells * spatialReferences.cellAreaM2,
+          ) ||
+          !approximatelyEqual(
+            selectedEquivalentCells,
+            fullCellsAboveThreshold +
+              fractionalTieWeight * cellsEqualThreshold,
+          ) ||
+          !approximatelyEqual(
+            precision,
+            weightedIntersectionCells / selectedEquivalentCells,
+          ) ||
+          !approximatelyEqual(
+            recall,
+            weightedIntersectionCells / observedPositiveCells,
+          ) ||
+          !approximatelyEqual(
+            intersectionOverUnion,
+            weightedIntersectionCells /
+              (selectedEquivalentCells +
+                observedPositiveCells -
+                weightedIntersectionCells),
+          )
+        ) {
+          throw new Error(`${overlapLabel} metrics are internally inconsistent`);
+        }
+        return areaFraction;
+      },
+    );
+    stringValue(run.methodologyNote, `${label}.methodologyNote`);
+    assertLocalArtifacts(
+      run.localArtifacts,
+      `${label}.localArtifacts`,
+      artifactPaths,
+    );
+    evaluationRunReferences.push({label, protocolId, areaFractions});
+  });
   let modelInputs = 0;
   let evaluationReferences = 0;
 
@@ -704,6 +948,22 @@ export function assertHistoricalBenchmarkManifest(
       );
     }
   }
+  for (const run of evaluationRunReferences) {
+    const frozenFractions = evaluationProtocolFractions.get(run.protocolId);
+    if (frozenFractions === undefined) {
+      throw new Error(
+        `${run.label} references unknown evaluation protocol "${run.protocolId}"`,
+      );
+    }
+    if (
+      run.areaFractions.length !== frozenFractions.length ||
+      run.areaFractions.some(
+        (fraction, index) => fraction !== frozenFractions[index],
+      )
+    ) {
+      throw new Error(`${run.label} area fractions drifted after protocol freeze`);
+    }
+  }
 }
 
 function assertLocalArtifacts(
@@ -753,6 +1013,7 @@ function assertBenchmarkSpatialProtocol(
 ): {
   readonly verifiedDatasetIds: readonly string[];
   readonly permanentWaterDatasetId: string;
+  readonly cellAreaM2: number;
 } {
   const coverage = objectValue(
     raw.coverage,
@@ -935,6 +1196,7 @@ function assertBenchmarkSpatialProtocol(
   return {
     verifiedDatasetIds,
     permanentWaterDatasetId,
+    cellAreaM2: cellSizeM * cellSizeM,
   };
 }
 
@@ -1025,6 +1287,26 @@ function positiveInteger(value: unknown, label: string): number {
     throw new Error(label + ' must be a positive integer');
   }
   return result;
+}
+
+function nonNegativeInteger(value: unknown, label: string): number {
+  const result = finiteNumber(value, label);
+  if (!Number.isInteger(result) || result < 0) {
+    throw new Error(label + ' must be a non-negative integer');
+  }
+  return result;
+}
+
+function probability(value: unknown, label: string): number {
+  const result = finiteNumber(value, label);
+  if (result < 0 || result > 1) {
+    throw new Error(label + ' must be between 0 and 1');
+  }
+  return result;
+}
+
+function approximatelyEqual(left: number, right: number): boolean {
+  return Math.abs(left - right) <= 1e-12 * Math.max(1, Math.abs(right));
 }
 
 function uniqueStringArray(value: unknown, label: string): string[] {
