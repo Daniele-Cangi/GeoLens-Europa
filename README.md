@@ -49,7 +49,7 @@ GeoLens has two complementary proofs and one independent historical benchmark in
 | --- | --- | --- | --- |
 | Trento Proof 0 | NASA IMERG rainfall, Copernicus GLO-30 terrain and the official local CLC 2018 raster | Complete evidence → runoff → catchment → network → downstream accumulation chain over a deterministic bounded network fixture | The environmental evidence is real; the small network geometry is a test fixture, not surveyed municipal infrastructure |
 | Amsterdam observed proof | Waternet nodes and pipes, AHN4 terrain, BGT physical surfaces, IMERG rainfall, CLC land cover, GLO-30 slope and PDOK/GWSW context | Real municipal topology and a traceable non-zero conditioned runoff source over a bounded urban area | No owner-published surface-to-pipe relation was found in the current public catalogs, so network propagation is intentionally not attempted |
-| Emilia-Romagna 2023 benchmark (in progress) | Official post-event flood extents, bounded IMERG Final Run V07, GLO-30, CLC and official DBTR physical geometry on one frozen 30 m grid | Real event rainfall → inspectable runoff → frozen D8 flow concentration, with reproducible content-addressed evidence and mass balance | The current DBTR extract is not a complete as-of-May-2023 snapshot; comparison against the withheld observed extent is still pending |
+| Emilia-Romagna 2023 benchmark (in progress) | Official post-event flood extents, bounded IMERG Final Run V07, GLO-30, CLC and official DBTR physical geometry on one frozen 30 m grid | A blind, reproducible comparison of real-event runoff concentration against the independent observed extent | The unconditioned D8 concentration ranks the observed extent no better than chance; it is negative evidence, not a validated inundation model |
 
 ### Trento result
 
@@ -76,7 +76,7 @@ The 11.4145 m³ result is therefore available as an inspectable environmental so
 
 ### Emilia-Romagna benchmark
 
-Case 02 is being prepared around a bounded Forlì pilot for the 16–18 May 2023 event. The input/evaluation boundary is explicit:
+Case 02 is a bounded Forlì retrospective reconstruction for the 16–18 May 2023 event. The input/evaluation boundary is explicit:
 
 - IMERG Final Run V07 rainfall is a version-pinned retrospective model input; GeoLens opened and accumulated all 96 expected half-hour granules over the bounded Forlì AOI;
 - the persisted native 0.1 degree subset is a 3x3 grid with nine finite 48-hour totals from 82.295 to 105.445 mm and a mean of 93.982 mm;
@@ -85,18 +85,24 @@ Case 02 is being prepared around a bounded Forlì pilot for the 16–18 May 2023
 - a cell-centre AOI mask retains 130,307 eligible cells and excludes 10,393 envelope cells; H3 r11 is a separate representation choice, not the metric grid or a source resolution;
 - GLO-30 supplies real elevation and four-neighbour slope for every eligible cell: elevation ranges from 9.009 to 181.722 m and slope from 0 to 34.376°;
 - the official CLC raster supplies every eligible cell with a real level-3 class; missing classes use `-1` in the bounded binary artifact and can never become class `0`;
-- primary overlap metrics are unbuffered; an explicit 30 m one-cell tolerance is available only for secondary boundary-aware metrics;
-- the official regional flood extent is evaluation-only, stays withheld until a prediction is frozen and cannot enter model input or calibration;
+- observed labels use unbuffered cell-centre containment; boundary-distance metrics remain unavailable until GeoLens produces a physically conditioned inundation extent;
+- the official regional flood extent is evaluation-only, remained unread until protocol commit `110a217` froze the prediction, score and metrics, and cannot enter model input or calibration;
 - the official DBTR service supplied physical EPSG:32632 polygons for water, wet areas, riverbeds, embankments and buildings; styled WMS images remain context only;
 - the extract was generated after the event, so GeoLens retains only features with `DATA_AGG < 2023-05-16`: 119 later features are excluded and counted; zero in a derived mask means no eligible geometry was identified, not observed historical absence;
 - each DBTR class retains a centre-cell known-presence mask and one `float32` coverage fraction per cell, computed from 16 distinct 4x4 subcells; overlapping hits are unioned, `NaN` marks cells outside the AOI, and zero is a valid no-hit value; the current extract cannot reconstruct geometry deleted or overwritten after the event, so its historical quality remains `incomplete_window`;
 - the current claim is hydrologic routing, not validated inundation extent, flood depth or operational forecasting.
 
-The bounded inputs live outside Git under `D:/GeoLens/data/emilia-romagna-2023`. Manifest v1.5.0 pins 41 official and derived artifacts totaling 649,784,851 bytes, including the canonical IMERG cache and portable source grid, DBTR GeoPackage and metadata, ten DBTR masks/coverage arrays, four terrain-routing arrays and five event-runoff arrays. Styled WMS images remain per-run context receipts and are never promoted to physical evidence. `--source` points to the delivered `estraz_procons.gpkg` file; its parent directory must also contain the five `V_*_GPG.xml` metadata files. The materializer imports them into a stable path before deriving the arrays.
+The bounded inputs live outside Git under `D:/GeoLens/data/emilia-romagna-2023`. Manifest v1.7.0 pins 43 official and derived artifacts totaling 649,931,826 bytes, including the canonical IMERG cache and portable source grid, DBTR GeoPackage and metadata, ten DBTR masks/coverage arrays, four terrain-routing arrays, five event-runoff arrays, and the local restricted evaluation mask and receipt. No observed geometry or derived mask is committed to Git. Styled WMS images remain per-run context receipts and are never promoted to physical evidence.
+
+The XDBTR materializer's `--source` points to the delivered `estraz_procons.gpkg`; its parent directory must also contain the five `V_*_GPG.xml` metadata files. The concentration evaluator has a separate optional `--source`: it defaults to `<data-root>/source/rer-flood-extent-v7/Perimetrazioni_maggio_v7_DSG_88_2025.gpkg` and accepts only the extracted official V7 GeoPackage. Both tools verify or import their source into the bounded external-data workflow before deriving arrays.
 
 The first Forli routing baseline is `bounded-d8-steepest-descent-v0.1.0`. It uses GLO-30 elevation and DBTR known permanent-water cell centres, routes only over a strictly positive D8 downslope gradient, preserves local depressions, and stops AOI-edge cells instead of inventing off-grid elevations. It conserves all `116,856,900 m2` of eligible land area, but the raw 30 m surface produces `7,840` local-depression terminals and a largest terminal catchment of only `491,400 m2`. This fragmentation is retained as diagnostic evidence: the result is terrain-flow concentration with `incomplete_window` quality, not inundation extent or water depth. The regional observed flood extent is not loaded during materialization.
 
-The event baseline composes the complete 96-granule IMERG window with real GLO-30 slope and CLC through `runoff-coefficient-proxy-v0.1.0`, then propagates local volume without attenuation over that frozen D8 graph. It derives `6,176,691.50 m3` over 129,841 source cells and closes at the terminals with a floating-point difference of about `-0.0000000475 m3`; the largest terminal accumulation is `24,490.61 m3`. This remains experimental flow concentration, not an inundation map. The observed flood extent is still not loaded.
+The event baseline composes the complete 96-granule IMERG window with real GLO-30 slope and CLC through `runoff-coefficient-proxy-v0.1.0`, then propagates local volume without attenuation over that frozen D8 graph. It derives `6,176,691.50 m3` over 129,841 source cells and closes at the terminals with a floating-point difference of about `-0.0000000475 m3`; the largest terminal accumulation is `24,490.61 m3`. The observed flood extent was not loaded during any of these transformations.
+
+Only after the protocol was committed and pushed did GeoLens rasterize the official V7 event-2 union locally. The unbuffered evaluation contains 130,307 cells, of which 37,374 are observed-positive (`28.6815%`). Routed upstream excess volume returns ROC AUC `0.491624` and average precision `0.277679`; an independent scikit-learn calculation reproduces both values. At the frozen 1%, 5%, 10% and 20% selected-area fractions, tie-weighted IoU is respectively `0.00538`, `0.03690`, `0.07373` and `0.12517`.
+
+That is a failed physical hypothesis, not a failed benchmark: raw GLO-30 D8 concentration without depression conditioning, river stage, discharge, breach, embankment or downstream boundary conditions does not reconstruct the observed flood footprint. GeoLens retains the result as a versioned negative baseline and makes no inundation, water-depth, probability or forecast claim.
 
 ~~~powershell
 npm run materialize:emilia-inputs -- `
@@ -117,6 +123,7 @@ npm run materialize:emilia-terrain-routing -- D:\GeoLens\data\emilia-romagna-202
 npm run verify:emilia-terrain-routing -- D:\GeoLens\data\emilia-romagna-2023
 npm run materialize:emilia-event-runoff -- D:\GeoLens\data\emilia-romagna-2023
 npm run verify:emilia-event-runoff -- D:\GeoLens\data\emilia-romagna-2023
+npm run evaluate:emilia-concentration -- --data-root D:\GeoLens\data\emilia-romagna-2023
 npm run verify:ground-truth -- D:\GeoLens\data\emilia-romagna-2023
 ~~~
 

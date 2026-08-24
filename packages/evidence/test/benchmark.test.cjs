@@ -30,7 +30,7 @@ test('Emilia-Romagna manifest passes the historical benchmark contract', () => {
     'retrospective_reconstruction',
   );
   assert.equal(manifest.benchmark.claimLevel, 'hydrologic_routing');
-  assert.equal(manifest.manifestVersion, '1.5.0');
+  assert.equal(manifest.manifestVersion, '1.7.0');
   assert.ok(manifest.benchmark.forbiddenClaims.includes('validated_water_depth'));
 });
 
@@ -70,6 +70,127 @@ test('event-runoff baseline freezes real evidence and physical outputs', () => {
   assert.equal(imerg.acquisitionStatus, 'downloaded_verified');
   assert.equal(imerg.localArtifacts.length, 3);
   assert.match(baseline.methodologyNote, /not inundation/);
+});
+
+test('blind concentration evaluation protocol is frozen before V7 access', () => {
+  const manifest = manifestFixture();
+  const protocol = manifest.benchmark.evaluationProtocols.find(
+    (candidate) => candidate.id === 'forli-event-runoff-concentration-v0',
+  );
+
+  assert.equal(protocol.state, 'protocol_frozen');
+  assert.equal(protocol.predictionBaselineId, 'forli-imerg-runoff-d8-v0');
+  assert.equal(protocol.evaluationDatasetId, 'rer-flood-extent-v7-event-2');
+  assert.equal(protocol.evaluationReferenceAccessAtFreeze, 'not_loaded');
+  assert.equal(protocol.calibration, false);
+  assert.equal(protocol.calibrationPolicy, 'none');
+  assert.equal(protocol.domain.primaryBufferM, 0);
+  assert.deepEqual(protocol.metrics, [
+    'roc_auc',
+    'average_precision',
+    'tie_weighted_overlap_at_frozen_area_fractions',
+  ]);
+  assert.deepEqual(protocol.areaFractions, [0.01, 0.05, 0.1, 0.2]);
+  assert.match(protocol.methodologyNote, /do not convert concentration/);
+});
+
+test('evaluation protocol rejects leakage, calibration and unpinned predictions', () => {
+  const loaded = manifestFixture();
+  loaded.benchmark.evaluationProtocols[0].evaluationReferenceAccessAtFreeze =
+    'loaded';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(loaded),
+    /freeze before loading evaluation data/,
+  );
+
+  const calibrated = manifestFixture();
+  calibrated.benchmark.evaluationProtocols[0].calibration = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(calibrated),
+    /must not calibrate on evaluation data/,
+  );
+
+  const unpinned = manifestFixture();
+  unpinned.benchmark.evaluationProtocols[0].predictionArtifacts
+    .accumulatedRunoffVolume = 'derived/event-runoff/unpinned.bin';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(unpinned),
+    /is not pinned by its routing baseline/,
+  );
+
+  const inputReference = manifestFixture();
+  const v7 = inputReference.datasets.find(
+    (dataset) => dataset.id === 'rer-flood-extent-v7-event-2',
+  );
+  v7.role = 'model_input';
+  v7.allowedUses.modelInput = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(inputReference),
+    /cannot be used for model input or calibration/,
+  );
+});
+
+test('blind evaluation run retains a negative result without changing claims', () => {
+  const manifest = manifestFixture();
+  const run = manifest.benchmark.evaluationRuns.find(
+    (candidate) =>
+      candidate.id === 'forli-event-runoff-concentration-v0-v7-event2',
+  );
+
+  assert.equal(run.evaluationReferenceAccess, 'loaded_after_protocol_freeze');
+  assert.equal(run.calibration, false);
+  assert.equal(
+    run.claimLevel,
+    'hydrologic_routing_spatial_ranking_diagnostics',
+  );
+  assert.equal(run.counts.sourceFeatureCount, 2022);
+  assert.equal(run.counts.evaluatedCells, 130307);
+  assert.equal(run.results.rocAuc, 0.49162439445221917);
+  assert.equal(run.results.averagePrecision, 0.2776793857866033);
+  assert.equal(run.localArtifacts.length, 2);
+  assert.match(run.methodologyNote, /near-random result/);
+});
+
+test('evaluation run rejects post-freeze drift and inconsistent metrics', () => {
+  const calibrated = manifestFixture();
+  calibrated.benchmark.evaluationRuns[0].calibration = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(calibrated),
+    /must not calibrate on evaluation data/,
+  );
+
+  const unknownProtocol = manifestFixture();
+  unknownProtocol.benchmark.evaluationRuns[0].protocolId = 'unknown';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(unknownProtocol),
+    /references unknown evaluation protocol/,
+  );
+
+  const driftedFraction = manifestFixture();
+  driftedFraction.benchmark.evaluationRuns[0].results
+    .overlapAtFrozenAreaFractions[0].areaFraction = 0.02;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(driftedFraction),
+    /internally inconsistent|area fractions drifted/,
+  );
+
+  const falsePrevalence = manifestFixture();
+  falsePrevalence.benchmark.evaluationRuns[0].results.observedPrevalence = 0.5;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(falsePrevalence),
+    /prevalence disagrees with counts/,
+  );
+
+  const impossibleThresholdGroup = manifestFixture();
+  const overlap = impossibleThresholdGroup.benchmark.evaluationRuns[0]
+    .results.overlapAtFrozenAreaFractions[0];
+  overlap.fullCellsAboveThreshold = 1303;
+  overlap.cellsEqualThreshold = 130000;
+  overlap.fractionalTieWeight = 0.07 / 130000;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(impossibleThresholdGroup),
+    /threshold-group counts exceed evaluated cells/,
+  );
 });
 
 test('routing baselines reject evaluation inputs and unwithheld references', () => {
