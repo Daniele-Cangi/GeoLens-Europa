@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const {
   TERRAIN_FLOW_DIRECTION_MISSING,
   TERRAIN_FLOW_TERMINAL_CODES,
+  accumulateTerrainFlowVolume,
   deriveTerrainFlowConcentration,
 } = require('../dist');
 
@@ -113,5 +114,81 @@ test('mask contracts reject outside-AOI water values that could look observed', 
   assert.throws(
     () => deriveTerrainFlowConcentration(input),
     /must be 255 outside the AOI/,
+  );
+});
+
+test('event volume follows the frozen graph without loss or attenuation', () => {
+  const terrain = deriveTerrainFlowConcentration(fixture());
+  const local = new Float64Array(25);
+  for (let index = 0; index < local.length; index += 1) {
+    local[index] = terrain.terminalTypeCode[index] === 255 ? Number.NaN : 2;
+  }
+  const result = accumulateTerrainFlowVolume({
+    width: 5,
+    height: 5,
+    directionCode: terrain.directionCode,
+    terminalTypeCode: terrain.terminalTypeCode,
+    localSourceVolumeM3: local,
+  });
+
+  assert.equal(result.modelVersion, 'd8-no-loss-volume-accumulation-v0.1.0');
+  assert.equal(result.massBalance.localSourceVolumeM3, 50);
+  assert.equal(result.massBalance.terminalAccumulatedVolumeM3, 50);
+  assert.equal(result.massBalance.differenceM3, 0);
+  assert.equal(result.accumulatedVolumeM3[10], 8);
+});
+
+test('known water accepts upstream volume but never becomes a local source', () => {
+  const elevations = Float32Array.from({ length: 25 }, (_, index) => {
+    const row = Math.floor(index / 5);
+    const column = index % 5;
+    return Math.abs(row - 2) + Math.abs(column - 2);
+  });
+  const water = new Uint8Array(25);
+  water[12] = 1;
+  const terrain = deriveTerrainFlowConcentration(fixture({ elevations, water }));
+  const local = new Float64Array(25).fill(1);
+  local[12] = Number.NaN;
+  const result = accumulateTerrainFlowVolume({
+    width: 5,
+    height: 5,
+    directionCode: terrain.directionCode,
+    terminalTypeCode: terrain.terminalTypeCode,
+    localSourceVolumeM3: local,
+  });
+
+  assert.equal(result.counts.sourceLandCells, 24);
+  assert.ok(result.accumulatedVolumeM3[12] > 0);
+  assert.equal(result.massBalance.localSourceVolumeM3, 24);
+
+  local[12] = 0;
+  assert.throws(
+    () => accumulateTerrainFlowVolume({
+      width: 5,
+      height: 5,
+      directionCode: terrain.directionCode,
+      terminalTypeCode: terrain.terminalTypeCode,
+      localSourceVolumeM3: local,
+    }),
+    /cannot be a land source/,
+  );
+});
+
+test('volume propagation rejects unsupported terminal codes', () => {
+  const terrain = deriveTerrainFlowConcentration(fixture());
+  const terminalType = Uint8Array.from(terrain.terminalTypeCode);
+  terminalType[0] = 99;
+  const local = new Float64Array(25).fill(1);
+
+  assert.throws(
+    () =>
+      accumulateTerrainFlowVolume({
+        width: 5,
+        height: 5,
+        directionCode: terrain.directionCode,
+        terminalTypeCode: terminalType,
+        localSourceVolumeM3: local,
+      }),
+    /unsupported terminal type 99/,
   );
 });
