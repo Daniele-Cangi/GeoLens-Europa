@@ -25,9 +25,12 @@
     "verify:ground-truth": "npm run build --workspace=@geo-lens/evidence && node scripts/verify-ground-truth-artifacts.mjs",
     "materialize:emilia-inputs": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/providers && node scripts/materialize-emilia-bounded-inputs.mjs",
     "materialize:emilia-xdbtr": "python scripts/materialize_emilia_xdbtr_masks.py",
+    "materialize:emilia-imerg-cache": "python scripts/materialize_emilia_imerg_cache.py",
     "verify:emilia-inputs": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/providers && node scripts/verify-emilia-bounded-inputs.mjs",
     "materialize:emilia-terrain-routing": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/stormwater && node scripts/materialize-emilia-terrain-routing.mjs",
-    "verify:emilia-terrain-routing": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/stormwater && node scripts/verify-emilia-terrain-routing.mjs"
+    "verify:emilia-terrain-routing": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/stormwater && node scripts/verify-emilia-terrain-routing.mjs",
+    "materialize:emilia-event-runoff": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/stormwater && node scripts/materialize-emilia-event-runoff.mjs",
+    "verify:emilia-event-runoff": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/stormwater && node scripts/verify-emilia-event-runoff.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

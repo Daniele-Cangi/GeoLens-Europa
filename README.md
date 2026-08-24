@@ -43,13 +43,13 @@ H3 connects evidence and infrastructure spatially. H3 is an indexing and represe
 
 ## What works today
 
-GeoLens has two complementary proofs and one independent historical benchmark in preparation.
+GeoLens has two complementary proofs and one independent historical benchmark in progress.
 
 | Proof | What is real | What is demonstrated | Current boundary |
 | --- | --- | --- | --- |
 | Trento Proof 0 | NASA IMERG rainfall, Copernicus GLO-30 terrain and the official local CLC 2018 raster | Complete evidence → runoff → catchment → network → downstream accumulation chain over a deterministic bounded network fixture | The environmental evidence is real; the small network geometry is a test fixture, not surveyed municipal infrastructure |
 | Amsterdam observed proof | Waternet nodes and pipes, AHN4 terrain, BGT physical surfaces, IMERG rainfall, CLC land cover, GLO-30 slope and PDOK/GWSW context | Real municipal topology and a traceable non-zero conditioned runoff source over a bounded urban area | No owner-published surface-to-pipe relation was found in the current public catalogs, so network propagation is intentionally not attempted |
-| Emilia-Romagna 2023 benchmark (in progress) | Official post-event flood extents, bounded IMERG Final Run V07, GLO-30, CLC and official DBTR physical geometry on one frozen 30 m grid | Environmental inputs, known-presence infrastructure masks and evaluation policy are reproducible and content-addressed | The current DBTR extract is not a complete as-of-May-2023 snapshot; routing and withheld evaluation are not complete |
+| Emilia-Romagna 2023 benchmark (in progress) | Official post-event flood extents, bounded IMERG Final Run V07, GLO-30, CLC and official DBTR physical geometry on one frozen 30 m grid | Real event rainfall → inspectable runoff → frozen D8 flow concentration, with reproducible content-addressed evidence and mass balance | The current DBTR extract is not a complete as-of-May-2023 snapshot; comparison against the withheld observed extent is still pending |
 
 ### Trento result
 
@@ -92,9 +92,11 @@ Case 02 is being prepared around a bounded Forlì pilot for the 16–18 May 2023
 - each DBTR class retains a centre-cell known-presence mask and one `float32` coverage fraction per cell, computed from 16 distinct 4x4 subcells; overlapping hits are unioned, `NaN` marks cells outside the AOI, and zero is a valid no-hit value; the current extract cannot reconstruct geometry deleted or overwritten after the event, so its historical quality remains `incomplete_window`;
 - the current claim is hydrologic routing, not validated inundation extent, flood depth or operational forecasting.
 
-The bounded inputs live outside Git under `D:/GeoLens/data/emilia-romagna-2023`. Manifest v1.4.0 pins 33 official and derived artifacts totaling 645,817,107 bytes, including the canonical DBTR GeoPackage, its five metadata records, ten derived masks/coverage arrays and four terrain-routing baseline arrays. Styled WMS images remain per-run context receipts and are never promoted to physical evidence. `--source` points to the delivered `estraz_procons.gpkg` file; its parent directory must also contain the five `V_*_GPG.xml` metadata files. The materializer imports them into a stable path before deriving the arrays.
+The bounded inputs live outside Git under `D:/GeoLens/data/emilia-romagna-2023`. Manifest v1.5.0 pins 41 official and derived artifacts totaling 649,784,851 bytes, including the canonical IMERG cache and portable source grid, DBTR GeoPackage and metadata, ten DBTR masks/coverage arrays, four terrain-routing arrays and five event-runoff arrays. Styled WMS images remain per-run context receipts and are never promoted to physical evidence. `--source` points to the delivered `estraz_procons.gpkg` file; its parent directory must also contain the five `V_*_GPG.xml` metadata files. The materializer imports them into a stable path before deriving the arrays.
 
 The first Forli routing baseline is `bounded-d8-steepest-descent-v0.1.0`. It uses GLO-30 elevation and DBTR known permanent-water cell centres, routes only over a strictly positive D8 downslope gradient, preserves local depressions, and stops AOI-edge cells instead of inventing off-grid elevations. It conserves all `116,856,900 m2` of eligible land area, but the raw 30 m surface produces `7,840` local-depression terminals and a largest terminal catchment of only `491,400 m2`. This fragmentation is retained as diagnostic evidence: the result is terrain-flow concentration with `incomplete_window` quality, not inundation extent or water depth. The regional observed flood extent is not loaded during materialization.
+
+The event baseline composes the complete 96-granule IMERG window with real GLO-30 slope and CLC through `runoff-coefficient-proxy-v0.1.0`, then propagates local volume without attenuation over that frozen D8 graph. It derives `6,176,691.50 m3` over 129,841 source cells and closes at the terminals with a floating-point difference of about `-0.0000000475 m3`; the largest terminal accumulation is `24,490.61 m3`. This remains experimental flow concentration, not an inundation map. The observed flood extent is still not loaded.
 
 ~~~powershell
 npm run materialize:emilia-inputs -- `
@@ -105,9 +107,16 @@ npm run materialize:emilia-xdbtr -- `
   --data-root D:\GeoLens\data\emilia-romagna-2023 `
   --source D:\path\to\dati_dbtr\estraz_procons.gpkg
 
+npm run materialize:emilia-imerg-cache -- `
+  --data-root D:\GeoLens\data\emilia-romagna-2023 `
+  --metadata D:\GeoLens\cache\imerg\v07_20230518T000000Z_48h_669b94d37ff0.json `
+  --netcdf D:\GeoLens\cache\imerg\v07_20230518T000000Z_48h_669b94d37ff0.nc
+
 npm run verify:emilia-inputs -- D:\GeoLens\data\emilia-romagna-2023
 npm run materialize:emilia-terrain-routing -- D:\GeoLens\data\emilia-romagna-2023
 npm run verify:emilia-terrain-routing -- D:\GeoLens\data\emilia-romagna-2023
+npm run materialize:emilia-event-runoff -- D:\GeoLens\data\emilia-romagna-2023
+npm run verify:emilia-event-runoff -- D:\GeoLens\data\emilia-romagna-2023
 npm run verify:ground-truth -- D:\GeoLens\data\emilia-romagna-2023
 ~~~
 

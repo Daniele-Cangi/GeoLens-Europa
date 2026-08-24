@@ -30,7 +30,7 @@ test('Emilia-Romagna manifest passes the historical benchmark contract', () => {
     'retrospective_reconstruction',
   );
   assert.equal(manifest.benchmark.claimLevel, 'hydrologic_routing');
-  assert.equal(manifest.manifestVersion, '1.4.0');
+  assert.equal(manifest.manifestVersion, '1.5.0');
   assert.ok(manifest.benchmark.forbiddenClaims.includes('validated_water_depth'));
 });
 
@@ -45,6 +45,30 @@ test('terrain-routing baseline is materialized without evaluation leakage', () =
   assert.equal(baseline.evaluationReferenceAccess, 'withheld');
   assert.equal(baseline.quality, 'incomplete_window');
   assert.equal(baseline.localArtifacts.length, 4);
+  assert.match(baseline.methodologyNote, /not inundation/);
+});
+
+test('event-runoff baseline freezes real evidence and physical outputs', () => {
+  const manifest = manifestFixture();
+  const baseline = manifest.benchmark.routingBaselines.find(
+    (candidate) => candidate.id === 'forli-imerg-runoff-d8-v0',
+  );
+  const imerg = manifest.datasets.find(
+    (candidate) => candidate.id === 'nasa-imerg-v07',
+  );
+
+  assert.equal(baseline.semantics, 'event_runoff_flow_concentration');
+  assert.equal(baseline.evaluationReferenceAccess, 'withheld');
+  assert.equal(baseline.quality, 'incomplete_window');
+  assert.equal(baseline.localArtifacts.length, 5);
+  assert.deepEqual(baseline.inputDatasetIds, [
+    'nasa-imerg-v07',
+    'copernicus-clc-2018',
+    'copernicus-dem-glo-30-2022',
+    'rer-dbtr-forli-cutoff-2023',
+  ]);
+  assert.equal(imerg.acquisitionStatus, 'downloaded_verified');
+  assert.equal(imerg.localArtifacts.length, 3);
   assert.match(baseline.methodologyNote, /not inundation/);
 });
 

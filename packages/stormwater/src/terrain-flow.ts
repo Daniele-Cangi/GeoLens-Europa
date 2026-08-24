@@ -6,6 +6,8 @@
  */
 export const TERRAIN_FLOW_CONCENTRATION_VERSION =
   'bounded-d8-steepest-descent-v0.1.0';
+export const TERRAIN_FLOW_VOLUME_PROPAGATION_VERSION =
+  'd8-no-loss-volume-accumulation-v0.1.0';
 
 export const TERRAIN_FLOW_DIRECTION_MISSING = -128;
 export const TERRAIN_FLOW_DIRECTION_TERMINAL = -1;
@@ -29,6 +31,10 @@ export const TERRAIN_FLOW_TERMINAL_CODES = {
   local_depression: 3,
   incomplete_input_boundary: 4,
 } as const;
+
+const TERRAIN_FLOW_TERMINAL_CODE_SET = new Set<number>(
+  Object.values(TERRAIN_FLOW_TERMINAL_CODES),
+);
 
 export type TerrainFlowTerminal = keyof typeof TERRAIN_FLOW_TERMINAL_CODES;
 
@@ -84,6 +90,36 @@ export interface TerrainFlowConcentrationResult {
     readonly accumulation: 'upstream eligible land area without loss or attenuation';
   };
   readonly limitations: readonly string[];
+}
+
+export interface TerrainFlowVolumeInput {
+  readonly width: number;
+  readonly height: number;
+  readonly directionCode: ArrayLike<number>;
+  readonly terminalTypeCode: ArrayLike<number>;
+  /** Finite non-negative volume on land; NaN on excluded/missing cells and water. */
+  readonly localSourceVolumeM3: ArrayLike<number>;
+}
+
+export interface TerrainFlowVolumeResult {
+  readonly modelVersion: typeof TERRAIN_FLOW_VOLUME_PROPAGATION_VERSION;
+  readonly accumulatedVolumeM3: Float64Array;
+  readonly counts: {
+    readonly graphCells: number;
+    readonly sourceLandCells: number;
+    readonly flowingCells: number;
+    readonly terminalCells: number;
+    readonly waterTerminalCells: number;
+  };
+  readonly massBalance: {
+    readonly localSourceVolumeM3: number;
+    readonly terminalAccumulatedVolumeM3: number;
+    readonly differenceM3: number;
+  };
+  readonly maximumTerminalAccumulation: {
+    readonly terminalIndex: number | null;
+    readonly volumeM3: number;
+  };
 }
 
 const DEFAULT_ELEVATION_TOLERANCE_M = 0.000001;
@@ -365,6 +401,167 @@ export function deriveTerrainFlowConcentration(
       'Known permanent-water presence is historically incomplete; zero in that mask is not proof of historical absence.',
       'The result is terrain flow concentration, not inundation extent, water depth, flood probability or an operational forecast.',
     ],
+  };
+}
+
+export function accumulateTerrainFlowVolume(
+  input: TerrainFlowVolumeInput,
+): TerrainFlowVolumeResult {
+  assertPositiveInteger(input.width, 'width');
+  assertPositiveInteger(input.height, 'height');
+  const cellCount = input.width * input.height;
+  assertLength(input.directionCode, cellCount, 'directionCode');
+  assertLength(input.terminalTypeCode, cellCount, 'terminalTypeCode');
+  assertLength(input.localSourceVolumeM3, cellCount, 'localSourceVolumeM3');
+
+  const accumulatedVolumeM3 = new Float64Array(cellCount);
+  accumulatedVolumeM3.fill(Number.NaN);
+  const indegree = new Uint32Array(cellCount);
+  const downstream = new Int32Array(cellCount);
+  downstream.fill(-1);
+  const graphCell = new Uint8Array(cellCount);
+  let graphCells = 0;
+  let sourceLandCells = 0;
+  let flowingCells = 0;
+  let terminalCells = 0;
+  let waterTerminalCells = 0;
+  let localSourceVolumeM3 = 0;
+
+  for (let index = 0; index < cellCount; index += 1) {
+    const type = input.terminalTypeCode[index];
+    const direction = input.directionCode[index];
+    const localVolume = input.localSourceVolumeM3[index];
+    if (type === TERRAIN_FLOW_TERMINAL_MISSING) {
+      if (direction !== TERRAIN_FLOW_DIRECTION_MISSING || !Number.isNaN(localVolume)) {
+        throw new Error(`Missing flow cell ${index} must retain missing sentinels`);
+      }
+      continue;
+    }
+    if (!TERRAIN_FLOW_TERMINAL_CODE_SET.has(type)) {
+      throw new Error(`Flow cell ${index} has unsupported terminal type ${type}`);
+    }
+    graphCell[index] = 1;
+    graphCells += 1;
+    accumulatedVolumeM3[index] = 0;
+    if (type === TERRAIN_FLOW_TERMINAL_CODES.known_permanent_water) {
+      waterTerminalCells += 1;
+      terminalCells += 1;
+      if (direction !== TERRAIN_FLOW_DIRECTION_TERMINAL || !Number.isNaN(localVolume)) {
+        throw new Error(`Known-water terminal ${index} cannot be a land source`);
+      }
+      continue;
+    }
+    if (!Number.isFinite(localVolume) || localVolume < 0) {
+      throw new Error(`Land flow cell ${index} requires finite non-negative source volume`);
+    }
+    sourceLandCells += 1;
+    localSourceVolumeM3 += localVolume;
+    accumulatedVolumeM3[index] = localVolume;
+    if (type === TERRAIN_FLOW_TERMINAL_CODES.flowing) {
+      if (!Number.isInteger(direction) || direction < 0 || direction >= TERRAIN_FLOW_DIRECTIONS.length) {
+        throw new Error(`Flowing cell ${index} has invalid D8 direction`);
+      }
+      const definition = TERRAIN_FLOW_DIRECTIONS[direction];
+      const row = Math.floor(index / input.width);
+      const column = index % input.width;
+      const targetRow = row + definition.rowOffset;
+      const targetColumn = column + definition.columnOffset;
+      if (
+        targetRow < 0 ||
+        targetRow >= input.height ||
+        targetColumn < 0 ||
+        targetColumn >= input.width
+      ) {
+        throw new Error(`Flowing cell ${index} exits the frozen grid`);
+      }
+      const target = targetRow * input.width + targetColumn;
+      downstream[index] = target;
+      indegree[target] += 1;
+      flowingCells += 1;
+    } else {
+      if (direction !== TERRAIN_FLOW_DIRECTION_TERMINAL) {
+        throw new Error(`Terminal cell ${index} must use direction -1`);
+      }
+      terminalCells += 1;
+    }
+  }
+
+  const queue: number[] = [];
+  for (let index = 0; index < cellCount; index += 1) {
+    if (graphCell[index] === 1 && indegree[index] === 0) {
+      queue.push(index);
+    }
+  }
+  let queuePosition = 0;
+  let processedCells = 0;
+  while (queuePosition < queue.length) {
+    const index = queue[queuePosition];
+    queuePosition += 1;
+    processedCells += 1;
+    const target = downstream[index];
+    if (target < 0) {
+      continue;
+    }
+    if (graphCell[target] !== 1) {
+      throw new Error(`Flowing cell ${index} targets missing cell ${target}`);
+    }
+    accumulatedVolumeM3[target] += accumulatedVolumeM3[index];
+    indegree[target] -= 1;
+    if (indegree[target] === 0) {
+      queue.push(target);
+    }
+  }
+  if (processedCells !== graphCells) {
+    throw new Error('Frozen terrain-flow graph contains a cycle');
+  }
+
+  let terminalAccumulatedVolumeM3 = 0;
+  let maximumTerminalIndex: number | null = null;
+  let maximumTerminalVolumeM3 = 0;
+  for (let index = 0; index < cellCount; index += 1) {
+    const type = input.terminalTypeCode[index];
+    if (type === TERRAIN_FLOW_TERMINAL_MISSING || type === TERRAIN_FLOW_TERMINAL_CODES.flowing) {
+      continue;
+    }
+    const volume = accumulatedVolumeM3[index];
+    terminalAccumulatedVolumeM3 += volume;
+    if (
+      volume > maximumTerminalVolumeM3 ||
+      (volume === maximumTerminalVolumeM3 && volume > 0 &&
+        (maximumTerminalIndex === null || index < maximumTerminalIndex))
+    ) {
+      maximumTerminalIndex = index;
+      maximumTerminalVolumeM3 = volume;
+    }
+  }
+  const differenceM3 = terminalAccumulatedVolumeM3 - localSourceVolumeM3;
+  const balanceToleranceM3 = Math.max(
+    1e-9,
+    Math.abs(localSourceVolumeM3) * 1e-12,
+  );
+  if (Math.abs(differenceM3) > balanceToleranceM3) {
+    throw new Error(`Terrain flow volume is not conserved: ${differenceM3} m3`);
+  }
+
+  return {
+    modelVersion: TERRAIN_FLOW_VOLUME_PROPAGATION_VERSION,
+    accumulatedVolumeM3,
+    counts: {
+      graphCells,
+      sourceLandCells,
+      flowingCells,
+      terminalCells,
+      waterTerminalCells,
+    },
+    massBalance: {
+      localSourceVolumeM3,
+      terminalAccumulatedVolumeM3,
+      differenceM3,
+    },
+    maximumTerminalAccumulation: {
+      terminalIndex: maximumTerminalIndex,
+      volumeM3: maximumTerminalVolumeM3,
+    },
   };
 }
 

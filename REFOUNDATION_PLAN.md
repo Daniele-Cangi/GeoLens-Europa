@@ -14,7 +14,7 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Observed-infrastructure gate: established through a live bounded Waternet/Amsterdam WFS path, a valid 47-node/47-pipe topology containing four explicit rainwater outfalls, explicit provider failures, API receipts and a browser-verified inspection panel
 - Observed-direction gate: established separately from propagation; Waternet endpoint invert NAP evidence yields 26 known and 21 ambiguous directions at an inclusive 0.05 m analysis boundary with an explicit 0.000001 m numeric tolerance and no ground-elevation fallback; the selected outfall exposes a known 5-node/4-pipe upstream subgraph while four unresolved boundary pipes remain explicit
 - Historical tracked Copernicus private key: removed from the active tree; revocation/rotation remains an external security action because the secret is present in Git history
-- Retrospective reconstruction benchmark gate: the bounded Forli pilot now has a frozen 30 m metric grid, content-addressed IMERG/DEM/CLC evidence, physical DBTR known-presence masks, a reproducible terrain-flow concentration baseline and an explicit withheld-evaluation policy; the post-event DBTR extraction remains an incomplete historical window rather than a complete May 2023 snapshot
+- Retrospective reconstruction benchmark gate: the bounded Forli pilot now has a frozen 30 m metric grid, content-addressed IMERG/DEM/CLC evidence, physical DBTR known-presence masks, a reproducible terrain-flow baseline and a real-event runoff concentration result with explicit withheld-evaluation policy; the post-event DBTR extraction remains an incomplete historical window rather than a complete May 2023 snapshot
 
 Verified starting baseline (historical):
 
@@ -402,7 +402,7 @@ Progress:
 - the real Forli event accumulation is materialized outside Git at `D:/GeoLens/cache/imerg/v07_20230518T000000Z_48h_669b94d37ff0.{nc,json}`: 96/96 Final Run V07 half-hour granules, requested AOI `[11.98, 44.17, 12.10, 44.28]`, a 3x3 native 0.1 degree grid, nine finite cells, and 48-hour totals from `82.295` to `105.445 mm` with a `93.982 mm` mean; the NetCDF and provenance envelope total 22,143 bytes and pass an exact persistent-cache round trip;
 - Copernicus DEM GLO-30 2022_1 is the verified pre-event terrain input; the regional DTM 1x1 WCS remains context-only until availability of that exact source by the cutoff is proven, and its redistribution remains restricted because the regional service is not OpenData;
 - the Copernicus EMSN154 geospatial package and technical report are locally verified; P04 uses post-event Sentinel-1 delineation, while P06 is a two-dimensional hydraulic model calibrated with P04/EMSR664 footprints and ARPAE boundary conditions, so both remain secondary comparison evidence rather than independent ground truth;
-- declared IMERG, CLC, GLO-30, XDBTR and event-2 coverage all contain the bounded pilot; manifest v1.2.0 originally froze the common EPSG:4326 bounds, which current manifest v1.4.0 retains together with a globally aligned EPSG:32632 30 m grid of 335 by 420 cells, while H3 r11 remains a separate representation choice;
+- declared IMERG, CLC, GLO-30, XDBTR and event-2 coverage all contain the bounded pilot; manifest v1.2.0 originally froze the common EPSG:4326 bounds, which current manifest v1.5.0 retains together with a globally aligned EPSG:32632 30 m grid of 335 by 420 cells, while H3 r11 remains a separate representation choice;
 - the cell-centre AOI mask retains 130,307 cells and excludes 10,393 grid-envelope cells; required-input no-data is excluded and reported per dataset, primary overlap metrics remain unbuffered, and the explicit secondary boundary tolerance is one 30 m cell;
 - bounded GLO-30 elevation and four-neighbour slope are materialized for all 130,307 eligible cells with `NaN` missing sentinels: elevation spans 9.009-181.722 m and slope 0-34.376 degrees;
 - bounded CLC2018 level-3 classes are materialized for all eligible cells with `-1` as the explicit missing sentinel; class `0` is never used as missing evidence;
@@ -416,13 +416,17 @@ Progress:
 - model `bounded-d8-steepest-descent-v0.1.0` establishes the first unconditioned terrain-only routing baseline: AOI-edge, known-water, local-depression and incomplete-input terminals remain distinct; no depression is filled and no off-grid elevation is invented;
 - all `129,841` eligible land cells / `116,856,900 m2` close at terminals with zero area difference, while `466` known permanent-water centres contribute no land source area;
 - the raw GLO-30 surface produces `120,498` flowing cells, `1,503` AOI-boundary terminals and `7,840` local depressions; the largest terminal catchment contains `546` land cells / `491,400 m2`, so fragmentation is retained as negative diagnostic evidence rather than hidden by conditioning;
-- the terrain materializer never loads the withheld regional flood extent, retains `incomplete_window` quality from the historical water mask and emits four content-addressed arrays; manifest v1.4.0 now pins 33 artifacts totaling 645,817,107 bytes.
+- the terrain materializer never loads the withheld regional flood extent, retains `incomplete_window` quality from the historical water mask and emits four content-addressed arrays;
+- the canonical cache exporter freezes the exact IMERG metadata envelope and NetCDF plus a portable 3x3 source-grid representation without creating a second NASA acquisition path; validation requires V07 Final Run, 96 unique ordered half-hour granules, exact actual/requested windows and finite non-negative precipitation while preserving a real observed zero;
+- model `runoff-coefficient-proxy-v0.1.0+d8-no-loss-volume-accumulation-v0.1.0` nearest-samples the native 0.1 degree rainfall grid at each eligible 30 m cell centre, composes real GLO-30 slope and CLC through the canonical inspectable runoff model, converts depth over 900 m2 cells and propagates volume without loss or attenuation over the frozen D8 graph;
+- all `129,841` eligible source cells derive `6,176,691.498415089 m3`; terminals retain `6,176,691.498415042 m3` with a `-4.7497451305389404e-8 m3` floating-point difference, and the largest terminal accumulation is `24,490.605559146057 m3` at the same largest terrain catchment terminal;
+- byte-for-byte recomputation verifies the five event outputs, keeps outside-AOI and excluded local sources as `NaN`, permits known water to receive upstream volume without becoming a local source and confirms the evaluation extent was `not_loaded`; manifest v1.5.0 pins 41 artifacts totaling 649,784,851 bytes.
 
 Work:
 
 - determine whether an authoritative as-of-May-2023 DBTR vector snapshot exists; until then, retain the current-extract masks as incomplete known presence rather than complete historical absence;
-- extend the established terrain-only routing baseline with transparent IMERG-driven and ARPAE-gauge-driven baselines;
-- compose event runoff onto the established routing graph and evaluate the frozen concentration result without calling it an inundation extent;
+- add a separately declared ARPAE-gauge-driven rainfall comparison without calibrating the frozen IMERG result;
+- evaluate the frozen event-runoff concentration against the withheld observed extent without calling it an inundation extent;
 - introduce a conditioned inundation replay only after river levels, discharge, embankments, breaches and downstream boundary conditions have explicit evidence semantics;
 - keep calibration and holdout partitions explicit and retain every model/transformation version.
 
@@ -440,3 +444,4 @@ Checkpoints:
 - `feat: materialize bounded retrospective IMERG`
 - `feat: freeze retrospective evaluation grid`
 - `feat: establish terrain-flow concentration baseline`
+- `feat: propagate retrospective event runoff`
