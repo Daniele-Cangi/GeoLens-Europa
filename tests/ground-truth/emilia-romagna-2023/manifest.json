@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "1.2.0",
+  "manifestVersion": "1.3.0",
   "benchmark": {
     "id": "emilia-romagna-2023-forli-retrospective-reconstruction",
     "title": "Case 02 - Emilia-Romagna 2023 / Retrospective Flood Reconstruction",
@@ -49,7 +49,7 @@
           "nasa-imerg-v07",
           "copernicus-clc-2018",
           "copernicus-dem-glo-30-2022",
-          "rer-xdbtr-2020-2018",
+          "rer-dbtr-forli-cutoff-2023",
           "rer-flood-extent-v7-event-2"
         ],
         "rule": "intersection_of_declared_coverage"
@@ -73,8 +73,8 @@
         "outsideAoi": "exclude",
         "requiredInputNoData": "exclude_and_report_by_dataset",
         "permanentWater": {
-          "datasetId": "rer-xdbtr-2020-2018",
-          "layer": "SDA_Specchio_di_acqua_ed2021",
+          "datasetId": "rer-dbtr-forli-cutoff-2023",
+          "layer": "V_SDA_GPG",
           "treatment": "exclude_from_land_routing_metrics_and_report"
         },
         "evaluationReference": "withheld_until_prediction_is_frozen"
@@ -217,20 +217,21 @@
       ]
     },
     {
-      "id": "rer-xdbtr-2020-2018",
+      "id": "rer-dbtr-forli-cutoff-2023",
       "role": "model_input",
       "temporalRelation": "pre_event",
       "publisher": "Regione Emilia-Romagna",
-      "dataset": "XDBTR alveo, argine and edificato",
-      "datasetVersion": "Alveo/Argine 2020; Edificato 2018",
-      "sourceUrl": "https://servizigis.regione.emilia-romagna.it/wms/xdbtr",
-      "accessMethod": "layer-separated bounded WMS receipt for context; authenticated DBTR extraction service required for physical vector geometry",
-      "sourceResolution": "nominal source scale 1:10000 for argine/alveo",
-      "acquisitionStatus": "blocked",
+      "dataset": "DBTR physical water, wet-area, riverbed, embankment and building geometry for Forli",
+      "datasetVersion": "municipal GeoPackage extract generated 2026-08-24; retained features with DATA_AGG before 2023-05-16",
+      "sourceUrl": "https://geoportale.regione.emilia-romagna.it/download-data/download-dbtopografico",
+      "accessMethod": "public on-demand municipal GeoPackage extraction delivered through an expiring email URL",
+      "sourceResolution": "nominal 1:5000 vector source in EPSG:32632; 30 m grid is a derived representation",
+      "acquisitionStatus": "downloaded_verified",
       "license": {
-        "name": "CC BY 4.0",
+        "name": "CC BY 3.0",
         "access": "public",
-        "redistribution": "allowed"
+        "redistribution": "allowed",
+        "note": "License declared in the five ISO 19139 metadata records bundled with the extract."
       },
       "allowedUses": {
         "modelInput": true,
@@ -242,10 +243,90 @@
           "relativePath": "source/rer-dbtr-wms-capabilities.xml",
           "bytes": 72190,
           "sha256": "326658858A728B19B7713ECC45CF614D0917571B6C9D83850F08FED6C286E619"
+        },
+        {
+          "relativePath": "source/xdbtr/forli-epsg32632/rer-dbtr-forli-epsg32632.gpkg",
+          "bytes": 37765120,
+          "sha256": "896015c7830e47e0ee136392b13f98218d3eaf9c60e5ff4b9479486efdfb7cf4"
+        },
+        {
+          "relativePath": "source/xdbtr/forli-epsg32632/V_SDA_GPG.xml",
+          "bytes": 32404,
+          "sha256": "c828c6a6b18a5e2e8b8c1dc5f9ea43080d798e1e03d8ca69fb0dd172440ca326"
+        },
+        {
+          "relativePath": "source/xdbtr/forli-epsg32632/V_ABA_GPG.xml",
+          "bytes": 32178,
+          "sha256": "ceb98e35aff49df440b3f04c0ebc0491a1cb4e420d2de2aa56d7206bfa8b208e"
+        },
+        {
+          "relativePath": "source/xdbtr/forli-epsg32632/V_AAI_GPG.xml",
+          "bytes": 32057,
+          "sha256": "d2b7e7c4b7fb460d28245b457de19324e2f445630db632e294ad87cb552a72d5"
+        },
+        {
+          "relativePath": "source/xdbtr/forli-epsg32632/V_ARG_GPG.xml",
+          "bytes": 32798,
+          "sha256": "54e946623ec3194d6cc11d2a78d00db3eba8af39d8248c9822f0a7243b31955b"
+        },
+        {
+          "relativePath": "source/xdbtr/forli-epsg32632/V_EDI_GPG.xml",
+          "bytes": 33707,
+          "sha256": "c5119c9c39895950152302b4f7b6052b97d6c549e383ee1f66fe8c0e7042ef2d"
+        },
+        {
+          "relativePath": "inputs/xdbtr-permanent-water-known-center-mask-u8.bin",
+          "bytes": 140700,
+          "sha256": "a6485112ce4c95890d2a79546336afc6302346c15b9e28dc2214656e71fbf697"
+        },
+        {
+          "relativePath": "inputs/xdbtr-permanent-water-known-coverage-f32le.bin",
+          "bytes": 562800,
+          "sha256": "f011f5c60882d9c434ede1debe3102deaf54928b0e23cf9480e704f28f09efed"
+        },
+        {
+          "relativePath": "inputs/xdbtr-wet-area-known-center-mask-u8.bin",
+          "bytes": 140700,
+          "sha256": "2d38a1046a647296f59051a4d502e6a716a7af0bf59c17a7b457a2383d99bb79"
+        },
+        {
+          "relativePath": "inputs/xdbtr-wet-area-known-coverage-f32le.bin",
+          "bytes": 562800,
+          "sha256": "a47957c93803739f77398652b1c4f75ce9c5495676196c9457abaa53ea5409ea"
+        },
+        {
+          "relativePath": "inputs/xdbtr-riverbed-known-center-mask-u8.bin",
+          "bytes": 140700,
+          "sha256": "ffbdec9243da1376ee5d9839723666db8a0a1270bec5d8fd54ef3db09340395d"
+        },
+        {
+          "relativePath": "inputs/xdbtr-riverbed-known-coverage-f32le.bin",
+          "bytes": 562800,
+          "sha256": "19b064b7147627b8846440688d129717fc6a2e355f23eaeae41d3a23eabab586"
+        },
+        {
+          "relativePath": "inputs/xdbtr-embankment-known-center-mask-u8.bin",
+          "bytes": 140700,
+          "sha256": "e61d0132b8ca3cb9fb9c48b7d81912807eeacd65d8298ca18d93fb25dac4ad9d"
+        },
+        {
+          "relativePath": "inputs/xdbtr-embankment-known-coverage-f32le.bin",
+          "bytes": 562800,
+          "sha256": "f8dd6d7bfb9a56f6bed41c6a8fde061ebbbfee804470d74ddd0cd3e8c10dfc81"
+        },
+        {
+          "relativePath": "inputs/xdbtr-building-known-center-mask-u8.bin",
+          "bytes": 140700,
+          "sha256": "b882e826e83dc1873be6b1130ac560735e14c96beadd0e654f996810377e1a11"
+        },
+        {
+          "relativePath": "inputs/xdbtr-building-known-coverage-f32le.bin",
+          "bytes": 562800,
+          "sha256": "2ae51adb80499915e5e6505f811edea3973c87f340a60955114d6ae7cb38a340"
         }
       ],
-      "availableAt": "2020-01-01T00:00:00Z",
-      "methodologyNote": "The public WMS is verified and can retain layer-separated styled-map receipts, but it does not deliver vector geometry. The official bounded DBTR vector extraction redirects to regional IAM authentication. Styled pixels must not be promoted to physical river, embankment or building geometry."
+      "availableAt": "2026-08-24T07:44:37.603Z",
+      "methodologyNote": "The official vector extract was acquired after the event and is not a complete historical snapshot. GeoLens retains only features whose DATA_AGG is strictly earlier than the 2023-05-16 event start; missing dates and 119 post-cutoff features are excluded and counted. Derived masks express known presence only: zero does not assert historical absence. Deleted or overwritten pre-event geometry cannot be reconstructed from the current extract, so runtime quality remains incomplete_window. Source scale and EPSG:32632 geometry remain distinct from the 30 m centre and 4x4 subcell representations."
     },
     {
       "id": "arpae-2023-pluviometry",

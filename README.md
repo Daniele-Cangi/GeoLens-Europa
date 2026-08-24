@@ -49,7 +49,7 @@ GeoLens has two complementary proofs and one independent historical benchmark in
 | --- | --- | --- | --- |
 | Trento Proof 0 | NASA IMERG rainfall, Copernicus GLO-30 terrain and the official local CLC 2018 raster | Complete evidence → runoff → catchment → network → downstream accumulation chain over a deterministic bounded network fixture | The environmental evidence is real; the small network geometry is a test fixture, not surveyed municipal infrastructure |
 | Amsterdam observed proof | Waternet nodes and pipes, AHN4 terrain, BGT physical surfaces, IMERG rainfall, CLC land cover, GLO-30 slope and PDOK/GWSW context | Real municipal topology and a traceable non-zero conditioned runoff source over a bounded urban area | No owner-published surface-to-pipe relation was found in the current public catalogs, so network propagation is intentionally not attempted |
-| Emilia-Romagna 2023 benchmark (in progress) | Official post-event flood extents, bounded IMERG Final Run V07, GLO-30 elevation/slope and CLC classes on one frozen 30 m grid | The environmental inputs and evaluation policy are now reproducible and content-addressed; observed flood evidence remains withheld | XDBTR physical vectors still require the regional authenticated extraction service, so the permanent-water/barrier masks and routing result remain blocked |
+| Emilia-Romagna 2023 benchmark (in progress) | Official post-event flood extents, bounded IMERG Final Run V07, GLO-30, CLC and official DBTR physical geometry on one frozen 30 m grid | Environmental inputs, known-presence infrastructure masks and evaluation policy are reproducible and content-addressed | The current DBTR extract is not a complete as-of-May-2023 snapshot; routing and withheld evaluation are not complete |
 
 ### Trento result
 
@@ -87,15 +87,21 @@ Case 02 is being prepared around a bounded Forlì pilot for the 16–18 May 2023
 - the official CLC raster supplies every eligible cell with a real level-3 class; missing classes use `-1` in the bounded binary artifact and can never become class `0`;
 - primary overlap metrics are unbuffered; an explicit 30 m one-cell tolerance is available only for secondary boundary-aware metrics;
 - the official regional flood extent is evaluation-only, stays withheld until a prediction is frozen and cannot enter model input or calibration;
-- the public XDBTR WMS is retained only as five layer-separated styled-map receipts. The physical vector download redirects to regional IAM authentication, so WMS pixels are not promoted to water, riverbed, embankment or building geometry;
+- the official DBTR service supplied physical EPSG:32632 polygons for water, wet areas, riverbeds, embankments and buildings; styled WMS images remain context only;
+- the extract was generated after the event, so GeoLens retains only features with `DATA_AGG < 2023-05-16`: 119 later features are excluded and counted; zero in a derived mask means no eligible geometry was identified, not observed historical absence;
+- each DBTR class retains a centre-cell known-presence mask and one `float32` coverage fraction per cell, computed from 16 distinct 4x4 subcells; overlapping hits are unioned, `NaN` marks cells outside the AOI, and zero is a valid no-hit value; the current extract cannot reconstruct geometry deleted or overwritten after the event, so its historical quality remains `incomplete_window`;
 - the current claim is hydrologic routing, not validated inundation extent, flood depth or operational forecasting.
 
-The bounded inputs live outside Git under `D:/GeoLens/data/emilia-romagna-2023/inputs`. Deterministic mask, DEM and CLC hashes are declared by the benchmark manifest. The separate receipt retains the machine-specific acquisition time and the live WMS hashes; repeated acquisition proved that styled WMS bytes can change for the same request, so those context images are verified per acquisition but are intentionally not presented as reproducible physical evidence. Reproduce and verify them with:
+The bounded inputs live outside Git under `D:/GeoLens/data/emilia-romagna-2023`. Manifest v1.3.0 pins 29 official and derived artifacts totaling 643,847,307 bytes, including the canonical DBTR GeoPackage, its five metadata records and ten derived masks/coverage arrays. Styled WMS images remain per-run context receipts and are never promoted to physical evidence. `--source` points to the delivered `estraz_procons.gpkg` file; its parent directory must also contain the five `V_*_GPG.xml` metadata files. The materializer imports them into a stable path before deriving the arrays.
 
 ~~~powershell
 npm run materialize:emilia-inputs -- `
   D:\GeoLens\data\emilia-romagna-2023 `
   D:\GeoLens\data\clc\u2018_clc2018_v2020_20u1_raster100m\DATA\U2018_CLC2018_V2020_20u1.tif
+
+npm run materialize:emilia-xdbtr -- `
+  --data-root D:\GeoLens\data\emilia-romagna-2023 `
+  --source D:\path\to\dati_dbtr\estraz_procons.gpkg
 
 npm run verify:emilia-inputs -- D:\GeoLens\data\emilia-romagna-2023
 npm run verify:ground-truth -- D:\GeoLens\data\emilia-romagna-2023
