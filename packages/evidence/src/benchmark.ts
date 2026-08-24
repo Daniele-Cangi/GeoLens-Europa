@@ -47,7 +47,7 @@ export interface BenchmarkDataset {
 }
 
 export interface HistoricalBenchmarkManifest {
-  readonly manifestVersion: '1.2.0';
+  readonly manifestVersion: '1.3.0';
   readonly benchmark: {
     readonly id: string;
     readonly title: string;
@@ -139,8 +139,8 @@ export function assertHistoricalBenchmarkManifest(
   value: unknown,
 ): asserts value is HistoricalBenchmarkManifest {
   const root = objectValue(value, 'manifest');
-  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.2.0') {
-    throw new Error('manifestVersion must be "1.2.0"');
+  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.3.0') {
+    throw new Error('manifestVersion must be "1.3.0"');
   }
 
   const benchmark = objectValue(root.benchmark, 'benchmark');

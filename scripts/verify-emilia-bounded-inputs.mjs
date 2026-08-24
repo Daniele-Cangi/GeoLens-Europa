@@ -42,7 +42,7 @@ const receipt = JSON.parse(
   ),
 );
 
-if (receipt.schemaVersion !== 'bounded-environmental-inputs-v0.1.0') {
+if (receipt.schemaVersion !== 'bounded-environmental-inputs-v0.2.0') {
   throw new Error('Unsupported bounded-input receipt schema');
 }
 if (receipt.benchmarkId !== manifest.benchmark.id) {
@@ -63,27 +63,73 @@ assertDeepEqual(
   manifest.benchmark.spatialProtocol.masks,
   'receipt mask policy',
 );
-if (receipt.xdbtr.status !== 'blocked') {
-  throw new Error('XDBTR must remain blocked until vector geometry exists');
+if (receipt.xdbtr.status !== 'incomplete_window') {
+  throw new Error('DBTR historical limitations must remain explicit');
 }
-if (receipt.xdbtr.physicalGeometryEligible !== false) {
-  throw new Error('Styled XDBTR maps cannot be physical geometry');
+if (receipt.xdbtr.physicalGeometryEligible !== true) {
+  throw new Error('Official DBTR vector geometry must be physically eligible');
 }
-if (receipt.masks.permanentWater.status !== 'blocked') {
-  throw new Error('Permanent-water mask cannot be available from styled WMS');
+if (receipt.xdbtr.historicalSnapshotComplete !== false) {
+  throw new Error('Current DBTR extract cannot claim a complete 2023 snapshot');
+}
+if (receipt.masks.permanentWater.status !== 'incomplete_window') {
+  throw new Error('Permanent-water known presence must retain incomplete status');
+}
+if (receipt.masks.permanentWater.sourceLayer !== 'V_SDA_GPG') {
+  throw new Error('Permanent-water mask must originate from V_SDA_GPG');
+}
+
+const expectedXdbtrRoles = new Set([
+  'permanentWater',
+  'wetArea',
+  'riverbed',
+  'embankment',
+  'building',
+]);
+if (
+  receipt.xdbtr.layers.length !== expectedXdbtrRoles.size ||
+  receipt.xdbtr.layers.some((layer) => !expectedXdbtrRoles.delete(layer.role)) ||
+  expectedXdbtrRoles.size !== 0
+) {
+  throw new Error('DBTR receipt does not contain the five expected roles');
 }
 
 const cellCount = receipt.grid.width * receipt.grid.height;
+const physicalXdbtrArtifacts = [
+  ...receipt.xdbtr.sourceArtifacts,
+  ...receipt.xdbtr.layers.flatMap((layer) => layer.artifacts),
+];
 const artifacts = [
   receipt.masks.aoi,
   ...receipt.dem.artifacts,
   ...receipt.landCover.artifacts,
-  ...receipt.xdbtr.receipts,
+  ...physicalXdbtrArtifacts,
+  ...receipt.xdbtr.contextReceipts,
 ];
-for (const artifact of artifacts) {
-  await verifyArtifact(dataRoot, artifact);
+const artifactPaths = new Set();
+for (const item of artifacts) {
+  if (artifactPaths.has(item.relativePath)) {
+    throw new Error(`Duplicate receipt artifact: ${item.relativePath}`);
+  }
+  artifactPaths.add(item.relativePath);
+  await verifyArtifact(dataRoot, item);
 }
-
+const xdbtrManifest = manifest.datasets.find(
+  (dataset) => dataset.id === 'rer-dbtr-forli-cutoff-2023',
+);
+const declaredXdbtrArtifacts = new Map(
+  xdbtrManifest.localArtifacts.map((item) => [item.relativePath, item]),
+);
+for (const item of physicalXdbtrArtifacts) {
+  const declared = declaredXdbtrArtifacts.get(item.relativePath);
+  if (
+    declared === undefined ||
+    declared.bytes !== item.bytes ||
+    declared.sha256.toLowerCase() !== item.sha256.toLowerCase()
+  ) {
+    throw new Error(`DBTR artifact is not pinned by the manifest: ${item.relativePath}`);
+  }
+}
 const mask = await readArtifact(dataRoot, receipt.masks.aoi);
 if (mask.length !== cellCount) {
   throw new Error('AOI mask byte length does not match the grid');
@@ -137,14 +183,23 @@ const landCover = await verifyLandCover({
   expectedAvailable: receipt.landCover.statusCounts.available,
 });
 
-for (const styledMap of receipt.xdbtr.receipts) {
+const xdbtrLayers = [];
+for (const layer of receipt.xdbtr.layers) {
+  xdbtrLayers.push(await verifyXdbtrLayer(layer, mask));
+}
+for (const styledMap of receipt.xdbtr.contextReceipts) {
   const bytes = await readArtifact(dataRoot, styledMap);
   if (!isTiff(bytes)) {
-    throw new Error(`${styledMap.layer} is not a TIFF receipt`);
+    throw new Error(`${styledMap.layer} is not a TIFF context receipt`);
   }
 }
-
-console.log(
+const gpkgArtifact = receipt.xdbtr.sourceArtifacts.find((item) =>
+  item.relativePath.endsWith('.gpkg'),
+);
+const gpkgBytes = await readArtifact(dataRoot, gpkgArtifact);
+if (gpkgBytes.subarray(0, 16).toString('ascii') !== 'SQLite format 3\u0000') {
+  throw new Error('Pinned DBTR source is not a GeoPackage/SQLite file');
+}console.log(
   JSON.stringify(
     {
       cellCount,
@@ -157,7 +212,14 @@ console.log(
         status: receipt.xdbtr.status,
         physicalGeometryEligible:
           receipt.xdbtr.physicalGeometryEligible,
-        styledMapReceipts: receipt.xdbtr.receipts.length,
+        historicalSnapshotComplete:
+          receipt.xdbtr.historicalSnapshotComplete,
+        excludedPostCutoff: receipt.xdbtr.layers.reduce(
+          (sum, layer) => sum + layer.excludedPostCutoff,
+          0,
+        ),
+        layers: xdbtrLayers,
+        contextReceipts: receipt.xdbtr.contextReceipts.length,
       },
       verifiedArtifacts: artifacts.length,
       verifiedBytes: artifacts.reduce(
@@ -170,6 +232,110 @@ console.log(
   ),
 );
 
+async function verifyXdbtrLayer(layer, aoiMask) {
+  if (layer.srsId !== 32632) {
+    throw new Error(`${layer.role} is not EPSG:32632 source geometry`);
+  }
+  const maskReceipt = receipt.masks[layer.role];
+  if (
+    maskReceipt.status !== 'incomplete_window' ||
+    maskReceipt.sourceLayer !== layer.sourceTable
+  ) {
+    throw new Error(`${layer.role} mask loses its source or incomplete status`);
+  }
+  assertDeepEqual(
+    maskReceipt.temporalFilter,
+    receipt.xdbtr.temporalFilter,
+    `${layer.role} temporal filter`,
+  );
+  const accountedFeatures =
+    layer.eligibleFeatures +
+    layer.excludedPostCutoff +
+    layer.excludedMissingUpdateDate +
+    layer.excludedMissingGeometry;
+  if (accountedFeatures !== layer.totalFeatures) {
+    throw new Error(`${layer.role} feature accounting is incomplete`);
+  }
+  if (layer.decodedPolygons < layer.eligibleFeatures) {
+    throw new Error(`${layer.role} lost eligible polygon geometry`);
+  }
+  const maskArtifact = artifactByName(
+    layer.artifacts,
+    `xdbtr-${roleSlug(layer.role)}-known-center-mask-u8.bin`,
+  );
+  const coverageArtifact = artifactByName(
+    layer.artifacts,
+    `xdbtr-${roleSlug(layer.role)}-known-coverage-f32le.bin`,
+  );
+  assertDeepEqual(
+    receipt.masks[layer.role].artifacts,
+    layer.artifacts,
+    `${layer.role} mask artifacts`,
+  );
+  if (!receipt.masks[layer.role].knownPresenceSemantics.includes('not observed')) {
+    throw new Error(`${layer.role} zero semantics are not explicit`);
+  }
+  const centerMask = await readArtifact(dataRoot, maskArtifact);
+  const coverage = await readArtifact(dataRoot, coverageArtifact);
+  if (centerMask.length !== cellCount || coverage.length !== cellCount * 4) {
+    throw new Error(`${layer.role} raster length disagrees with the grid`);
+  }
+  let centerCells = 0;
+  let coveragePositiveCells = 0;
+  let coverageFractionSum = 0;
+  let maximumCoverageFraction = 0;
+  for (let index = 0; index < cellCount; index += 1) {
+    const centerValue = centerMask[index];
+    const coverageValue = coverage.readFloatLE(index * 4);
+    if (aoiMask[index] === 0) {
+      if (centerValue !== 255 || !Number.isNaN(coverageValue)) {
+        throw new Error(`${layer.role} fabricates geometry outside the AOI`);
+      }
+      continue;
+    }
+    if (centerValue !== 0 && centerValue !== 1) {
+      throw new Error(`${layer.role} center mask has value ${centerValue}`);
+    }
+    if (!Number.isFinite(coverageValue) || coverageValue < 0 || coverageValue > 1) {
+      throw new Error(`${layer.role} coverage has value ${coverageValue}`);
+    }
+    if (Math.abs(coverageValue * 16 - Math.round(coverageValue * 16)) > 1e-6) {
+      throw new Error(`${layer.role} coverage is not a 4x4 sampling fraction`);
+    }
+    centerCells += centerValue;
+    if (coverageValue > 0) {
+      coveragePositiveCells += 1;
+      coverageFractionSum += coverageValue;
+      maximumCoverageFraction = Math.max(
+        maximumCoverageFraction,
+        coverageValue,
+      );
+    }
+  }
+  if (
+    centerCells !== layer.centerCells ||
+    coveragePositiveCells !== layer.coveragePositiveCells ||
+    Math.abs(coverageFractionSum - layer.coverageFractionSum) > 1e-6 ||
+    Math.abs(maximumCoverageFraction - layer.maximumCoverageFraction) > 1e-6
+  ) {
+    throw new Error(`${layer.role} raster statistics disagree with the receipt`);
+  }
+  return {
+    role: layer.role,
+    sourceTable: layer.sourceTable,
+    totalFeatures: layer.totalFeatures,
+    eligibleFeatures: layer.eligibleFeatures,
+    excludedPostCutoff: layer.excludedPostCutoff,
+    centerCells,
+    coveragePositiveCells,
+    coverageFractionSum,
+    maximumCoverageFraction,
+  };
+}
+
+function roleSlug(role) {
+  return role.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+}
 async function verifyFloat32Evidence(input) {
   const bytes = await readArtifact(input.dataRoot, input.artifact);
   if (bytes.length !== cellCount * 4) {

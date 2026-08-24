@@ -97,18 +97,28 @@ test('spatial coverage references declared datasets only', () => {
     /spatial coverage references unknown dataset/,
   );
 });
-test('styled XDBTR WMS receipts cannot satisfy physical geometry', () => {
+test('physical DBTR masks retain source and temporal limitations', () => {
   const manifest = manifestFixture();
   const xdbtr = manifest.datasets.find(
-    (dataset) => dataset.id === 'rer-xdbtr-2020-2018',
+    (dataset) => dataset.id === 'rer-dbtr-forli-cutoff-2023',
   );
 
   assert.equal(xdbtr.role, 'model_input');
-  assert.equal(xdbtr.acquisitionStatus, 'blocked');
-  assert.match(xdbtr.accessMethod, /authenticated DBTR extraction/);
-  assert.match(
-    xdbtr.methodologyNote,
-    /Styled pixels must not be promoted to physical/,
+  assert.equal(xdbtr.acquisitionStatus, 'downloaded_verified');
+  assert.match(xdbtr.accessMethod, /GeoPackage extraction/);
+  assert.match(xdbtr.methodologyNote, /zero does not assert historical absence/);
+  assert.match(xdbtr.methodologyNote, /incomplete_window/);
+  assert.equal(
+    xdbtr.localArtifacts.some((artifact) =>
+      artifact.relativePath.endsWith('.gpkg'),
+    ),
+    true,
+  );
+  assert.equal(
+    xdbtr.localArtifacts.some((artifact) =>
+      artifact.relativePath.includes('known-center-mask'),
+    ),
+    true,
   );
   assert.equal(
     xdbtr.localArtifacts.some((artifact) =>
@@ -116,7 +126,16 @@ test('styled XDBTR WMS receipts cannot satisfy physical geometry', () => {
     ),
     false,
   );
+  assert.deepEqual(
+    manifest.benchmark.spatialProtocol.masks.permanentWater,
+    {
+      datasetId: 'rer-dbtr-forli-cutoff-2023',
+      layer: 'V_SDA_GPG',
+      treatment: 'exclude_from_land_routing_metrics_and_report',
+    },
+  );
 });
+
 test('post-event evidence is structurally excluded from model and calibration', () => {
   const manifest = manifestFixture();
   const reference = manifest.datasets.find(

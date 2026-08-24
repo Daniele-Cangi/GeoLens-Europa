@@ -14,7 +14,7 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Observed-infrastructure gate: established through a live bounded Waternet/Amsterdam WFS path, a valid 47-node/47-pipe topology containing four explicit rainwater outfalls, explicit provider failures, API receipts and a browser-verified inspection panel
 - Observed-direction gate: established separately from propagation; Waternet endpoint invert NAP evidence yields 26 known and 21 ambiguous directions at an inclusive 0.05 m analysis boundary with an explicit 0.000001 m numeric tolerance and no ground-elevation fallback; the selected outfall exposes a known 5-node/4-pipe upstream subgraph while four unresolved boundary pipes remain explicit
 - Historical tracked Copernicus private key: removed from the active tree; revocation/rotation remains an external security action because the secret is present in Git history
-- Retrospective reconstruction benchmark gate: the bounded Forli pilot now has a frozen 30 m metric grid, content-addressed IMERG/DEM/CLC evidence and an explicit withheld-evaluation policy; physical XDBTR vectors and the permanent-water/barrier masks remain blocked on the authenticated regional extraction service
+- Retrospective reconstruction benchmark gate: the bounded Forli pilot now has a frozen 30 m metric grid, content-addressed IMERG/DEM/CLC evidence, physical DBTR known-presence masks and an explicit withheld-evaluation policy; the post-event DBTR extraction remains an incomplete historical window rather than a complete May 2023 snapshot
 
 Verified starting baseline (historical):
 
@@ -406,14 +406,17 @@ Progress:
 - the cell-centre AOI mask retains 130,307 cells and excludes 10,393 grid-envelope cells; required-input no-data is excluded and reported per dataset, primary overlap metrics remain unbuffered, and the explicit secondary boundary tolerance is one 30 m cell;
 - bounded GLO-30 elevation and four-neighbour slope are materialized for all 130,307 eligible cells with `NaN` missing sentinels: elevation spans 9.009-181.722 m and slope 0-34.376 degrees;
 - bounded CLC2018 level-3 classes are materialized for all eligible cells with `-1` as the explicit missing sentinel; class `0` is never used as missing evidence;
-- the public XDBTR WMS is retained only as five layer-separated styled-map receipts. It does not expose physical vector geometry, and the official bounded DBTR extraction redirects to regional IAM authentication; permanent-water, riverbed, embankment and building masks therefore remain explicitly blocked;
-- the deterministic mask and DEM/CLC arrays add four bounded artifacts; all 13 pinned official and derived artifacts total 602,401,543 bytes. A repeated acquisition reproduced those hashes, while identical XDBTR WMS requests returned different styled-image bytes; the WMS images and timestamped acquisition receipt are therefore verified per run but intentionally excluded from the reproducible artifact set under `D:/GeoLens/data/emilia-romagna-2023` and pass streamed byte-count, SHA-256, binary-sentinel and numeric-range verification;
-- deterministic tests cover both benchmark modes, frozen grid/mask/tolerance semantics, evaluation withholding, retrospective post-cutoff disclosure, IMERG versioning, cache provenance, portable artifact identity and temporal-cutoff checks.
+- the official on-demand DBTR service produced a 37,765,120-byte EPSG:32632 GeoPackage for Forli with physical water, wet-area, riverbed, embankment and building polygons plus five ISO 19139 metadata records; the source and metadata are retained outside Git under content-addressed manifest entries;
+- the materializer applies `DATA_AGG < 2023-05-16` before rasterization: 119 post-cutoff features are excluded and counted, while zero in the derived arrays means only "no eligible geometry identified" and never proves historical absence;
+- ten deterministic 30 m artifacts retain both cell-centre known-presence and 4x4 subcell coverage: permanent water covers 466 centres, riverbed 2,369, embankment 132 and buildings 7,046; the current extraction cannot reconstruct geometry deleted or overwritten after the event, so every DBTR mask remains `incomplete_window`;
+- before physical DBTR acquisition, the first deterministic AOI/DEM/CLC set contributed four bounded artifacts and the initial 13 pinned official and derived artifacts totaled 602,401,543 bytes. A repeated acquisition reproduced those hashes, while identical XDBTR WMS requests returned different styled-image bytes; the WMS images and timestamped acquisition receipt are therefore verified per run but intentionally excluded from the reproducible artifact set under `D:/GeoLens/data/emilia-romagna-2023` and pass streamed byte-count, SHA-256, binary-sentinel and numeric-range verification;
+- deterministic tests cover both benchmark modes, frozen grid/mask/tolerance semantics, evaluation withholding, retrospective post-cutoff disclosure, IMERG versioning, cache provenance, portable artifact identity, temporal-cutoff checks and GeoPackage/WKB rasterization;
+- manifest v1.3.0 pins 29 official and derived benchmark artifacts totaling 643,847,307 bytes; the bounded-input verifier checks the DBTR SQLite signature, source/derived hashes, feature accounting, CRS, mask sentinels and 4x4 coverage fractions.
 
 Work:
 
-- obtain the official bounded XDBTR vector extract through regional IAM and derive source-backed permanent-water, riverbed, embankment and building masks without treating WMS styling as geometry;
-- freeze the input-validity mask after the vector-derived permanent-water policy becomes available;
+- determine whether an authoritative as-of-May-2023 DBTR vector snapshot exists; until then, retain the current-extract masks as incomplete known presence rather than complete historical absence;
+- freeze the final input-validity mask only after the incomplete historical permanent-water policy is resolved explicitly;
 - establish transparent baselines for terrain-only routing, IMERG-driven routing and ARPAE-gauge-driven routing;
 - implement the first deterministic surface-flow-concentration replay and evaluate it without calling the result an inundation extent;
 - introduce a conditioned inundation replay only after river levels, discharge, embankments, breaches and downstream boundary conditions have explicit evidence semantics;
