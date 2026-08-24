@@ -670,6 +670,14 @@ export function assertHistoricalBenchmarkManifest(
           overlap.cellsEqualThreshold,
           `${overlapLabel}.cellsEqualThreshold`,
         );
+        if (
+          fullCellsAboveThreshold + cellsEqualThreshold >
+          evaluatedCells
+        ) {
+          throw new Error(
+            `${overlapLabel} threshold-group counts exceed evaluated cells`,
+          );
+        }
         const fractionalTieWeight = probability(
           overlap.fractionalTieWeight,
           `${overlapLabel}.fractionalTieWeight`,

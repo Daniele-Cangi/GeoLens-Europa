@@ -180,6 +180,17 @@ test('evaluation run rejects post-freeze drift and inconsistent metrics', () => 
     () => assertHistoricalBenchmarkManifest(falsePrevalence),
     /prevalence disagrees with counts/,
   );
+
+  const impossibleThresholdGroup = manifestFixture();
+  const overlap = impossibleThresholdGroup.benchmark.evaluationRuns[0]
+    .results.overlapAtFrozenAreaFractions[0];
+  overlap.fullCellsAboveThreshold = 1303;
+  overlap.cellsEqualThreshold = 130000;
+  overlap.fractionalTieWeight = 0.07 / 130000;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(impossibleThresholdGroup),
+    /threshold-group counts exceed evaluated cells/,
+  );
 });
 
 test('routing baselines reject evaluation inputs and unwithheld references', () => {

@@ -15,6 +15,33 @@ SPEC.loader.exec_module(MODULE)
 
 
 class EmiliaConcentrationEvaluationTest(unittest.TestCase):
+    def test_artifact_namespace_rejects_cross_section_aliases(self):
+        first = {
+            "relativePath": "inputs/a.bin",
+            "bytes": 1,
+            "sha256": "a" * 64,
+        }
+        second = {**first, "sha256": "b" * 64}
+        with self.assertRaisesRegex(ValueError, "declared by both"):
+            MODULE.assert_unique_artifact_namespace(
+                [("benchmark", [first]), ("dataset", [second])]
+            )
+
+        with self.assertRaisesRegex(ValueError, "does not pin artifact"):
+            MODULE.require_declared_artifact(
+                MODULE.declared_artifact_map([first], "baseline"),
+                "inputs/other.bin",
+                "baseline",
+            )
+
+    def test_known_water_mask_requires_explicit_inside_and_outside_values(self):
+        MODULE.validate_known_water_mask(bytes((0, 1, 255)), bytes((1, 1, 0)))
+
+        with self.assertRaisesRegex(ValueError, "invalid in-AOI"):
+            MODULE.validate_known_water_mask(bytes((2, 1, 255)), bytes((1, 1, 0)))
+        with self.assertRaisesRegex(ValueError, "outside-AOI sentinel"):
+            MODULE.validate_known_water_mask(bytes((0, 1, 0)), bytes((1, 1, 0)))
+
     def test_perfect_ranking_has_unit_auc_and_average_precision(self):
         scores = [0.0, 1.0, 2.0, 3.0]
         labels = [0, 0, 1, 1]

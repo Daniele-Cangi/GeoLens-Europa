@@ -33,6 +33,12 @@ from materialize_emilia_xdbtr_masks import (
 PROTOCOL_ID = "forli-event-runoff-concentration-v0"
 EVENT_LAYER = "perimetrazioni_2023_zone_v7_ev2_pb_pl"
 GPKG_NAME = "Perimetrazioni_maggio_v7_DSG_88_2025.gpkg"
+EXPECTED_METRICS = [
+    "roc_auc",
+    "average_precision",
+    "tie_weighted_overlap_at_frozen_area_fractions",
+]
+EXPECTED_AREA_FRACTIONS = [0.01, 0.05, 0.1, 0.2]
 
 
 def parse_args():
@@ -53,7 +59,96 @@ def artifact(root, path, **metadata):
     }
 
 
+def declared_artifact_map(items, label, required=True):
+    if items is None and not required:
+        return {}
+    if not isinstance(items, list) or (required and not items):
+        raise ValueError(f"{label} must be a non-empty artifact list")
+    result = {}
+    for index, item in enumerate(items):
+        item_label = f"{label}[{index}]"
+        if not isinstance(item, dict):
+            raise ValueError(f"{item_label} must be an object")
+        relative_path = item.get("relativePath")
+        if not isinstance(relative_path, str) or not relative_path:
+            raise ValueError(f"{item_label}.relativePath must be a string")
+        segments = relative_path.split("/")
+        if (
+            "\\" in relative_path
+            or relative_path.startswith("/")
+            or (len(relative_path) >= 2 and relative_path[1] == ":")
+            or any(segment in ("", ".", "..") for segment in segments)
+        ):
+            raise ValueError(f"{item_label}.relativePath is not portable")
+        byte_count = item.get("bytes")
+        if (
+            isinstance(byte_count, bool)
+            or not isinstance(byte_count, int)
+            or byte_count <= 0
+        ):
+            raise ValueError(f"{item_label}.bytes must be a positive integer")
+        digest = item.get("sha256")
+        if (
+            not isinstance(digest, str)
+            or len(digest) != 64
+            or any(character not in "0123456789abcdefABCDEF" for character in digest)
+        ):
+            raise ValueError(f"{item_label}.sha256 must be a SHA-256 digest")
+        if relative_path in result:
+            raise ValueError(f"{label} repeats artifact path {relative_path}")
+        result[relative_path] = item
+    return result
+
+
+def assert_unique_artifact_namespace(groups):
+    owners = {}
+    for label, items in groups:
+        for relative_path in declared_artifact_map(
+            items, f"{label}.localArtifacts", required=False
+        ):
+            if relative_path in owners:
+                raise ValueError(
+                    f"Artifact path {relative_path} is declared by both "
+                    f"{owners[relative_path]} and {label}"
+                )
+            owners[relative_path] = label
+
+
+def require_object_array(items, label):
+    if not isinstance(items, list) or not items:
+        raise ValueError(f"{label} must be a non-empty array")
+    if any(not isinstance(item, dict) for item in items):
+        raise ValueError(f"{label} must contain only objects")
+    return items
+
+
+def require_named_item(items, item_id, label):
+    checked = require_object_array(items, label)
+    matches = [item for item in checked if item.get("id") == item_id]
+    if len(matches) != 1:
+        raise ValueError(f"{label} must contain exactly one item with id {item_id}")
+    return matches[0]
+
+
+def require_declared_artifact(artifacts, relative_path, label):
+    declared = artifacts.get(relative_path)
+    if declared is None:
+        raise ValueError(f"{label} does not pin artifact {relative_path}")
+    return declared
+
+
+def require_artifact_suffix(artifacts, suffix, label):
+    matches = [
+        item for relative_path, item in artifacts.items() if relative_path.endswith(suffix)
+    ]
+    if len(matches) != 1:
+        raise ValueError(f"{label} must pin exactly one artifact ending in {suffix}")
+    return matches[0]
+
+
 def require_artifact(root, declared):
+    checked = declared_artifact_map([declared], "artifact")
+    declared = next(iter(checked.values()))
     path = root / declared["relativePath"]
     if not path.is_file():
         raise FileNotFoundError(f"Pinned artifact is missing: {path}")
@@ -63,6 +158,16 @@ def require_artifact(root, declared):
     if actual["sha256"].lower() != declared["sha256"].lower():
         raise ValueError(f"Pinned artifact digest changed: {path}")
     return path, actual
+
+
+def validate_known_water_mask(known_water_mask, aoi_mask):
+    if len(known_water_mask) != len(aoi_mask):
+        raise ValueError("Known-water mask is incompatible with the frozen grid")
+    for known_water, inside_aoi in zip(known_water_mask, aoi_mask):
+        if inside_aoi == 1 and known_water not in (0, 1):
+            raise ValueError("Known-water mask contains invalid in-AOI values")
+        if inside_aoi == 0 and known_water != 255:
+            raise ValueError("Known-water mask lacks its outside-AOI sentinel")
 
 
 def read_f64le(path, expected_count):
@@ -332,51 +437,128 @@ def main():
         / "manifest.json"
     )
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    benchmark = manifest["benchmark"]
-    protocol = next(
-        item for item in benchmark["evaluationProtocols"] if item["id"] == PROTOCOL_ID
+    if not isinstance(manifest, dict) or manifest.get("manifestVersion") != "1.7.0":
+        raise ValueError("Evaluator requires historical benchmark manifest v1.7.0")
+    benchmark = manifest.get("benchmark")
+    if not isinstance(benchmark, dict):
+        raise ValueError("Manifest benchmark must be an object")
+    protocol = require_named_item(
+        benchmark.get("evaluationProtocols"), PROTOCOL_ID, "evaluationProtocols"
     )
     if (
-        protocol["state"] != "protocol_frozen"
-        or protocol["evaluationReferenceAccessAtFreeze"] != "not_loaded"
-        or protocol["calibration"] is not False
-        or protocol["calibrationPolicy"] != "none"
+        protocol.get("state") != "protocol_frozen"
+        or protocol.get("evaluationReferenceAccessAtFreeze") != "not_loaded"
+        or protocol.get("calibration") is not False
+        or protocol.get("calibrationPolicy") != "none"
+        or protocol.get("metrics") != EXPECTED_METRICS
+        or protocol.get("areaFractions") != EXPECTED_AREA_FRACTIONS
     ):
         raise ValueError("Evaluation protocol was not frozen before reference access")
-    evaluation_dataset = next(
-        item
-        for item in manifest["datasets"]
-        if item["id"] == protocol["evaluationDatasetId"]
+    prediction_artifacts = protocol.get("predictionArtifacts")
+    score_contract = protocol.get("score")
+    if (
+        not isinstance(prediction_artifacts, dict)
+        or not isinstance(score_contract, dict)
+        or score_contract.get("semantics") != "routed_upstream_excess_volume"
+        or score_contract.get("formula")
+        != "accumulated_runoff_volume_m3_minus_local_runoff_volume_m3"
+        or score_contract.get("knownWaterLocalSource")
+        != "structural_zero_only_for_score_subtraction"
+    ):
+        raise ValueError("Evaluation score contract is malformed or unsupported")
+    negative_tolerance = score_contract.get("negativeToleranceM3")
+    if (
+        isinstance(negative_tolerance, bool)
+        or not isinstance(negative_tolerance, (int, float))
+        or not math.isfinite(negative_tolerance)
+        or negative_tolerance < 0
+        or negative_tolerance > 1e-6
+    ):
+        raise ValueError("Evaluation score negative tolerance is invalid")
+
+    datasets = require_object_array(manifest.get("datasets"), "datasets")
+    evaluation_dataset = require_named_item(
+        datasets,
+        protocol.get("evaluationDatasetId"),
+        "datasets",
     )
-    if evaluation_dataset["role"] != "evaluation_reference" or evaluation_dataset[
+    if evaluation_dataset.get("role") != "evaluation_reference" or evaluation_dataset.get(
         "allowedUses"
-    ] != {"modelInput": False, "calibration": False, "evaluation": True}:
+    ) != {"modelInput": False, "calibration": False, "evaluation": True}:
         raise ValueError("V7 is not isolated as an evaluation-only reference")
 
-    declared_artifacts = {
-        item["relativePath"]: item
-        for item in benchmark.get("localArtifacts", [])
-    }
-    for baseline in benchmark["routingBaselines"]:
-        for item in baseline["localArtifacts"]:
-            declared_artifacts[item["relativePath"]] = item
-    for dataset in manifest["datasets"]:
-        for item in dataset.get("localArtifacts", []):
-            declared_artifacts[item["relativePath"]] = item
+    routing_baselines = require_object_array(
+        benchmark.get("routingBaselines"), "routingBaselines"
+    )
+    prediction_baseline = require_named_item(
+        routing_baselines,
+        protocol.get("predictionBaselineId"),
+        "routingBaselines",
+    )
+    spatial_protocol = benchmark.get("spatialProtocol")
+    if not isinstance(spatial_protocol, dict):
+        raise ValueError("Benchmark spatialProtocol must be an object")
+    masks = spatial_protocol.get("masks")
+    if not isinstance(masks, dict) or not isinstance(masks.get("permanentWater"), dict):
+        raise ValueError("Benchmark permanent-water mask contract is missing")
+    permanent_water_dataset = require_named_item(
+        datasets,
+        masks["permanentWater"].get("datasetId"),
+        "datasets",
+    )
+    evaluation_runs = require_object_array(
+        benchmark.get("evaluationRuns"), "evaluationRuns"
+    )
+    artifact_groups = [("benchmark", benchmark.get("localArtifacts"))]
+    artifact_groups.extend(
+        (f"routingBaselines[{index}]", item.get("localArtifacts"))
+        for index, item in enumerate(routing_baselines)
+    )
+    artifact_groups.extend(
+        (f"evaluationRuns[{index}]", item.get("localArtifacts"))
+        for index, item in enumerate(evaluation_runs)
+    )
+    artifact_groups.extend(
+        (f"datasets[{index}]", item.get("localArtifacts"))
+        for index, item in enumerate(datasets)
+    )
+    assert_unique_artifact_namespace(artifact_groups)
+    benchmark_artifacts = declared_artifact_map(
+        benchmark.get("localArtifacts"), "benchmark.localArtifacts"
+    )
+    baseline_artifacts = declared_artifact_map(
+        prediction_baseline.get("localArtifacts"),
+        "predictionBaseline.localArtifacts",
+    )
+    permanent_water_artifacts = declared_artifact_map(
+        permanent_water_dataset.get("localArtifacts"),
+        "permanentWaterDataset.localArtifacts",
+    )
+    evaluation_artifacts = declared_artifact_map(
+        evaluation_dataset.get("localArtifacts"),
+        "evaluationDataset.localArtifacts",
+    )
 
-    grid = benchmark["spatialProtocol"]["grid"]
+    grid = spatial_protocol.get("grid")
+    if not isinstance(grid, dict):
+        raise ValueError("Benchmark grid must be an object")
     cell_count = grid["width"] * grid["height"]
     aoi_path, aoi_artifact = require_artifact(
-        data_root, declared_artifacts["inputs/common-aoi-mask-u8.bin"]
+        data_root,
+        require_declared_artifact(
+            benchmark_artifacts,
+            "inputs/common-aoi-mask-u8.bin",
+            "benchmark.localArtifacts",
+        ),
     )
     aoi_mask = aoi_path.read_bytes()
     if len(aoi_mask) != cell_count or any(value not in (0, 1) for value in aoi_mask):
         raise ValueError("AOI mask is incompatible with the frozen grid")
 
-    known_water_declared = next(
-        value
-        for key, value in declared_artifacts.items()
-        if key.endswith("xdbtr-permanent-water-known-center-mask-u8.bin")
+    known_water_declared = require_artifact_suffix(
+        permanent_water_artifacts,
+        "xdbtr-permanent-water-known-center-mask-u8.bin",
+        "permanent-water dataset",
     )
     known_water_path, known_water_artifact = require_artifact(
         data_root, known_water_declared
@@ -384,24 +566,37 @@ def main():
     known_water_mask = known_water_path.read_bytes()
     if len(known_water_mask) != cell_count:
         raise ValueError("Known-water mask is incompatible with the frozen grid")
+    validate_known_water_mask(known_water_mask, aoi_mask)
 
+    local_relative_path = prediction_artifacts.get("localRunoffVolume")
+    accumulated_relative_path = prediction_artifacts.get("accumulatedRunoffVolume")
+    if not isinstance(local_relative_path, str) or not isinstance(
+        accumulated_relative_path, str
+    ):
+        raise ValueError("Evaluation prediction artifact paths are invalid")
     local_path, local_artifact = require_artifact(
         data_root,
-        declared_artifacts[protocol["predictionArtifacts"]["localRunoffVolume"]],
+        require_declared_artifact(
+            baseline_artifacts,
+            local_relative_path,
+            "prediction baseline",
+        ),
     )
     accumulated_path, accumulated_artifact = require_artifact(
         data_root,
-        declared_artifacts[
-            protocol["predictionArtifacts"]["accumulatedRunoffVolume"]
-        ],
+        require_declared_artifact(
+            baseline_artifacts,
+            accumulated_relative_path,
+            "prediction baseline",
+        ),
     )
     local_runoff = read_f64le(local_path, cell_count)
     accumulated_runoff = read_f64le(accumulated_path, cell_count)
 
-    archive_declared = next(
-        item
-        for item in evaluation_dataset["localArtifacts"]
-        if item["relativePath"].endswith("rer-flood-extent-v7.zip")
+    archive_declared = require_artifact_suffix(
+        evaluation_artifacts,
+        "rer-flood-extent-v7.zip",
+        "evaluation dataset",
     )
     archive_path, archive_artifact = require_artifact(data_root, archive_declared)
     gpkg_path = (
@@ -427,7 +622,7 @@ def main():
         observed_mask,
         local_runoff,
         accumulated_runoff,
-        protocol["score"]["negativeToleranceM3"],
+        negative_tolerance,
     )
     if not scores or sum(labels) in (0, len(labels)):
         raise ValueError("Evaluation domain must contain both observed classes")
@@ -440,7 +635,7 @@ def main():
         "averagePrecision": average_precision(scores, labels),
         "overlapAtFrozenAreaFractions": [
             overlap_at_area_fraction(scores, labels, fraction, cell_area_m2)
-            for fraction in protocol["areaFractions"]
+            for fraction in EXPECTED_AREA_FRACTIONS
         ],
         "scoreSummary": {
             "observed": score_summary(observed_scores),
@@ -464,17 +659,17 @@ def main():
     receipt_path = output_root / "forli-event-runoff-concentration-v0.json"
     receipt = {
         "schemaVersion": "blind-concentration-evaluation-v0.1.0",
-        "protocolId": protocol["id"],
-        "protocolStateAtEvaluation": protocol["state"],
-        "evaluationReferenceAccessAtFreeze": protocol[
+        "protocolId": protocol.get("id"),
+        "protocolStateAtEvaluation": protocol.get("state"),
+        "evaluationReferenceAccessAtFreeze": protocol.get(
             "evaluationReferenceAccessAtFreeze"
-        ],
+        ),
         "calibration": False,
         "claimLevel": "hydrologic_routing_spatial_ranking_diagnostics",
         "grid": grid,
         "source": {
-            "datasetId": evaluation_dataset["id"],
-            "datasetVersion": evaluation_dataset["datasetVersion"],
+            "datasetId": evaluation_dataset.get("id"),
+            "datasetVersion": evaluation_dataset.get("datasetVersion"),
             "layer": EVENT_LAYER,
             "crs": "EPSG:32632",
             "archive": archive_artifact,
@@ -482,8 +677,8 @@ def main():
             "redistribution": "restricted",
         },
         "prediction": {
-            "baselineId": protocol["predictionBaselineId"],
-            "score": protocol["score"],
+            "baselineId": protocol.get("predictionBaselineId"),
+            "score": score_contract,
             "artifacts": {
                 "aoi": aoi_artifact,
                 "knownWater": known_water_artifact,
