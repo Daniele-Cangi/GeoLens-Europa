@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "1.3.0",
+  "manifestVersion": "1.4.0",
   "benchmark": {
     "id": "emilia-romagna-2023-forli-retrospective-reconstruction",
     "title": "Case 02 - Emilia-Romagna 2023 / Retrospective Flood Reconstruction",
@@ -90,6 +90,44 @@
         "relativePath": "inputs/common-aoi-mask-u8.bin",
         "bytes": 140700,
         "sha256": "da9abbf26185d046700b09a742de955968c691d3b433b25e3a49155f4471eda6"
+      }
+    ],
+    "routingBaselines": [
+      {
+        "id": "forli-terrain-d8-v0",
+        "semantics": "terrain_flow_concentration",
+        "state": "materialized",
+        "claimLevel": "hydrologic_routing",
+        "modelVersion": "bounded-d8-steepest-descent-v0.1.0",
+        "inputDatasetIds": [
+          "copernicus-dem-glo-30-2022",
+          "rer-dbtr-forli-cutoff-2023"
+        ],
+        "evaluationReferenceAccess": "withheld",
+        "quality": "incomplete_window",
+        "methodologyNote": "Unconditioned D8 steepest-positive-gradient routing over GLO-30, with AOI-edge, known-water and local-depression terminals. Known DBTR permanent-water presence is incomplete. This baseline is terrain flow concentration, not inundation extent, water depth, flood probability or an operational forecast.",
+        "localArtifacts": [
+          {
+            "relativePath": "derived/terrain-routing/terrain-d8-direction-i8.bin",
+            "bytes": 140700,
+            "sha256": "0c824a36c8433764825c212ddd7a301f8f98f70b14edb73a08e888b7ac2c631c"
+          },
+          {
+            "relativePath": "derived/terrain-routing/terrain-d8-terminal-type-u8.bin",
+            "bytes": 140700,
+            "sha256": "f3fecccea9922b5f8d37562131cdd5370da4fd15eba905a8195c9e7fa3fdd6d6"
+          },
+          {
+            "relativePath": "derived/terrain-routing/terrain-d8-terminal-index-i32le.bin",
+            "bytes": 562800,
+            "sha256": "69575a89f68fbb6460f9820168ff562b5e0df1db32361ac87cbe25ddc5e54a59"
+          },
+          {
+            "relativePath": "derived/terrain-routing/terrain-d8-contributing-land-area-f64le.bin",
+            "bytes": 1125600,
+            "sha256": "80302ade6abcabcef843fe47402477443a9b5c4a6f808a9a5047b8113c01e73d"
+          }
+        ]
       }
     ]
   },
