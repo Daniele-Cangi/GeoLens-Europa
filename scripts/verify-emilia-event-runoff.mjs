@@ -21,7 +21,7 @@ const manifest = JSON.parse(
   ),
 );
 assertHistoricalBenchmarkManifest(manifest);
-const requestedRoot = process.env.GEOLENS_BENCHMARK_DATA_ROOT ?? process.argv[2];
+const requestedRoot = process.argv[2] ?? process.env.GEOLENS_BENCHMARK_DATA_ROOT;
 if (!requestedRoot) {
   throw new Error('Set GEOLENS_BENCHMARK_DATA_ROOT or pass the benchmark data root');
 }
@@ -120,6 +120,11 @@ if (
 }
 
 const grid = inputReceipt.grid;
+assertJsonEqual(
+  grid,
+  manifest.benchmark.spatialProtocol.grid,
+  'input receipt grid',
+);
 const result = deriveEmiliaEventRunoff({
   grid,
   imerg,

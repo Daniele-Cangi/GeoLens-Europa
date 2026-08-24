@@ -76,6 +76,40 @@ def require_equal(actual, expected, label):
         raise ValueError(f"{label} must be {expected!r}, got {actual!r}")
 
 
+def require_aware_timestamp(value, label):
+    if not isinstance(value, str):
+        raise ValueError(f"{label} must be an ISO 8601 timestamp")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise ValueError(f"{label} must be an ISO 8601 timestamp") from error
+    if parsed.tzinfo is None:
+        raise ValueError(f"{label} must include a timezone")
+
+
+def validate_loaded_bounds(value):
+    if not isinstance(value, dict) or set(value) != set(EXPECTED_BOUNDS):
+        raise ValueError(
+            "windowMetadata.loadedSpatialBounds must contain west/south/east/north"
+        )
+    if not all(
+        isinstance(item, (int, float)) and math.isfinite(item)
+        for item in value.values()
+    ):
+        raise ValueError("windowMetadata.loadedSpatialBounds must be finite")
+    if value["west"] >= value["east"] or value["south"] >= value["north"]:
+        raise ValueError("windowMetadata.loadedSpatialBounds are invalid")
+    if (
+        value["west"] > EXPECTED_BOUNDS["west"]
+        or value["south"] > EXPECTED_BOUNDS["south"]
+        or value["east"] < EXPECTED_BOUNDS["east"]
+        or value["north"] < EXPECTED_BOUNDS["north"]
+    ):
+        raise ValueError(
+            "windowMetadata.loadedSpatialBounds do not contain the requested AOI"
+        )
+
+
 def validate_metadata(metadata):
     require_equal(metadata.get("schemaVersion"), 3, "schemaVersion")
     require_equal(metadata.get("datasetVersion"), "07", "datasetVersion")
@@ -106,6 +140,13 @@ def validate_metadata(metadata):
     }
     for key, expected in checks.items():
         require_equal(window.get(key), expected, f"windowMetadata.{key}")
+    require_equal(
+        window.get("samplingMethod"),
+        "nearest IMERG grid cell at H3 centroid",
+        "windowMetadata.samplingMethod",
+    )
+    require_aware_timestamp(window.get("acquiredAt"), "windowMetadata.acquiredAt")
+    validate_loaded_bounds(window.get("loadedSpatialBounds"))
 
     timestamps = window.get("granuleTimestamps")
     if not isinstance(timestamps, list) or len(timestamps) != EXPECTED_GRANULES:
@@ -145,6 +186,26 @@ def validate_netcdf(path, window):
             raise ValueError("NetCDF coordinates must be strictly ordered")
         if len(set(longitude)) != len(longitude) or len(set(latitude)) != len(latitude):
             raise ValueError("NetCDF coordinates must be unique")
+        for coordinates, axis in ((longitude, "longitude"), (latitude, "latitude")):
+            if any(
+                abs((right - left) - 0.1) > 0.00001
+                for left, right in zip(coordinates, coordinates[1:])
+            ):
+                raise ValueError(
+                    f"NetCDF {axis} coordinates do not match 0.1 degree spacing"
+                )
+        loaded = window["loadedSpatialBounds"]
+        coordinate_bounds = {
+            "west": longitude[0] - 0.05,
+            "south": latitude[0] - 0.05,
+            "east": longitude[-1] + 0.05,
+            "north": latitude[-1] + 0.05,
+        }
+        if any(
+            abs(coordinate_bounds[key] - loaded[key]) > 0.00001
+            for key in coordinate_bounds
+        ):
+            raise ValueError("NetCDF coordinates disagree with loadedSpatialBounds")
         raw_values = precipitation.values.tolist()
         values, flattened = finite_values(raw_values, "precipitation")
     return longitude, latitude, values, flattened

@@ -156,7 +156,11 @@ export function deriveEmiliaEventRunoff(input) {
     accumulatedRunoffVolumeM3: propagation.accumulatedVolumeM3,
     counts: {
       sampledLandCells,
-      landCoverGroups: Object.fromEntries([...landCoverGroups].sort()),
+      landCoverGroups: Object.fromEntries(
+        [...landCoverGroups].sort(([left], [right]) =>
+          left.localeCompare(right),
+        ),
+      ),
       ...propagation.counts,
     },
     statistics: {
@@ -216,6 +220,11 @@ function validateImerg(imerg) {
     imerg.sourceGrid.longitude.length !== imerg.sourceGrid.precipitationMm.length
   ) {
     throw new Error('IMERG source-grid ordering is invalid');
+  }
+  for (const row of imerg.sourceGrid.precipitationMm) {
+    if (row.length !== imerg.sourceGrid.latitude.length) {
+      throw new Error('IMERG source-grid latitude dimension is invalid');
+    }
   }
 }
 

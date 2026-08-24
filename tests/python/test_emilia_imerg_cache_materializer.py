@@ -98,6 +98,18 @@ class EmiliaImergCacheMaterializerTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "every exact half-hour"):
             MODULE.validate_metadata(value)
 
+    def test_rejects_loaded_bounds_that_do_not_contain_requested_aoi(self):
+        value = metadata()
+        value["windowMetadata"]["loadedSpatialBounds"]["west"] = 12.0
+        with self.assertRaisesRegex(ValueError, "do not contain"):
+            MODULE.validate_metadata(value)
+
+    def test_rejects_missing_acquisition_timestamp(self):
+        value = metadata()
+        del value["windowMetadata"]["acquiredAt"]
+        with self.assertRaisesRegex(ValueError, "acquiredAt"):
+            MODULE.validate_metadata(value)
+
     def test_rejects_missing_precipitation_instead_of_zero_filling(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -105,6 +117,17 @@ class EmiliaImergCacheMaterializerTest(unittest.TestCase):
             values[1, 1] = np.nan
             _, netcdf_path = self.write_fixture(root, values)
             with self.assertRaisesRegex(ValueError, "missing, invalid or negative"):
+                MODULE.validate_netcdf(netcdf_path, metadata()["windowMetadata"])
+
+    def test_rejects_geographically_wrong_netcdf_grid(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            _, netcdf_path = self.write_fixture(root)
+            dataset = xr.open_dataset(netcdf_path).load()
+            dataset = dataset.assign_coords(lon=[0.05, 0.15, 0.25])
+            dataset.to_netcdf(netcdf_path, mode="w")
+            dataset.close()
+            with self.assertRaisesRegex(ValueError, "loadedSpatialBounds"):
                 MODULE.validate_netcdf(netcdf_path, metadata()["windowMetadata"])
 
     def test_rejects_dataset_version_drift(self):
