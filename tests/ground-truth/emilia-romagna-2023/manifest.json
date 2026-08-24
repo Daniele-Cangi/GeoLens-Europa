@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "1.5.0",
+  "manifestVersion": "1.6.0",
   "benchmark": {
     "id": "emilia-romagna-2023-forli-retrospective-reconstruction",
     "title": "Case 02 - Emilia-Romagna 2023 / Retrospective Flood Reconstruction",
@@ -23,12 +23,9 @@
       "selectionBasis": "Bounded engineering pilot around Forli and the Montone-Rabbi system. Declared IMERG, CLC, Copernicus DEM, XDBTR and regional event-2 coverage all contain this bbox; the common evaluation grid retains an explicit cell-centre AOI mask."
     },
     "evaluationMetrics": [
-      "area_intersection_over_union",
-      "spatial_precision",
-      "spatial_recall",
-      "average_symmetric_boundary_distance",
-      "hausdorff_distance",
-      "elevation_stratified_error"
+      "roc_auc",
+      "average_precision",
+      "tie_weighted_overlap_at_frozen_area_fractions"
     ],
     "forbiddenClaims": [
       "flood_probability",
@@ -171,6 +168,47 @@
             "sha256": "2c1ffc460913b6436cfd7a4b2954a15daf63d2315c6c3e7d2b0939730c0f273e"
           }
         ]
+      }
+    ],
+    "evaluationProtocols": [
+      {
+        "id": "forli-event-runoff-concentration-v0",
+        "state": "protocol_frozen",
+        "predictionBaselineId": "forli-imerg-runoff-d8-v0",
+        "evaluationDatasetId": "rer-flood-extent-v7-event-2",
+        "evaluationReferenceAccessAtFreeze": "not_loaded",
+        "calibration": false,
+        "predictionArtifacts": {
+          "localRunoffVolume": "derived/event-runoff/event-local-runoff-volume-f64le.bin",
+          "accumulatedRunoffVolume": "derived/event-runoff/event-accumulated-runoff-volume-f64le.bin"
+        },
+        "score": {
+          "semantics": "routed_upstream_excess_volume",
+          "transformationVersion": "routed-upstream-excess-v0.1.0",
+          "unit": "m3",
+          "formula": "accumulated_runoff_volume_m3_minus_local_runoff_volume_m3",
+          "negativeToleranceM3": 1e-9,
+          "knownWaterLocalSource": "structural_zero_only_for_score_subtraction"
+        },
+        "domain": {
+          "inclusion": "finite_prediction_inside_aoi",
+          "observedLabel": "cell_center_inside_official_event_2_polygon",
+          "primaryBufferM": 0
+        },
+        "metrics": [
+          "roc_auc",
+          "average_precision",
+          "tie_weighted_overlap_at_frozen_area_fractions"
+        ],
+        "areaFractions": [
+          0.01,
+          0.05,
+          0.1,
+          0.2
+        ],
+        "tiePolicy": "fractional_uniform_weight_at_threshold_score",
+        "calibrationPolicy": "none",
+        "methodologyNote": "Frozen before reading the official event-2 geometry. The score is routed upstream excess volume on the finite frozen AOI grid. ROC AUC and average precision are threshold-free ranking diagnostics; overlap is reported only at predeclared area fractions with fractional tie weighting. These diagnostics evaluate spatial concentration against observed inundation labels but do not convert concentration into predicted inundation extent, validate water depth or calibrate a threshold."
       }
     ]
   },

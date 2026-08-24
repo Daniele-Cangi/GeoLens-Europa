@@ -30,7 +30,7 @@ test('Emilia-Romagna manifest passes the historical benchmark contract', () => {
     'retrospective_reconstruction',
   );
   assert.equal(manifest.benchmark.claimLevel, 'hydrologic_routing');
-  assert.equal(manifest.manifestVersion, '1.5.0');
+  assert.equal(manifest.manifestVersion, '1.6.0');
   assert.ok(manifest.benchmark.forbiddenClaims.includes('validated_water_depth'));
 });
 
@@ -70,6 +70,64 @@ test('event-runoff baseline freezes real evidence and physical outputs', () => {
   assert.equal(imerg.acquisitionStatus, 'downloaded_verified');
   assert.equal(imerg.localArtifacts.length, 3);
   assert.match(baseline.methodologyNote, /not inundation/);
+});
+
+test('blind concentration evaluation protocol is frozen before V7 access', () => {
+  const manifest = manifestFixture();
+  const protocol = manifest.benchmark.evaluationProtocols.find(
+    (candidate) => candidate.id === 'forli-event-runoff-concentration-v0',
+  );
+
+  assert.equal(protocol.state, 'protocol_frozen');
+  assert.equal(protocol.predictionBaselineId, 'forli-imerg-runoff-d8-v0');
+  assert.equal(protocol.evaluationDatasetId, 'rer-flood-extent-v7-event-2');
+  assert.equal(protocol.evaluationReferenceAccessAtFreeze, 'not_loaded');
+  assert.equal(protocol.calibration, false);
+  assert.equal(protocol.calibrationPolicy, 'none');
+  assert.equal(protocol.domain.primaryBufferM, 0);
+  assert.deepEqual(protocol.metrics, [
+    'roc_auc',
+    'average_precision',
+    'tie_weighted_overlap_at_frozen_area_fractions',
+  ]);
+  assert.deepEqual(protocol.areaFractions, [0.01, 0.05, 0.1, 0.2]);
+  assert.match(protocol.methodologyNote, /do not convert concentration/);
+});
+
+test('evaluation protocol rejects leakage, calibration and unpinned predictions', () => {
+  const loaded = manifestFixture();
+  loaded.benchmark.evaluationProtocols[0].evaluationReferenceAccessAtFreeze =
+    'loaded';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(loaded),
+    /freeze before loading evaluation data/,
+  );
+
+  const calibrated = manifestFixture();
+  calibrated.benchmark.evaluationProtocols[0].calibration = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(calibrated),
+    /must not calibrate on evaluation data/,
+  );
+
+  const unpinned = manifestFixture();
+  unpinned.benchmark.evaluationProtocols[0].predictionArtifacts
+    .accumulatedRunoffVolume = 'derived/event-runoff/unpinned.bin';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(unpinned),
+    /is not pinned by its routing baseline/,
+  );
+
+  const inputReference = manifestFixture();
+  const v7 = inputReference.datasets.find(
+    (dataset) => dataset.id === 'rer-flood-extent-v7-event-2',
+  );
+  v7.role = 'model_input';
+  v7.allowedUses.modelInput = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(inputReference),
+    /cannot be used for model input or calibration/,
+  );
 });
 
 test('routing baselines reject evaluation inputs and unwithheld references', () => {

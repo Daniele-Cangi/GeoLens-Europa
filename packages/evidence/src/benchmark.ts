@@ -47,7 +47,7 @@ export interface BenchmarkDataset {
 }
 
 export interface HistoricalBenchmarkManifest {
-  readonly manifestVersion: '1.5.0';
+  readonly manifestVersion: '1.6.0';
   readonly benchmark: {
     readonly id: string;
     readonly title: string;
@@ -73,6 +73,7 @@ export interface HistoricalBenchmarkManifest {
     readonly spatialProtocol: BenchmarkSpatialProtocol;
     readonly localArtifacts?: readonly BenchmarkLocalArtifact[];
     readonly routingBaselines: readonly BenchmarkRoutingBaseline[];
+    readonly evaluationProtocols: readonly BenchmarkEvaluationProtocol[];
     readonly evaluationMetrics: readonly string[];
     readonly forbiddenClaims: readonly string[];
   };
@@ -92,6 +93,37 @@ export interface BenchmarkRoutingBaseline {
   readonly quality: 'available' | 'incomplete_window';
   readonly methodologyNote: string;
   readonly localArtifacts: readonly BenchmarkLocalArtifact[];
+}
+
+export interface BenchmarkEvaluationProtocol {
+  readonly id: string;
+  readonly state: 'protocol_frozen';
+  readonly predictionBaselineId: string;
+  readonly evaluationDatasetId: string;
+  readonly evaluationReferenceAccessAtFreeze: 'not_loaded';
+  readonly calibration: false;
+  readonly predictionArtifacts: {
+    readonly localRunoffVolume: string;
+    readonly accumulatedRunoffVolume: string;
+  };
+  readonly score: {
+    readonly semantics: 'routed_upstream_excess_volume';
+    readonly transformationVersion: string;
+    readonly unit: 'm3';
+    readonly formula: 'accumulated_runoff_volume_m3_minus_local_runoff_volume_m3';
+    readonly negativeToleranceM3: number;
+    readonly knownWaterLocalSource: 'structural_zero_only_for_score_subtraction';
+  };
+  readonly domain: {
+    readonly inclusion: 'finite_prediction_inside_aoi';
+    readonly observedLabel: 'cell_center_inside_official_event_2_polygon';
+    readonly primaryBufferM: 0;
+  };
+  readonly metrics: readonly string[];
+  readonly areaFractions: readonly number[];
+  readonly tiePolicy: 'fractional_uniform_weight_at_threshold_score';
+  readonly calibrationPolicy: 'none';
+  readonly methodologyNote: string;
 }
 
 export interface BenchmarkSpatialProtocol {
@@ -155,8 +187,8 @@ export function assertHistoricalBenchmarkManifest(
   value: unknown,
 ): asserts value is HistoricalBenchmarkManifest {
   const root = objectValue(value, 'manifest');
-  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.5.0') {
-    throw new Error('manifestVersion must be "1.5.0"');
+  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.6.0') {
+    throw new Error('manifestVersion must be "1.6.0"');
   }
 
   const benchmark = objectValue(root.benchmark, 'benchmark');
@@ -232,6 +264,7 @@ export function assertHistoricalBenchmarkManifest(
     throw new Error('benchmark.routingBaselines must be a non-empty array');
   }
   const routingBaselineIds = new Set<string>();
+  const routingBaselineArtifactPaths = new Map<string, Set<string>>();
   const routingBaselineInputReferences: Array<{
     readonly label: string;
     readonly ids: readonly string[];
@@ -278,11 +311,194 @@ export function assertHistoricalBenchmarkManifest(
       `${label}.localArtifacts`,
       artifactPaths,
     );
+    if (!Array.isArray(baseline.localArtifacts)) {
+      throw new Error(`${label}.localArtifacts must be an array`);
+    }
+    routingBaselineArtifactPaths.set(
+      id,
+      new Set(
+        baseline.localArtifacts.map((artifact, artifactIndex) =>
+          portablePath(
+            stringValue(
+              objectValue(
+                artifact,
+                `${label}.localArtifacts[${artifactIndex}]`,
+              ).relativePath,
+              `${label}.localArtifacts[${artifactIndex}].relativePath`,
+            ),
+            `${label}.localArtifacts[${artifactIndex}].relativePath`,
+          ),
+        ),
+      ),
+    );
     routingBaselineInputReferences.push({
       label,
       ids: inputDatasetIds,
     });
   });
+  if (
+    !Array.isArray(benchmark.evaluationProtocols) ||
+    benchmark.evaluationProtocols.length === 0
+  ) {
+    throw new Error('benchmark.evaluationProtocols must be a non-empty array');
+  }
+  const evaluationProtocolReferences: Array<{
+    readonly label: string;
+    readonly predictionBaselineId: string;
+    readonly evaluationDatasetId: string;
+    readonly predictionArtifactPaths: readonly string[];
+  }> = [];
+  const evaluationProtocolIds = new Set<string>();
+  const expectedMetrics = [
+    'roc_auc',
+    'average_precision',
+    'tie_weighted_overlap_at_frozen_area_fractions',
+  ];
+  benchmark.evaluationProtocols.forEach((rawProtocol, index) => {
+    const label = `benchmark.evaluationProtocols[${index}]`;
+    const protocol = objectValue(rawProtocol, label);
+    const id = stringValue(protocol.id, `${label}.id`);
+    if (evaluationProtocolIds.has(id)) {
+      throw new Error(`Duplicate evaluation protocol id "${id}"`);
+    }
+    evaluationProtocolIds.add(id);
+    if (protocol.state !== 'protocol_frozen') {
+      throw new Error(`${label}.state must be protocol_frozen`);
+    }
+    const predictionBaselineId = stringValue(
+      protocol.predictionBaselineId,
+      `${label}.predictionBaselineId`,
+    );
+    const evaluationDatasetId = stringValue(
+      protocol.evaluationDatasetId,
+      `${label}.evaluationDatasetId`,
+    );
+    if (protocol.evaluationReferenceAccessAtFreeze !== 'not_loaded') {
+      throw new Error(`${label} must freeze before loading evaluation data`);
+    }
+    if (booleanValue(protocol.calibration, `${label}.calibration`)) {
+      throw new Error(`${label} must not calibrate on evaluation data`);
+    }
+    const predictionArtifacts = objectValue(
+      protocol.predictionArtifacts,
+      `${label}.predictionArtifacts`,
+    );
+    const predictionArtifactPaths = [
+      portablePath(
+        stringValue(
+          predictionArtifacts.localRunoffVolume,
+          `${label}.predictionArtifacts.localRunoffVolume`,
+        ),
+        `${label}.predictionArtifacts.localRunoffVolume`,
+      ),
+      portablePath(
+        stringValue(
+          predictionArtifacts.accumulatedRunoffVolume,
+          `${label}.predictionArtifacts.accumulatedRunoffVolume`,
+        ),
+        `${label}.predictionArtifacts.accumulatedRunoffVolume`,
+      ),
+    ];
+    if (predictionArtifactPaths[0] === predictionArtifactPaths[1]) {
+      throw new Error(`${label} prediction artifacts must be distinct`);
+    }
+    const score = objectValue(protocol.score, `${label}.score`);
+    if (score.semantics !== 'routed_upstream_excess_volume') {
+      throw new Error(`${label}.score.semantics is unsupported`);
+    }
+    stringValue(
+      score.transformationVersion,
+      `${label}.score.transformationVersion`,
+    );
+    if (score.unit !== 'm3') {
+      throw new Error(`${label}.score.unit must be m3`);
+    }
+    if (
+      score.formula !==
+      'accumulated_runoff_volume_m3_minus_local_runoff_volume_m3'
+    ) {
+      throw new Error(`${label}.score.formula is unsupported`);
+    }
+    const negativeToleranceM3 = finiteNumber(
+      score.negativeToleranceM3,
+      `${label}.score.negativeToleranceM3`,
+    );
+    if (negativeToleranceM3 < 0 || negativeToleranceM3 > 1e-6) {
+      throw new Error(`${label}.score.negativeToleranceM3 is unreasonable`);
+    }
+    if (
+      score.knownWaterLocalSource !==
+      'structural_zero_only_for_score_subtraction'
+    ) {
+      throw new Error(`${label}.score.knownWaterLocalSource is unsupported`);
+    }
+    const domain = objectValue(protocol.domain, `${label}.domain`);
+    if (domain.inclusion !== 'finite_prediction_inside_aoi') {
+      throw new Error(`${label}.domain.inclusion is unsupported`);
+    }
+    if (
+      domain.observedLabel !==
+      'cell_center_inside_official_event_2_polygon'
+    ) {
+      throw new Error(`${label}.domain.observedLabel is unsupported`);
+    }
+    if (domain.primaryBufferM !== 0) {
+      throw new Error(`${label} primary labels must remain unbuffered`);
+    }
+    const metrics = uniqueStringArray(protocol.metrics, `${label}.metrics`);
+    if (
+      metrics.length !== expectedMetrics.length ||
+      metrics.some(
+        (metric, metricIndex) => metric !== expectedMetrics[metricIndex],
+      )
+    ) {
+      throw new Error(`${label}.metrics must match the frozen metric set`);
+    }
+    const areaFractions = numberArray(
+      protocol.areaFractions,
+      `${label}.areaFractions`,
+      4,
+    );
+    const expectedFractions = [0.01, 0.05, 0.1, 0.2];
+    if (
+      areaFractions.some(
+        (fraction, fractionIndex) =>
+          fraction !== expectedFractions[fractionIndex],
+      )
+    ) {
+      throw new Error(`${label}.areaFractions must match the frozen set`);
+    }
+    if (
+      protocol.tiePolicy !==
+      'fractional_uniform_weight_at_threshold_score'
+    ) {
+      throw new Error(`${label}.tiePolicy is unsupported`);
+    }
+    if (protocol.calibrationPolicy !== 'none') {
+      throw new Error(`${label}.calibrationPolicy must be none`);
+    }
+    stringValue(protocol.methodologyNote, `${label}.methodologyNote`);
+    evaluationProtocolReferences.push({
+      label,
+      predictionBaselineId,
+      evaluationDatasetId,
+      predictionArtifactPaths,
+    });
+  });
+  const declaredEvaluationMetrics = uniqueStringArray(
+    benchmark.evaluationMetrics,
+    'benchmark.evaluationMetrics',
+  );
+  if (
+    declaredEvaluationMetrics.length !== expectedMetrics.length ||
+    declaredEvaluationMetrics.some(
+      (metric, index) => metric !== expectedMetrics[index],
+    )
+  ) {
+    throw new Error(
+      'benchmark.evaluationMetrics must match the frozen metric set',
+    );
+  }
   let modelInputs = 0;
   let evaluationReferences = 0;
 
@@ -444,6 +660,48 @@ export function assertHistoricalBenchmarkManifest(
           `${baseline.label} dataset "${datasetId}" is not an eligible model input`,
         );
       }
+    }
+  }
+  for (const protocol of evaluationProtocolReferences) {
+    if (!routingBaselineIds.has(protocol.predictionBaselineId)) {
+      throw new Error(
+        `${protocol.label} references unknown routing baseline "${protocol.predictionBaselineId}"`,
+      );
+    }
+    const baselineArtifacts = routingBaselineArtifactPaths.get(
+      protocol.predictionBaselineId,
+    );
+    for (const artifactPath of protocol.predictionArtifactPaths) {
+      if (!baselineArtifacts?.has(artifactPath)) {
+        throw new Error(
+          `${protocol.label} prediction artifact "${artifactPath}" is not pinned by its routing baseline`,
+        );
+      }
+    }
+    const dataset = root.datasets.find(
+      (candidate) =>
+        objectValue(candidate, 'evaluation protocol dataset').id ===
+        protocol.evaluationDatasetId,
+    );
+    if (dataset === undefined) {
+      throw new Error(
+        `${protocol.label} references unknown evaluation dataset "${protocol.evaluationDatasetId}"`,
+      );
+    }
+    const typedDataset = objectValue(dataset, 'evaluation protocol dataset');
+    const uses = objectValue(
+      typedDataset.allowedUses,
+      'evaluation protocol dataset.allowedUses',
+    );
+    if (
+      typedDataset.role !== 'evaluation_reference' ||
+      uses.evaluation !== true ||
+      uses.modelInput !== false ||
+      uses.calibration !== false
+    ) {
+      throw new Error(
+        `${protocol.label} dataset "${protocol.evaluationDatasetId}" is not an isolated evaluation reference`,
+      );
     }
   }
 }
