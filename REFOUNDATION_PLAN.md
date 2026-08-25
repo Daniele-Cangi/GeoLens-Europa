@@ -433,7 +433,7 @@ Progress:
 - the post-freeze ARPAE Annale audit retains published gauge-zero elevations of `53.48 m s.m.` at Castrocaro, `120.13 m s.m.` at Predappio and `8.51 m s.m.` at Ponte Vico while Ponte Braldo remains explicitly missing; the Annale's 45-station discharge network contains neither Montone nor Rabbi, so no event-valid rating curve or discharge hydrograph is promoted;
 - the regional PST DescribeCoverage declares a native 1 m EPSG:23032 grid and `-3` null sentinel; a bounded 5 m nearest-neighbour coverage audit returned 5,069,731 pixels with 560,965 nulls (`11.064985%`) and no GeoTIFF nodata tag, so the sentinel is interpreted only from the pinned service description;
 - PST gaps intersect the known DBTR physical corridor: 1,544 of 12,762 riverbed centres, 1,542 of 10,525 embankment centres and 1,550 of 10,859 permanent-water centres lack terrain; a full 1 m download is therefore deferred because it would preserve rather than repair the gap, and no null is filled from GLO-30 without a separately declared heterogeneous-terrain model;
-- manifest v1.12.0 and the external-data verifier now pin 48 benchmark artifacts totaling 670,991,689 bytes, including the WCS description and the bounded PST coverage audit.
+- manifest v1.12.0 and the external-data verifier now pin 49 benchmark artifacts totaling 671,357,103 bytes, including the WCS description, the bounded PST coverage audit and an outside-Git HTML snapshot of the official Forli breach-repair account.
 
 Work:
 

@@ -1138,11 +1138,12 @@
       "availableAt": "2023-11-14T00:00:00Z",
       "publisher": "Regione Emilia-Romagna - Agenzia per la sicurezza territoriale e la protezione civile",
       "dataset": "Official account of May 2023 embankment damage and repair works in the Forli area",
-      "datasetVersion": "published 2023-11-14",
+      "datasetVersion": "published 2023-11-14; HTML snapshot acquired 2026-08-25",
+      "acquiredAt": "2026-08-25T13:51:15Z",
       "sourceUrl": "https://protezionecivile.regione.emilia-romagna.it/novita/notizie/2023/novembre/alluvione-il-punto-sugli-interventi-nel-forlivese",
-      "accessMethod": "public official narrative record",
+      "accessMethod": "public official narrative record with byte-pinned HTML snapshot retained outside Git",
       "sourceResolution": "named breach and repair locations; no machine-readable coordinates, activation times, elevations or geometry",
-      "acquisitionStatus": "remote_verified",
+      "acquisitionStatus": "downloaded_verified",
       "license": {
         "name": "Website legal terms not yet pinned for dataset redistribution",
         "access": "public",
@@ -1153,7 +1154,14 @@
         "calibration": false,
         "evaluation": true
       },
-      "methodologyNote": "The page verifies that the 16-18 May event damaged Montone and Rabbi embankments and names repairs at Cavo Fontana 2/via Martiri delle Foibe, Villanova/via Zignola near rio San Lazzaro and via Isonzo. It is context only: named locations cannot be converted into breach coordinates, timings, widths or hydrographs and cannot be inferred from the observed flood extent."
+      "methodologyNote": "The byte-pinned page verifies that the 16-18 May event damaged Montone and Rabbi embankments and names repairs at Cavo Fontana 2/via Martiri delle Foibe, Villanova/via Zignola near rio San Lazzaro and via Isonzo. It is context only: named locations cannot be converted into breach coordinates, timings, widths or hydrographs and cannot be inferred from the observed flood extent. Redistribution remains unknown, so the snapshot stays outside Git.",
+      "localArtifacts": [
+        {
+          "relativePath": "source/rer-forli-may-2023-breach-repair-record.html",
+          "bytes": 365414,
+          "sha256": "8855B27FCDF21CA0B74F687698B0BDBFF95B510B7AA9D40DDE57A952F406B26F"
+        }
+      ]
     },
     {
       "id": "rer-flood-extent-v7-event-2",

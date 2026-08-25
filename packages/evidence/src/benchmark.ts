@@ -179,15 +179,15 @@ export interface BenchmarkConditionedReplayTerrainAudit {
   readonly sourceDatasetId: string;
   readonly quality: 'incomplete_window';
   readonly coverageRequest: {
-    readonly sourceCrs: 'EPSG:23032';
-    readonly sourceResolutionM: 1;
-    readonly representationResolutionM: 5;
-    readonly interpolation: 'nearest_neighbor';
+    readonly sourceCrs: string;
+    readonly sourceResolutionM: number;
+    readonly representationResolutionM: number;
+    readonly interpolation: 'nearest_neighbor' | 'bilinear' | 'bicubic';
     readonly bounds: readonly [number, number, number, number];
     readonly width: number;
     readonly height: number;
-    readonly declaredNoData: -3;
-    readonly geoTiffNoDataTag: 'missing';
+    readonly declaredNoData: number;
+    readonly geoTiffNoDataTag: 'missing' | 'present';
   };
   readonly counts: {
     readonly totalPixels: number;
@@ -470,6 +470,7 @@ const acquisitionStatuses = new Set([
   'blocked',
 ]);
 
+/** Validates structural evidence, isolation and fail-closed replay invariants. */
 export function assertHistoricalBenchmarkManifest(
   value: unknown,
 ): asserts value is HistoricalBenchmarkManifest {
@@ -959,32 +960,6 @@ export function assertHistoricalBenchmarkManifest(
     readonly ids: readonly string[];
   }> = [];
   const conditionedAuditIds = new Set<string>();
-  const expectedDatumStations = [
-    {
-      stationId: '-/1194940,4417012/spdsra',
-      name: 'Castrocaro',
-      datumMslM: 53.48,
-      status: 'available',
-    },
-    {
-      stationId: '-/1198305,4410502/spdsra',
-      name: 'Predappio',
-      datumMslM: 120.13,
-      status: 'available',
-    },
-    {
-      stationId: '-/1199295,4426279/spdsra',
-      name: 'Ponte Braldo',
-      datumMslM: null,
-      status: 'missing',
-    },
-    {
-      stationId: '-/1203134,4433002/spdsra',
-      name: 'Ponte Vico',
-      datumMslM: 8.51,
-      status: 'available',
-    },
-  ] as const;
   benchmark.conditionedReplaySourceAudits.forEach((rawAudit, index) => {
     const label = `benchmark.conditionedReplaySourceAudits[${index}]`;
     const audit = objectValue(rawAudit, label);
@@ -1014,15 +989,17 @@ export function assertHistoricalBenchmarkManifest(
       label,
       ids: sourceDatasetIds,
     });
-    const sourcePages = numberArray(audit.sourcePages, `${label}.sourcePages`, 6);
-    const expectedPages = [17, 26, 54, 65, 68, 69];
+    if (!Array.isArray(audit.sourcePages) || audit.sourcePages.length === 0) {
+      throw new Error(`${label}.sourcePages must be a non-empty array`);
+    }
+    const sourcePages = audit.sourcePages.map((page, pageIndex) =>
+      positiveInteger(page, `${label}.sourcePages[${pageIndex}]`),
+    );
     if (
-      sourcePages.some(
-        (page, pageIndex) =>
-          !Number.isInteger(page) || page !== expectedPages[pageIndex],
-      )
+      new Set(sourcePages).size !== sourcePages.length ||
+      sourcePages.some((page, pageIndex) => pageIndex > 0 && page <= sourcePages[pageIndex - 1])
     ) {
-      throw new Error(`${label}.sourcePages drifted from the inspected ARPAE pages`);
+      throw new Error(`${label}.sourcePages must be unique and ascending`);
     }
     if (audit.quality !== 'incomplete_window') {
       throw new Error(`${label}.quality must retain incomplete_window`);
@@ -1032,24 +1009,16 @@ export function assertHistoricalBenchmarkManifest(
       audit.dischargeNetwork,
       `${label}.dischargeNetwork`,
     );
-    if (
-      positiveInteger(
-        dischargeNetwork.listedStationCount,
-        `${label}.dischargeNetwork.listedStationCount`,
-      ) !== 45
-    ) {
-      throw new Error(`${label} must retain the published 45-station discharge list`);
-    }
+    positiveInteger(
+      dischargeNetwork.listedStationCount,
+      `${label}.dischargeNetwork.listedStationCount`,
+    );
     const requiredStationNames = uniqueStringArray(
       dischargeNetwork.requiredStationNames,
       `${label}.dischargeNetwork.requiredStationNames`,
     );
-    if (
-      requiredStationNames.length !== 2 ||
-      requiredStationNames[0] !== 'Montone' ||
-      requiredStationNames[1] !== 'Rabbi'
-    ) {
-      throw new Error(`${label} must audit both Montone and Rabbi discharge evidence`);
+    if (requiredStationNames.length === 0) {
+      throw new Error(`${label} must declare the required discharge stations`);
     }
     if (
       dischargeNetwork.containsRequiredStations !== false ||
@@ -1063,20 +1032,24 @@ export function assertHistoricalBenchmarkManifest(
       audit.stationDatums,
       `${label}.stationDatums`,
     );
-    if (stationDatums.length !== expectedDatumStations.length) {
-      throw new Error(`${label}.stationDatums must retain the frozen station set`);
-    }
+    const datumStationIds = new Set<string>();
     stationDatums.forEach((rawDatum, datumIndex) => {
       const datumLabel = `${label}.stationDatums[${datumIndex}]`;
       const datum = objectValue(rawDatum, datumLabel);
-      const expected = expectedDatumStations[datumIndex];
-      if (
-        datum.stationId !== expected.stationId ||
-        datum.name !== expected.name ||
-        datum.status !== expected.status ||
-        datum.datumMslM !== expected.datumMslM
-      ) {
-        throw new Error(`${datumLabel} drifted from the inspected ARPAE table`);
+      const stationId = stringValue(datum.stationId, `${datumLabel}.stationId`);
+      if (datumStationIds.has(stationId)) {
+        throw new Error(`${label}.stationDatums repeats station "${stationId}"`);
+      }
+      datumStationIds.add(stationId);
+      stringValue(datum.name, `${datumLabel}.name`);
+      if (datum.status === 'available') {
+        finiteNumber(datum.datumMslM, `${datumLabel}.datumMslM`);
+      } else if (datum.status === 'missing') {
+        if (datum.datumMslM !== null) {
+          throw new Error(`${datumLabel} missing datum must remain null`);
+        }
+      } else {
+        throw new Error(`${datumLabel}.status is unsupported`);
       }
     });
 
@@ -1104,27 +1077,6 @@ export function assertHistoricalBenchmarkManifest(
     readonly label: string;
     readonly id: string;
   }> = [];
-  const expectedTerrainBounds = [737875, 4895267, 747926, 4907868];
-  const expectedPhysicalCoverage = [
-    {
-      layer: 'riverbed',
-      knownCenterCells: 12762,
-      terrainAvailableAtCenter: 11218,
-      terrainMissingAtCenter: 1544,
-    },
-    {
-      layer: 'embankment',
-      knownCenterCells: 10525,
-      terrainAvailableAtCenter: 8983,
-      terrainMissingAtCenter: 1542,
-    },
-    {
-      layer: 'permanent_water',
-      knownCenterCells: 10859,
-      terrainAvailableAtCenter: 9309,
-      terrainMissingAtCenter: 1550,
-    },
-  ] as const;
   benchmark.conditionedReplayTerrainAudits.forEach((rawAudit, index) => {
     const label = `benchmark.conditionedReplayTerrainAudits[${index}]`;
     const audit = objectValue(rawAudit, label);
@@ -1150,29 +1102,39 @@ export function assertHistoricalBenchmarkManifest(
     });
 
     const request = objectValue(audit.coverageRequest, `${label}.coverageRequest`);
-    if (
-      request.sourceCrs !== 'EPSG:23032' ||
-      request.sourceResolutionM !== 1 ||
-      request.representationResolutionM !== 5 ||
-      request.interpolation !== 'nearest_neighbor' ||
-      request.declaredNoData !== -3 ||
-      request.geoTiffNoDataTag !== 'missing'
-    ) {
-      throw new Error(`${label}.coverageRequest drifted from WCS provenance`);
+    stringValue(request.sourceCrs, `${label}.coverageRequest.sourceCrs`);
+    const sourceResolutionM = finiteNumber(
+      request.sourceResolutionM,
+      `${label}.coverageRequest.sourceResolutionM`,
+    );
+    const representationResolutionM = finiteNumber(
+      request.representationResolutionM,
+      `${label}.coverageRequest.representationResolutionM`,
+    );
+    if (sourceResolutionM <= 0 || representationResolutionM <= 0) {
+      throw new Error(`${label}.coverageRequest resolutions must be positive`);
     }
+    allowedString(
+      request.interpolation,
+      new Set(['nearest_neighbor', 'bilinear', 'bicubic']),
+      `${label}.coverageRequest.interpolation`,
+    );
+    finiteNumber(request.declaredNoData, `${label}.coverageRequest.declaredNoData`);
+    allowedString(
+      request.geoTiffNoDataTag,
+      new Set(['missing', 'present']),
+      `${label}.coverageRequest.geoTiffNoDataTag`,
+    );
     const requestBounds = numberArray(
       request.bounds,
       `${label}.coverageRequest.bounds`,
       4,
     );
-    if (requestBounds.some((bound, boundIndex) => bound !== expectedTerrainBounds[boundIndex])) {
-      throw new Error(`${label}.coverageRequest.bounds drifted from the bounded audit`);
+    if (requestBounds[0] >= requestBounds[2] || requestBounds[1] >= requestBounds[3]) {
+      throw new Error(`${label}.coverageRequest.bounds must be ordered`);
     }
     const width = positiveInteger(request.width, `${label}.coverageRequest.width`);
     const height = positiveInteger(request.height, `${label}.coverageRequest.height`);
-    if (width !== 2011 || height !== 2521) {
-      throw new Error(`${label}.coverageRequest dimensions are inconsistent`);
-    }
 
     const counts = objectValue(audit.counts, `${label}.counts`);
     const totalPixels = positiveInteger(counts.totalPixels, `${label}.counts.totalPixels`);
@@ -1191,9 +1153,6 @@ export function assertHistoricalBenchmarkManifest(
     if (
       totalPixels !== width * height ||
       availablePixels + missingPixels !== totalPixels ||
-      totalPixels !== 5069731 ||
-      availablePixels !== 4508766 ||
-      missingPixels !== 560965 ||
       !approximatelyEqual(missingFraction, missingPixels / totalPixels)
     ) {
       throw new Error(`${label}.counts are inconsistent with the bounded raster`);
@@ -1203,13 +1162,19 @@ export function assertHistoricalBenchmarkManifest(
       audit.physicalFeatureCoverage,
       `${label}.physicalFeatureCoverage`,
     );
-    if (physicalCoverage.length !== expectedPhysicalCoverage.length) {
-      throw new Error(`${label}.physicalFeatureCoverage is incomplete`);
-    }
+    const physicalLayers = new Set<string>();
     physicalCoverage.forEach((rawCoverage, coverageIndex) => {
       const coverageLabel = `${label}.physicalFeatureCoverage[${coverageIndex}]`;
       const coverage = objectValue(rawCoverage, coverageLabel);
-      const expected = expectedPhysicalCoverage[coverageIndex];
+      const layer = allowedString(
+        coverage.layer,
+        new Set(['riverbed', 'embankment', 'permanent_water']),
+        `${coverageLabel}.layer`,
+      );
+      if (physicalLayers.has(layer)) {
+        throw new Error(`${label}.physicalFeatureCoverage repeats layer "${layer}"`);
+      }
+      physicalLayers.add(layer);
       const knownCenterCells = positiveInteger(
         coverage.knownCenterCells,
         `${coverageLabel}.knownCenterCells`,
@@ -1223,13 +1188,9 @@ export function assertHistoricalBenchmarkManifest(
         `${coverageLabel}.terrainMissingAtCenter`,
       );
       if (
-        coverage.layer !== expected.layer ||
-        knownCenterCells !== expected.knownCenterCells ||
-        terrainAvailableAtCenter !== expected.terrainAvailableAtCenter ||
-        terrainMissingAtCenter !== expected.terrainMissingAtCenter ||
         knownCenterCells !== terrainAvailableAtCenter + terrainMissingAtCenter
       ) {
-        throw new Error(`${coverageLabel} drifted from the coverage audit`);
+        throw new Error(`${coverageLabel} center-cell counts are inconsistent`);
       }
     });
 

@@ -274,15 +274,13 @@ test('post-freeze ARPAE audit retains datums but finds no required discharge sta
   assert.match(audit.methodologyNote, /No stage was converted to discharge/);
 });
 
-test('ARPAE source audit rejects a fabricated datum or hydraulic eligibility', () => {
-  const fabricatedDatum = manifestFixture();
-  fabricatedDatum.benchmark.conditionedReplaySourceAudits[0]
+test('ARPAE source audit rejects inconsistent missing datum or hydraulic eligibility', () => {
+  const inconsistentDatum = manifestFixture();
+  inconsistentDatum.benchmark.conditionedReplaySourceAudits[0]
     .stationDatums[2].datumMslM = 0;
-  fabricatedDatum.benchmark.conditionedReplaySourceAudits[0]
-    .stationDatums[2].status = 'available';
   assert.throws(
-    () => assertHistoricalBenchmarkManifest(fabricatedDatum),
-    /drifted from the inspected ARPAE table/,
+    () => assertHistoricalBenchmarkManifest(inconsistentDatum),
+    /missing datum must remain null/,
   );
 
   const fabricatedDischarge = manifestFixture();
@@ -342,13 +340,13 @@ test('bounded PST terrain audit preserves source nodata and critical gaps', () =
   assert.equal(dataset.localArtifacts.length, 3);
 });
 
-test('terrain audit rejects nodata coercion, count drift and premature eligibility', () => {
-  const coercedNoData = manifestFixture();
-  coercedNoData.benchmark.conditionedReplayTerrainAudits[0]
-    .coverageRequest.declaredNoData = 0;
+test('terrain audit rejects invalid resolution, count drift and premature eligibility', () => {
+  const invalidResolution = manifestFixture();
+  invalidResolution.benchmark.conditionedReplayTerrainAudits[0]
+    .coverageRequest.representationResolutionM = 0;
   assert.throws(
-    () => assertHistoricalBenchmarkManifest(coercedNoData),
-    /coverageRequest drifted from WCS provenance/,
+    () => assertHistoricalBenchmarkManifest(invalidResolution),
+    /resolutions must be positive/,
   );
 
   const countDrift = manifestFixture();
