@@ -216,7 +216,7 @@ export interface BenchmarkConditionedReplayPhysicalAudit {
   };
   readonly conclusions: {
     readonly breachStatus: 'metadata_only';
-    readonly embankmentStatus: 'metadata_only';
+    readonly embankmentStatus: 'incomplete_window';
     readonly channelStatus: 'metadata_only';
     readonly hydraulicUseEligible: false;
     readonly protocolRunGate: 'blocked_missing_required_evidence';
@@ -886,6 +886,13 @@ export function assertHistoricalBenchmarkManifest(
   }> = [];
   const conditionedProtocolIds = new Set<string>();
   const conditionedProtocolRunStates = new Map<string, string>();
+  const conditionedProtocolEvidenceStatuses = new Map<
+    string,
+    ReadonlyMap<
+      BenchmarkConditionedBoundaryEvidenceId,
+      BenchmarkConditionedBoundaryEvidenceStatus
+    >
+  >();
   const expectedConditionedEvidenceIds: readonly BenchmarkConditionedBoundaryEvidenceId[] = [
     'rainfall_and_surface_runoff_forcing',
     'antecedent_moisture_or_model_warmup',
@@ -950,6 +957,10 @@ export function assertHistoricalBenchmarkManifest(
       throw new Error(`${label} must retain the complete conditioned-input gate`);
     }
     let blockedRequirements = 0;
+    const evidenceStatuses = new Map<
+      BenchmarkConditionedBoundaryEvidenceId,
+      BenchmarkConditionedBoundaryEvidenceStatus
+    >();
     evidence.forEach((rawEvidence, evidenceIndex) => {
       const evidenceLabel = `${label}.requiredBoundaryEvidence[${evidenceIndex}]`;
       const requirement = objectValue(rawEvidence, evidenceLabel);
@@ -963,6 +974,10 @@ export function assertHistoricalBenchmarkManifest(
         requirement.status,
         new Set(['available', 'missing', 'incomplete_window', 'metadata_only']),
         `${evidenceLabel}.status`,
+      ) as BenchmarkConditionedBoundaryEvidenceStatus;
+      evidenceStatuses.set(
+        requirement.id as BenchmarkConditionedBoundaryEvidenceId,
+        status,
       );
       const candidateDatasetIds = uniqueStringArray(
         requirement.candidateDatasetIds,
@@ -985,6 +1000,7 @@ export function assertHistoricalBenchmarkManifest(
         ids: candidateDatasetIds,
       });
     });
+    conditionedProtocolEvidenceStatuses.set(id, evidenceStatuses);
 
     const runGate = objectValue(protocol.runGate, `${label}.runGate`);
     const expectedRunState =
@@ -1054,18 +1070,7 @@ export function assertHistoricalBenchmarkManifest(
       label,
       ids: sourceDatasetIds,
     });
-    if (!Array.isArray(audit.sourcePages) || audit.sourcePages.length === 0) {
-      throw new Error(`${label}.sourcePages must be a non-empty array`);
-    }
-    const sourcePages = audit.sourcePages.map((page, pageIndex) =>
-      positiveInteger(page, `${label}.sourcePages[${pageIndex}]`),
-    );
-    if (
-      new Set(sourcePages).size !== sourcePages.length ||
-      sourcePages.some((page, pageIndex) => pageIndex > 0 && page <= sourcePages[pageIndex - 1])
-    ) {
-      throw new Error(`${label}.sourcePages must be unique and ascending`);
-    }
+    assertAscendingPositiveIntegers(audit.sourcePages, `${label}.sourcePages`);
     if (audit.quality !== 'incomplete_window') {
       throw new Error(`${label}.quality must retain incomplete_window`);
     }
@@ -1307,7 +1312,7 @@ export function assertHistoricalBenchmarkManifest(
     const conclusions = objectValue(audit.conclusions, `${label}.conclusions`);
     if (
       conclusions.breachStatus !== 'metadata_only' ||
-      conclusions.embankmentStatus !== 'metadata_only' ||
+      conclusions.embankmentStatus !== 'incomplete_window' ||
       conclusions.channelStatus !== 'metadata_only' ||
       conclusions.hydraulicUseEligible !== false ||
       conclusions.protocolRunGate !== 'blocked_missing_required_evidence' ||
@@ -1317,6 +1322,17 @@ export function assertHistoricalBenchmarkManifest(
     }
     if (conclusions.protocolRunGate !== conditionedProtocolRunStates.get(protocolId)) {
       throw new Error(`${label} contradicts the conditioned replay protocol run gate`);
+    }
+    const protocolEvidenceStatuses = conditionedProtocolEvidenceStatuses.get(protocolId);
+    if (
+      conclusions.breachStatus !==
+        protocolEvidenceStatuses?.get('breach_location_timing_and_geometry') ||
+      conclusions.embankmentStatus !==
+        protocolEvidenceStatuses?.get('embankment_crest_geometry') ||
+      conclusions.channelStatus !==
+        protocolEvidenceStatuses?.get('channel_geometry_and_roughness')
+    ) {
+      throw new Error(`${label} physical statuses drifted from the conditioned replay gate`);
     }
     stringValue(audit.methodologyNote, `${label}.methodologyNote`);
   });

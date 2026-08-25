@@ -378,6 +378,14 @@ test('physical-source audit rejects promoted narrative or drawing evidence', () 
     /cannot promote drawing archives into hydraulic model inputs/,
   );
 
+  const driftedGate = manifestFixture();
+  driftedGate.benchmark.conditionedReplayProtocols[0]
+    .requiredBoundaryEvidence[4].status = 'incomplete_window';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(driftedGate),
+    /physical statuses drifted from the conditioned replay gate/,
+  );
+
   const misleadingArchive = manifestFixture();
   misleadingArchive.benchmark.conditionedReplayPhysicalAudits[0]
     .publicHydraulicArchive.inspectedArtifacts[0]

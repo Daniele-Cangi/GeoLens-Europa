@@ -811,7 +811,7 @@
         },
         "conclusions": {
           "breachStatus": "metadata_only",
-          "embankmentStatus": "metadata_only",
+          "embankmentStatus": "incomplete_window",
           "channelStatus": "metadata_only",
           "hydraulicUseEligible": false,
           "protocolRunGate": "blocked_missing_required_evidence",
