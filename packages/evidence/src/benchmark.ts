@@ -188,6 +188,15 @@ export interface BenchmarkConditionedReplayTerrainAudit {
     readonly height: number;
     readonly declaredNoData: number;
     readonly geoTiffNoDataTag: 'missing' | 'present';
+    readonly aoiRelation: {
+      readonly sourceBounds: readonly [number, number, number, number];
+      readonly targetCrs: string;
+      readonly transformedBounds: readonly [number, number, number, number];
+      readonly transformation: string;
+      readonly reference: 'benchmark_spatial_grid_bounds';
+      readonly relation: 'contains_with_tolerance';
+      readonly toleranceM: number;
+    };
   };
   readonly counts: {
     readonly totalPixels: number;
@@ -822,6 +831,7 @@ export function assertHistoricalBenchmarkManifest(
     readonly ids: readonly string[];
   }> = [];
   const conditionedProtocolIds = new Set<string>();
+  const conditionedProtocolRunStates = new Map<string, string>();
   const expectedConditionedEvidenceIds: readonly BenchmarkConditionedBoundaryEvidenceId[] = [
     'rainfall_and_surface_runoff_forcing',
     'antecedent_moisture_or_model_warmup',
@@ -930,6 +940,7 @@ export function assertHistoricalBenchmarkManifest(
     if (runGate.state !== expectedRunState) {
       throw new Error(`${label}.runGate.state disagrees with required evidence`);
     }
+    conditionedProtocolRunStates.set(id, runGate.state as string);
     if (
       runGate.requiredStatus !== 'available' ||
       runGate.missingPolicy !== 'block_run_not_zero_or_inferred'
@@ -1063,6 +1074,9 @@ export function assertHistoricalBenchmarkManifest(
     ) {
       throw new Error(`${label} must keep the hydraulic replay fail-closed`);
     }
+    if (conclusions.protocolRunGate !== conditionedProtocolRunStates.get(protocolId)) {
+      throw new Error(`${label} contradicts the conditioned replay protocol run gate`);
+    }
     stringValue(audit.methodologyNote, `${label}.methodologyNote`);
   });
   if (
@@ -1137,6 +1151,58 @@ export function assertHistoricalBenchmarkManifest(
     );
     if (requestBounds[0] >= requestBounds[2] || requestBounds[1] >= requestBounds[3]) {
       throw new Error(`${label}.coverageRequest.bounds must be ordered`);
+    }
+    const aoiRelation = objectValue(
+      request.aoiRelation,
+      `${label}.coverageRequest.aoiRelation`,
+    );
+    const relationSourceBounds = numberArray(
+      aoiRelation.sourceBounds,
+      `${label}.coverageRequest.aoiRelation.sourceBounds`,
+      4,
+    );
+    if (relationSourceBounds.some((bound, boundIndex) => bound !== requestBounds[boundIndex])) {
+      throw new Error(`${label}.coverageRequest AOI source bounds must equal the request`);
+    }
+    if (aoiRelation.targetCrs !== spatialReferences.gridCrs) {
+      throw new Error(`${label}.coverageRequest AOI target CRS must equal the benchmark grid`);
+    }
+    const transformedBounds = numberArray(
+      aoiRelation.transformedBounds,
+      `${label}.coverageRequest.aoiRelation.transformedBounds`,
+      4,
+    );
+    assertOrderedBounds(
+      transformedBounds,
+      `${label}.coverageRequest.aoiRelation.transformedBounds`,
+    );
+    stringValue(
+      aoiRelation.transformation,
+      `${label}.coverageRequest.aoiRelation.transformation`,
+    );
+    if (
+      aoiRelation.reference !== 'benchmark_spatial_grid_bounds' ||
+      aoiRelation.relation !== 'contains_with_tolerance'
+    ) {
+      throw new Error(`${label}.coverageRequest must relate terrain to the benchmark grid`);
+    }
+    const relationToleranceM = finiteNumber(
+      aoiRelation.toleranceM,
+      `${label}.coverageRequest.aoiRelation.toleranceM`,
+    );
+    if (relationToleranceM < 0 || relationToleranceM > sourceResolutionM) {
+      throw new Error(
+        `${label}.coverageRequest AOI tolerance must be between zero and one source cell`,
+      );
+    }
+    const gridBounds = spatialReferences.gridBounds;
+    if (
+      transformedBounds[0] > gridBounds[0] + relationToleranceM ||
+      transformedBounds[1] > gridBounds[1] + relationToleranceM ||
+      transformedBounds[2] < gridBounds[2] - relationToleranceM ||
+      transformedBounds[3] < gridBounds[3] - relationToleranceM
+    ) {
+      throw new Error(`${label}.coverageRequest transformed bounds do not contain the benchmark grid`);
     }
     const width = positiveInteger(request.width, `${label}.coverageRequest.width`);
     const height = positiveInteger(request.height, `${label}.coverageRequest.height`);
@@ -2208,6 +2274,8 @@ function assertBenchmarkSpatialProtocol(
   readonly verifiedDatasetIds: readonly string[];
   readonly permanentWaterDatasetId: string;
   readonly cellAreaM2: number;
+  readonly gridCrs: string;
+  readonly gridBounds: readonly number[];
 } {
   const coverage = objectValue(
     raw.coverage,
@@ -2391,6 +2459,8 @@ function assertBenchmarkSpatialProtocol(
     verifiedDatasetIds,
     permanentWaterDatasetId,
     cellAreaM2: cellSizeM * cellSizeM,
+    gridCrs: 'EPSG:32632',
+    gridBounds,
   };
 }
 

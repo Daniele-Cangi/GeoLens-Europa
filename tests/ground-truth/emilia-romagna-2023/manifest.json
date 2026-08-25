@@ -738,7 +738,26 @@
           "width": 2011,
           "height": 2521,
           "declaredNoData": -3,
-          "geoTiffNoDataTag": "missing"
+          "geoTiffNoDataTag": "missing",
+          "aoiRelation": {
+            "sourceBounds": [
+              737875,
+              4895267,
+              747926,
+              4907868
+            ],
+            "targetCrs": "EPSG:32632",
+            "transformedBounds": [
+              737790.000838944,
+              4895069.588412029,
+              747840.9310682673,
+              4907670.496913256
+            ],
+            "transformation": "proj4 EPSG:23032 ED50 UTM32 to EPSG:32632 with towgs84=-87,-98,-121,0,0,0,0",
+            "reference": "benchmark_spatial_grid_bounds",
+            "relation": "contains_with_tolerance",
+            "toleranceM": 1
+          }
         },
         "counts": {
           "totalPixels": 5069731,

@@ -230,6 +230,18 @@ test('conditioned replay rejects leakage, invented boundaries and gate drift', (
     /runGate.state disagrees with required evidence/,
   );
 
+  const contradictoryAudit = manifestFixture();
+  contradictoryAudit.benchmark.conditionedReplayProtocols[0]
+    .requiredBoundaryEvidence.forEach((requirement) => {
+      requirement.status = 'available';
+      delete requirement.blocker;
+    });
+  contradictoryAudit.benchmark.conditionedReplayProtocols[0].runGate.state = 'eligible';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(contradictoryAudit),
+    /contradicts the conditioned replay protocol run gate/,
+  );
+
   const unknownSource = manifestFixture();
   unknownSource.benchmark.conditionedReplayProtocols[0]
     .requiredBoundaryEvidence[4].candidateDatasetIds = ['unknown-breach-source'];
@@ -314,6 +326,16 @@ test('bounded PST terrain audit preserves source nodata and critical gaps', () =
   assert.equal(audit.coverageRequest.representationResolutionM, 5);
   assert.equal(audit.coverageRequest.declaredNoData, -3);
   assert.equal(audit.coverageRequest.geoTiffNoDataTag, 'missing');
+  assert.deepEqual(
+    audit.coverageRequest.aoiRelation.sourceBounds,
+    audit.coverageRequest.bounds,
+  );
+  assert.equal(audit.coverageRequest.aoiRelation.targetCrs, 'EPSG:32632');
+  assert.equal(
+    audit.coverageRequest.aoiRelation.reference,
+    'benchmark_spatial_grid_bounds',
+  );
+  assert.equal(audit.coverageRequest.aoiRelation.toleranceM, 1);
   assert.deepEqual(audit.counts, {
     totalPixels: 5069731,
     availablePixels: 4508766,
@@ -355,6 +377,30 @@ test('terrain audit rejects invalid resolution, count drift and premature eligib
   assert.throws(
     () => assertHistoricalBenchmarkManifest(falsePrecision),
     /representation cannot claim finer resolution than the source/,
+  );
+
+  const unrelatedRequest = manifestFixture();
+  unrelatedRequest.benchmark.conditionedReplayTerrainAudits[0]
+    .coverageRequest.bounds = [0, 0, 10, 10];
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(unrelatedRequest),
+    /AOI source bounds must equal the request/,
+  );
+
+  const unrelatedTransformedBounds = manifestFixture();
+  unrelatedTransformedBounds.benchmark.conditionedReplayTerrainAudits[0]
+    .coverageRequest.aoiRelation.transformedBounds = [0, 0, 10, 10];
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(unrelatedTransformedBounds),
+    /transformed bounds do not contain the benchmark grid/,
+  );
+
+  const unboundedTolerance = manifestFixture();
+  unboundedTolerance.benchmark.conditionedReplayTerrainAudits[0]
+    .coverageRequest.aoiRelation.toleranceM = 2;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(unboundedTolerance),
+    /AOI tolerance must be between zero and one source cell/,
   );
 
   const countDrift = manifestFixture();
