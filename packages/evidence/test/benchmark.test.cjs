@@ -16,6 +16,7 @@ const manifestPath = path.join(
   'manifest.json',
 );
 
+/** Loads an isolated mutable copy of the frozen benchmark manifest. */
 function manifestFixture() {
   return JSON.parse(readFileSync(manifestPath, 'utf8'));
 }
