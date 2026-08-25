@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "1.12.0",
+  "manifestVersion": "1.13.0",
   "benchmark": {
     "id": "emilia-romagna-2023-forli-retrospective-reconstruction",
     "title": "Case 02 - Emilia-Romagna 2023 / Retrospective Flood Reconstruction",
@@ -602,10 +602,11 @@
             "required": true,
             "status": "metadata_only",
             "candidateDatasetIds": [
-              "rer-forli-may-2023-breach-repair-record"
+              "rer-forli-may-2023-breach-repair-record",
+              "adbpo-psp-montone-rabbi-2024"
             ],
             "acceptanceCriteria": "Each breach used by the replay has source-backed coordinates, bank side, activation time, crest/invert elevation and a width/evolution model with uncertainty; the flood extent is not used to infer these values.",
-            "blocker": "The official repair account identifies named breach locations but does not provide machine-readable coordinates, activation times, elevations or breach hydrographs."
+            "blocker": "The official repair account and 2024 special-plan monograph identify named breach/overtopping locations and only partial bank-side context; neither provides machine-readable coordinates, activation times, elevations, width evolution or breach hydrographs."
           },
           {
             "id": "embankment_crest_geometry",
@@ -614,10 +615,11 @@
             "candidateDatasetIds": [
               "rer-dbtr-forli-cutoff-2023",
               "rer-dtm-1m-pst",
-              "rer-forli-may-2023-breach-repair-record"
+              "rer-forli-may-2023-breach-repair-record",
+              "adbpo-psp-montone-rabbi-2024"
             ],
             "acceptanceCriteria": "Pre-event embankment alignment and crest elevations cover the hydraulic domain with declared survey/reference dates and vertical datum; post-event repairs are excluded or separately represented.",
-            "blocker": "The current DBTR extract is a post-event known-presence window and does not provide a complete historical crest-height surface; the PST DTM has not yet been accepted as a bounded model input."
+            "blocker": "The DBTR extract is a post-event known-presence window and the official event sources describe failures/repairs without crest elevations. The bounded PST representation retains source no-data on critical embankment cells and does not supply a complete historical crest surface."
           },
           {
             "id": "bare_earth_terrain",
@@ -628,17 +630,18 @@
               "copernicus-dem-glo-30-2022"
             ],
             "acceptanceCriteria": "A bounded pre-event bare-earth terrain surface covers the domain, retains horizontal/vertical CRS, source epoch, resolution, nodata and transformation provenance, and represents critical embankments without silent interpolation.",
-            "blocker": "The 1 m PST service is catalogued and predates the event, but the exact Forli coverage, bounded pixels and reuse terms are not yet pinned; the available GLO-30 input is a 30 m DSM rather than hydraulic-grade bare-earth terrain."
+            "blocker": "The pinned 5 m nearest-neighbour PST representation preserves 11.064985% source no-data, including gaps on riverbed, embankment and permanent-water center cells, so it cannot serve as the sole hydraulic terrain source. The available GLO-30 input is a 30 m DSM rather than hydraulic-grade bare-earth terrain."
           },
           {
             "id": "channel_geometry_and_roughness",
             "required": true,
-            "status": "missing",
+            "status": "metadata_only",
             "candidateDatasetIds": [
-              "rer-dbtr-forli-cutoff-2023"
+              "rer-dbtr-forli-cutoff-2023",
+              "adbpo-pai-bacini-romagnoli-hydraulic-archive"
             ],
             "acceptanceCriteria": "The Montone and Rabbi channel representation declares bed/cross-section geometry, structures and roughness parameters with source and model versions for the bounded domain.",
-            "blocker": "DBTR supplies planimetric riverbed geometry but no verified bed elevations, cross-sections, structures or hydraulic roughness model."
+            "blocker": "DBTR supplies planimetric riverbed geometry only. The official PAI relation states that a steady-flow HEC-RAS model and calibrated roughness existed, but the three pinned public archives contain only 19 DWG drawings and no HEC-RAS projects, numeric cross-sections, event-valid roughness or 2023 boundary conditions."
           }
         ],
         "runGate": {
@@ -714,6 +717,107 @@
           "missingPolicy": "missing_not_zero_or_inferred"
         },
         "methodologyNote": "Materialized from the official 2023 ARPAE Annale after the conditioned-input protocol was frozen. Page 17 defines stage relative to the gauge zero and the guillemet symbol as missing data. Page 26 publishes gauge-zero elevations for Castrocaro, Predappio and Ponte Vico while Ponte Braldo is explicitly missing. Pages 54 and 65 retain daily stage observations, gaps and maximum-increment context. Pages 68-69 define discharge semantics and list 45 discharge-measurement stations, but neither Montone nor Rabbi appears. The Annale therefore does not supply an event-valid rating curve or discharge hydrograph for the required rivers. Ponte Vico's datum does not by itself define a boundary at the frozen AOI outlet, and Ponte Braldo's datum remains missing. No stage was converted to discharge, no missing datum became zero and the conditioned replay remains blocked."
+      }
+    ],
+    "conditionedReplayPhysicalAudits": [
+      {
+        "id": "forli-conditioned-replay-official-physical-sources-audit-v0",
+        "protocolId": "forli-conditioned-inundation-replay-v0",
+        "state": "materialized",
+        "sourceAccess": "loaded_after_protocol_freeze",
+        "sourceDatasetIds": [
+          "adbpo-psp-montone-rabbi-2024",
+          "adbpo-pai-bacini-romagnoli-hydraulic-archive"
+        ],
+        "quality": "metadata_only",
+        "eventMonograph": {
+          "sourceDatasetId": "adbpo-psp-montone-rabbi-2024",
+          "printedPages": [
+            135,
+            136,
+            137,
+            138,
+            139,
+            145
+          ],
+          "stageDatum": "metres_above_local_gauge_zero",
+          "reportedStagePeaks": [
+            {
+              "watercourse": "Montone",
+              "station": "Castrocaro",
+              "stageM": 5.72,
+              "observedAt": "2023-05-16T16:45:00+02:00"
+            },
+            {
+              "watercourse": "Rabbi",
+              "station": "Ponte Calanca",
+              "stageM": 3.67,
+              "observedAt": "2023-05-17T13:15:00+02:00"
+            }
+          ],
+          "breachAndOvertopping": {
+            "namedLocations": [
+              "Montone at SP54 Baccante/Baccanello near Pieve Salutare: flooding on both banks",
+              "Montone at Castrocaro: breach of a non-classified embankment",
+              "Montone at Forli downstream of the Rabbi confluence: right-bank overtopping",
+              "Montone at Forli downstream of Via Emilia: right- and left-bank breaches",
+              "Montone and Rio Cosina at Ponte Braldo: overtopping",
+              "Rabbi at San Lorenzo in Noceto, San Martino and Vecchiazzano: flooding"
+            ],
+            "locationSpecificBankSideState": "partial",
+            "machineReadableCoordinatesAvailable": false,
+            "activationTimesAvailable": false,
+            "crestOrInvertElevationsAvailable": false,
+            "widthEvolutionAvailable": false,
+            "breachHydrographsAvailable": false
+          }
+        },
+        "publicHydraulicArchive": {
+          "sourceDatasetId": "adbpo-pai-bacini-romagnoli-hydraulic-archive",
+          "relationPrintedPages": [
+            14,
+            18,
+            31
+          ],
+          "declaredModel": "HEC-RAS",
+          "declaredFlowMode": "steady_flow",
+          "inspectedArtifacts": [
+            {
+              "relativePath": "source/adbpo-pai-bacini-romagnoli-tr200.zip",
+              "entryCount": 2,
+              "entryExtensions": [
+                ".DWG"
+              ]
+            },
+            {
+              "relativePath": "source/adbpo-pai-bacini-romagnoli-dwg.zip",
+              "entryCount": 14,
+              "entryExtensions": [
+                ".DWG"
+              ]
+            },
+            {
+              "relativePath": "source/adbpo-pai-bacini-romagnoli-grandezze-indici.zip",
+              "entryCount": 3,
+              "entryExtensions": [
+                ".DWG"
+              ]
+            }
+          ],
+          "containsHecrasProjectFiles": false,
+          "containsMachineReadableCrossSections": false,
+          "containsEventValidRoughness": false,
+          "containsEventSpecificBoundaryConditions": false
+        },
+        "conclusions": {
+          "breachStatus": "metadata_only",
+          "embankmentStatus": "metadata_only",
+          "channelStatus": "metadata_only",
+          "hydraulicUseEligible": false,
+          "protocolRunGate": "blocked_missing_required_evidence",
+          "missingPolicy": "missing_not_zero_or_inferred"
+        },
+        "methodologyNote": "Materialized after the conditioned-input protocol freeze from the official March 2024 special-plan monograph and the official PAI hydraulic-relation directory. The monograph preserves local-gauge-zero peak stages and identifies where overtopping and breaches occurred, but it does not provide exact coordinates, activation times, crest/invert elevations, breach width evolution or hydrographs. The PAI relation documents a historical steady-flow HEC-RAS analysis, design discharges and roughness context, while the three downloaded public archives contain only DWG drawings. Historical design capacity or a statement that model files once existed is not an event-valid 2023 boundary or a usable channel model. No stage was converted to discharge, no narrative location was promoted to geometry and the replay remains blocked."
       }
     ],
     "conditionedReplayTerrainAudits": [
@@ -1147,6 +1251,83 @@
           "relativePath": "source/arpae-dext3r/dexter-be86675d-a290-4208-8b38-0bb420396ca0.csv",
           "bytes": 68115,
           "sha256": "31C1CEFBBBEF544CD19C1FF3E897750B18306887107458B482DFEE5D4BA27418"
+        }
+      ]
+    },
+    {
+      "id": "adbpo-psp-montone-rabbi-2024",
+      "role": "context_only",
+      "temporalRelation": "post_event",
+      "publisher": "Autorita di bacino distrettuale del fiume Po / Commissario straordinario alla ricostruzione",
+      "dataset": "Piano speciale preliminare - Allegato 3 - Monografie Montone, Ronco, Fiumi Uniti",
+      "datasetVersion": "March 2024; source PDF metadata created 2024-04-10; acquired 2026-08-25",
+      "acquiredAt": "2026-08-25T19:14:37Z",
+      "sourceUrl": "https://www.adbpo.it/download/PSP/PSP__Allegato_03_SchedeMonografiche_ReticoloPrincipale.pdf",
+      "accessMethod": "public official PDF retained byte-for-byte outside Git",
+      "sourceResolution": "named watercourse locations, local-gauge-zero peak stages and intervention records; no machine-readable breach geometry or discharge hydrographs",
+      "acquisitionStatus": "downloaded_verified",
+      "license": {
+        "name": "ADBPO institutional publication terms not yet pinned for redistribution",
+        "access": "public",
+        "redistribution": "unknown"
+      },
+      "allowedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "evaluation": false
+      },
+      "methodologyNote": "Pages 135-139 describe the 16-18 May event, local-gauge-zero stage peaks, overtopping and breach locations for the Montone and Rabbi. Page 145 lists post-event embankment reconstruction works. This is post-event context only: narrative locations, design context and repair records cannot become breach parameters or hydraulic boundary conditions.",
+      "localArtifacts": [
+        {
+          "relativePath": "source/adbpo-psp-allegato-03-reticolo-principale-2024.pdf",
+          "bytes": 3628593,
+          "sha256": "D8674649B87B3AF7C9BE49F77BFB618E2A3863C4A02A9C530F6984357307F4EF"
+        }
+      ]
+    },
+    {
+      "id": "adbpo-pai-bacini-romagnoli-hydraulic-archive",
+      "role": "context_only",
+      "temporalRelation": "pre_event",
+      "publisher": "Autorita dei Bacini Regionali Romagnoli / Autorita di bacino distrettuale del fiume Po",
+      "dataset": "PAI Bacini Romagnoli hydraulic relation and public drawing archives",
+      "datasetVersion": "Variante al Titolo II historical relation and public directory snapshot acquired 2026-08-25",
+      "acquiredAt": "2026-08-25T19:29:28Z",
+      "sourceUrl": "https://www.adbpo.it/PAI/PAI_Bacini_Romagnoli/Relazioni_tecniche_rischio_idraulico/",
+      "accessMethod": "public official directory; relation PDF plus three ZIP archives retained byte-for-byte outside Git",
+      "sourceResolution": "historical planning-scale steady-flow HEC-RAS method and design-capacity context; downloaded archives contain 19 DWG files but no public HEC-RAS project, numeric cross-section or event boundary files",
+      "acquisitionStatus": "downloaded_verified",
+      "license": {
+        "name": "ADBPO institutional publication terms not yet pinned for redistribution",
+        "access": "public",
+        "redistribution": "unknown"
+      },
+      "allowedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "evaluation": false
+      },
+      "methodologyNote": "The relation states that historical hill/mountain analyses used steady-flow HEC-RAS, references geometric/hydraulic input and output files in the knowledge base, and discusses calibrated roughness versus 0.035 m^-1/3 s maintenance context. The public archives inspected here contain only DWG drawings: 2 entries in tr200.zip, 14 in dwg.zip and 3 in grandezze_indici.zip. They are retained as provenance-complete context, not promoted to machine-readable channel geometry, 2023 roughness or event-specific boundary conditions.",
+      "localArtifacts": [
+        {
+          "relativePath": "source/adbpo-pai-relazione-variante-titolo-ii.pdf",
+          "bytes": 3570358,
+          "sha256": "39233A8964840D7C88EEAF81A053ECFE992B14933B6A8F14EA196FD4BB134774"
+        },
+        {
+          "relativePath": "source/adbpo-pai-bacini-romagnoli-tr200.zip",
+          "bytes": 3686268,
+          "sha256": "0EF3C02A97C951296CE06AB68E7503A50A74314EF3A737399E12705FF7FA5DEC"
+        },
+        {
+          "relativePath": "source/adbpo-pai-bacini-romagnoli-dwg.zip",
+          "bytes": 27709337,
+          "sha256": "D706914A2CF947C483B752BD02865DE666B0E0AF420F6C7B7A43FC60C613E08F"
+        },
+        {
+          "relativePath": "source/adbpo-pai-bacini-romagnoli-grandezze-indici.zip",
+          "bytes": 6308976,
+          "sha256": "EFEC9979D1C6BE2BDB46363E882D230D4A0D842D2341802CB16ADFBCB83839D9"
         }
       ]
     },

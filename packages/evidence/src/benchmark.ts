@@ -49,7 +49,7 @@ export interface BenchmarkDataset {
 }
 
 export interface HistoricalBenchmarkManifest {
-  readonly manifestVersion: '1.12.0';
+  readonly manifestVersion: '1.13.0';
   readonly benchmark: {
     readonly id: string;
     readonly title: string;
@@ -81,6 +81,7 @@ export interface HistoricalBenchmarkManifest {
     readonly observationComparisonRuns: readonly BenchmarkObservationComparisonRun[];
     readonly conditionedReplayProtocols: readonly BenchmarkConditionedReplayProtocol[];
     readonly conditionedReplaySourceAudits: readonly BenchmarkConditionedReplaySourceAudit[];
+    readonly conditionedReplayPhysicalAudits: readonly BenchmarkConditionedReplayPhysicalAudit[];
     readonly conditionedReplayTerrainAudits: readonly BenchmarkConditionedReplayTerrainAudit[];
     readonly evaluationMetrics: readonly string[];
     readonly forbiddenClaims: readonly string[];
@@ -164,6 +165,59 @@ export interface BenchmarkConditionedReplaySourceAudit {
   readonly conclusions: {
     readonly inflowStatus: 'incomplete_window';
     readonly downstreamStatus: 'incomplete_window';
+    readonly hydraulicUseEligible: false;
+    readonly protocolRunGate: 'blocked_missing_required_evidence';
+    readonly missingPolicy: 'missing_not_zero_or_inferred';
+  };
+  readonly methodologyNote: string;
+}
+
+export interface BenchmarkConditionedReplayPhysicalAudit {
+  readonly id: string;
+  readonly protocolId: string;
+  readonly state: 'materialized';
+  readonly sourceAccess: 'loaded_after_protocol_freeze';
+  readonly sourceDatasetIds: readonly string[];
+  readonly quality: 'metadata_only';
+  readonly eventMonograph: {
+    readonly sourceDatasetId: string;
+    readonly printedPages: readonly number[];
+    readonly stageDatum: 'metres_above_local_gauge_zero';
+    readonly reportedStagePeaks: readonly {
+      readonly watercourse: 'Montone' | 'Rabbi';
+      readonly station: string;
+      readonly stageM: number;
+      readonly observedAt: string;
+    }[];
+    readonly breachAndOvertopping: {
+      readonly namedLocations: readonly string[];
+      readonly locationSpecificBankSideState: 'partial';
+      readonly machineReadableCoordinatesAvailable: false;
+      readonly activationTimesAvailable: false;
+      readonly crestOrInvertElevationsAvailable: false;
+      readonly widthEvolutionAvailable: false;
+      readonly breachHydrographsAvailable: false;
+    };
+  };
+  readonly publicHydraulicArchive: {
+    readonly sourceDatasetId: string;
+    readonly relationPrintedPages: readonly number[];
+    readonly declaredModel: 'HEC-RAS';
+    readonly declaredFlowMode: 'steady_flow';
+    readonly inspectedArtifacts: readonly {
+      readonly relativePath: string;
+      readonly entryCount: number;
+      readonly entryExtensions: readonly string[];
+    }[];
+    readonly containsHecrasProjectFiles: false;
+    readonly containsMachineReadableCrossSections: false;
+    readonly containsEventValidRoughness: false;
+    readonly containsEventSpecificBoundaryConditions: false;
+  };
+  readonly conclusions: {
+    readonly breachStatus: 'metadata_only';
+    readonly embankmentStatus: 'metadata_only';
+    readonly channelStatus: 'metadata_only';
     readonly hydraulicUseEligible: false;
     readonly protocolRunGate: 'blocked_missing_required_evidence';
     readonly missingPolicy: 'missing_not_zero_or_inferred';
@@ -484,8 +538,8 @@ export function assertHistoricalBenchmarkManifest(
   value: unknown,
 ): asserts value is HistoricalBenchmarkManifest {
   const root = objectValue(value, 'manifest');
-  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.12.0') {
-    throw new Error('manifestVersion must be "1.12.0"');
+  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.13.0') {
+    throw new Error('manifestVersion must be "1.13.0"');
   }
 
   const benchmark = objectValue(root.benchmark, 'benchmark');
@@ -1073,6 +1127,193 @@ export function assertHistoricalBenchmarkManifest(
       conclusions.missingPolicy !== 'missing_not_zero_or_inferred'
     ) {
       throw new Error(`${label} must keep the hydraulic replay fail-closed`);
+    }
+    if (conclusions.protocolRunGate !== conditionedProtocolRunStates.get(protocolId)) {
+      throw new Error(`${label} contradicts the conditioned replay protocol run gate`);
+    }
+    stringValue(audit.methodologyNote, `${label}.methodologyNote`);
+  });
+  if (
+    !Array.isArray(benchmark.conditionedReplayPhysicalAudits) ||
+    benchmark.conditionedReplayPhysicalAudits.length !== 1
+  ) {
+    throw new Error(
+      'benchmark.conditionedReplayPhysicalAudits must retain the official physical-source audit',
+    );
+  }
+  const conditionedPhysicalAuditDatasetReferences: Array<{
+    readonly label: string;
+    readonly ids: readonly string[];
+  }> = [];
+  const conditionedPhysicalAuditArtifactReferences: Array<{
+    readonly label: string;
+    readonly datasetId: string;
+    readonly paths: readonly string[];
+  }> = [];
+  benchmark.conditionedReplayPhysicalAudits.forEach((rawAudit, index) => {
+    const label = `benchmark.conditionedReplayPhysicalAudits[${index}]`;
+    const audit = objectValue(rawAudit, label);
+    stringValue(audit.id, `${label}.id`);
+    const protocolId = stringValue(audit.protocolId, `${label}.protocolId`);
+    if (!conditionedProtocolIds.has(protocolId)) {
+      throw new Error(`${label} references unknown conditioned replay protocol`);
+    }
+    if (
+      audit.state !== 'materialized' ||
+      audit.sourceAccess !== 'loaded_after_protocol_freeze' ||
+      audit.quality !== 'metadata_only'
+    ) {
+      throw new Error(`${label} must retain the metadata-only post-freeze audit`);
+    }
+    const sourceDatasetIds = uniqueStringArray(
+      audit.sourceDatasetIds,
+      `${label}.sourceDatasetIds`,
+    );
+    if (sourceDatasetIds.length < 2) {
+      throw new Error(`${label} must retain both event and hydraulic archive sources`);
+    }
+    conditionedPhysicalAuditDatasetReferences.push({
+      label,
+      ids: sourceDatasetIds,
+    });
+
+    const monograph = objectValue(audit.eventMonograph, `${label}.eventMonograph`);
+    const monographDatasetId = stringValue(
+      monograph.sourceDatasetId,
+      `${label}.eventMonograph.sourceDatasetId`,
+    );
+    if (!sourceDatasetIds.includes(monographDatasetId)) {
+      throw new Error(`${label}.eventMonograph source must be declared by the audit`);
+    }
+    assertAscendingPositiveIntegers(
+      monograph.printedPages,
+      `${label}.eventMonograph.printedPages`,
+    );
+    if (monograph.stageDatum !== 'metres_above_local_gauge_zero') {
+      throw new Error(`${label} must not promote local gauge-zero stage to an absolute datum`);
+    }
+    const stagePeaks = assertObjectArray(
+      monograph.reportedStagePeaks,
+      `${label}.eventMonograph.reportedStagePeaks`,
+    );
+    if (stagePeaks.length === 0) {
+      throw new Error(`${label}.eventMonograph must retain the reported stage context`);
+    }
+    const reportedStations = new Set<string>();
+    stagePeaks.forEach((rawPeak, peakIndex) => {
+      const peakLabel = `${label}.eventMonograph.reportedStagePeaks[${peakIndex}]`;
+      const peak = objectValue(rawPeak, peakLabel);
+      allowedString(
+        peak.watercourse,
+        new Set(['Montone', 'Rabbi']),
+        `${peakLabel}.watercourse`,
+      );
+      const station = stringValue(peak.station, `${peakLabel}.station`);
+      if (reportedStations.has(station)) {
+        throw new Error(`${label}.eventMonograph repeats station "${station}"`);
+      }
+      reportedStations.add(station);
+      if (finiteNumber(peak.stageM, `${peakLabel}.stageM`) <= 0) {
+        throw new Error(`${peakLabel}.stageM must be positive`);
+      }
+      const observedAt = isoTime(peak.observedAt, `${peakLabel}.observedAt`);
+      if (Date.parse(observedAt) < Date.parse(start) || Date.parse(observedAt) >= Date.parse(end)) {
+        throw new Error(`${peakLabel}.observedAt must fall inside the replay window`);
+      }
+    });
+    const breach = objectValue(
+      monograph.breachAndOvertopping,
+      `${label}.eventMonograph.breachAndOvertopping`,
+    );
+    if (
+      uniqueStringArray(
+        breach.namedLocations,
+        `${label}.eventMonograph.breachAndOvertopping.namedLocations`,
+      ).length < 2
+    ) {
+      throw new Error(`${label} must retain the named breach and overtopping context`);
+    }
+    if (
+      breach.locationSpecificBankSideState !== 'partial' ||
+      breach.machineReadableCoordinatesAvailable !== false ||
+      breach.activationTimesAvailable !== false ||
+      breach.crestOrInvertElevationsAvailable !== false ||
+      breach.widthEvolutionAvailable !== false ||
+      breach.breachHydrographsAvailable !== false
+    ) {
+      throw new Error(`${label} cannot promote narrative breach evidence into model geometry`);
+    }
+
+    const archive = objectValue(
+      audit.publicHydraulicArchive,
+      `${label}.publicHydraulicArchive`,
+    );
+    const archiveDatasetId = stringValue(
+      archive.sourceDatasetId,
+      `${label}.publicHydraulicArchive.sourceDatasetId`,
+    );
+    if (!sourceDatasetIds.includes(archiveDatasetId)) {
+      throw new Error(`${label}.publicHydraulicArchive source must be declared by the audit`);
+    }
+    assertAscendingPositiveIntegers(
+      archive.relationPrintedPages,
+      `${label}.publicHydraulicArchive.relationPrintedPages`,
+    );
+    if (archive.declaredModel !== 'HEC-RAS' || archive.declaredFlowMode !== 'steady_flow') {
+      throw new Error(`${label} must preserve the source-described hydraulic method`);
+    }
+    const inspectedArtifacts = assertObjectArray(
+      archive.inspectedArtifacts,
+      `${label}.publicHydraulicArchive.inspectedArtifacts`,
+    );
+    if (inspectedArtifacts.length !== 3) {
+      throw new Error(`${label} must retain the three inspected public archives`);
+    }
+    const inspectedPaths = new Set<string>();
+    inspectedArtifacts.forEach((rawArtifact, artifactIndex) => {
+      const artifactLabel = `${label}.publicHydraulicArchive.inspectedArtifacts[${artifactIndex}]`;
+      const artifact = objectValue(rawArtifact, artifactLabel);
+      const relativePath = portablePath(
+        stringValue(artifact.relativePath, `${artifactLabel}.relativePath`),
+        `${artifactLabel}.relativePath`,
+      );
+      if (inspectedPaths.has(relativePath)) {
+        throw new Error(`${label} repeats inspected archive "${relativePath}"`);
+      }
+      inspectedPaths.add(relativePath);
+      positiveInteger(artifact.entryCount, `${artifactLabel}.entryCount`);
+      const extensions = uniqueStringArray(
+        artifact.entryExtensions,
+        `${artifactLabel}.entryExtensions`,
+      );
+      if (extensions.length !== 1 || extensions[0] !== '.DWG') {
+        throw new Error(`${artifactLabel} must retain the drawing-only archive finding`);
+      }
+    });
+    conditionedPhysicalAuditArtifactReferences.push({
+      label,
+      datasetId: archiveDatasetId,
+      paths: [...inspectedPaths],
+    });
+    if (
+      archive.containsHecrasProjectFiles !== false ||
+      archive.containsMachineReadableCrossSections !== false ||
+      archive.containsEventValidRoughness !== false ||
+      archive.containsEventSpecificBoundaryConditions !== false
+    ) {
+      throw new Error(`${label} cannot promote drawing archives into hydraulic model inputs`);
+    }
+
+    const conclusions = objectValue(audit.conclusions, `${label}.conclusions`);
+    if (
+      conclusions.breachStatus !== 'metadata_only' ||
+      conclusions.embankmentStatus !== 'metadata_only' ||
+      conclusions.channelStatus !== 'metadata_only' ||
+      conclusions.hydraulicUseEligible !== false ||
+      conclusions.protocolRunGate !== 'blocked_missing_required_evidence' ||
+      conclusions.missingPolicy !== 'missing_not_zero_or_inferred'
+    ) {
+      throw new Error(`${label} must keep physical conditioning evidence fail-closed`);
     }
     if (conclusions.protocolRunGate !== conditionedProtocolRunStates.get(protocolId)) {
       throw new Error(`${label} contradicts the conditioned replay protocol run gate`);
@@ -1877,6 +2118,53 @@ export function assertHistoricalBenchmarkManifest(
       }
     }
   }
+  for (const audit of conditionedPhysicalAuditDatasetReferences) {
+    for (const datasetId of audit.ids) {
+      if (!ids.has(datasetId)) {
+        throw new Error(
+          `${audit.label} references unknown physical source dataset "${datasetId}"`,
+        );
+      }
+    }
+  }
+  for (const audit of conditionedPhysicalAuditArtifactReferences) {
+    const dataset = root.datasets.find(
+      (candidate) =>
+        objectValue(candidate, 'physical audit dataset').id === audit.datasetId,
+    );
+    if (dataset === undefined) {
+      throw new Error(
+        `${audit.label} references unknown hydraulic archive dataset "${audit.datasetId}"`,
+      );
+    }
+    const typedDataset = objectValue(dataset, 'physical audit dataset');
+    const artifacts = assertObjectArray(
+      typedDataset.localArtifacts,
+      'physical audit dataset.localArtifacts',
+    );
+    const pinnedPaths = new Set(
+      artifacts.map((rawArtifact, artifactIndex) => {
+        const artifact = objectValue(
+          rawArtifact,
+          `physical audit dataset.localArtifacts[${artifactIndex}]`,
+        );
+        return portablePath(
+          stringValue(
+            artifact.relativePath,
+            `physical audit dataset.localArtifacts[${artifactIndex}].relativePath`,
+          ),
+          `physical audit dataset.localArtifacts[${artifactIndex}].relativePath`,
+        );
+      }),
+    );
+    for (const artifactPath of audit.paths) {
+      if (!pinnedPaths.has(artifactPath)) {
+        throw new Error(
+          `${audit.label} inspected artifact "${artifactPath}" is not pinned by its source dataset`,
+        );
+      }
+    }
+  }
   for (const audit of conditionedTerrainAuditDatasetReferences) {
     if (!ids.has(audit.id)) {
       throw new Error(
@@ -2583,6 +2871,22 @@ function uniqueStringArray(value: unknown, label: string): string[] {
   );
   if (new Set(result).size !== result.length) {
     throw new Error(label + ' must not contain duplicates');
+  }
+  return result;
+}
+
+function assertAscendingPositiveIntegers(value: unknown, label: string): number[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error(label + ' must be a non-empty array');
+  }
+  const result = value.map((entry, index) =>
+    positiveInteger(entry, label + '[' + index + ']'),
+  );
+  if (
+    new Set(result).size !== result.length ||
+    result.some((entry, index) => index > 0 && entry <= result[index - 1])
+  ) {
+    throw new Error(label + ' must be unique and ascending');
   }
   return result;
 }
