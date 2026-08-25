@@ -30,7 +30,7 @@ test('Emilia-Romagna manifest passes the historical benchmark contract', () => {
     'retrospective_reconstruction',
   );
   assert.equal(manifest.benchmark.claimLevel, 'hydrologic_routing');
-  assert.equal(manifest.manifestVersion, '1.10.0');
+  assert.equal(manifest.manifestVersion, '1.11.0');
   assert.ok(manifest.benchmark.forbiddenClaims.includes('validated_water_depth'));
 });
 
@@ -236,6 +236,69 @@ test('conditioned replay rejects leakage, invented boundaries and gate drift', (
   assert.throws(
     () => assertHistoricalBenchmarkManifest(unknownSource),
     /references unknown candidate dataset/,
+  );
+});
+
+test('post-freeze ARPAE audit retains datums but finds no required discharge station', () => {
+  const manifest = manifestFixture();
+  const audit = manifest.benchmark.conditionedReplaySourceAudits[0];
+
+  assert.equal(audit.sourceAccess, 'loaded_after_protocol_freeze');
+  assert.equal(audit.quality, 'incomplete_window');
+  assert.equal(audit.dischargeNetwork.listedStationCount, 45);
+  assert.deepEqual(audit.dischargeNetwork.requiredStationNames, [
+    'Montone',
+    'Rabbi',
+  ]);
+  assert.equal(audit.dischargeNetwork.containsRequiredStations, false);
+  assert.equal(audit.dischargeNetwork.eventValidRatingCurvesAvailable, false);
+  assert.equal(audit.dischargeNetwork.dischargeHydrographsAvailable, false);
+  assert.deepEqual(
+    audit.stationDatums.map(({ name, datumMslM, status }) => ({
+      name,
+      datumMslM,
+      status,
+    })),
+    [
+      { name: 'Castrocaro', datumMslM: 53.48, status: 'available' },
+      { name: 'Predappio', datumMslM: 120.13, status: 'available' },
+      { name: 'Ponte Braldo', datumMslM: null, status: 'missing' },
+      { name: 'Ponte Vico', datumMslM: 8.51, status: 'available' },
+    ],
+  );
+  assert.equal(audit.conclusions.hydraulicUseEligible, false);
+  assert.equal(
+    audit.conclusions.protocolRunGate,
+    'blocked_missing_required_evidence',
+  );
+  assert.match(audit.methodologyNote, /No stage was converted to discharge/);
+});
+
+test('ARPAE source audit rejects a fabricated datum or hydraulic eligibility', () => {
+  const fabricatedDatum = manifestFixture();
+  fabricatedDatum.benchmark.conditionedReplaySourceAudits[0]
+    .stationDatums[2].datumMslM = 0;
+  fabricatedDatum.benchmark.conditionedReplaySourceAudits[0]
+    .stationDatums[2].status = 'available';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(fabricatedDatum),
+    /drifted from the inspected ARPAE table/,
+  );
+
+  const fabricatedDischarge = manifestFixture();
+  fabricatedDischarge.benchmark.conditionedReplaySourceAudits[0]
+    .dischargeNetwork.containsRequiredStations = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(fabricatedDischarge),
+    /cannot promote absent discharge evidence/,
+  );
+
+  const prematureHydraulics = manifestFixture();
+  prematureHydraulics.benchmark.conditionedReplaySourceAudits[0]
+    .conclusions.hydraulicUseEligible = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(prematureHydraulics),
+    /keep the hydraulic replay fail-closed/,
   );
 });
 

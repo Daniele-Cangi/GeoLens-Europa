@@ -49,7 +49,7 @@ export interface BenchmarkDataset {
 }
 
 export interface HistoricalBenchmarkManifest {
-  readonly manifestVersion: '1.10.0';
+  readonly manifestVersion: '1.11.0';
   readonly benchmark: {
     readonly id: string;
     readonly title: string;
@@ -80,6 +80,7 @@ export interface HistoricalBenchmarkManifest {
     readonly observationComparisonProtocols: readonly BenchmarkObservationComparisonProtocol[];
     readonly observationComparisonRuns: readonly BenchmarkObservationComparisonRun[];
     readonly conditionedReplayProtocols: readonly BenchmarkConditionedReplayProtocol[];
+    readonly conditionedReplaySourceAudits: readonly BenchmarkConditionedReplaySourceAudit[];
     readonly evaluationMetrics: readonly string[];
     readonly forbiddenClaims: readonly string[];
   };
@@ -134,6 +135,37 @@ export interface BenchmarkConditionedReplayProtocol {
     readonly noStageToDischargeWithoutRatingCurve: true;
     readonly noBreachInferenceFromFloodExtent: true;
     readonly noTuningToEventExtent: true;
+  };
+  readonly methodologyNote: string;
+}
+
+export interface BenchmarkConditionedReplaySourceAudit {
+  readonly id: string;
+  readonly protocolId: string;
+  readonly state: 'materialized';
+  readonly sourceAccess: 'loaded_after_protocol_freeze';
+  readonly sourceDatasetIds: readonly string[];
+  readonly sourcePages: readonly number[];
+  readonly quality: 'incomplete_window';
+  readonly dischargeNetwork: {
+    readonly listedStationCount: number;
+    readonly requiredStationNames: readonly string[];
+    readonly containsRequiredStations: false;
+    readonly eventValidRatingCurvesAvailable: false;
+    readonly dischargeHydrographsAvailable: false;
+  };
+  readonly stationDatums: readonly {
+    readonly stationId: string;
+    readonly name: string;
+    readonly datumMslM: number | null;
+    readonly status: 'available' | 'missing';
+  }[];
+  readonly conclusions: {
+    readonly inflowStatus: 'incomplete_window';
+    readonly downstreamStatus: 'incomplete_window';
+    readonly hydraulicUseEligible: false;
+    readonly protocolRunGate: 'blocked_missing_required_evidence';
+    readonly missingPolicy: 'missing_not_zero_or_inferred';
   };
   readonly methodologyNote: string;
 }
@@ -401,8 +433,8 @@ export function assertHistoricalBenchmarkManifest(
   value: unknown,
 ): asserts value is HistoricalBenchmarkManifest {
   const root = objectValue(value, 'manifest');
-  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.10.0') {
-    throw new Error('manifestVersion must be "1.10.0"');
+  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.11.0') {
+    throw new Error('manifestVersion must be "1.11.0"');
   }
 
   const benchmark = objectValue(root.benchmark, 'benchmark');
@@ -872,6 +904,152 @@ export function assertHistoricalBenchmarkManifest(
       throw new Error(`${label} must not tune parameters to the event extent`);
     }
     stringValue(protocol.methodologyNote, `${label}.methodologyNote`);
+  });
+  if (
+    !Array.isArray(benchmark.conditionedReplaySourceAudits) ||
+    benchmark.conditionedReplaySourceAudits.length === 0
+  ) {
+    throw new Error(
+      'benchmark.conditionedReplaySourceAudits must retain post-freeze source findings',
+    );
+  }
+  const conditionedReplayAuditDatasetReferences: Array<{
+    readonly label: string;
+    readonly ids: readonly string[];
+  }> = [];
+  const conditionedAuditIds = new Set<string>();
+  const expectedDatumStations = [
+    {
+      stationId: '-/1194940,4417012/spdsra',
+      name: 'Castrocaro',
+      datumMslM: 53.48,
+      status: 'available',
+    },
+    {
+      stationId: '-/1198305,4410502/spdsra',
+      name: 'Predappio',
+      datumMslM: 120.13,
+      status: 'available',
+    },
+    {
+      stationId: '-/1199295,4426279/spdsra',
+      name: 'Ponte Braldo',
+      datumMslM: null,
+      status: 'missing',
+    },
+    {
+      stationId: '-/1203134,4433002/spdsra',
+      name: 'Ponte Vico',
+      datumMslM: 8.51,
+      status: 'available',
+    },
+  ] as const;
+  benchmark.conditionedReplaySourceAudits.forEach((rawAudit, index) => {
+    const label = `benchmark.conditionedReplaySourceAudits[${index}]`;
+    const audit = objectValue(rawAudit, label);
+    const id = stringValue(audit.id, `${label}.id`);
+    if (conditionedAuditIds.has(id)) {
+      throw new Error(`Duplicate conditioned replay source audit id "${id}"`);
+    }
+    conditionedAuditIds.add(id);
+    const protocolId = stringValue(audit.protocolId, `${label}.protocolId`);
+    if (!conditionedProtocolIds.has(protocolId)) {
+      throw new Error(`${label} references unknown conditioned replay protocol`);
+    }
+    if (
+      audit.state !== 'materialized' ||
+      audit.sourceAccess !== 'loaded_after_protocol_freeze'
+    ) {
+      throw new Error(`${label} must remain a materialized post-freeze audit`);
+    }
+    const sourceDatasetIds = uniqueStringArray(
+      audit.sourceDatasetIds,
+      `${label}.sourceDatasetIds`,
+    );
+    if (sourceDatasetIds.length === 0) {
+      throw new Error(`${label}.sourceDatasetIds must not be empty`);
+    }
+    conditionedReplayAuditDatasetReferences.push({
+      label,
+      ids: sourceDatasetIds,
+    });
+    const sourcePages = numberArray(audit.sourcePages, `${label}.sourcePages`, 6);
+    const expectedPages = [17, 26, 54, 65, 68, 69];
+    if (
+      sourcePages.some(
+        (page, pageIndex) =>
+          !Number.isInteger(page) || page !== expectedPages[pageIndex],
+      )
+    ) {
+      throw new Error(`${label}.sourcePages drifted from the inspected ARPAE pages`);
+    }
+    if (audit.quality !== 'incomplete_window') {
+      throw new Error(`${label}.quality must retain incomplete_window`);
+    }
+
+    const dischargeNetwork = objectValue(
+      audit.dischargeNetwork,
+      `${label}.dischargeNetwork`,
+    );
+    if (
+      positiveInteger(
+        dischargeNetwork.listedStationCount,
+        `${label}.dischargeNetwork.listedStationCount`,
+      ) !== 45
+    ) {
+      throw new Error(`${label} must retain the published 45-station discharge list`);
+    }
+    const requiredStationNames = uniqueStringArray(
+      dischargeNetwork.requiredStationNames,
+      `${label}.dischargeNetwork.requiredStationNames`,
+    );
+    if (
+      requiredStationNames.length !== 2 ||
+      requiredStationNames[0] !== 'Montone' ||
+      requiredStationNames[1] !== 'Rabbi'
+    ) {
+      throw new Error(`${label} must audit both Montone and Rabbi discharge evidence`);
+    }
+    if (
+      dischargeNetwork.containsRequiredStations !== false ||
+      dischargeNetwork.eventValidRatingCurvesAvailable !== false ||
+      dischargeNetwork.dischargeHydrographsAvailable !== false
+    ) {
+      throw new Error(`${label} cannot promote absent discharge evidence`);
+    }
+
+    const stationDatums = assertObjectArray(
+      audit.stationDatums,
+      `${label}.stationDatums`,
+    );
+    if (stationDatums.length !== expectedDatumStations.length) {
+      throw new Error(`${label}.stationDatums must retain the frozen station set`);
+    }
+    stationDatums.forEach((rawDatum, datumIndex) => {
+      const datumLabel = `${label}.stationDatums[${datumIndex}]`;
+      const datum = objectValue(rawDatum, datumLabel);
+      const expected = expectedDatumStations[datumIndex];
+      if (
+        datum.stationId !== expected.stationId ||
+        datum.name !== expected.name ||
+        datum.status !== expected.status ||
+        datum.datumMslM !== expected.datumMslM
+      ) {
+        throw new Error(`${datumLabel} drifted from the inspected ARPAE table`);
+      }
+    });
+
+    const conclusions = objectValue(audit.conclusions, `${label}.conclusions`);
+    if (
+      conclusions.inflowStatus !== 'incomplete_window' ||
+      conclusions.downstreamStatus !== 'incomplete_window' ||
+      conclusions.hydraulicUseEligible !== false ||
+      conclusions.protocolRunGate !== 'blocked_missing_required_evidence' ||
+      conclusions.missingPolicy !== 'missing_not_zero_or_inferred'
+    ) {
+      throw new Error(`${label} must keep the hydraulic replay fail-closed`);
+    }
+    stringValue(audit.methodologyNote, `${label}.methodologyNote`);
   });
   if (
     !Array.isArray(benchmark.evaluationProtocols) ||
@@ -1460,6 +1638,15 @@ export function assertHistoricalBenchmarkManifest(
       if (!ids.has(datasetId)) {
         throw new Error(
           `${requirement.label} references unknown candidate dataset "${datasetId}"`,
+        );
+      }
+    }
+  }
+  for (const audit of conditionedReplayAuditDatasetReferences) {
+    for (const datasetId of audit.ids) {
+      if (!ids.has(datasetId)) {
+        throw new Error(
+          `${audit.label} references unknown source dataset "${datasetId}"`,
         );
       }
     }

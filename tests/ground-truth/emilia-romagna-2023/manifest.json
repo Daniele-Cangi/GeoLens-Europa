@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "1.10.0",
+  "manifestVersion": "1.11.0",
   "benchmark": {
     "id": "emilia-romagna-2023-forli-retrospective-reconstruction",
     "title": "Case 02 - Emilia-Romagna 2023 / Retrospective Flood Reconstruction",
@@ -650,6 +650,70 @@
           "noTuningToEventExtent": true
         },
         "methodologyNote": "This protocol is frozen after the V7 extent and ARPAE comparison values were already loaded for earlier diagnostics, so it is explicitly post-hoc and not a blind hindcast. It freezes the conditioned-input gate before acquiring new rating curves, discharge hydrographs, breach parameters, crest elevations or channel parameters. Passing the gate would authorize only a diagnostic conditioned replay with separately versioned inputs and parameters; it would not constitute independent validation. A future validation claim requires a new event or spatial holdout whose reference remains withheld until prediction freeze."
+      }
+    ],
+    "conditionedReplaySourceAudits": [
+      {
+        "id": "forli-conditioned-replay-arpae-annale-2023-audit-v0",
+        "protocolId": "forli-conditioned-inundation-replay-v0",
+        "state": "materialized",
+        "sourceAccess": "loaded_after_protocol_freeze",
+        "sourceDatasetIds": [
+          "arpae-2023-hydrometry"
+        ],
+        "sourcePages": [
+          17,
+          26,
+          54,
+          65,
+          68,
+          69
+        ],
+        "quality": "incomplete_window",
+        "dischargeNetwork": {
+          "listedStationCount": 45,
+          "requiredStationNames": [
+            "Montone",
+            "Rabbi"
+          ],
+          "containsRequiredStations": false,
+          "eventValidRatingCurvesAvailable": false,
+          "dischargeHydrographsAvailable": false
+        },
+        "stationDatums": [
+          {
+            "stationId": "-/1194940,4417012/spdsra",
+            "name": "Castrocaro",
+            "datumMslM": 53.48,
+            "status": "available"
+          },
+          {
+            "stationId": "-/1198305,4410502/spdsra",
+            "name": "Predappio",
+            "datumMslM": 120.13,
+            "status": "available"
+          },
+          {
+            "stationId": "-/1199295,4426279/spdsra",
+            "name": "Ponte Braldo",
+            "datumMslM": null,
+            "status": "missing"
+          },
+          {
+            "stationId": "-/1203134,4433002/spdsra",
+            "name": "Ponte Vico",
+            "datumMslM": 8.51,
+            "status": "available"
+          }
+        ],
+        "conclusions": {
+          "inflowStatus": "incomplete_window",
+          "downstreamStatus": "incomplete_window",
+          "hydraulicUseEligible": false,
+          "protocolRunGate": "blocked_missing_required_evidence",
+          "missingPolicy": "missing_not_zero_or_inferred"
+        },
+        "methodologyNote": "Materialized from the official 2023 ARPAE Annale after the conditioned-input protocol was frozen. Page 17 defines stage relative to the gauge zero and the guillemet symbol as missing data. Page 26 publishes gauge-zero elevations for Castrocaro, Predappio and Ponte Vico while Ponte Braldo is explicitly missing. Pages 54 and 65 retain daily stage observations, gaps and maximum-increment context. Pages 68-69 define discharge semantics and list 45 discharge-measurement stations, but neither Montone nor Rabbi appears. The Annale therefore does not supply an event-valid rating curve or discharge hydrograph for the required rivers. Ponte Vico's datum does not by itself define a boundary at the frozen AOI outlet, and Ponte Braldo's datum remains missing. No stage was converted to discharge, no missing datum became zero and the conditioned replay remains blocked."
       }
     ]
   },
