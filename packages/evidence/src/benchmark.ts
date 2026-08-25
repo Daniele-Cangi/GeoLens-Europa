@@ -1114,6 +1114,11 @@ export function assertHistoricalBenchmarkManifest(
     if (sourceResolutionM <= 0 || representationResolutionM <= 0) {
       throw new Error(`${label}.coverageRequest resolutions must be positive`);
     }
+    if (representationResolutionM < sourceResolutionM) {
+      throw new Error(
+        `${label}.coverageRequest representation cannot claim finer resolution than the source`,
+      );
+    }
     allowedString(
       request.interpolation,
       new Set(['nearest_neighbor', 'bilinear', 'bicubic']),
@@ -1138,11 +1143,11 @@ export function assertHistoricalBenchmarkManifest(
 
     const counts = objectValue(audit.counts, `${label}.counts`);
     const totalPixels = positiveInteger(counts.totalPixels, `${label}.counts.totalPixels`);
-    const availablePixels = positiveInteger(
+    const availablePixels = nonNegativeInteger(
       counts.availablePixels,
       `${label}.counts.availablePixels`,
     );
-    const missingPixels = positiveInteger(
+    const missingPixels = nonNegativeInteger(
       counts.missingPixels,
       `${label}.counts.missingPixels`,
     );
@@ -1179,11 +1184,11 @@ export function assertHistoricalBenchmarkManifest(
         coverage.knownCenterCells,
         `${coverageLabel}.knownCenterCells`,
       );
-      const terrainAvailableAtCenter = positiveInteger(
+      const terrainAvailableAtCenter = nonNegativeInteger(
         coverage.terrainAvailableAtCenter,
         `${coverageLabel}.terrainAvailableAtCenter`,
       );
-      const terrainMissingAtCenter = positiveInteger(
+      const terrainMissingAtCenter = nonNegativeInteger(
         coverage.terrainMissingAtCenter,
         `${coverageLabel}.terrainMissingAtCenter`,
       );

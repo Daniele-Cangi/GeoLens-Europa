@@ -349,6 +349,14 @@ test('terrain audit rejects invalid resolution, count drift and premature eligib
     /resolutions must be positive/,
   );
 
+  const falsePrecision = manifestFixture();
+  falsePrecision.benchmark.conditionedReplayTerrainAudits[0]
+    .coverageRequest.representationResolutionM = 0.5;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(falsePrecision),
+    /representation cannot claim finer resolution than the source/,
+  );
+
   const countDrift = manifestFixture();
   countDrift.benchmark.conditionedReplayTerrainAudits[0].counts.missingPixels -= 1;
   assert.throws(
@@ -363,6 +371,24 @@ test('terrain audit rejects invalid resolution, count drift and premature eligib
     () => assertHistoricalBenchmarkManifest(prematureHydraulics),
     /keep incomplete terrain fail-closed/,
   );
+});
+
+test('terrain audit accepts truthful zero component counts', () => {
+  const noAvailableTerrain = manifestFixture();
+  const coverage = noAvailableTerrain.benchmark.conditionedReplayTerrainAudits[0]
+    .physicalFeatureCoverage[0];
+  coverage.terrainAvailableAtCenter = 0;
+  coverage.terrainMissingAtCenter = coverage.knownCenterCells;
+
+  assert.doesNotThrow(() => assertHistoricalBenchmarkManifest(noAvailableTerrain));
+
+  const completeFeatureCoverage = manifestFixture();
+  const completeCoverage = completeFeatureCoverage.benchmark
+    .conditionedReplayTerrainAudits[0].physicalFeatureCoverage[0];
+  completeCoverage.terrainAvailableAtCenter = completeCoverage.knownCenterCells;
+  completeCoverage.terrainMissingAtCenter = 0;
+
+  assert.doesNotThrow(() => assertHistoricalBenchmarkManifest(completeFeatureCoverage));
 });
 
 test('ARPAE comparison run materializes rain and explicit stage gaps', () => {
