@@ -101,7 +101,7 @@ test('ARPAE observation comparison is frozen before event-value access', () => {
   );
 
   assert.equal(protocol.state, 'protocol_frozen');
-  assert.equal(protocol.observationAccessAtFreeze, 'catalog_only');
+  assert.equal(protocol.dext3rEventSeriesAccessAtFreeze, 'catalog_only');
   assert.equal(protocol.calibration, false);
   assert.deepEqual(protocol.window, {
     start: '2023-05-16T00:00:00Z',
@@ -130,7 +130,7 @@ test('ARPAE observation comparison is frozen before event-value access', () => {
     'missing_or_incomplete_not_zero',
   );
   assert.equal(protocol.hydrometry.noCrossStationDatumArithmetic, true);
-  assert.match(protocol.methodologyNote, /before requesting or reading event values/);
+  assert.match(protocol.methodologyNote, /not claimed as blind/);
 });
 
 test('ARPAE comparison rejects calibration, silent zero and datum mixing', () => {

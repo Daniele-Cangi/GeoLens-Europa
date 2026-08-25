@@ -95,7 +95,7 @@ export interface BenchmarkObservationComparisonProtocol {
   readonly state: 'protocol_frozen';
   readonly observationDatasetId: string;
   readonly validationDatasetIds: readonly string[];
-  readonly observationAccessAtFreeze: 'catalog_only';
+  readonly dext3rEventSeriesAccessAtFreeze: 'catalog_only';
   readonly calibration: false;
   readonly window: {
     readonly start: string;
@@ -471,8 +471,8 @@ export function assertHistoricalBenchmarkManifest(
     if (validationDatasetIds.length === 0) {
       throw new Error(`${label}.validationDatasetIds must not be empty`);
     }
-    if (protocol.observationAccessAtFreeze !== 'catalog_only') {
-      throw new Error(`${label} must freeze before loading observation values`);
+    if (protocol.dext3rEventSeriesAccessAtFreeze !== 'catalog_only') {
+      throw new Error(`${label} must freeze before requesting Dext3r event series`);
     }
     if (booleanValue(protocol.calibration, `${label}.calibration`)) {
       throw new Error(`${label} must not calibrate from observations`);
