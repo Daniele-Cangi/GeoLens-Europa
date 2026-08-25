@@ -2267,6 +2267,7 @@ function assertLocalArtifacts(
   });
 }
 
+/** Validates benchmark-wide coverage, grid, mask and tolerance semantics. */
 function assertBenchmarkSpatialProtocol(
   raw: Record<string, unknown>,
   aoiBounds: readonly number[],
