@@ -206,6 +206,8 @@ class EmiliaArpaeComparisonTest(unittest.TestCase):
             {"start": start + timedelta(minutes=15 * index), "value": value, "line": index}
             for index, value in enumerate([0.0, 0.1, 0.2, 0.3, 0.4])
         ]
+        for record in records:
+            record["end"] = record["start"]
         self.assertEqual(MODULE.maximum_one_hour_rise(records), 0.4)
         result = MODULE.hydrometry_result(
             {"stationId": "zero-valid", "name": "Zero valid"},
@@ -215,6 +217,23 @@ class EmiliaArpaeComparisonTest(unittest.TestCase):
         )
         self.assertEqual(result["recordCount"], 5)
         self.assertEqual(result["missingRecordCount"], 0)
+
+    def test_rejects_incomplete_hydrometry_timestamp_schedule(self):
+        start = datetime(2023, 5, 16, tzinfo=timezone.utc)
+        records = []
+        for index in range(192):
+            point = start + timedelta(minutes=15 * index)
+            records.append(
+                {"start": point, "end": point, "value": 1.0, "line": index}
+            )
+        records.pop(10)
+        with self.assertRaisesRegex(ValueError, "192-point quarter-hour"):
+            MODULE.hydrometry_result(
+                {"stationId": "fixture", "name": "Fixture"},
+                {"records": records},
+                start,
+                start + timedelta(hours=48),
+            )
 
     def test_rejects_zip_that_does_not_match_the_pinned_csv(self):
         with tempfile.TemporaryDirectory() as temporary:

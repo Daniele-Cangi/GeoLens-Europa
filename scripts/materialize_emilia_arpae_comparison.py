@@ -333,9 +333,24 @@ def maximum_one_hour_rise(records):
 def hydrometry_result(station, section, window_start, window_end):
     raw = records_in_window(section["records"], window_start, window_end)
     raw.sort(key=lambda item: item["start"])
+    expected_count = int((window_end - window_start).total_seconds() / (15 * 60))
+    expected_timestamps = [
+        window_start + timedelta(minutes=15 * index)
+        for index in range(expected_count)
+    ]
+    if len(raw) != expected_count or any(
+        record["start"] != expected_timestamp
+        or record["end"] != expected_timestamp
+        for record, expected_timestamp in zip(
+            raw, expected_timestamps, strict=True
+        )
+    ):
+        raise ValueError(
+            f"Hydrometry for {station['name']} must retain the complete "
+            f"{expected_count}-point quarter-hour timestamp schedule"
+        )
     accepted = [record for record in raw if record["value"] is not None]
     missing_count = len(raw) - len(accepted)
-    expected_count = int((window_end - window_start).total_seconds() / (15 * 60))
     complete = (
         len(accepted) == expected_count
         and all(
