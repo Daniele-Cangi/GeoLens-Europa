@@ -30,7 +30,7 @@ test('Emilia-Romagna manifest passes the historical benchmark contract', () => {
     'retrospective_reconstruction',
   );
   assert.equal(manifest.benchmark.claimLevel, 'hydrologic_routing');
-  assert.equal(manifest.manifestVersion, '1.11.0');
+  assert.equal(manifest.manifestVersion, '1.12.0');
   assert.ok(manifest.benchmark.forbiddenClaims.includes('validated_water_depth'));
 });
 
@@ -299,6 +299,71 @@ test('ARPAE source audit rejects a fabricated datum or hydraulic eligibility', (
   assert.throws(
     () => assertHistoricalBenchmarkManifest(prematureHydraulics),
     /keep the hydraulic replay fail-closed/,
+  );
+});
+
+test('bounded PST terrain audit preserves source nodata and critical gaps', () => {
+  const manifest = manifestFixture();
+  const audit = manifest.benchmark.conditionedReplayTerrainAudits[0];
+  const dataset = manifest.datasets.find(
+    (candidate) => candidate.id === 'rer-dtm-1m-pst',
+  );
+
+  assert.equal(audit.sourceAccess, 'loaded_after_protocol_freeze');
+  assert.equal(audit.quality, 'incomplete_window');
+  assert.equal(audit.coverageRequest.sourceCrs, 'EPSG:23032');
+  assert.equal(audit.coverageRequest.sourceResolutionM, 1);
+  assert.equal(audit.coverageRequest.representationResolutionM, 5);
+  assert.equal(audit.coverageRequest.declaredNoData, -3);
+  assert.equal(audit.coverageRequest.geoTiffNoDataTag, 'missing');
+  assert.deepEqual(audit.counts, {
+    totalPixels: 5069731,
+    availablePixels: 4508766,
+    missingPixels: 560965,
+    missingFraction: 0.1106498549923063,
+  });
+  assert.deepEqual(
+    audit.physicalFeatureCoverage.map(
+      ({ layer, knownCenterCells, terrainMissingAtCenter }) => ({
+        layer,
+        knownCenterCells,
+        terrainMissingAtCenter,
+      }),
+    ),
+    [
+      { layer: 'riverbed', knownCenterCells: 12762, terrainMissingAtCenter: 1544 },
+      { layer: 'embankment', knownCenterCells: 10525, terrainMissingAtCenter: 1542 },
+      { layer: 'permanent_water', knownCenterCells: 10859, terrainMissingAtCenter: 1550 },
+    ],
+  );
+  assert.equal(audit.conclusions.hydraulicUseEligible, false);
+  assert.equal(audit.conclusions.noDataPolicy, 'missing_not_zero_or_interpolated');
+  assert.equal(dataset.acquisitionStatus, 'downloaded_verified');
+  assert.equal(dataset.localArtifacts.length, 3);
+});
+
+test('terrain audit rejects nodata coercion, count drift and premature eligibility', () => {
+  const coercedNoData = manifestFixture();
+  coercedNoData.benchmark.conditionedReplayTerrainAudits[0]
+    .coverageRequest.declaredNoData = 0;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(coercedNoData),
+    /coverageRequest drifted from WCS provenance/,
+  );
+
+  const countDrift = manifestFixture();
+  countDrift.benchmark.conditionedReplayTerrainAudits[0].counts.missingPixels -= 1;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(countDrift),
+    /counts are inconsistent with the bounded raster/,
+  );
+
+  const prematureHydraulics = manifestFixture();
+  prematureHydraulics.benchmark.conditionedReplayTerrainAudits[0]
+    .conclusions.hydraulicUseEligible = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(prematureHydraulics),
+    /keep incomplete terrain fail-closed/,
   );
 });
 

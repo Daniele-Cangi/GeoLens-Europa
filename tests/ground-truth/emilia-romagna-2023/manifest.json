@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "1.11.0",
+  "manifestVersion": "1.12.0",
   "benchmark": {
     "id": "emilia-romagna-2023-forli-retrospective-reconstruction",
     "title": "Case 02 - Emilia-Romagna 2023 / Retrospective Flood Reconstruction",
@@ -715,6 +715,65 @@
         },
         "methodologyNote": "Materialized from the official 2023 ARPAE Annale after the conditioned-input protocol was frozen. Page 17 defines stage relative to the gauge zero and the guillemet symbol as missing data. Page 26 publishes gauge-zero elevations for Castrocaro, Predappio and Ponte Vico while Ponte Braldo is explicitly missing. Pages 54 and 65 retain daily stage observations, gaps and maximum-increment context. Pages 68-69 define discharge semantics and list 45 discharge-measurement stations, but neither Montone nor Rabbi appears. The Annale therefore does not supply an event-valid rating curve or discharge hydrograph for the required rivers. Ponte Vico's datum does not by itself define a boundary at the frozen AOI outlet, and Ponte Braldo's datum remains missing. No stage was converted to discharge, no missing datum became zero and the conditioned replay remains blocked."
       }
+    ],
+    "conditionedReplayTerrainAudits": [
+      {
+        "id": "forli-conditioned-replay-rer-dtm1m-coverage-audit-v0",
+        "protocolId": "forli-conditioned-inundation-replay-v0",
+        "state": "materialized",
+        "sourceAccess": "loaded_after_protocol_freeze",
+        "sourceDatasetId": "rer-dtm-1m-pst",
+        "quality": "incomplete_window",
+        "coverageRequest": {
+          "sourceCrs": "EPSG:23032",
+          "sourceResolutionM": 1,
+          "representationResolutionM": 5,
+          "interpolation": "nearest_neighbor",
+          "bounds": [
+            737875,
+            4895267,
+            747926,
+            4907868
+          ],
+          "width": 2011,
+          "height": 2521,
+          "declaredNoData": -3,
+          "geoTiffNoDataTag": "missing"
+        },
+        "counts": {
+          "totalPixels": 5069731,
+          "availablePixels": 4508766,
+          "missingPixels": 560965,
+          "missingFraction": 0.1106498549923063
+        },
+        "physicalFeatureCoverage": [
+          {
+            "layer": "riverbed",
+            "knownCenterCells": 12762,
+            "terrainAvailableAtCenter": 11218,
+            "terrainMissingAtCenter": 1544
+          },
+          {
+            "layer": "embankment",
+            "knownCenterCells": 10525,
+            "terrainAvailableAtCenter": 8983,
+            "terrainMissingAtCenter": 1542
+          },
+          {
+            "layer": "permanent_water",
+            "knownCenterCells": 10859,
+            "terrainAvailableAtCenter": 9309,
+            "terrainMissingAtCenter": 1550
+          }
+        ],
+        "conclusions": {
+          "terrainStatus": "incomplete_window",
+          "hydraulicUseEligible": false,
+          "noDataPolicy": "missing_not_zero_or_interpolated",
+          "fullResolutionDownloadDecision": "not_downloaded_coverage_gap_already_disqualifies_sole_source"
+        },
+        "methodologyNote": "The official WCS DescribeCoverage declares a native 1 m EPSG:23032 grid and -3 as null. The bounded diagnostic request transforms the frozen EPSG:32632 AOI corners into an integer EPSG:23032 envelope and requests a 5 m nearest-neighbour representation only to audit source coverage before a full-resolution acquisition. The returned GeoTIFF omits a GDAL nodata tag, so -3 is interpreted only from the pinned DescribeCoverage rather than as elevation. The source is missing across 11.06% of the requested pixels and at material portions of known DBTR riverbed, embankment and permanent-water cell centres. A full 1 m download would preserve rather than repair those gaps, so it is not acquired at this gate. No -3 value becomes zero, terrain or an interpolated hydraulic surface."
+      }
     ]
   },
   "datasets": [
@@ -799,7 +858,7 @@
       "sourceUrl": "https://servizigis.regione.emilia-romagna.it/wcs/dtm1x1pst",
       "accessMethod": "WCS 1.0.0 bounded coverage request",
       "sourceResolution": "1 m in available lowland coverage; derived from 2009-2014 surveys",
-      "acquisitionStatus": "remote_verified",
+      "acquisitionStatus": "downloaded_verified",
       "license": {
         "name": "Not OpenData; MASE PST distribution terms apply",
         "access": "public",
@@ -816,9 +875,19 @@
           "relativePath": "source/rer-dtm1x1-wcs-capabilities.xml",
           "bytes": 3541,
           "sha256": "0D66F613BEC4A3D468AD924F4C9ED428D6E1ADA746872270CCA9E9A8110026BF"
+        },
+        {
+          "relativePath": "source/rer-dtm1x1-wcs-describe-coverage.xml",
+          "bytes": 2835,
+          "sha256": "CC172CD9E5E50EB220D78FF2E73F9998CC3EFB9C81BA5536D73C8E4873705E70"
+        },
+        {
+          "relativePath": "source/rer-dtm1x1-forli-aoi-5m-nearest.tif",
+          "bytes": 20975238,
+          "sha256": "124E30465B1B7EA65DCEB3D21F7786EC8475243F4ED8F65D68374487BB90364C"
         }
       ],
-      "methodologyNote": "The terrain survey predates the event, but availability of this exact WCS/source by the knowledge cutoff is not yet proven. It remains excluded from the cutoff-constrained model path."
+      "methodologyNote": "The terrain survey predates the event, but availability of this exact WCS/source by the knowledge cutoff is not yet proven. DescribeCoverage and a bounded 5 m nearest-neighbour representation are pinned only for a post-freeze source-coverage audit. The WCS declares -3 as null but the returned GeoTIFF has no GDAL nodata tag; 560,965 of 5,069,731 pixels are null and critical DBTR feature centres are affected. The source remains excluded from the model path and cannot become a hydraulic surface without a declared complementary source and missing-data treatment."
     },
     {
       "id": "copernicus-dem-glo-30-2022",

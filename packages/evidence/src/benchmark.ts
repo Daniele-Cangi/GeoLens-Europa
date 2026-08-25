@@ -49,7 +49,7 @@ export interface BenchmarkDataset {
 }
 
 export interface HistoricalBenchmarkManifest {
-  readonly manifestVersion: '1.11.0';
+  readonly manifestVersion: '1.12.0';
   readonly benchmark: {
     readonly id: string;
     readonly title: string;
@@ -81,6 +81,7 @@ export interface HistoricalBenchmarkManifest {
     readonly observationComparisonRuns: readonly BenchmarkObservationComparisonRun[];
     readonly conditionedReplayProtocols: readonly BenchmarkConditionedReplayProtocol[];
     readonly conditionedReplaySourceAudits: readonly BenchmarkConditionedReplaySourceAudit[];
+    readonly conditionedReplayTerrainAudits: readonly BenchmarkConditionedReplayTerrainAudit[];
     readonly evaluationMetrics: readonly string[];
     readonly forbiddenClaims: readonly string[];
   };
@@ -166,6 +167,46 @@ export interface BenchmarkConditionedReplaySourceAudit {
     readonly hydraulicUseEligible: false;
     readonly protocolRunGate: 'blocked_missing_required_evidence';
     readonly missingPolicy: 'missing_not_zero_or_inferred';
+  };
+  readonly methodologyNote: string;
+}
+
+export interface BenchmarkConditionedReplayTerrainAudit {
+  readonly id: string;
+  readonly protocolId: string;
+  readonly state: 'materialized';
+  readonly sourceAccess: 'loaded_after_protocol_freeze';
+  readonly sourceDatasetId: string;
+  readonly quality: 'incomplete_window';
+  readonly coverageRequest: {
+    readonly sourceCrs: 'EPSG:23032';
+    readonly sourceResolutionM: 1;
+    readonly representationResolutionM: 5;
+    readonly interpolation: 'nearest_neighbor';
+    readonly bounds: readonly [number, number, number, number];
+    readonly width: number;
+    readonly height: number;
+    readonly declaredNoData: -3;
+    readonly geoTiffNoDataTag: 'missing';
+  };
+  readonly counts: {
+    readonly totalPixels: number;
+    readonly availablePixels: number;
+    readonly missingPixels: number;
+    readonly missingFraction: number;
+  };
+  readonly physicalFeatureCoverage: readonly {
+    readonly layer: 'riverbed' | 'embankment' | 'permanent_water';
+    readonly knownCenterCells: number;
+    readonly terrainAvailableAtCenter: number;
+    readonly terrainMissingAtCenter: number;
+  }[];
+  readonly conclusions: {
+    readonly terrainStatus: 'incomplete_window';
+    readonly hydraulicUseEligible: false;
+    readonly noDataPolicy: 'missing_not_zero_or_interpolated';
+    readonly fullResolutionDownloadDecision:
+      'not_downloaded_coverage_gap_already_disqualifies_sole_source';
   };
   readonly methodologyNote: string;
 }
@@ -433,8 +474,8 @@ export function assertHistoricalBenchmarkManifest(
   value: unknown,
 ): asserts value is HistoricalBenchmarkManifest {
   const root = objectValue(value, 'manifest');
-  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.11.0') {
-    throw new Error('manifestVersion must be "1.11.0"');
+  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.12.0') {
+    throw new Error('manifestVersion must be "1.12.0"');
   }
 
   const benchmark = objectValue(root.benchmark, 'benchmark');
@@ -1052,6 +1093,159 @@ export function assertHistoricalBenchmarkManifest(
     stringValue(audit.methodologyNote, `${label}.methodologyNote`);
   });
   if (
+    !Array.isArray(benchmark.conditionedReplayTerrainAudits) ||
+    benchmark.conditionedReplayTerrainAudits.length !== 1
+  ) {
+    throw new Error(
+      'benchmark.conditionedReplayTerrainAudits must retain the bounded PST audit',
+    );
+  }
+  const conditionedTerrainAuditDatasetReferences: Array<{
+    readonly label: string;
+    readonly id: string;
+  }> = [];
+  const expectedTerrainBounds = [737875, 4895267, 747926, 4907868];
+  const expectedPhysicalCoverage = [
+    {
+      layer: 'riverbed',
+      knownCenterCells: 12762,
+      terrainAvailableAtCenter: 11218,
+      terrainMissingAtCenter: 1544,
+    },
+    {
+      layer: 'embankment',
+      knownCenterCells: 10525,
+      terrainAvailableAtCenter: 8983,
+      terrainMissingAtCenter: 1542,
+    },
+    {
+      layer: 'permanent_water',
+      knownCenterCells: 10859,
+      terrainAvailableAtCenter: 9309,
+      terrainMissingAtCenter: 1550,
+    },
+  ] as const;
+  benchmark.conditionedReplayTerrainAudits.forEach((rawAudit, index) => {
+    const label = `benchmark.conditionedReplayTerrainAudits[${index}]`;
+    const audit = objectValue(rawAudit, label);
+    stringValue(audit.id, `${label}.id`);
+    const protocolId = stringValue(audit.protocolId, `${label}.protocolId`);
+    if (!conditionedProtocolIds.has(protocolId)) {
+      throw new Error(`${label} references unknown conditioned replay protocol`);
+    }
+    if (
+      audit.state !== 'materialized' ||
+      audit.sourceAccess !== 'loaded_after_protocol_freeze' ||
+      audit.quality !== 'incomplete_window'
+    ) {
+      throw new Error(`${label} must retain the incomplete post-freeze terrain audit`);
+    }
+    const sourceDatasetId = stringValue(
+      audit.sourceDatasetId,
+      `${label}.sourceDatasetId`,
+    );
+    conditionedTerrainAuditDatasetReferences.push({
+      label,
+      id: sourceDatasetId,
+    });
+
+    const request = objectValue(audit.coverageRequest, `${label}.coverageRequest`);
+    if (
+      request.sourceCrs !== 'EPSG:23032' ||
+      request.sourceResolutionM !== 1 ||
+      request.representationResolutionM !== 5 ||
+      request.interpolation !== 'nearest_neighbor' ||
+      request.declaredNoData !== -3 ||
+      request.geoTiffNoDataTag !== 'missing'
+    ) {
+      throw new Error(`${label}.coverageRequest drifted from WCS provenance`);
+    }
+    const requestBounds = numberArray(
+      request.bounds,
+      `${label}.coverageRequest.bounds`,
+      4,
+    );
+    if (requestBounds.some((bound, boundIndex) => bound !== expectedTerrainBounds[boundIndex])) {
+      throw new Error(`${label}.coverageRequest.bounds drifted from the bounded audit`);
+    }
+    const width = positiveInteger(request.width, `${label}.coverageRequest.width`);
+    const height = positiveInteger(request.height, `${label}.coverageRequest.height`);
+    if (width !== 2011 || height !== 2521) {
+      throw new Error(`${label}.coverageRequest dimensions are inconsistent`);
+    }
+
+    const counts = objectValue(audit.counts, `${label}.counts`);
+    const totalPixels = positiveInteger(counts.totalPixels, `${label}.counts.totalPixels`);
+    const availablePixels = positiveInteger(
+      counts.availablePixels,
+      `${label}.counts.availablePixels`,
+    );
+    const missingPixels = positiveInteger(
+      counts.missingPixels,
+      `${label}.counts.missingPixels`,
+    );
+    const missingFraction = finiteNumber(
+      counts.missingFraction,
+      `${label}.counts.missingFraction`,
+    );
+    if (
+      totalPixels !== width * height ||
+      availablePixels + missingPixels !== totalPixels ||
+      totalPixels !== 5069731 ||
+      availablePixels !== 4508766 ||
+      missingPixels !== 560965 ||
+      !approximatelyEqual(missingFraction, missingPixels / totalPixels)
+    ) {
+      throw new Error(`${label}.counts are inconsistent with the bounded raster`);
+    }
+
+    const physicalCoverage = assertObjectArray(
+      audit.physicalFeatureCoverage,
+      `${label}.physicalFeatureCoverage`,
+    );
+    if (physicalCoverage.length !== expectedPhysicalCoverage.length) {
+      throw new Error(`${label}.physicalFeatureCoverage is incomplete`);
+    }
+    physicalCoverage.forEach((rawCoverage, coverageIndex) => {
+      const coverageLabel = `${label}.physicalFeatureCoverage[${coverageIndex}]`;
+      const coverage = objectValue(rawCoverage, coverageLabel);
+      const expected = expectedPhysicalCoverage[coverageIndex];
+      const knownCenterCells = positiveInteger(
+        coverage.knownCenterCells,
+        `${coverageLabel}.knownCenterCells`,
+      );
+      const terrainAvailableAtCenter = positiveInteger(
+        coverage.terrainAvailableAtCenter,
+        `${coverageLabel}.terrainAvailableAtCenter`,
+      );
+      const terrainMissingAtCenter = positiveInteger(
+        coverage.terrainMissingAtCenter,
+        `${coverageLabel}.terrainMissingAtCenter`,
+      );
+      if (
+        coverage.layer !== expected.layer ||
+        knownCenterCells !== expected.knownCenterCells ||
+        terrainAvailableAtCenter !== expected.terrainAvailableAtCenter ||
+        terrainMissingAtCenter !== expected.terrainMissingAtCenter ||
+        knownCenterCells !== terrainAvailableAtCenter + terrainMissingAtCenter
+      ) {
+        throw new Error(`${coverageLabel} drifted from the coverage audit`);
+      }
+    });
+
+    const conclusions = objectValue(audit.conclusions, `${label}.conclusions`);
+    if (
+      conclusions.terrainStatus !== 'incomplete_window' ||
+      conclusions.hydraulicUseEligible !== false ||
+      conclusions.noDataPolicy !== 'missing_not_zero_or_interpolated' ||
+      conclusions.fullResolutionDownloadDecision !==
+        'not_downloaded_coverage_gap_already_disqualifies_sole_source'
+    ) {
+      throw new Error(`${label} must keep incomplete terrain fail-closed`);
+    }
+    stringValue(audit.methodologyNote, `${label}.methodologyNote`);
+  });
+  if (
     !Array.isArray(benchmark.evaluationProtocols) ||
     benchmark.evaluationProtocols.length === 0
   ) {
@@ -1649,6 +1843,13 @@ export function assertHistoricalBenchmarkManifest(
           `${audit.label} references unknown source dataset "${datasetId}"`,
         );
       }
+    }
+  }
+  for (const audit of conditionedTerrainAuditDatasetReferences) {
+    if (!ids.has(audit.id)) {
+      throw new Error(
+        `${audit.label} references unknown terrain dataset "${audit.id}"`,
+      );
     }
   }
   for (const protocol of evaluationProtocolReferences) {
