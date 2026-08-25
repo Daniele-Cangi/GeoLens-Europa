@@ -196,6 +196,9 @@ class EmiliaArpaeComparisonTest(unittest.TestCase):
             self.assertEqual(rainfall["quality"], "incomplete_window")
             self.assertIsNone(rainfall["gaugeTotalMm"])
             self.assertIsNone(rainfall["imergMinusGaugeMm"])
+            self.assertEqual(
+                receipt["quality"], "incomplete_rainfall_and_hydrometry"
+            )
 
     def test_zero_is_preserved_for_a_station_without_response_specific_rule(self):
         start = datetime(2023, 5, 16, tzinfo=timezone.utc)

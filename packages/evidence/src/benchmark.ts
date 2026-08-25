@@ -149,7 +149,11 @@ export interface BenchmarkObservationComparisonRun {
   readonly claimLevel: 'station_observation_comparison';
   readonly observationAccess: 'loaded_after_protocol_freeze';
   readonly calibration: false;
-  readonly quality: 'available' | 'available_with_incomplete_hydrometry';
+  readonly quality:
+    | 'available'
+    | 'available_with_incomplete_hydrometry'
+    | 'incomplete_rainfall'
+    | 'incomplete_rainfall_and_hydrometry';
   readonly missingValuePolicy: 'blank_source_value_is_missing_numeric_zero_preserved';
   readonly sourceRequest: {
     readonly requestId: string;
@@ -1390,7 +1394,9 @@ function assertObservationComparisonRuns(
     }
     if (
       run.quality !== 'available' &&
-      run.quality !== 'available_with_incomplete_hydrometry'
+      run.quality !== 'available_with_incomplete_hydrometry' &&
+      run.quality !== 'incomplete_rainfall' &&
+      run.quality !== 'incomplete_rainfall_and_hydrometry'
     ) {
       throw new Error(`${label}.quality is unsupported`);
     }
@@ -1410,6 +1416,7 @@ function assertObservationComparisonRuns(
 
     const rainfall = assertObjectArray(run.rainfall, `${label}.rainfall`);
     const rainfallIds = new Set<string>();
+    let incompleteRainfall = false;
     rainfall.forEach((rawResult, resultIndex) => {
       const resultLabel = `${label}.rainfall[${resultIndex}]`;
       const result = objectValue(rawResult, resultLabel);
@@ -1473,6 +1480,8 @@ function assertObservationComparisonRuns(
         result.imergMinusGaugeMm !== null
       ) {
         throw new Error(`${resultLabel} incomplete rainfall cannot expose a partial total`);
+      } else {
+        incompleteRainfall = true;
       }
       const sampled = objectValue(
         result.sampledImergCell,
@@ -1551,13 +1560,25 @@ function assertObservationComparisonRuns(
           result.maximumOneHourRiseM,
           `${resultLabel}.maximumOneHourRiseM`,
         );
+      } else if (
+        result.coverageStart !== null ||
+        result.coverageEnd !== null ||
+        result.maximumStageM !== null ||
+        result.maximumStageAt !== null ||
+        result.maximumOneHourRiseM !== null
+      ) {
+        throw new Error(`${resultLabel} empty stage must retain null summaries`);
       }
     });
     assertExactStationSet(hydrometryIds, expected.hydrometry, `${label}.hydrometry`);
-    if (
-      (incompleteHydrometry && run.quality !== 'available_with_incomplete_hydrometry') ||
-      (!incompleteHydrometry && run.quality !== 'available')
-    ) {
+    const expectedQuality = incompleteRainfall
+      ? incompleteHydrometry
+        ? 'incomplete_rainfall_and_hydrometry'
+        : 'incomplete_rainfall'
+      : incompleteHydrometry
+        ? 'available_with_incomplete_hydrometry'
+        : 'available';
+    if (run.quality !== expectedQuality) {
       throw new Error(`${label}.quality disagrees with hydrometric completeness`);
     }
     stringValue(run.methodologyNote, `${label}.methodologyNote`);

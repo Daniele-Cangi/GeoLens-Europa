@@ -205,6 +205,17 @@ test('ARPAE comparison run rejects calibration, zero coercion and metric drift',
     () => assertHistoricalBenchmarkManifest(drifted),
     /IMERG minus gauge is inconsistent/,
   );
+
+  const emptyStageWithSummary = manifestFixture();
+  const stage = emptyStageWithSummary.benchmark.observationComparisonRuns[0]
+    .hydrometry[0];
+  stage.quality = 'incomplete_window';
+  stage.recordCount = 0;
+  stage.missingRecordCount = 192;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(emptyStageWithSummary),
+    /empty stage must retain null summaries/,
+  );
 });
 
 test('evaluation protocol rejects leakage, calibration and unpinned predictions', () => {

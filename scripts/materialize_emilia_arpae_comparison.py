@@ -285,7 +285,7 @@ def rainfall_result(station, section, grid, window_start, window_end):
     ]
     complete = len(records) == expected_count and len(available) == expected_count
     if complete:
-        for record, expected_start in zip(available, expected_starts):
+        for record, expected_start in zip(available, expected_starts, strict=True):
             if (
                 record["start"] != expected_start
                 or record["end"] != expected_start + timedelta(hours=1)
@@ -498,11 +498,7 @@ def materialize(data_root, manifest_path):
         "hydrometry": hydrometry,
         "observationValidityTransformations": transformations,
         "contextualAnnualRainfallCrossChecks": cross_checks,
-        "quality": (
-            "available_with_incomplete_hydrometry"
-            if any(result["quality"] != "available" for result in hydrometry)
-            else "available"
-        ),
+        "quality": comparison_quality(rainfall, hydrometry),
         "methodologyNote": (
             "Rainfall uses the frozen half-open 48-hour window and the nearest "
             "native 0.1 degree IMERG cell. Hydrometric stages are compared only "
@@ -514,6 +510,22 @@ def materialize(data_root, manifest_path):
     receipt_path = data_root / RECEIPT_RELATIVE_PATH
     atomic_json(receipt_path, receipt)
     return {"receipt": receipt, "artifact": artifact(data_root, receipt_path)}
+
+
+def comparison_quality(rainfall, hydrometry):
+    rainfall_incomplete = any(
+        result["quality"] == "incomplete_window" for result in rainfall
+    )
+    hydrometry_incomplete = any(
+        result["quality"] == "incomplete_window" for result in hydrometry
+    )
+    if rainfall_incomplete and hydrometry_incomplete:
+        return "incomplete_rainfall_and_hydrometry"
+    if rainfall_incomplete:
+        return "incomplete_rainfall"
+    if hydrometry_incomplete:
+        return "available_with_incomplete_hydrometry"
+    return "available"
 
 
 def main():
