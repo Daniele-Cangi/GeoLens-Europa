@@ -31,7 +31,7 @@ test('Emilia-Romagna manifest passes the historical benchmark contract', () => {
     'retrospective_reconstruction',
   );
   assert.equal(manifest.benchmark.claimLevel, 'hydrologic_routing');
-  assert.equal(manifest.manifestVersion, '1.12.0');
+  assert.equal(manifest.manifestVersion, '1.13.0');
   assert.ok(manifest.benchmark.forbiddenClaims.includes('validated_water_depth'));
 });
 
@@ -310,6 +310,98 @@ test('ARPAE source audit rejects inconsistent missing datum or hydraulic eligibi
   assert.throws(
     () => assertHistoricalBenchmarkManifest(prematureHydraulics),
     /keep the hydraulic replay fail-closed/,
+  );
+});
+
+test('official physical-source audit retains narrative breaches and drawing-only archives', () => {
+  const manifest = manifestFixture();
+  const audit = manifest.benchmark.conditionedReplayPhysicalAudits[0];
+
+  assert.equal(audit.sourceAccess, 'loaded_after_protocol_freeze');
+  assert.equal(audit.quality, 'metadata_only');
+  assert.equal(
+    audit.eventMonograph.stageDatum,
+    'metres_above_local_gauge_zero',
+  );
+  assert.deepEqual(
+    audit.eventMonograph.reportedStagePeaks.map(
+      ({ watercourse, station, stageM }) => ({ watercourse, station, stageM }),
+    ),
+    [
+      { watercourse: 'Montone', station: 'Castrocaro', stageM: 5.72 },
+      { watercourse: 'Rabbi', station: 'Ponte Calanca', stageM: 3.67 },
+    ],
+  );
+  assert.equal(
+    audit.eventMonograph.breachAndOvertopping
+      .machineReadableCoordinatesAvailable,
+    false,
+  );
+  assert.equal(audit.publicHydraulicArchive.declaredModel, 'HEC-RAS');
+  assert.deepEqual(
+    audit.publicHydraulicArchive.inspectedArtifacts.map(
+      ({ entryCount, entryExtensions }) => ({ entryCount, entryExtensions }),
+    ),
+    [
+      { entryCount: 2, entryExtensions: ['.DWG'] },
+      { entryCount: 14, entryExtensions: ['.DWG'] },
+      { entryCount: 3, entryExtensions: ['.DWG'] },
+    ],
+  );
+  assert.equal(
+    audit.publicHydraulicArchive.containsHecrasProjectFiles,
+    false,
+  );
+  assert.equal(audit.conclusions.hydraulicUseEligible, false);
+  assert.equal(
+    audit.conclusions.protocolRunGate,
+    'blocked_missing_required_evidence',
+  );
+  assert.match(audit.methodologyNote, /No stage was converted to discharge/);
+});
+
+test('physical-source audit rejects promoted narrative or drawing evidence', () => {
+  const inventedCoordinates = manifestFixture();
+  inventedCoordinates.benchmark.conditionedReplayPhysicalAudits[0]
+    .eventMonograph.breachAndOvertopping
+    .machineReadableCoordinatesAvailable = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(inventedCoordinates),
+    /cannot promote narrative breach evidence into model geometry/,
+  );
+
+  const inventedModel = manifestFixture();
+  inventedModel.benchmark.conditionedReplayPhysicalAudits[0]
+    .publicHydraulicArchive.containsHecrasProjectFiles = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(inventedModel),
+    /cannot promote drawing archives into hydraulic model inputs/,
+  );
+
+  const driftedGate = manifestFixture();
+  driftedGate.benchmark.conditionedReplayProtocols[0]
+    .requiredBoundaryEvidence[4].status = 'incomplete_window';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(driftedGate),
+    /physical statuses drifted from the conditioned replay gate/,
+  );
+
+  const misleadingArchive = manifestFixture();
+  misleadingArchive.benchmark.conditionedReplayPhysicalAudits[0]
+    .publicHydraulicArchive.inspectedArtifacts[0]
+    .entryExtensions = ['.PRJ'];
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(misleadingArchive),
+    /must retain the drawing-only archive finding/,
+  );
+
+  const unpinnedArchive = manifestFixture();
+  unpinnedArchive.benchmark.conditionedReplayPhysicalAudits[0]
+    .publicHydraulicArchive.inspectedArtifacts[0]
+    .relativePath = 'source/unpinned-hydraulic-archive.zip';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(unpinnedArchive),
+    /is not pinned by its source dataset/,
   );
 });
 
