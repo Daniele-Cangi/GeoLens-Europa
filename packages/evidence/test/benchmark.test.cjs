@@ -30,7 +30,7 @@ test('Emilia-Romagna manifest passes the historical benchmark contract', () => {
     'retrospective_reconstruction',
   );
   assert.equal(manifest.benchmark.claimLevel, 'hydrologic_routing');
-  assert.equal(manifest.manifestVersion, '1.7.0');
+  assert.equal(manifest.manifestVersion, '1.9.0');
   assert.ok(manifest.benchmark.forbiddenClaims.includes('validated_water_depth'));
 });
 
@@ -92,6 +92,130 @@ test('blind concentration evaluation protocol is frozen before V7 access', () =>
   ]);
   assert.deepEqual(protocol.areaFractions, [0.01, 0.05, 0.1, 0.2]);
   assert.match(protocol.methodologyNote, /do not convert concentration/);
+});
+
+test('ARPAE observation comparison is frozen before event-value access', () => {
+  const manifest = manifestFixture();
+  const protocol = manifest.benchmark.observationComparisonProtocols.find(
+    (candidate) => candidate.id === 'forli-arpae-observation-comparison-v0',
+  );
+
+  assert.equal(protocol.state, 'protocol_frozen');
+  assert.equal(protocol.dext3rEventSeriesAccessAtFreeze, 'catalog_only');
+  assert.equal(protocol.calibration, false);
+  assert.deepEqual(protocol.window, {
+    start: '2023-05-16T00:00:00Z',
+    endExclusive: '2023-05-18T00:00:00Z',
+    timezone: 'UTC',
+  });
+  assert.deepEqual(
+    protocol.rainfall.stations.map((station) => station.stationId),
+    [
+      '-/1204182,4422039/urbane',
+      '-/1199295,4426279/spdsra',
+    ],
+  );
+  assert.deepEqual(
+    protocol.hydrometry.stations.map((station) => station.stationId),
+    [
+      '-/1194940,4417012/spdsra',
+      '-/1202757,4422698/spdsra',
+      '-/1199295,4426279/spdsra',
+      '-/1203134,4433002/spdsra',
+      '-/1198305,4410502/spdsra',
+    ],
+  );
+  assert.equal(
+    protocol.rainfall.missingPolicy,
+    'missing_or_incomplete_not_zero',
+  );
+  assert.equal(protocol.hydrometry.noCrossStationDatumArithmetic, true);
+  assert.match(protocol.methodologyNote, /not claimed as blind/);
+});
+
+test('ARPAE comparison rejects calibration, silent zero and datum mixing', () => {
+  const calibrated = manifestFixture();
+  calibrated.benchmark.observationComparisonProtocols[0].calibration = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(calibrated),
+    /must not calibrate from observations/,
+  );
+
+  const silentZero = manifestFixture();
+  silentZero.benchmark.observationComparisonProtocols[0].rainfall
+    .missingPolicy = 'missing_as_zero';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(silentZero),
+    /missing data must not become zero/,
+  );
+
+  const mixedDatums = manifestFixture();
+  mixedDatums.benchmark.observationComparisonProtocols[0].hydrometry
+    .noCrossStationDatumArithmetic = false;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(mixedDatums),
+    /forbid arithmetic across station datums/,
+  );
+
+  const unknownSource = manifestFixture();
+  unknownSource.benchmark.observationComparisonProtocols[0]
+    .observationDatasetId = 'unknown-observation-source';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(unknownSource),
+    /references unknown observation dataset/,
+  );
+});
+
+test('ARPAE comparison run materializes rain and explicit stage gaps', () => {
+  const manifest = manifestFixture();
+  const run = manifest.benchmark.observationComparisonRuns[0];
+
+  assert.equal(run.observationAccess, 'loaded_after_protocol_freeze');
+  assert.equal(run.calibration, false);
+  assert.equal(run.quality, 'available_with_incomplete_hydrometry');
+  assert.equal(run.rainfall[0].gaugeTotalMm, 113.8);
+  assert.equal(run.rainfall[0].imergMinusGaugeMm, -9.5799987793);
+  assert.equal(run.rainfall[1].gaugeTotalMm, 131);
+  assert.equal(run.rainfall[1].imergMinusGaugeMm, -42.9100036621);
+  assert.equal(run.hydrometry.find((item) => item.name === "Forli'").missingRecordCount, 124);
+  assert.equal(run.hydrometry.find((item) => item.name === 'Predappio').missingRecordCount, 117);
+  assert.equal(run.localArtifacts.length, 1);
+});
+
+test('ARPAE comparison run rejects calibration, zero coercion and metric drift', () => {
+  const calibrated = manifestFixture();
+  calibrated.benchmark.observationComparisonRuns[0].calibration = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(calibrated),
+    /must not calibrate from observations/,
+  );
+
+  const coerced = manifestFixture();
+  coerced.benchmark.observationComparisonRuns[0].missingValuePolicy =
+    'blank_source_value_is_zero';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(coerced),
+    /preserve blank\/missing and numeric-zero semantics/,
+  );
+
+  const drifted = manifestFixture();
+  drifted.benchmark.observationComparisonRuns[0].rainfall[0]
+    .imergMinusGaugeMm = 0;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(drifted),
+    /IMERG minus gauge is inconsistent/,
+  );
+
+  const emptyStageWithSummary = manifestFixture();
+  const stage = emptyStageWithSummary.benchmark.observationComparisonRuns[0]
+    .hydrometry[0];
+  stage.quality = 'incomplete_window';
+  stage.recordCount = 0;
+  stage.missingRecordCount = 192;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(emptyStageWithSummary),
+    /empty stage must retain null summaries/,
+  );
 });
 
 test('evaluation protocol rejects leakage, calibration and unpinned predictions', () => {
