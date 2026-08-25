@@ -23,6 +23,8 @@ export interface BenchmarkDataset {
   readonly publisher: string;
   readonly dataset: string;
   readonly datasetVersion?: string;
+  readonly requestId?: string;
+  readonly acquiredAt?: string;
   readonly sourceUrl: string;
   readonly accessMethod: string;
   readonly sourceResolution?: string;
@@ -47,7 +49,7 @@ export interface BenchmarkDataset {
 }
 
 export interface HistoricalBenchmarkManifest {
-  readonly manifestVersion: '1.8.0';
+  readonly manifestVersion: '1.9.0';
   readonly benchmark: {
     readonly id: string;
     readonly title: string;
@@ -76,6 +78,7 @@ export interface HistoricalBenchmarkManifest {
     readonly evaluationProtocols: readonly BenchmarkEvaluationProtocol[];
     readonly evaluationRuns: readonly BenchmarkEvaluationRun[];
     readonly observationComparisonProtocols: readonly BenchmarkObservationComparisonProtocol[];
+    readonly observationComparisonRuns: readonly BenchmarkObservationComparisonRun[];
     readonly evaluationMetrics: readonly string[];
     readonly forbiddenClaims: readonly string[];
   };
@@ -136,6 +139,59 @@ export interface BenchmarkObservationComparisonProtocol {
     'maximum_one_hour_rise_m',
   ];
   readonly methodologyNote: string;
+}
+
+export interface BenchmarkObservationComparisonRun {
+  readonly id: string;
+  readonly protocolId: string;
+  readonly state: 'materialized';
+  readonly resultVersion: string;
+  readonly claimLevel: 'station_observation_comparison';
+  readonly observationAccess: 'loaded_after_protocol_freeze';
+  readonly calibration: false;
+  readonly quality: 'available' | 'available_with_incomplete_hydrometry';
+  readonly missingValuePolicy: 'blank_source_value_is_missing_numeric_zero_preserved';
+  readonly sourceRequest: {
+    readonly requestId: string;
+    readonly acquiredAt: string;
+  };
+  readonly rainfall: readonly BenchmarkRainfallComparisonResult[];
+  readonly hydrometry: readonly BenchmarkHydrometryComparisonResult[];
+  readonly methodologyNote: string;
+  readonly localArtifacts: readonly BenchmarkLocalArtifact[];
+}
+
+export interface BenchmarkRainfallComparisonResult {
+  readonly stationId: string;
+  readonly name: string;
+  readonly quality: 'available' | 'incomplete_window';
+  readonly rawRecordCount: number;
+  readonly recordCount: number;
+  readonly missingRecordCount: number;
+  readonly coveredHours: number;
+  readonly gaugeTotalMm: number | null;
+  readonly imergTotalMm: number;
+  readonly imergMinusGaugeMm: number | null;
+  readonly sampledImergCell: {
+    readonly longitude: number;
+    readonly latitude: number;
+    readonly sourceResolution: '0.1 degree';
+    readonly samplingMethod: 'nearest_imerg_native_grid_cell';
+  };
+}
+
+export interface BenchmarkHydrometryComparisonResult {
+  readonly stationId: string;
+  readonly name: string;
+  readonly quality: 'available' | 'incomplete_window';
+  readonly rawRecordCount: number;
+  readonly recordCount: number;
+  readonly missingRecordCount: number;
+  readonly coverageStart: string | null;
+  readonly coverageEnd: string | null;
+  readonly maximumStageM: number | null;
+  readonly maximumStageAt: string | null;
+  readonly maximumOneHourRiseM: number | null;
 }
 
 export interface BenchmarkRoutingBaseline {
@@ -288,8 +344,8 @@ export function assertHistoricalBenchmarkManifest(
   value: unknown,
 ): asserts value is HistoricalBenchmarkManifest {
   const root = objectValue(value, 'manifest');
-  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.8.0') {
-    throw new Error('manifestVersion must be "1.8.0"');
+  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.9.0') {
+    throw new Error('manifestVersion must be "1.9.0"');
   }
 
   const benchmark = objectValue(root.benchmark, 'benchmark');
@@ -444,6 +500,10 @@ export function assertHistoricalBenchmarkManifest(
     );
   }
   const observationProtocolIds = new Set<string>();
+  const observationProtocolStations = new Map<
+    string,
+    { readonly rainfall: readonly string[]; readonly hydrometry: readonly string[] }
+  >();
   const observationProtocolReferences: Array<{
     readonly label: string;
     readonly observationDatasetId: string;
@@ -540,6 +600,26 @@ export function assertHistoricalBenchmarkManifest(
       `${label}.hydrometry.stations`,
       2,
     );
+    const rainfallStationIds = (rainfall.stations as readonly unknown[]).map(
+      (rawStation, stationIndex) =>
+        stringValue(
+          objectValue(
+            rawStation,
+            `${label}.rainfall.stations[${stationIndex}]`,
+          ).stationId,
+          `${label}.rainfall.stations[${stationIndex}].stationId`,
+        ),
+    );
+    const hydrometryStationIds = (hydrometry.stations as readonly unknown[]).map(
+      (rawStation, stationIndex) =>
+        stringValue(
+          objectValue(
+            rawStation,
+            `${label}.hydrometry.stations[${stationIndex}]`,
+          ).stationId,
+          `${label}.hydrometry.stations[${stationIndex}].stationId`,
+        ),
+    );
 
     const rainfallMetrics = uniqueStringArray(
       protocol.rainfallMetrics,
@@ -587,7 +667,17 @@ export function assertHistoricalBenchmarkManifest(
       observationDatasetId,
       validationDatasetIds,
     });
+    observationProtocolStations.set(id, {
+      rainfall: rainfallStationIds,
+      hydrometry: hydrometryStationIds,
+    });
   });
+  assertObservationComparisonRuns(
+    benchmark.observationComparisonRuns,
+    observationProtocolIds,
+    observationProtocolStations,
+    artifactPaths,
+  );
   if (
     !Array.isArray(benchmark.evaluationProtocols) ||
     benchmark.evaluationProtocols.length === 0
@@ -986,6 +1076,12 @@ export function assertHistoricalBenchmarkManifest(
       dataset.availableAt === undefined
         ? undefined
         : isoTime(dataset.availableAt, label + '.availableAt');
+    if (dataset.requestId !== undefined) {
+      stringValue(dataset.requestId, label + '.requestId');
+    }
+    if (dataset.acquiredAt !== undefined) {
+      isoTime(dataset.acquiredAt, label + '.acquiredAt');
+    }
     stringValue(dataset.publisher, label + '.publisher');
     stringValue(dataset.dataset, label + '.dataset');
     stringValue(dataset.accessMethod, label + '.accessMethod');
@@ -1252,6 +1348,241 @@ function assertObservationStations(
       throw new Error(`${stationLabel} coordinates exceed WGS84 limits`);
     }
   });
+}
+
+function assertObservationComparisonRuns(
+  value: unknown,
+  protocolIds: ReadonlySet<string>,
+  protocolStations: ReadonlyMap<
+    string,
+    { readonly rainfall: readonly string[]; readonly hydrometry: readonly string[] }
+  >,
+  artifactPaths: Set<string>,
+): void {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error('benchmark.observationComparisonRuns must be a non-empty array');
+  }
+  const runIds = new Set<string>();
+  value.forEach((rawRun, runIndex) => {
+    const label = `benchmark.observationComparisonRuns[${runIndex}]`;
+    const run = objectValue(rawRun, label);
+    const id = stringValue(run.id, `${label}.id`);
+    if (runIds.has(id)) {
+      throw new Error(`Duplicate observation comparison run id "${id}"`);
+    }
+    runIds.add(id);
+    const protocolId = stringValue(run.protocolId, `${label}.protocolId`);
+    if (!protocolIds.has(protocolId)) {
+      throw new Error(`${label} references unknown observation protocol "${protocolId}"`);
+    }
+    if (run.state !== 'materialized') {
+      throw new Error(`${label}.state must be materialized`);
+    }
+    stringValue(run.resultVersion, `${label}.resultVersion`);
+    if (run.claimLevel !== 'station_observation_comparison') {
+      throw new Error(`${label}.claimLevel is unsupported`);
+    }
+    if (run.observationAccess !== 'loaded_after_protocol_freeze') {
+      throw new Error(`${label} must record post-freeze observation access`);
+    }
+    if (booleanValue(run.calibration, `${label}.calibration`)) {
+      throw new Error(`${label} must not calibrate from observations`);
+    }
+    if (
+      run.quality !== 'available' &&
+      run.quality !== 'available_with_incomplete_hydrometry'
+    ) {
+      throw new Error(`${label}.quality is unsupported`);
+    }
+    if (
+      run.missingValuePolicy !==
+      'blank_source_value_is_missing_numeric_zero_preserved'
+    ) {
+      throw new Error(`${label} must preserve blank/missing and numeric-zero semantics`);
+    }
+    const sourceRequest = objectValue(run.sourceRequest, `${label}.sourceRequest`);
+    stringValue(sourceRequest.requestId, `${label}.sourceRequest.requestId`);
+    isoTime(sourceRequest.acquiredAt, `${label}.sourceRequest.acquiredAt`);
+    const expected = protocolStations.get(protocolId);
+    if (expected === undefined) {
+      throw new Error(`${label} has no frozen station set`);
+    }
+
+    const rainfall = assertObjectArray(run.rainfall, `${label}.rainfall`);
+    const rainfallIds = new Set<string>();
+    rainfall.forEach((rawResult, resultIndex) => {
+      const resultLabel = `${label}.rainfall[${resultIndex}]`;
+      const result = objectValue(rawResult, resultLabel);
+      const stationId = stringValue(result.stationId, `${resultLabel}.stationId`);
+      if (rainfallIds.has(stationId)) {
+        throw new Error(`${label}.rainfall repeats station "${stationId}"`);
+      }
+      rainfallIds.add(stationId);
+      stringValue(result.name, `${resultLabel}.name`);
+      const quality = allowedString(
+        result.quality,
+        new Set(['available', 'incomplete_window']),
+        `${resultLabel}.quality`,
+      );
+      const rawRecordCount = positiveInteger(
+        result.rawRecordCount,
+        `${resultLabel}.rawRecordCount`,
+      );
+      const recordCount = nonNegativeInteger(
+        result.recordCount,
+        `${resultLabel}.recordCount`,
+      );
+      const missingRecordCount = nonNegativeInteger(
+        result.missingRecordCount,
+        `${resultLabel}.missingRecordCount`,
+      );
+      if (rawRecordCount !== recordCount + missingRecordCount) {
+        throw new Error(`${resultLabel} record counts are inconsistent`);
+      }
+      const coveredHours = finiteNumber(
+        result.coveredHours,
+        `${resultLabel}.coveredHours`,
+      );
+      if (coveredHours < 0 || coveredHours > 48) {
+        throw new Error(`${resultLabel}.coveredHours exceeds the frozen window`);
+      }
+      const imergTotalMm = finiteNumber(
+        result.imergTotalMm,
+        `${resultLabel}.imergTotalMm`,
+      );
+      if (imergTotalMm < 0) {
+        throw new Error(`${resultLabel}.imergTotalMm must be non-negative`);
+      }
+      if (quality === 'available') {
+        if (recordCount !== 48 || missingRecordCount !== 0 || coveredHours !== 48) {
+          throw new Error(`${resultLabel} available rainfall must cover all 48 hours`);
+        }
+        const gaugeTotalMm = finiteNumber(
+          result.gaugeTotalMm,
+          `${resultLabel}.gaugeTotalMm`,
+        );
+        const difference = finiteNumber(
+          result.imergMinusGaugeMm,
+          `${resultLabel}.imergMinusGaugeMm`,
+        );
+        if (!approximatelyEqual(difference, imergTotalMm - gaugeTotalMm)) {
+          throw new Error(`${resultLabel} IMERG minus gauge is inconsistent`);
+        }
+      } else if (
+        result.gaugeTotalMm !== null ||
+        result.imergMinusGaugeMm !== null
+      ) {
+        throw new Error(`${resultLabel} incomplete rainfall cannot expose a partial total`);
+      }
+      const sampled = objectValue(
+        result.sampledImergCell,
+        `${resultLabel}.sampledImergCell`,
+      );
+      finiteNumber(sampled.longitude, `${resultLabel}.sampledImergCell.longitude`);
+      finiteNumber(sampled.latitude, `${resultLabel}.sampledImergCell.latitude`);
+      if (
+        sampled.sourceResolution !== '0.1 degree' ||
+        sampled.samplingMethod !== 'nearest_imerg_native_grid_cell'
+      ) {
+        throw new Error(`${resultLabel} must retain native IMERG sampling provenance`);
+      }
+    });
+    assertExactStationSet(rainfallIds, expected.rainfall, `${label}.rainfall`);
+
+    const hydrometry = assertObjectArray(run.hydrometry, `${label}.hydrometry`);
+    const hydrometryIds = new Set<string>();
+    let incompleteHydrometry = false;
+    hydrometry.forEach((rawResult, resultIndex) => {
+      const resultLabel = `${label}.hydrometry[${resultIndex}]`;
+      const result = objectValue(rawResult, resultLabel);
+      const stationId = stringValue(result.stationId, `${resultLabel}.stationId`);
+      if (hydrometryIds.has(stationId)) {
+        throw new Error(`${label}.hydrometry repeats station "${stationId}"`);
+      }
+      hydrometryIds.add(stationId);
+      stringValue(result.name, `${resultLabel}.name`);
+      const quality = allowedString(
+        result.quality,
+        new Set(['available', 'incomplete_window']),
+        `${resultLabel}.quality`,
+      );
+      const rawRecordCount = positiveInteger(
+        result.rawRecordCount,
+        `${resultLabel}.rawRecordCount`,
+      );
+      const recordCount = nonNegativeInteger(
+        result.recordCount,
+        `${resultLabel}.recordCount`,
+      );
+      const missingRecordCount = nonNegativeInteger(
+        result.missingRecordCount,
+        `${resultLabel}.missingRecordCount`,
+      );
+      if (
+        rawRecordCount !== recordCount + missingRecordCount ||
+        rawRecordCount !== 192
+      ) {
+        throw new Error(`${resultLabel} record counts are inconsistent`);
+      }
+      if (quality === 'available' && missingRecordCount !== 0) {
+        throw new Error(`${resultLabel} available stage cannot contain missing values`);
+      }
+      if (quality === 'incomplete_window') {
+        incompleteHydrometry = true;
+        if (missingRecordCount === 0) {
+          throw new Error(`${resultLabel} incomplete stage must report missing values`);
+        }
+      }
+      if (recordCount > 0) {
+        const coverageStart = isoTime(
+          result.coverageStart,
+          `${resultLabel}.coverageStart`,
+        );
+        const coverageEnd = isoTime(
+          result.coverageEnd,
+          `${resultLabel}.coverageEnd`,
+        );
+        if (Date.parse(coverageStart) > Date.parse(coverageEnd)) {
+          throw new Error(`${resultLabel} coverage is reversed`);
+        }
+        finiteNumber(result.maximumStageM, `${resultLabel}.maximumStageM`);
+        isoTime(result.maximumStageAt, `${resultLabel}.maximumStageAt`);
+        finiteNumber(
+          result.maximumOneHourRiseM,
+          `${resultLabel}.maximumOneHourRiseM`,
+        );
+      }
+    });
+    assertExactStationSet(hydrometryIds, expected.hydrometry, `${label}.hydrometry`);
+    if (
+      (incompleteHydrometry && run.quality !== 'available_with_incomplete_hydrometry') ||
+      (!incompleteHydrometry && run.quality !== 'available')
+    ) {
+      throw new Error(`${label}.quality disagrees with hydrometric completeness`);
+    }
+    stringValue(run.methodologyNote, `${label}.methodologyNote`);
+    assertLocalArtifacts(run.localArtifacts, `${label}.localArtifacts`, artifactPaths);
+  });
+}
+
+function assertObjectArray(value: unknown, label: string): readonly unknown[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error(`${label} must be a non-empty array`);
+  }
+  return value;
+}
+
+function assertExactStationSet(
+  actual: ReadonlySet<string>,
+  expected: readonly string[],
+  label: string,
+): void {
+  if (
+    actual.size !== expected.length ||
+    expected.some((stationId) => !actual.has(stationId))
+  ) {
+    throw new Error(`${label} station set drifted from the frozen protocol`);
+  }
 }
 
 function assertLocalArtifacts(

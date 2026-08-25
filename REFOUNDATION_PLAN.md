@@ -402,7 +402,7 @@ Progress:
 - the real Forli event accumulation is materialized outside Git at `D:/GeoLens/cache/imerg/v07_20230518T000000Z_48h_669b94d37ff0.{nc,json}`: 96/96 Final Run V07 half-hour granules, requested AOI `[11.98, 44.17, 12.10, 44.28]`, a 3x3 native 0.1 degree grid, nine finite cells, and 48-hour totals from `82.295` to `105.445 mm` with a `93.982 mm` mean; the NetCDF and provenance envelope total 22,143 bytes and pass an exact persistent-cache round trip;
 - Copernicus DEM GLO-30 2022_1 is the verified pre-event terrain input; the regional DTM 1x1 WCS remains context-only until availability of that exact source by the cutoff is proven, and its redistribution remains restricted because the regional service is not OpenData;
 - the Copernicus EMSN154 geospatial package and technical report are locally verified; P04 uses post-event Sentinel-1 delineation, while P06 is a two-dimensional hydraulic model calibrated with P04/EMSR664 footprints and ARPAE boundary conditions, so both remain secondary comparison evidence rather than independent ground truth;
-- declared IMERG, CLC, GLO-30, XDBTR and event-2 coverage all contain the bounded pilot; manifest v1.2.0 originally froze the common EPSG:4326 bounds, which current manifest v1.7.0 retains together with a globally aligned EPSG:32632 30 m grid of 335 by 420 cells, while H3 r11 remains a separate representation choice;
+- declared IMERG, CLC, GLO-30, XDBTR and event-2 coverage all contain the bounded pilot; manifest v1.2.0 originally froze the common EPSG:4326 bounds, which current manifest v1.9.0 retains together with a globally aligned EPSG:32632 30 m grid of 335 by 420 cells, while H3 r11 remains a separate representation choice;
 - the cell-centre AOI mask retains 130,307 cells and excludes 10,393 grid-envelope cells; required-input no-data is excluded and reported per dataset, primary overlap metrics remain unbuffered, and the explicit secondary boundary tolerance is one 30 m cell;
 - bounded GLO-30 elevation and four-neighbour slope are materialized for all 130,307 eligible cells with `NaN` missing sentinels: elevation spans 9.009-181.722 m and slope 0-34.376 degrees;
 - bounded CLC2018 level-3 classes are materialized for all eligible cells with `-1` as the explicit missing sentinel; class `0` is never used as missing evidence;
@@ -426,11 +426,13 @@ Progress:
 - routed upstream excess volume scores ROC AUC `0.49162439445221917` and average precision `0.2776793857866033` against an observed prevalence of `0.2868149830784225`; independent scikit-learn metrics agree, so the unconditioned D8 result is retained as near-random negative evidence rather than described as an inundation model;
 - frozen 1%, 5%, 10% and 20% selected-area diagnostics produce tie-weighted IoU `0.0053808`, `0.0369029`, `0.0737266` and `0.1251721`; no observed threshold is fitted and boundary/water-depth metrics remain unavailable;
 - the observed mask and deterministic evaluation receipt remain redistribution-restricted outside Git; manifest v1.7.0 pins their hashes together with the earlier evidence for 43 artifacts totaling 649,931,826 bytes.
+- the separately frozen ARPAE observation protocol is now materialized from Dext3r request `be86675d-a290-4208-8b38-0bb420396ca0`: both selected gauges provide all 48 hourly records, with `113.8 mm` at Forli' urbana versus `104.22000122070312 mm` in the nearest native IMERG cell and `131.0 mm` at Ponte Braldo versus `88.08999633789062 mm`; no rainfall value is used for calibration;
+- Dext3r hydrometric values retain station-local datum semantics: Castrocaro, Ponte Braldo and Ponte Vico provide all 192 quarter-hour observations, while Forli' has 68 values plus 124 explicit blanks and Predappio 75 values plus 117 explicit blanks; blank fields remain missing and numeric zero remains valid;
+- manifest v1.9.0 pins the original Dext3r ZIP/CSV and a deterministic comparison receipt, and the materializer verifies that the archive contains exactly the declared CSV before calculating frozen rainfall and within-station hydrometric metrics.
 
 Work:
 
 - determine whether an authoritative as-of-May-2023 DBTR vector snapshot exists; until then, retain the current-extract masks as incomplete known presence rather than complete historical absence;
-- add a separately declared ARPAE-gauge-driven rainfall comparison without calibrating the frozen IMERG result;
 - introduce a conditioned inundation replay only after river levels, discharge, embankments, breaches and downstream boundary conditions have explicit evidence semantics;
 - keep calibration and holdout partitions explicit and retain every model/transformation version.
 

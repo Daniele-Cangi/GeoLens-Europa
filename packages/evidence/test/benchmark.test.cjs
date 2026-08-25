@@ -30,7 +30,7 @@ test('Emilia-Romagna manifest passes the historical benchmark contract', () => {
     'retrospective_reconstruction',
   );
   assert.equal(manifest.benchmark.claimLevel, 'hydrologic_routing');
-  assert.equal(manifest.manifestVersion, '1.8.0');
+  assert.equal(manifest.manifestVersion, '1.9.0');
   assert.ok(manifest.benchmark.forbiddenClaims.includes('validated_water_depth'));
 });
 
@@ -163,6 +163,47 @@ test('ARPAE comparison rejects calibration, silent zero and datum mixing', () =>
   assert.throws(
     () => assertHistoricalBenchmarkManifest(unknownSource),
     /references unknown observation dataset/,
+  );
+});
+
+test('ARPAE comparison run materializes rain and explicit stage gaps', () => {
+  const manifest = manifestFixture();
+  const run = manifest.benchmark.observationComparisonRuns[0];
+
+  assert.equal(run.observationAccess, 'loaded_after_protocol_freeze');
+  assert.equal(run.calibration, false);
+  assert.equal(run.quality, 'available_with_incomplete_hydrometry');
+  assert.equal(run.rainfall[0].gaugeTotalMm, 113.8);
+  assert.equal(run.rainfall[0].imergMinusGaugeMm, -9.5799987793);
+  assert.equal(run.rainfall[1].gaugeTotalMm, 131);
+  assert.equal(run.rainfall[1].imergMinusGaugeMm, -42.9100036621);
+  assert.equal(run.hydrometry.find((item) => item.name === "Forli'").missingRecordCount, 124);
+  assert.equal(run.hydrometry.find((item) => item.name === 'Predappio').missingRecordCount, 117);
+  assert.equal(run.localArtifacts.length, 1);
+});
+
+test('ARPAE comparison run rejects calibration, zero coercion and metric drift', () => {
+  const calibrated = manifestFixture();
+  calibrated.benchmark.observationComparisonRuns[0].calibration = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(calibrated),
+    /must not calibrate from observations/,
+  );
+
+  const coerced = manifestFixture();
+  coerced.benchmark.observationComparisonRuns[0].missingValuePolicy =
+    'blank_source_value_is_zero';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(coerced),
+    /preserve blank\/missing and numeric-zero semantics/,
+  );
+
+  const drifted = manifestFixture();
+  drifted.benchmark.observationComparisonRuns[0].rainfall[0]
+    .imergMinusGaugeMm = 0;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(drifted),
+    /IMERG minus gauge is inconsistent/,
   );
 });
 

@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "1.8.0",
+  "manifestVersion": "1.9.0",
   "benchmark": {
     "id": "emilia-romagna-2023-forli-retrospective-reconstruction",
     "title": "Case 02 - Emilia-Romagna 2023 / Retrospective Flood Reconstruction",
@@ -407,6 +407,136 @@
         ],
         "methodologyNote": "Frozen from the public Dext3r station/variable catalogue before requesting or reading the Dext3r event series. The annual validated PDFs had already been inspected to establish their daily resolution, station coverage and event context, so this is not claimed as blind with respect to every ARPAE value. Rainfall stations are selected by inclusion in the frozen pilot and gauge semantics; hydrometric stations follow the Montone river axis plus the Rabbi tributary. Their local datums are not arithmetically comparable. Dext3r observations remain post-event comparison evidence, are never calibration inputs, and missing or incomplete records never become zero. The V7 inundation extent is not used in station selection or this comparison."
       }
+    ],
+    "observationComparisonRuns": [
+      {
+        "id": "forli-arpae-observation-comparison-v0-dext3r-be86675d",
+        "protocolId": "forli-arpae-observation-comparison-v0",
+        "state": "materialized",
+        "resultVersion": "arpae-imerg-station-comparison-v0.1.0",
+        "claimLevel": "station_observation_comparison",
+        "observationAccess": "loaded_after_protocol_freeze",
+        "calibration": false,
+        "quality": "available_with_incomplete_hydrometry",
+        "missingValuePolicy": "blank_source_value_is_missing_numeric_zero_preserved",
+        "sourceRequest": {
+          "requestId": "be86675d-a290-4208-8b38-0bb420396ca0",
+          "acquiredAt": "2026-08-25T09:58:56Z"
+        },
+        "rainfall": [
+          {
+            "stationId": "-/1204182,4422039/urbane",
+            "name": "Forli' urbana",
+            "quality": "available",
+            "rawRecordCount": 48,
+            "recordCount": 48,
+            "missingRecordCount": 0,
+            "coveredHours": 48,
+            "gaugeTotalMm": 113.8,
+            "imergTotalMm": 104.22000122070312,
+            "imergMinusGaugeMm": -9.5799987793,
+            "sampledImergCell": {
+              "longitude": 12.050000190734863,
+              "latitude": 44.25,
+              "sourceResolution": "0.1 degree",
+              "samplingMethod": "nearest_imerg_native_grid_cell"
+            }
+          },
+          {
+            "stationId": "-/1199295,4426279/spdsra",
+            "name": "Ponte Braldo",
+            "quality": "available",
+            "rawRecordCount": 48,
+            "recordCount": 48,
+            "missingRecordCount": 0,
+            "coveredHours": 48,
+            "gaugeTotalMm": 131,
+            "imergTotalMm": 88.08999633789062,
+            "imergMinusGaugeMm": -42.9100036621,
+            "sampledImergCell": {
+              "longitude": 11.949999809265137,
+              "latitude": 44.25,
+              "sourceResolution": "0.1 degree",
+              "samplingMethod": "nearest_imerg_native_grid_cell"
+            }
+          }
+        ],
+        "hydrometry": [
+          {
+            "stationId": "-/1194940,4417012/spdsra",
+            "name": "Castrocaro",
+            "quality": "available",
+            "rawRecordCount": 192,
+            "recordCount": 192,
+            "missingRecordCount": 0,
+            "coverageStart": "2023-05-16T00:00:00Z",
+            "coverageEnd": "2023-05-17T23:45:00Z",
+            "maximumStageM": 5.72,
+            "maximumStageAt": "2023-05-16T15:45:00Z",
+            "maximumOneHourRiseM": 0.74
+          },
+          {
+            "stationId": "-/1202757,4422698/spdsra",
+            "name": "Forli'",
+            "quality": "incomplete_window",
+            "rawRecordCount": 192,
+            "recordCount": 68,
+            "missingRecordCount": 124,
+            "coverageStart": "2023-05-16T00:00:00Z",
+            "coverageEnd": "2023-05-16T17:45:00Z",
+            "maximumStageM": 8.35,
+            "maximumStageAt": "2023-05-16T16:30:00Z",
+            "maximumOneHourRiseM": 0.9
+          },
+          {
+            "stationId": "-/1199295,4426279/spdsra",
+            "name": "Ponte Braldo",
+            "quality": "available",
+            "rawRecordCount": 192,
+            "recordCount": 192,
+            "missingRecordCount": 0,
+            "coverageStart": "2023-05-16T00:00:00Z",
+            "coverageEnd": "2023-05-17T23:45:00Z",
+            "maximumStageM": 9.54,
+            "maximumStageAt": "2023-05-17T02:45:00Z",
+            "maximumOneHourRiseM": 0.81
+          },
+          {
+            "stationId": "-/1203134,4433002/spdsra",
+            "name": "Ponte Vico",
+            "quality": "available",
+            "rawRecordCount": 192,
+            "recordCount": 192,
+            "missingRecordCount": 0,
+            "coverageStart": "2023-05-16T00:00:00Z",
+            "coverageEnd": "2023-05-17T23:45:00Z",
+            "maximumStageM": 9.39,
+            "maximumStageAt": "2023-05-17T04:15:00Z",
+            "maximumOneHourRiseM": 0.65
+          },
+          {
+            "stationId": "-/1198305,4410502/spdsra",
+            "name": "Predappio",
+            "quality": "incomplete_window",
+            "rawRecordCount": 192,
+            "recordCount": 75,
+            "missingRecordCount": 117,
+            "coverageStart": "2023-05-16T00:00:00Z",
+            "coverageEnd": "2023-05-16T18:30:00Z",
+            "maximumStageM": 3.98,
+            "maximumStageAt": "2023-05-16T16:30:00Z",
+            "maximumOneHourRiseM": 1.87
+          }
+        ],
+        "methodologyNote": "Materialized after the comparison protocol freeze from Dext3r request be86675d-a290-4208-8b38-0bb420396ca0. Hourly rain is summed over the exact half-open 48-hour window and compared with the nearest native 0.1 degree IMERG cell. Empty Dext3r value fields remain missing; numeric zero is preserved. Hydrometric values remain relative to each station's local datum and are used only for within-station timing and change. This run does not calibrate the routing model and is not an inundation or hydraulic validation.",
+        "localArtifacts": [
+          {
+            "relativePath": "derived/arpae-comparison/forli-arpae-observation-comparison-v0.json",
+            "bytes": 6823,
+            "sha256": "f29b80cac7c082fb12889cdd31a2bf5e1b7e228a3df1f44f21a3a3942a76c1c5"
+          }
+        ]
+      }
     ]
   },
   "datasets": [
@@ -722,11 +852,13 @@
       "temporalRelation": "during_event",
       "publisher": "ARPAE Emilia-Romagna",
       "dataset": "Dext3r RIRER station observations for the frozen event window",
-      "datasetVersion": "mutable archive extraction; request not yet submitted",
+      "datasetVersion": "Dext3r request be86675d-a290-4208-8b38-0bb420396ca0; response acquired 2026-08-25",
+      "requestId": "be86675d-a290-4208-8b38-0bb420396ca0",
+      "acquiredAt": "2026-08-25T09:58:56Z",
       "sourceUrl": "https://simc.arpae.it/dext3r/doc/GuidaDext3r.html",
       "accessMethod": "public Dext3r catalogue plus email-delivered CSV extraction",
-      "sourceResolution": "hourly precipitation and hydrometric stage at the archive cadence retained in the response",
-      "acquisitionStatus": "remote_verified",
+      "sourceResolution": "hourly precipitation intervals and 15-minute hydrometric stage observations in UTC",
+      "acquisitionStatus": "downloaded_verified",
       "license": {
         "name": "ARPAE Dext3r legal notes",
         "access": "public",
@@ -738,7 +870,19 @@
         "calibration": false,
         "evaluation": true
       },
-      "methodologyNote": "The current Dext3r extraction is not an event-time frozen source and cannot enter model input or calibration. Only UTC values actually returned are retained; absent or invalidated observations remain missing. Annual validated ARPAE tables are a separate post-event cross-check."
+      "methodologyNote": "The Dext3r extraction is not an event-time frozen source and cannot enter model input or calibration. The raw ZIP and CSV response are retained byte-for-byte. Only UTC values actually returned are considered; blank or absent observations remain missing and are never converted to zero. Numeric zero remains a valid observed value. Annual validated ARPAE tables are a separate post-event cross-check.",
+      "localArtifacts": [
+        {
+          "relativePath": "source/arpae-dext3r/dexter-be86675d-a290-4208-8b38-0bb420396ca0.zip",
+          "bytes": 6852,
+          "sha256": "202BE0A413978EB273A64F81B9860B0CED2D0E189CAF1DFF0EE90AB575B7838C"
+        },
+        {
+          "relativePath": "source/arpae-dext3r/dexter-be86675d-a290-4208-8b38-0bb420396ca0.csv",
+          "bytes": 68115,
+          "sha256": "31C1CEFBBBEF544CD19C1FF3E897750B18306887107458B482DFEE5D4BA27418"
+        }
+      ]
     },
     {
       "id": "rer-flood-extent-v7-event-2",

@@ -38,6 +38,7 @@ const artifactGroups = [
   },
   ...(manifest.benchmark.routingBaselines ?? []),
   ...(manifest.benchmark.evaluationRuns ?? []),
+  ...(manifest.benchmark.observationComparisonRuns ?? []),
   ...manifest.datasets,
 ];
 
