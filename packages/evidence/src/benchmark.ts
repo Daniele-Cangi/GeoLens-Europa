@@ -26,6 +26,9 @@ export interface BenchmarkDataset {
   readonly requestId?: string;
   readonly acquiredAt?: string;
   readonly sourceUrl: string;
+  /** Exact URL used when the publisher URL is retained through a web archive. */
+  readonly retrievalUrl?: string;
+  readonly archivedAt?: string;
   readonly accessMethod: string;
   readonly sourceResolution?: string;
   readonly acquisitionStatus:
@@ -49,7 +52,7 @@ export interface BenchmarkDataset {
 }
 
 export interface HistoricalBenchmarkManifest {
-  readonly manifestVersion: '1.13.0';
+  readonly manifestVersion: '1.14.0';
   readonly benchmark: {
     readonly id: string;
     readonly title: string;
@@ -81,6 +84,7 @@ export interface HistoricalBenchmarkManifest {
     readonly observationComparisonRuns: readonly BenchmarkObservationComparisonRun[];
     readonly conditionedReplayProtocols: readonly BenchmarkConditionedReplayProtocol[];
     readonly conditionedReplaySourceAudits: readonly BenchmarkConditionedReplaySourceAudit[];
+    readonly conditionedReplayHydrographAudits: readonly BenchmarkConditionedReplayHydrographAudit[];
     readonly conditionedReplayPhysicalAudits: readonly BenchmarkConditionedReplayPhysicalAudit[];
     readonly conditionedReplayTerrainAudits: readonly BenchmarkConditionedReplayTerrainAudit[];
     readonly evaluationMetrics: readonly string[];
@@ -168,6 +172,50 @@ export interface BenchmarkConditionedReplaySourceAudit {
     readonly hydraulicUseEligible: false;
     readonly protocolRunGate: 'blocked_missing_required_evidence';
     readonly missingPolicy: 'missing_not_zero_or_inferred';
+  };
+  readonly methodologyNote: string;
+}
+
+export interface BenchmarkConditionedReplayHydrographAudit {
+  readonly id: string;
+  readonly protocolId: string;
+  readonly state: 'materialized';
+  readonly sourceAccess: 'loaded_after_protocol_freeze_from_archived_official_pdf';
+  readonly sourceDatasetId: string;
+  readonly sourceArtifactPath: string;
+  readonly sourcePages: readonly number[];
+  readonly quality: 'incomplete_window';
+  readonly ratingCurveEvidence: {
+    readonly publisher: 'ARPAE Emilia-Romagna';
+    readonly station: 'Montone at Castrocaro';
+    readonly vintageYear: 2022;
+    readonly eventApplication: 'used_by_regional_commission_for_may_2023_reconstruction';
+    readonly formulaOrTableAvailable: false;
+  };
+  readonly hydrographEvidence: {
+    readonly figureNumber: 63;
+    readonly temporalResolutionMinutes: 60;
+    readonly publishedAnalysisStartDate: '2023-05-15';
+    readonly publishedAnalysisEndDateInclusive: '2023-05-19';
+    readonly coversProtocolWindow: true;
+    readonly tabulatedValuesAvailable: false;
+    readonly machineReadableSeriesAvailable: false;
+    readonly peakDischargePublished: false;
+  };
+  readonly publishedVolumeBalance: {
+    readonly basinAreaKm2: 237;
+    readonly rainfallDepthMm: 201.25;
+    readonly rainfallVolumeMillionM3: 47.6;
+    readonly dischargeVolumeMillionM3: 36.86;
+    readonly runoffCoefficient: 0.77;
+  };
+  readonly conclusions: {
+    readonly montoneInflowStatus: 'incomplete_window';
+    readonly rabbiInflowStatus: 'missing';
+    readonly combinedInflowStatus: 'incomplete_window';
+    readonly hydraulicUseEligible: false;
+    readonly protocolRunGate: 'blocked_missing_required_evidence';
+    readonly missingPolicy: 'missing_not_digitized_or_inferred';
   };
   readonly methodologyNote: string;
 }
@@ -538,8 +586,8 @@ export function assertHistoricalBenchmarkManifest(
   value: unknown,
 ): asserts value is HistoricalBenchmarkManifest {
   const root = objectValue(value, 'manifest');
-  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.13.0') {
-    throw new Error('manifestVersion must be "1.13.0"');
+  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.14.0') {
+    throw new Error('manifestVersion must be "1.14.0"');
   }
 
   const benchmark = objectValue(root.benchmark, 'benchmark');
@@ -1135,6 +1183,156 @@ export function assertHistoricalBenchmarkManifest(
     }
     if (conclusions.protocolRunGate !== conditionedProtocolRunStates.get(protocolId)) {
       throw new Error(`${label} contradicts the conditioned replay protocol run gate`);
+    }
+    stringValue(audit.methodologyNote, `${label}.methodologyNote`);
+  });
+  if (
+    !Array.isArray(benchmark.conditionedReplayHydrographAudits) ||
+    benchmark.conditionedReplayHydrographAudits.length !== 1
+  ) {
+    throw new Error(
+      'benchmark.conditionedReplayHydrographAudits must retain the official discharge reconstruction audit',
+    );
+  }
+  const conditionedHydrographAuditArtifactReferences: Array<{
+    readonly label: string;
+    readonly datasetId: string;
+    readonly path: string;
+  }> = [];
+  benchmark.conditionedReplayHydrographAudits.forEach((rawAudit, index) => {
+    const label = `benchmark.conditionedReplayHydrographAudits[${index}]`;
+    const audit = objectValue(rawAudit, label);
+    stringValue(audit.id, `${label}.id`);
+    const protocolId = stringValue(audit.protocolId, `${label}.protocolId`);
+    if (!conditionedProtocolIds.has(protocolId)) {
+      throw new Error(`${label} references unknown conditioned replay protocol`);
+    }
+    if (
+      audit.state !== 'materialized' ||
+      audit.sourceAccess !==
+        'loaded_after_protocol_freeze_from_archived_official_pdf' ||
+      audit.quality !== 'incomplete_window'
+    ) {
+      throw new Error(`${label} must retain the incomplete post-freeze hydrograph audit`);
+    }
+    const sourceDatasetId = stringValue(
+      audit.sourceDatasetId,
+      `${label}.sourceDatasetId`,
+    );
+    const sourceArtifactPath = portablePath(
+      stringValue(audit.sourceArtifactPath, `${label}.sourceArtifactPath`),
+      `${label}.sourceArtifactPath`,
+    );
+    conditionedReplayAuditDatasetReferences.push({
+      label,
+      ids: [sourceDatasetId],
+    });
+    conditionedHydrographAuditArtifactReferences.push({
+      label,
+      datasetId: sourceDatasetId,
+      path: sourceArtifactPath,
+    });
+    assertAscendingPositiveIntegers(audit.sourcePages, `${label}.sourcePages`);
+
+    const ratingCurve = objectValue(
+      audit.ratingCurveEvidence,
+      `${label}.ratingCurveEvidence`,
+    );
+    if (
+      ratingCurve.publisher !== 'ARPAE Emilia-Romagna' ||
+      ratingCurve.station !== 'Montone at Castrocaro' ||
+      ratingCurve.vintageYear !== 2022 ||
+      ratingCurve.eventApplication !==
+        'used_by_regional_commission_for_may_2023_reconstruction' ||
+      ratingCurve.formulaOrTableAvailable !== false
+    ) {
+      throw new Error(`${label} must not promote the unpublished 2022 rating curve`);
+    }
+
+    const hydrograph = objectValue(
+      audit.hydrographEvidence,
+      `${label}.hydrographEvidence`,
+    );
+    if (
+      hydrograph.figureNumber !== 63 ||
+      hydrograph.temporalResolutionMinutes !== 60 ||
+      hydrograph.publishedAnalysisStartDate !== '2023-05-15' ||
+      hydrograph.publishedAnalysisEndDateInclusive !== '2023-05-19' ||
+      hydrograph.coversProtocolWindow !== true ||
+      hydrograph.tabulatedValuesAvailable !== false ||
+      hydrograph.machineReadableSeriesAvailable !== false ||
+      hydrograph.peakDischargePublished !== false
+    ) {
+      throw new Error(`${label} must retain the plotted-only hourly hydrograph limits`);
+    }
+
+    const balance = objectValue(
+      audit.publishedVolumeBalance,
+      `${label}.publishedVolumeBalance`,
+    );
+    const basinAreaKm2 = finiteNumber(
+      balance.basinAreaKm2,
+      `${label}.publishedVolumeBalance.basinAreaKm2`,
+    );
+    const rainfallDepthMm = finiteNumber(
+      balance.rainfallDepthMm,
+      `${label}.publishedVolumeBalance.rainfallDepthMm`,
+    );
+    const rainfallVolumeMillionM3 = finiteNumber(
+      balance.rainfallVolumeMillionM3,
+      `${label}.publishedVolumeBalance.rainfallVolumeMillionM3`,
+    );
+    const dischargeVolumeMillionM3 = finiteNumber(
+      balance.dischargeVolumeMillionM3,
+      `${label}.publishedVolumeBalance.dischargeVolumeMillionM3`,
+    );
+    const runoffCoefficient = finiteNumber(
+      balance.runoffCoefficient,
+      `${label}.publishedVolumeBalance.runoffCoefficient`,
+    );
+    if (
+      basinAreaKm2 !== 237 ||
+      rainfallDepthMm !== 201.25 ||
+      rainfallVolumeMillionM3 !== 47.6 ||
+      dischargeVolumeMillionM3 !== 36.86 ||
+      runoffCoefficient !== 0.77
+    ) {
+      throw new Error(`${label} published volume balance drifted from Table 9`);
+    }
+    const depthAreaVolumeMillionM3 =
+      (rainfallDepthMm * basinAreaKm2) / 1000;
+    if (Math.abs(depthAreaVolumeMillionM3 - rainfallVolumeMillionM3) > 0.15) {
+      throw new Error(`${label} rainfall depth and volume are dimensionally inconsistent`);
+    }
+    if (
+      Math.abs(
+        dischargeVolumeMillionM3 / rainfallVolumeMillionM3 - runoffCoefficient,
+      ) > 0.01
+    ) {
+      throw new Error(`${label} runoff coefficient is inconsistent with published volumes`);
+    }
+
+    const conclusions = objectValue(audit.conclusions, `${label}.conclusions`);
+    if (
+      conclusions.montoneInflowStatus !== 'incomplete_window' ||
+      conclusions.rabbiInflowStatus !== 'missing' ||
+      conclusions.combinedInflowStatus !== 'incomplete_window' ||
+      conclusions.hydraulicUseEligible !== false ||
+      conclusions.protocolRunGate !== 'blocked_missing_required_evidence' ||
+      conclusions.missingPolicy !== 'missing_not_digitized_or_inferred'
+    ) {
+      throw new Error(`${label} must keep plotted discharge evidence fail-closed`);
+    }
+    if (conclusions.protocolRunGate !== conditionedProtocolRunStates.get(protocolId)) {
+      throw new Error(`${label} contradicts the conditioned replay protocol run gate`);
+    }
+    if (
+      conclusions.combinedInflowStatus !==
+      conditionedProtocolEvidenceStatuses
+        .get(protocolId)
+        ?.get('montone_and_rabbi_inflow_hydrographs')
+    ) {
+      throw new Error(`${label} inflow status drifted from the conditioned replay gate`);
     }
     stringValue(audit.methodologyNote, `${label}.methodologyNote`);
   });
@@ -1938,6 +2136,13 @@ export function assertHistoricalBenchmarkManifest(
     if (dataset.acquiredAt !== undefined) {
       isoTime(dataset.acquiredAt, label + '.acquiredAt');
     }
+    if ((dataset.retrievalUrl === undefined) !== (dataset.archivedAt === undefined)) {
+      throw new Error(label + ' archived retrieval URL and timestamp must be paired');
+    }
+    if (dataset.retrievalUrl !== undefined) {
+      httpsUrl(dataset.retrievalUrl, label + '.retrievalUrl');
+      isoTime(dataset.archivedAt, label + '.archivedAt');
+    }
     stringValue(dataset.publisher, label + '.publisher');
     stringValue(dataset.dataset, label + '.dataset');
     stringValue(dataset.accessMethod, label + '.accessMethod');
@@ -2141,6 +2346,41 @@ export function assertHistoricalBenchmarkManifest(
           `${audit.label} references unknown physical source dataset "${datasetId}"`,
         );
       }
+    }
+  }
+  for (const audit of conditionedHydrographAuditArtifactReferences) {
+    const dataset = root.datasets.find(
+      (candidate) =>
+        objectValue(candidate, 'hydrograph audit dataset').id === audit.datasetId,
+    );
+    if (dataset === undefined) {
+      throw new Error(
+        `${audit.label} references unknown hydrograph source dataset "${audit.datasetId}"`,
+      );
+    }
+    const artifacts = assertObjectArray(
+      objectValue(dataset, 'hydrograph audit dataset').localArtifacts,
+      'hydrograph audit dataset.localArtifacts',
+    );
+    const pinnedPaths = new Set(
+      artifacts.map((rawArtifact, artifactIndex) => {
+        const artifact = objectValue(
+          rawArtifact,
+          `hydrograph audit dataset.localArtifacts[${artifactIndex}]`,
+        );
+        return portablePath(
+          stringValue(
+            artifact.relativePath,
+            `hydrograph audit dataset.localArtifacts[${artifactIndex}].relativePath`,
+          ),
+          `hydrograph audit dataset.localArtifacts[${artifactIndex}].relativePath`,
+        );
+      }),
+    );
+    if (!pinnedPaths.has(audit.path)) {
+      throw new Error(
+        `${audit.label} source artifact "${audit.path}" is not pinned by its source dataset`,
+      );
     }
   }
   for (const audit of conditionedPhysicalAuditArtifactReferences) {

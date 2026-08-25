@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "1.13.0",
+  "manifestVersion": "1.14.0",
   "benchmark": {
     "id": "emilia-romagna-2023-forli-retrospective-reconstruction",
     "title": "Case 02 - Emilia-Romagna 2023 / Retrospective Flood Reconstruction",
@@ -581,10 +581,11 @@
             "status": "incomplete_window",
             "candidateDatasetIds": [
               "arpae-dext3r-2023-hourly-observations",
-              "arpae-2023-hydrometry"
+              "arpae-2023-hydrometry",
+              "rer-commissione-tecnico-scientifica-maggio-2023"
             ],
             "acceptanceCriteria": "Time-varying Montone and Rabbi inflows cover the full event window as discharge, or as stage paired with station datum, cross-section and an event-valid rating curve; uncertainty and gaps remain explicit.",
-            "blocker": "Dext3r currently supplies local-datum stage only; the Rabbi/Predappio series is incomplete and no verified event-valid rating curve or discharge hydrograph has been acquired."
+            "blocker": "Dext3r supplies local-datum stage and the Rabbi/Predappio series is incomplete. The regional Commission report states that its hourly Montone/Castrocaro reconstruction used an ARPAE 2022 rating curve and publishes a plotted hydrograph plus volume balance, but it provides neither the machine-readable discharge series nor the rating-curve formula/table and supplies no Rabbi discharge hydrograph."
           },
           {
             "id": "downstream_stage_or_discharge_boundary",
@@ -717,6 +718,55 @@
           "missingPolicy": "missing_not_zero_or_inferred"
         },
         "methodologyNote": "Materialized from the official 2023 ARPAE Annale after the conditioned-input protocol was frozen. Page 17 defines stage relative to the gauge zero and the guillemet symbol as missing data. Page 26 publishes gauge-zero elevations for Castrocaro, Predappio and Ponte Vico while Ponte Braldo is explicitly missing. Pages 54 and 65 retain daily stage observations, gaps and maximum-increment context. Pages 68-69 define discharge semantics and list 45 discharge-measurement stations, but neither Montone nor Rabbi appears. The Annale therefore does not supply an event-valid rating curve or discharge hydrograph for the required rivers. Ponte Vico's datum does not by itself define a boundary at the frozen AOI outlet, and Ponte Braldo's datum remains missing. No stage was converted to discharge, no missing datum became zero and the conditioned replay remains blocked."
+      }
+    ],
+    "conditionedReplayHydrographAudits": [
+      {
+        "id": "forli-conditioned-replay-rer-commission-discharge-audit-v0",
+        "protocolId": "forli-conditioned-inundation-replay-v0",
+        "state": "materialized",
+        "sourceAccess": "loaded_after_protocol_freeze_from_archived_official_pdf",
+        "sourceDatasetId": "rer-commissione-tecnico-scientifica-maggio-2023",
+        "sourceArtifactPath": "source/rer-commissione-tecnico-scientifica-maggio-2023.pdf",
+        "sourcePages": [
+          57,
+          58,
+          59
+        ],
+        "quality": "incomplete_window",
+        "ratingCurveEvidence": {
+          "publisher": "ARPAE Emilia-Romagna",
+          "station": "Montone at Castrocaro",
+          "vintageYear": 2022,
+          "eventApplication": "used_by_regional_commission_for_may_2023_reconstruction",
+          "formulaOrTableAvailable": false
+        },
+        "hydrographEvidence": {
+          "figureNumber": 63,
+          "temporalResolutionMinutes": 60,
+          "publishedAnalysisStartDate": "2023-05-15",
+          "publishedAnalysisEndDateInclusive": "2023-05-19",
+          "coversProtocolWindow": true,
+          "tabulatedValuesAvailable": false,
+          "machineReadableSeriesAvailable": false,
+          "peakDischargePublished": false
+        },
+        "publishedVolumeBalance": {
+          "basinAreaKm2": 237,
+          "rainfallDepthMm": 201.25,
+          "rainfallVolumeMillionM3": 47.6,
+          "dischargeVolumeMillionM3": 36.86,
+          "runoffCoefficient": 0.77
+        },
+        "conclusions": {
+          "montoneInflowStatus": "incomplete_window",
+          "rabbiInflowStatus": "missing",
+          "combinedInflowStatus": "incomplete_window",
+          "hydraulicUseEligible": false,
+          "protocolRunGate": "blocked_missing_required_evidence",
+          "missingPolicy": "missing_not_digitized_or_inferred"
+        },
+        "methodologyNote": "Materialized after the conditioned-input protocol freeze from the official 12 December 2023 regional Commission report, recovered byte-for-byte from its 30 December 2023 Internet Archive capture because the current publisher URL returns not found. Page 57 states that the Commission used the 2022 ARPAE rating curve at Montone/Castrocaro; page 58 publishes Figure 63 as an hourly plotted discharge hydrograph; page 59 publishes the rounded rainfall and discharge volume balance. The report does not publish the rating-curve formula/table, machine-readable hourly discharge values, a numerical peak discharge or a Rabbi discharge hydrograph. No chart digitization, stage-to-discharge inference or missing-value substitution is performed, and the conditioned replay remains blocked."
       }
     ],
     "conditionedReplayPhysicalAudits": [
@@ -1251,6 +1301,40 @@
           "relativePath": "source/arpae-dext3r/dexter-be86675d-a290-4208-8b38-0bb420396ca0.csv",
           "bytes": 68115,
           "sha256": "31C1CEFBBBEF544CD19C1FF3E897750B18306887107458B482DFEE5D4BA27418"
+        }
+      ]
+    },
+    {
+      "id": "rer-commissione-tecnico-scientifica-maggio-2023",
+      "role": "context_only",
+      "temporalRelation": "post_event",
+      "publisher": "Regione Emilia-Romagna / Commissione tecnico-scientifica",
+      "dataset": "Rapporto sugli eventi meteorologici estremi del maggio 2023",
+      "datasetVersion": "final report dated 2023-12-12; official-source capture archived 2023-12-30",
+      "acquiredAt": "2026-08-25T22:13:02Z",
+      "sourceUrl": "https://www.regione.emilia-romagna.it/alluvione/rapporto-della-commissione-tecnico-scientifica/20231212_rapporto_commissione_rer.pdf",
+      "retrievalUrl": "https://web.archive.org/web/20231230121007id_/https://www.regione.emilia-romagna.it/alluvione/rapporto-della-commissione-tecnico-scientifica/20231212_rapporto_commissione_rer.pdf",
+      "archivedAt": "2023-12-30T12:10:07Z",
+      "accessMethod": "Internet Archive byte capture of the official institutional PDF; the current publisher URL returned not found at acquisition time",
+      "sourceResolution": "hourly plotted Montone/Castrocaro discharge reconstruction using an ARPAE 2022 rating curve plus rounded event volume balance; no tabulated hydrograph or rating-curve definition",
+      "acquisitionStatus": "downloaded_verified",
+      "license": {
+        "name": "Regione Emilia-Romagna institutional publication terms not pinned for redistribution",
+        "access": "public",
+        "redistribution": "unknown",
+        "note": "The official PDF was publicly archived in 2023; GeoLens retains it outside Git while redistribution status remains unknown."
+      },
+      "allowedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "evaluation": false
+      },
+      "methodologyNote": "Pages 57-59 document a Commission reconstruction for Montone at Castrocaro using ARPAE 2022 rating curves, Figure 63 and Table 9. The plotted-only hydrograph and rounded volumes are context for the conditioned-input audit, not a machine-readable hydraulic boundary. The Rabbi input remains absent and no value is digitized from the chart.",
+      "localArtifacts": [
+        {
+          "relativePath": "source/rer-commissione-tecnico-scientifica-maggio-2023.pdf",
+          "bytes": 29869658,
+          "sha256": "D53811DA1087227279625E827FE87E3F2F360F3BB3BD5C784260435B599D6C70"
         }
       ]
     },

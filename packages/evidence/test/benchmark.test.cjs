@@ -15,10 +15,28 @@ const manifestPath = path.join(
   'emilia-romagna-2023',
   'manifest.json',
 );
+const repositoryRoot = path.join(__dirname, '..', '..', '..');
 
 /** Loads an isolated mutable copy of the frozen benchmark manifest. */
 function manifestFixture() {
   return JSON.parse(readFileSync(manifestPath, 'utf8'));
+}
+
+/** Derives the documentation inventory from every manifest artifact group. */
+function artifactInventory(manifest) {
+  const groups = [
+    { localArtifacts: manifest.benchmark.localArtifacts ?? [] },
+    ...(manifest.benchmark.routingBaselines ?? []),
+    ...(manifest.benchmark.evaluationRuns ?? []),
+    ...(manifest.benchmark.observationComparisonRuns ?? []),
+    ...manifest.datasets,
+  ];
+  const artifacts = groups.flatMap((group) => group.localArtifacts ?? []);
+
+  return {
+    count: artifacts.length,
+    bytes: artifacts.reduce((total, artifact) => total + artifact.bytes, 0),
+  };
 }
 
 test('Emilia-Romagna manifest passes the historical benchmark contract', () => {
@@ -31,8 +49,24 @@ test('Emilia-Romagna manifest passes the historical benchmark contract', () => {
     'retrospective_reconstruction',
   );
   assert.equal(manifest.benchmark.claimLevel, 'hydrologic_routing');
-  assert.equal(manifest.manifestVersion, '1.13.0');
+  assert.equal(manifest.manifestVersion, '1.14.0');
   assert.ok(manifest.benchmark.forbiddenClaims.includes('validated_water_depth'));
+});
+
+test('benchmark documentation inventory is derived from the manifest', () => {
+  const manifest = manifestFixture();
+  const inventory = artifactInventory(manifest);
+  const formattedBytes = new Intl.NumberFormat('en-US').format(inventory.bytes);
+  const inventoryText =
+    `${inventory.count} benchmark artifacts totaling ${formattedBytes} bytes`;
+  const readme = readFileSync(path.join(repositoryRoot, 'README.md'), 'utf8');
+  const plan = readFileSync(
+    path.join(repositoryRoot, 'REFOUNDATION_PLAN.md'),
+    'utf8',
+  );
+
+  assert.match(readme, new RegExp(inventoryText));
+  assert.match(plan, new RegExp(inventoryText));
 });
 
 test('terrain-routing baseline is materialized without evaluation leakage', () => {
@@ -310,6 +344,92 @@ test('ARPAE source audit rejects inconsistent missing datum or hydraulic eligibi
   assert.throws(
     () => assertHistoricalBenchmarkManifest(prematureHydraulics),
     /keep the hydraulic replay fail-closed/,
+  );
+});
+
+test('regional Commission audit retains plotted Montone discharge without promoting it', () => {
+  const manifest = manifestFixture();
+  const audit = manifest.benchmark.conditionedReplayHydrographAudits[0];
+  const dataset = manifest.datasets.find(
+    (candidate) =>
+      candidate.id === 'rer-commissione-tecnico-scientifica-maggio-2023',
+  );
+
+  assert.equal(
+    audit.sourceAccess,
+    'loaded_after_protocol_freeze_from_archived_official_pdf',
+  );
+  assert.equal(audit.quality, 'incomplete_window');
+  assert.equal(audit.ratingCurveEvidence.vintageYear, 2022);
+  assert.equal(audit.ratingCurveEvidence.formulaOrTableAvailable, false);
+  assert.equal(audit.hydrographEvidence.figureNumber, 63);
+  assert.equal(audit.hydrographEvidence.temporalResolutionMinutes, 60);
+  assert.equal(audit.hydrographEvidence.machineReadableSeriesAvailable, false);
+  assert.deepEqual(audit.publishedVolumeBalance, {
+    basinAreaKm2: 237,
+    rainfallDepthMm: 201.25,
+    rainfallVolumeMillionM3: 47.6,
+    dischargeVolumeMillionM3: 36.86,
+    runoffCoefficient: 0.77,
+  });
+  assert.equal(audit.conclusions.montoneInflowStatus, 'incomplete_window');
+  assert.equal(audit.conclusions.rabbiInflowStatus, 'missing');
+  assert.equal(audit.conclusions.hydraulicUseEligible, false);
+  assert.match(dataset.retrievalUrl, /web\.archive\.org\/web\/20231230121007id_/);
+  assert.equal(dataset.archivedAt, '2023-12-30T12:10:07Z');
+  assert.match(audit.methodologyNote, /No chart digitization/);
+});
+
+test('regional Commission audit rejects digitization, numeric drift and gate promotion', () => {
+  const inventedCurve = manifestFixture();
+  inventedCurve.benchmark.conditionedReplayHydrographAudits[0]
+    .ratingCurveEvidence.formulaOrTableAvailable = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(inventedCurve),
+    /must not promote the unpublished 2022 rating curve/,
+  );
+
+  const digitizedChart = manifestFixture();
+  digitizedChart.benchmark.conditionedReplayHydrographAudits[0]
+    .hydrographEvidence.machineReadableSeriesAvailable = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(digitizedChart),
+    /must retain the plotted-only hourly hydrograph limits/,
+  );
+
+  const driftedBalance = manifestFixture();
+  driftedBalance.benchmark.conditionedReplayHydrographAudits[0]
+    .publishedVolumeBalance.dischargeVolumeMillionM3 = 0;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(driftedBalance),
+    /published volume balance drifted from Table 9/,
+  );
+
+  const driftedGate = manifestFixture();
+  driftedGate.benchmark.conditionedReplayProtocols[0]
+    .requiredBoundaryEvidence[2].status = 'missing';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(driftedGate),
+    /inflow status drifted from the conditioned replay gate/,
+  );
+
+  const unpinnedArtifact = manifestFixture();
+  unpinnedArtifact.benchmark.conditionedReplayHydrographAudits[0]
+    .sourceArtifactPath = 'source/unpinned-commission-report.pdf';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(unpinnedArtifact),
+    /is not pinned by its source dataset/,
+  );
+
+  const incompleteArchiveReceipt = manifestFixture();
+  const dataset = incompleteArchiveReceipt.datasets.find(
+    (candidate) =>
+      candidate.id === 'rer-commissione-tecnico-scientifica-maggio-2023',
+  );
+  delete dataset.archivedAt;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(incompleteArchiveReceipt),
+    /archived retrieval URL and timestamp must be paired/,
   );
 });
 
