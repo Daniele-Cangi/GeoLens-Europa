@@ -30,7 +30,7 @@ test('Emilia-Romagna manifest passes the historical benchmark contract', () => {
     'retrospective_reconstruction',
   );
   assert.equal(manifest.benchmark.claimLevel, 'hydrologic_routing');
-  assert.equal(manifest.manifestVersion, '1.9.0');
+  assert.equal(manifest.manifestVersion, '1.10.0');
   assert.ok(manifest.benchmark.forbiddenClaims.includes('validated_water_depth'));
 });
 
@@ -163,6 +163,79 @@ test('ARPAE comparison rejects calibration, silent zero and datum mixing', () =>
   assert.throws(
     () => assertHistoricalBenchmarkManifest(unknownSource),
     /references unknown observation dataset/,
+  );
+});
+
+test('conditioned replay freezes a non-blind, fail-closed physical input gate', () => {
+  const manifest = manifestFixture();
+  const protocol = manifest.benchmark.conditionedReplayProtocols[0];
+
+  assert.equal(protocol.state, 'input_protocol_frozen');
+  assert.equal(protocol.claimLevelAtFreeze, 'hydrologic_routing');
+  assert.equal(protocol.validationMode, 'diagnostic_not_blind');
+  assert.equal(
+    protocol.evaluationReferenceAccessAtFreeze,
+    'already_loaded_for_prior_hydrologic_routing_evaluation',
+  );
+  assert.equal(protocol.calibration, false);
+  assert.deepEqual(
+    protocol.requiredBoundaryEvidence.map((requirement) => requirement.id),
+    [
+      'rainfall_and_surface_runoff_forcing',
+      'antecedent_moisture_or_model_warmup',
+      'montone_and_rabbi_inflow_hydrographs',
+      'downstream_stage_or_discharge_boundary',
+      'breach_location_timing_and_geometry',
+      'embankment_crest_geometry',
+      'bare_earth_terrain',
+      'channel_geometry_and_roughness',
+    ],
+  );
+  assert.equal(protocol.runGate.state, 'blocked_missing_required_evidence');
+  assert.equal(protocol.runGate.missingPolicy, 'block_run_not_zero_or_inferred');
+  assert.equal(protocol.runGate.noStageToDischargeWithoutRatingCurve, true);
+  assert.equal(protocol.runGate.noBreachInferenceFromFloodExtent, true);
+  assert.equal(protocol.runGate.noTuningToEventExtent, true);
+  assert.match(protocol.methodologyNote, /not a blind hindcast/);
+});
+
+test('conditioned replay rejects leakage, invented boundaries and gate drift', () => {
+  const calibrated = manifestFixture();
+  calibrated.benchmark.conditionedReplayProtocols[0].calibration = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(calibrated),
+    /must not calibrate on the observed event extent/,
+  );
+
+  const inventedDischarge = manifestFixture();
+  inventedDischarge.benchmark.conditionedReplayProtocols[0].runGate
+    .noStageToDischargeWithoutRatingCurve = false;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(inventedDischarge),
+    /must not infer discharge from local-datum stage/,
+  );
+
+  const inferredBreach = manifestFixture();
+  inferredBreach.benchmark.conditionedReplayProtocols[0].runGate
+    .noBreachInferenceFromFloodExtent = false;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(inferredBreach),
+    /must not infer breaches from the observed extent/,
+  );
+
+  const prematureRun = manifestFixture();
+  prematureRun.benchmark.conditionedReplayProtocols[0].runGate.state = 'eligible';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(prematureRun),
+    /runGate.state disagrees with required evidence/,
+  );
+
+  const unknownSource = manifestFixture();
+  unknownSource.benchmark.conditionedReplayProtocols[0]
+    .requiredBoundaryEvidence[4].candidateDatasetIds = ['unknown-breach-source'];
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(unknownSource),
+    /references unknown candidate dataset/,
   );
 });
 

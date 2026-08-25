@@ -49,7 +49,7 @@ export interface BenchmarkDataset {
 }
 
 export interface HistoricalBenchmarkManifest {
-  readonly manifestVersion: '1.9.0';
+  readonly manifestVersion: '1.10.0';
   readonly benchmark: {
     readonly id: string;
     readonly title: string;
@@ -79,10 +79,63 @@ export interface HistoricalBenchmarkManifest {
     readonly evaluationRuns: readonly BenchmarkEvaluationRun[];
     readonly observationComparisonProtocols: readonly BenchmarkObservationComparisonProtocol[];
     readonly observationComparisonRuns: readonly BenchmarkObservationComparisonRun[];
+    readonly conditionedReplayProtocols: readonly BenchmarkConditionedReplayProtocol[];
     readonly evaluationMetrics: readonly string[];
     readonly forbiddenClaims: readonly string[];
   };
   readonly datasets: readonly BenchmarkDataset[];
+}
+
+export type BenchmarkConditionedBoundaryEvidenceId =
+  | 'rainfall_and_surface_runoff_forcing'
+  | 'antecedent_moisture_or_model_warmup'
+  | 'montone_and_rabbi_inflow_hydrographs'
+  | 'downstream_stage_or_discharge_boundary'
+  | 'breach_location_timing_and_geometry'
+  | 'embankment_crest_geometry'
+  | 'bare_earth_terrain'
+  | 'channel_geometry_and_roughness';
+
+export type BenchmarkConditionedBoundaryEvidenceStatus =
+  | 'available'
+  | 'missing'
+  | 'incomplete_window'
+  | 'metadata_only';
+
+export interface BenchmarkConditionedBoundaryEvidence {
+  readonly id: BenchmarkConditionedBoundaryEvidenceId;
+  readonly required: true;
+  readonly status: BenchmarkConditionedBoundaryEvidenceStatus;
+  readonly candidateDatasetIds: readonly string[];
+  readonly acceptanceCriteria: string;
+  readonly blocker?: string;
+}
+
+export interface BenchmarkConditionedReplayProtocol {
+  readonly id: string;
+  readonly state: 'input_protocol_frozen';
+  readonly claimLevelAtFreeze: 'hydrologic_routing';
+  readonly validationMode: 'diagnostic_not_blind';
+  readonly evaluationReferenceAccessAtFreeze:
+    'already_loaded_for_prior_hydrologic_routing_evaluation';
+  readonly boundaryConditionAccessAtFreeze:
+    'metadata_and_prior_comparison_values_only';
+  readonly calibration: false;
+  readonly window: {
+    readonly start: string;
+    readonly endExclusive: string;
+    readonly timezone: 'UTC';
+  };
+  readonly requiredBoundaryEvidence: readonly BenchmarkConditionedBoundaryEvidence[];
+  readonly runGate: {
+    readonly state: 'blocked_missing_required_evidence' | 'eligible';
+    readonly requiredStatus: 'available';
+    readonly missingPolicy: 'block_run_not_zero_or_inferred';
+    readonly noStageToDischargeWithoutRatingCurve: true;
+    readonly noBreachInferenceFromFloodExtent: true;
+    readonly noTuningToEventExtent: true;
+  };
+  readonly methodologyNote: string;
 }
 
 export interface BenchmarkObservationStation {
@@ -348,8 +401,8 @@ export function assertHistoricalBenchmarkManifest(
   value: unknown,
 ): asserts value is HistoricalBenchmarkManifest {
   const root = objectValue(value, 'manifest');
-  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.9.0') {
-    throw new Error('manifestVersion must be "1.9.0"');
+  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.10.0') {
+    throw new Error('manifestVersion must be "1.10.0"');
   }
 
   const benchmark = objectValue(root.benchmark, 'benchmark');
@@ -682,6 +735,144 @@ export function assertHistoricalBenchmarkManifest(
     observationProtocolStations,
     artifactPaths,
   );
+  if (
+    !Array.isArray(benchmark.conditionedReplayProtocols) ||
+    benchmark.conditionedReplayProtocols.length !== 1
+  ) {
+    throw new Error(
+      'benchmark.conditionedReplayProtocols must contain the single frozen v0 protocol',
+    );
+  }
+  const conditionedReplayDatasetReferences: Array<{
+    readonly label: string;
+    readonly ids: readonly string[];
+  }> = [];
+  const conditionedProtocolIds = new Set<string>();
+  const expectedConditionedEvidenceIds: readonly BenchmarkConditionedBoundaryEvidenceId[] = [
+    'rainfall_and_surface_runoff_forcing',
+    'antecedent_moisture_or_model_warmup',
+    'montone_and_rabbi_inflow_hydrographs',
+    'downstream_stage_or_discharge_boundary',
+    'breach_location_timing_and_geometry',
+    'embankment_crest_geometry',
+    'bare_earth_terrain',
+    'channel_geometry_and_roughness',
+  ];
+  benchmark.conditionedReplayProtocols.forEach((rawProtocol, index) => {
+    const label = `benchmark.conditionedReplayProtocols[${index}]`;
+    const protocol = objectValue(rawProtocol, label);
+    const id = stringValue(protocol.id, `${label}.id`);
+    if (conditionedProtocolIds.has(id)) {
+      throw new Error(`Duplicate conditioned replay protocol id "${id}"`);
+    }
+    conditionedProtocolIds.add(id);
+    if (protocol.state !== 'input_protocol_frozen') {
+      throw new Error(`${label}.state must be input_protocol_frozen`);
+    }
+    if (protocol.claimLevelAtFreeze !== 'hydrologic_routing') {
+      throw new Error(`${label} cannot claim inundation before the run gate passes`);
+    }
+    if (protocol.validationMode !== 'diagnostic_not_blind') {
+      throw new Error(`${label} must disclose that the event extent was already accessed`);
+    }
+    if (
+      protocol.evaluationReferenceAccessAtFreeze !==
+      'already_loaded_for_prior_hydrologic_routing_evaluation'
+    ) {
+      throw new Error(`${label} must disclose prior evaluation-reference access`);
+    }
+    if (
+      protocol.boundaryConditionAccessAtFreeze !==
+      'metadata_and_prior_comparison_values_only'
+    ) {
+      throw new Error(`${label} must freeze before loading new conditioning values`);
+    }
+    if (booleanValue(protocol.calibration, `${label}.calibration`)) {
+      throw new Error(`${label} must not calibrate on the observed event extent`);
+    }
+
+    const window = objectValue(protocol.window, `${label}.window`);
+    const protocolStart = isoTime(window.start, `${label}.window.start`);
+    const protocolEnd = isoTime(
+      window.endExclusive,
+      `${label}.window.endExclusive`,
+    );
+    if (protocolStart !== start || protocolEnd !== end) {
+      throw new Error(`${label} window must equal the frozen event window`);
+    }
+    if (window.timezone !== 'UTC') {
+      throw new Error(`${label}.window.timezone must be UTC`);
+    }
+
+    const evidence = assertObjectArray(
+      protocol.requiredBoundaryEvidence,
+      `${label}.requiredBoundaryEvidence`,
+    );
+    if (evidence.length !== expectedConditionedEvidenceIds.length) {
+      throw new Error(`${label} must retain the complete conditioned-input gate`);
+    }
+    let blockedRequirements = 0;
+    evidence.forEach((rawEvidence, evidenceIndex) => {
+      const evidenceLabel = `${label}.requiredBoundaryEvidence[${evidenceIndex}]`;
+      const requirement = objectValue(rawEvidence, evidenceLabel);
+      if (requirement.id !== expectedConditionedEvidenceIds[evidenceIndex]) {
+        throw new Error(`${evidenceLabel}.id drifted from the frozen gate`);
+      }
+      if (requirement.required !== true) {
+        throw new Error(`${evidenceLabel} must remain required`);
+      }
+      const status = allowedString(
+        requirement.status,
+        new Set(['available', 'missing', 'incomplete_window', 'metadata_only']),
+        `${evidenceLabel}.status`,
+      );
+      const candidateDatasetIds = uniqueStringArray(
+        requirement.candidateDatasetIds,
+        `${evidenceLabel}.candidateDatasetIds`,
+      );
+      if (candidateDatasetIds.length === 0) {
+        throw new Error(`${evidenceLabel} requires at least one candidate dataset`);
+      }
+      stringValue(requirement.acceptanceCriteria, `${evidenceLabel}.acceptanceCriteria`);
+      if (status === 'available') {
+        if (requirement.blocker !== undefined) {
+          throw new Error(`${evidenceLabel} available evidence cannot retain a blocker`);
+        }
+      } else {
+        blockedRequirements += 1;
+        stringValue(requirement.blocker, `${evidenceLabel}.blocker`);
+      }
+      conditionedReplayDatasetReferences.push({
+        label: evidenceLabel,
+        ids: candidateDatasetIds,
+      });
+    });
+
+    const runGate = objectValue(protocol.runGate, `${label}.runGate`);
+    const expectedRunState =
+      blockedRequirements === 0
+        ? 'eligible'
+        : 'blocked_missing_required_evidence';
+    if (runGate.state !== expectedRunState) {
+      throw new Error(`${label}.runGate.state disagrees with required evidence`);
+    }
+    if (
+      runGate.requiredStatus !== 'available' ||
+      runGate.missingPolicy !== 'block_run_not_zero_or_inferred'
+    ) {
+      throw new Error(`${label} must block missing conditioned inputs`);
+    }
+    if (runGate.noStageToDischargeWithoutRatingCurve !== true) {
+      throw new Error(`${label} must not infer discharge from local-datum stage`);
+    }
+    if (runGate.noBreachInferenceFromFloodExtent !== true) {
+      throw new Error(`${label} must not infer breaches from the observed extent`);
+    }
+    if (runGate.noTuningToEventExtent !== true) {
+      throw new Error(`${label} must not tune parameters to the event extent`);
+    }
+    stringValue(protocol.methodologyNote, `${label}.methodologyNote`);
+  });
   if (
     !Array.isArray(benchmark.evaluationProtocols) ||
     benchmark.evaluationProtocols.length === 0
@@ -1262,6 +1453,15 @@ export function assertHistoricalBenchmarkManifest(
       'comparison_reference'
     ) {
       throw new Error(`${protocol.label} source must be a comparison_reference`);
+    }
+  }
+  for (const requirement of conditionedReplayDatasetReferences) {
+    for (const datasetId of requirement.ids) {
+      if (!ids.has(datasetId)) {
+        throw new Error(
+          `${requirement.label} references unknown candidate dataset "${datasetId}"`,
+        );
+      }
     }
   }
   for (const protocol of evaluationProtocolReferences) {
