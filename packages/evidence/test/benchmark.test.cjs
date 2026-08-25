@@ -30,7 +30,7 @@ test('Emilia-Romagna manifest passes the historical benchmark contract', () => {
     'retrospective_reconstruction',
   );
   assert.equal(manifest.benchmark.claimLevel, 'hydrologic_routing');
-  assert.equal(manifest.manifestVersion, '1.7.0');
+  assert.equal(manifest.manifestVersion, '1.8.0');
   assert.ok(manifest.benchmark.forbiddenClaims.includes('validated_water_depth'));
 });
 
@@ -92,6 +92,78 @@ test('blind concentration evaluation protocol is frozen before V7 access', () =>
   ]);
   assert.deepEqual(protocol.areaFractions, [0.01, 0.05, 0.1, 0.2]);
   assert.match(protocol.methodologyNote, /do not convert concentration/);
+});
+
+test('ARPAE observation comparison is frozen before event-value access', () => {
+  const manifest = manifestFixture();
+  const protocol = manifest.benchmark.observationComparisonProtocols.find(
+    (candidate) => candidate.id === 'forli-arpae-observation-comparison-v0',
+  );
+
+  assert.equal(protocol.state, 'protocol_frozen');
+  assert.equal(protocol.observationAccessAtFreeze, 'catalog_only');
+  assert.equal(protocol.calibration, false);
+  assert.deepEqual(protocol.window, {
+    start: '2023-05-16T00:00:00Z',
+    endExclusive: '2023-05-18T00:00:00Z',
+    timezone: 'UTC',
+  });
+  assert.deepEqual(
+    protocol.rainfall.stations.map((station) => station.stationId),
+    [
+      '-/1204182,4422039/urbane',
+      '-/1199295,4426279/spdsra',
+    ],
+  );
+  assert.deepEqual(
+    protocol.hydrometry.stations.map((station) => station.stationId),
+    [
+      '-/1194940,4417012/spdsra',
+      '-/1202757,4422698/spdsra',
+      '-/1199295,4426279/spdsra',
+      '-/1203134,4433002/spdsra',
+      '-/1198305,4410502/spdsra',
+    ],
+  );
+  assert.equal(
+    protocol.rainfall.missingPolicy,
+    'missing_or_incomplete_not_zero',
+  );
+  assert.equal(protocol.hydrometry.noCrossStationDatumArithmetic, true);
+  assert.match(protocol.methodologyNote, /before requesting or reading event values/);
+});
+
+test('ARPAE comparison rejects calibration, silent zero and datum mixing', () => {
+  const calibrated = manifestFixture();
+  calibrated.benchmark.observationComparisonProtocols[0].calibration = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(calibrated),
+    /must not calibrate from observations/,
+  );
+
+  const silentZero = manifestFixture();
+  silentZero.benchmark.observationComparisonProtocols[0].rainfall
+    .missingPolicy = 'missing_as_zero';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(silentZero),
+    /missing data must not become zero/,
+  );
+
+  const mixedDatums = manifestFixture();
+  mixedDatums.benchmark.observationComparisonProtocols[0].hydrometry
+    .noCrossStationDatumArithmetic = false;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(mixedDatums),
+    /forbid arithmetic across station datums/,
+  );
+
+  const unknownSource = manifestFixture();
+  unknownSource.benchmark.observationComparisonProtocols[0]
+    .observationDatasetId = 'unknown-observation-source';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(unknownSource),
+    /references unknown observation dataset/,
+  );
 });
 
 test('evaluation protocol rejects leakage, calibration and unpinned predictions', () => {

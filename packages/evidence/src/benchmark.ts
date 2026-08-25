@@ -47,7 +47,7 @@ export interface BenchmarkDataset {
 }
 
 export interface HistoricalBenchmarkManifest {
-  readonly manifestVersion: '1.7.0';
+  readonly manifestVersion: '1.8.0';
   readonly benchmark: {
     readonly id: string;
     readonly title: string;
@@ -75,10 +75,67 @@ export interface HistoricalBenchmarkManifest {
     readonly routingBaselines: readonly BenchmarkRoutingBaseline[];
     readonly evaluationProtocols: readonly BenchmarkEvaluationProtocol[];
     readonly evaluationRuns: readonly BenchmarkEvaluationRun[];
+    readonly observationComparisonProtocols: readonly BenchmarkObservationComparisonProtocol[];
     readonly evaluationMetrics: readonly string[];
     readonly forbiddenClaims: readonly string[];
   };
   readonly datasets: readonly BenchmarkDataset[];
+}
+
+export interface BenchmarkObservationStation {
+  readonly stationId: string;
+  readonly name: string;
+  readonly latitude: number;
+  readonly longitude: number;
+  readonly selectionRole: string;
+}
+
+export interface BenchmarkObservationComparisonProtocol {
+  readonly id: string;
+  readonly state: 'protocol_frozen';
+  readonly observationDatasetId: string;
+  readonly validationDatasetIds: readonly string[];
+  readonly observationAccessAtFreeze: 'catalog_only';
+  readonly calibration: false;
+  readonly window: {
+    readonly start: string;
+    readonly endExclusive: string;
+    readonly timezone: 'UTC';
+  };
+  readonly rainfall: {
+    readonly variableId: '1,0,3600/1,-,-,-/B13011';
+    readonly sourceUnit: 'KG/M**2';
+    readonly canonicalUnit: 'mm';
+    readonly aggregation: 'sum_records_in_half_open_window';
+    readonly comparison: 'nearest_imerg_native_grid_cell';
+    readonly missingPolicy: 'missing_or_incomplete_not_zero';
+    readonly stations: readonly BenchmarkObservationStation[];
+  };
+  readonly hydrometry: {
+    readonly variableId: '254,0,0/1,-,-,-/B13215';
+    readonly unit: 'M';
+    readonly semantics: 'stage_relative_to_station_datum';
+    readonly comparison: 'within_station_timing_and_change_only';
+    readonly noCrossStationDatumArithmetic: true;
+    readonly missingPolicy: 'missing_or_incomplete_not_zero';
+    readonly stations: readonly BenchmarkObservationStation[];
+  };
+  readonly rainfallMetrics: readonly [
+    'record_count',
+    'covered_hours',
+    'gauge_total_mm',
+    'imerg_total_mm',
+    'imerg_minus_gauge_mm',
+  ];
+  readonly hydrometryMetrics: readonly [
+    'record_count',
+    'coverage_start',
+    'coverage_end',
+    'maximum_stage_m',
+    'maximum_stage_at',
+    'maximum_one_hour_rise_m',
+  ];
+  readonly methodologyNote: string;
 }
 
 export interface BenchmarkRoutingBaseline {
@@ -231,8 +288,8 @@ export function assertHistoricalBenchmarkManifest(
   value: unknown,
 ): asserts value is HistoricalBenchmarkManifest {
   const root = objectValue(value, 'manifest');
-  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.7.0') {
-    throw new Error('manifestVersion must be "1.7.0"');
+  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.8.0') {
+    throw new Error('manifestVersion must be "1.8.0"');
   }
 
   const benchmark = objectValue(root.benchmark, 'benchmark');
@@ -376,6 +433,159 @@ export function assertHistoricalBenchmarkManifest(
     routingBaselineInputReferences.push({
       label,
       ids: inputDatasetIds,
+    });
+  });
+  if (
+    !Array.isArray(benchmark.observationComparisonProtocols) ||
+    benchmark.observationComparisonProtocols.length === 0
+  ) {
+    throw new Error(
+      'benchmark.observationComparisonProtocols must be a non-empty array',
+    );
+  }
+  const observationProtocolIds = new Set<string>();
+  const observationProtocolReferences: Array<{
+    readonly label: string;
+    readonly observationDatasetId: string;
+    readonly validationDatasetIds: readonly string[];
+  }> = [];
+  benchmark.observationComparisonProtocols.forEach((rawProtocol, index) => {
+    const label = `benchmark.observationComparisonProtocols[${index}]`;
+    const protocol = objectValue(rawProtocol, label);
+    const id = stringValue(protocol.id, `${label}.id`);
+    if (observationProtocolIds.has(id)) {
+      throw new Error(`Duplicate observation comparison protocol id "${id}"`);
+    }
+    observationProtocolIds.add(id);
+    if (protocol.state !== 'protocol_frozen') {
+      throw new Error(`${label}.state must be protocol_frozen`);
+    }
+    const observationDatasetId = stringValue(
+      protocol.observationDatasetId,
+      `${label}.observationDatasetId`,
+    );
+    const validationDatasetIds = uniqueStringArray(
+      protocol.validationDatasetIds,
+      `${label}.validationDatasetIds`,
+    );
+    if (validationDatasetIds.length === 0) {
+      throw new Error(`${label}.validationDatasetIds must not be empty`);
+    }
+    if (protocol.observationAccessAtFreeze !== 'catalog_only') {
+      throw new Error(`${label} must freeze before loading observation values`);
+    }
+    if (booleanValue(protocol.calibration, `${label}.calibration`)) {
+      throw new Error(`${label} must not calibrate from observations`);
+    }
+
+    const window = objectValue(protocol.window, `${label}.window`);
+    const protocolStart = isoTime(window.start, `${label}.window.start`);
+    const protocolEnd = isoTime(
+      window.endExclusive,
+      `${label}.window.endExclusive`,
+    );
+    if (protocolStart !== start || protocolEnd !== end) {
+      throw new Error(`${label} window must equal the frozen event window`);
+    }
+    if (window.timezone !== 'UTC') {
+      throw new Error(`${label}.window.timezone must be UTC`);
+    }
+
+    const rainfall = objectValue(protocol.rainfall, `${label}.rainfall`);
+    if (rainfall.variableId !== '1,0,3600/1,-,-,-/B13011') {
+      throw new Error(`${label}.rainfall.variableId must select hourly rain`);
+    }
+    if (rainfall.sourceUnit !== 'KG/M**2' || rainfall.canonicalUnit !== 'mm') {
+      throw new Error(`${label}.rainfall units must preserve kg/m2 = mm`);
+    }
+    if (rainfall.aggregation !== 'sum_records_in_half_open_window') {
+      throw new Error(`${label}.rainfall aggregation must use the frozen window`);
+    }
+    if (rainfall.comparison !== 'nearest_imerg_native_grid_cell') {
+      throw new Error(`${label}.rainfall comparison must retain IMERG resolution`);
+    }
+    if (rainfall.missingPolicy !== 'missing_or_incomplete_not_zero') {
+      throw new Error(`${label}.rainfall missing data must not become zero`);
+    }
+    assertObservationStations(
+      rainfall.stations,
+      `${label}.rainfall.stations`,
+      1,
+    );
+
+    const hydrometry = objectValue(
+      protocol.hydrometry,
+      `${label}.hydrometry`,
+    );
+    if (hydrometry.variableId !== '254,0,0/1,-,-,-/B13215') {
+      throw new Error(`${label}.hydrometry.variableId is unsupported`);
+    }
+    if (
+      hydrometry.unit !== 'M' ||
+      hydrometry.semantics !== 'stage_relative_to_station_datum'
+    ) {
+      throw new Error(`${label}.hydrometry must retain local-datum stage semantics`);
+    }
+    if (hydrometry.comparison !== 'within_station_timing_and_change_only') {
+      throw new Error(`${label}.hydrometry comparison is unsupported`);
+    }
+    if (hydrometry.noCrossStationDatumArithmetic !== true) {
+      throw new Error(`${label} must forbid arithmetic across station datums`);
+    }
+    if (hydrometry.missingPolicy !== 'missing_or_incomplete_not_zero') {
+      throw new Error(`${label}.hydrometry missing data must not become zero`);
+    }
+    assertObservationStations(
+      hydrometry.stations,
+      `${label}.hydrometry.stations`,
+      2,
+    );
+
+    const rainfallMetrics = uniqueStringArray(
+      protocol.rainfallMetrics,
+      `${label}.rainfallMetrics`,
+    );
+    const expectedRainfallMetrics = [
+      'record_count',
+      'covered_hours',
+      'gauge_total_mm',
+      'imerg_total_mm',
+      'imerg_minus_gauge_mm',
+    ];
+    if (
+      rainfallMetrics.length !== expectedRainfallMetrics.length ||
+      rainfallMetrics.some(
+        (metric, metricIndex) => metric !== expectedRainfallMetrics[metricIndex],
+      )
+    ) {
+      throw new Error(`${label}.rainfallMetrics must match the frozen metric set`);
+    }
+    const hydrometryMetrics = uniqueStringArray(
+      protocol.hydrometryMetrics,
+      `${label}.hydrometryMetrics`,
+    );
+    const expectedHydrometryMetrics = [
+      'record_count',
+      'coverage_start',
+      'coverage_end',
+      'maximum_stage_m',
+      'maximum_stage_at',
+      'maximum_one_hour_rise_m',
+    ];
+    if (
+      hydrometryMetrics.length !== expectedHydrometryMetrics.length ||
+      hydrometryMetrics.some(
+        (metric, metricIndex) =>
+          metric !== expectedHydrometryMetrics[metricIndex],
+      )
+    ) {
+      throw new Error(`${label}.hydrometryMetrics must match the frozen metric set`);
+    }
+    stringValue(protocol.methodologyNote, `${label}.methodologyNote`);
+    observationProtocolReferences.push({
+      label,
+      observationDatasetId,
+      validationDatasetIds,
     });
   });
   if (
@@ -912,6 +1122,48 @@ export function assertHistoricalBenchmarkManifest(
       }
     }
   }
+  for (const protocol of observationProtocolReferences) {
+    const datasetIds = [
+      protocol.observationDatasetId,
+      ...protocol.validationDatasetIds,
+    ];
+    for (const datasetId of datasetIds) {
+      const dataset = root.datasets.find(
+        (candidate) =>
+          objectValue(candidate, 'observation protocol dataset').id === datasetId,
+      );
+      if (dataset === undefined) {
+        throw new Error(
+          `${protocol.label} references unknown observation dataset "${datasetId}"`,
+        );
+      }
+      const typedDataset = objectValue(dataset, 'observation protocol dataset');
+      const uses = objectValue(
+        typedDataset.allowedUses,
+        'observation protocol dataset.allowedUses',
+      );
+      if (
+        uses.evaluation !== true ||
+        uses.modelInput !== false ||
+        uses.calibration !== false
+      ) {
+        throw new Error(
+          `${protocol.label} dataset "${datasetId}" is not an isolated comparison reference`,
+        );
+      }
+    }
+    const observationDataset = root.datasets.find(
+      (candidate) =>
+        objectValue(candidate, 'observation source dataset').id ===
+        protocol.observationDatasetId,
+    );
+    if (
+      objectValue(observationDataset, 'observation source dataset').role !==
+      'comparison_reference'
+    ) {
+      throw new Error(`${protocol.label} source must be a comparison_reference`);
+    }
+  }
   for (const protocol of evaluationProtocolReferences) {
     if (!routingBaselineIds.has(protocol.predictionBaselineId)) {
       throw new Error(
@@ -970,6 +1222,36 @@ export function assertHistoricalBenchmarkManifest(
       throw new Error(`${run.label} area fractions drifted after protocol freeze`);
     }
   }
+}
+
+function assertObservationStations(
+  value: unknown,
+  label: string,
+  minimumCount: number,
+): void {
+  if (!Array.isArray(value) || value.length < minimumCount) {
+    throw new Error(`${label} requires at least ${minimumCount} stations`);
+  }
+  const stationIds = new Set<string>();
+  value.forEach((rawStation, index) => {
+    const stationLabel = `${label}[${index}]`;
+    const station = objectValue(rawStation, stationLabel);
+    const stationId = stringValue(station.stationId, `${stationLabel}.stationId`);
+    if (stationIds.has(stationId)) {
+      throw new Error(`${label} contains duplicate station "${stationId}"`);
+    }
+    stationIds.add(stationId);
+    stringValue(station.name, `${stationLabel}.name`);
+    stringValue(station.selectionRole, `${stationLabel}.selectionRole`);
+    const latitude = finiteNumber(station.latitude, `${stationLabel}.latitude`);
+    const longitude = finiteNumber(
+      station.longitude,
+      `${stationLabel}.longitude`,
+    );
+    if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+      throw new Error(`${stationLabel} coordinates exceed WGS84 limits`);
+    }
+  });
 }
 
 function assertLocalArtifacts(
