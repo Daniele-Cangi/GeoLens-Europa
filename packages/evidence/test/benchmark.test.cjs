@@ -15,10 +15,28 @@ const manifestPath = path.join(
   'emilia-romagna-2023',
   'manifest.json',
 );
+const repositoryRoot = path.join(__dirname, '..', '..', '..');
 
 /** Loads an isolated mutable copy of the frozen benchmark manifest. */
 function manifestFixture() {
   return JSON.parse(readFileSync(manifestPath, 'utf8'));
+}
+
+/** Derives the documentation inventory from every manifest artifact group. */
+function artifactInventory(manifest) {
+  const groups = [
+    { localArtifacts: manifest.benchmark.localArtifacts ?? [] },
+    ...(manifest.benchmark.routingBaselines ?? []),
+    ...(manifest.benchmark.evaluationRuns ?? []),
+    ...(manifest.benchmark.observationComparisonRuns ?? []),
+    ...manifest.datasets,
+  ];
+  const artifacts = groups.flatMap((group) => group.localArtifacts ?? []);
+
+  return {
+    count: artifacts.length,
+    bytes: artifacts.reduce((total, artifact) => total + artifact.bytes, 0),
+  };
 }
 
 test('Emilia-Romagna manifest passes the historical benchmark contract', () => {
@@ -33,6 +51,22 @@ test('Emilia-Romagna manifest passes the historical benchmark contract', () => {
   assert.equal(manifest.benchmark.claimLevel, 'hydrologic_routing');
   assert.equal(manifest.manifestVersion, '1.14.0');
   assert.ok(manifest.benchmark.forbiddenClaims.includes('validated_water_depth'));
+});
+
+test('benchmark documentation inventory is derived from the manifest', () => {
+  const manifest = manifestFixture();
+  const inventory = artifactInventory(manifest);
+  const formattedBytes = new Intl.NumberFormat('en-US').format(inventory.bytes);
+  const inventoryText =
+    `${inventory.count} benchmark artifacts totaling ${formattedBytes} bytes`;
+  const readme = readFileSync(path.join(repositoryRoot, 'README.md'), 'utf8');
+  const plan = readFileSync(
+    path.join(repositoryRoot, 'REFOUNDATION_PLAN.md'),
+    'utf8',
+  );
+
+  assert.match(readme, new RegExp(inventoryText));
+  assert.match(plan, new RegExp(inventoryText));
 });
 
 test('terrain-routing baseline is materialized without evaluation leakage', () => {
