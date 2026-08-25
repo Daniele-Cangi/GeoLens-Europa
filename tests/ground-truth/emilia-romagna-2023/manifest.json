@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "1.9.0",
+  "manifestVersion": "1.12.0",
   "benchmark": {
     "id": "emilia-romagna-2023-forli-retrospective-reconstruction",
     "title": "Case 02 - Emilia-Romagna 2023 / Retrospective Flood Reconstruction",
@@ -537,6 +537,262 @@
           }
         ]
       }
+    ],
+    "conditionedReplayProtocols": [
+      {
+        "id": "forli-conditioned-inundation-replay-v0",
+        "state": "input_protocol_frozen",
+        "claimLevelAtFreeze": "hydrologic_routing",
+        "validationMode": "diagnostic_not_blind",
+        "evaluationReferenceAccessAtFreeze": "already_loaded_for_prior_hydrologic_routing_evaluation",
+        "boundaryConditionAccessAtFreeze": "metadata_and_prior_comparison_values_only",
+        "calibration": false,
+        "window": {
+          "start": "2023-05-16T00:00:00Z",
+          "endExclusive": "2023-05-18T00:00:00Z",
+          "timezone": "UTC"
+        },
+        "requiredBoundaryEvidence": [
+          {
+            "id": "rainfall_and_surface_runoff_forcing",
+            "required": true,
+            "status": "available",
+            "candidateDatasetIds": [
+              "nasa-imerg-v07",
+              "copernicus-clc-2018",
+              "copernicus-dem-glo-30-2022"
+            ],
+            "acceptanceCriteria": "The existing content-addressed 48-hour IMERG, CLC and GLO-30 receipts reproduce deterministic local runoff without missing required cells."
+          },
+          {
+            "id": "antecedent_moisture_or_model_warmup",
+            "required": true,
+            "status": "missing",
+            "candidateDatasetIds": [
+              "nasa-imerg-v07",
+              "arpae-2023-pluviometry"
+            ],
+            "acceptanceCriteria": "A pre-event forcing window and an explicit, versioned initial-wetness or model-warmup transformation cover the antecedent May rainfall without using the observed inundation extent.",
+            "blocker": "The current forcing begins at 2023-05-16T00:00:00Z and does not represent the wet initial state left by the earlier May event."
+          },
+          {
+            "id": "montone_and_rabbi_inflow_hydrographs",
+            "required": true,
+            "status": "incomplete_window",
+            "candidateDatasetIds": [
+              "arpae-dext3r-2023-hourly-observations",
+              "arpae-2023-hydrometry"
+            ],
+            "acceptanceCriteria": "Time-varying Montone and Rabbi inflows cover the full event window as discharge, or as stage paired with station datum, cross-section and an event-valid rating curve; uncertainty and gaps remain explicit.",
+            "blocker": "Dext3r currently supplies local-datum stage only; the Rabbi/Predappio series is incomplete and no verified event-valid rating curve or discharge hydrograph has been acquired."
+          },
+          {
+            "id": "downstream_stage_or_discharge_boundary",
+            "required": true,
+            "status": "incomplete_window",
+            "candidateDatasetIds": [
+              "arpae-dext3r-2023-hourly-observations",
+              "arpae-2023-hydrometry"
+            ],
+            "acceptanceCriteria": "A full-window downstream stage in a declared vertical datum, a discharge boundary, or a documented rating relation is pinned at or beyond the hydraulic domain outlet.",
+            "blocker": "Ponte Braldo and Ponte Vico stage series are complete but remain relative to separate local station datums and cannot be converted into a hydraulic boundary without datum and rating information."
+          },
+          {
+            "id": "breach_location_timing_and_geometry",
+            "required": true,
+            "status": "metadata_only",
+            "candidateDatasetIds": [
+              "rer-forli-may-2023-breach-repair-record"
+            ],
+            "acceptanceCriteria": "Each breach used by the replay has source-backed coordinates, bank side, activation time, crest/invert elevation and a width/evolution model with uncertainty; the flood extent is not used to infer these values.",
+            "blocker": "The official repair account identifies named breach locations but does not provide machine-readable coordinates, activation times, elevations or breach hydrographs."
+          },
+          {
+            "id": "embankment_crest_geometry",
+            "required": true,
+            "status": "incomplete_window",
+            "candidateDatasetIds": [
+              "rer-dbtr-forli-cutoff-2023",
+              "rer-dtm-1m-pst",
+              "rer-forli-may-2023-breach-repair-record"
+            ],
+            "acceptanceCriteria": "Pre-event embankment alignment and crest elevations cover the hydraulic domain with declared survey/reference dates and vertical datum; post-event repairs are excluded or separately represented.",
+            "blocker": "The current DBTR extract is a post-event known-presence window and does not provide a complete historical crest-height surface; the PST DTM has not yet been accepted as a bounded model input."
+          },
+          {
+            "id": "bare_earth_terrain",
+            "required": true,
+            "status": "metadata_only",
+            "candidateDatasetIds": [
+              "rer-dtm-1m-pst",
+              "copernicus-dem-glo-30-2022"
+            ],
+            "acceptanceCriteria": "A bounded pre-event bare-earth terrain surface covers the domain, retains horizontal/vertical CRS, source epoch, resolution, nodata and transformation provenance, and represents critical embankments without silent interpolation.",
+            "blocker": "The 1 m PST service is catalogued and predates the event, but the exact Forli coverage, bounded pixels and reuse terms are not yet pinned; the available GLO-30 input is a 30 m DSM rather than hydraulic-grade bare-earth terrain."
+          },
+          {
+            "id": "channel_geometry_and_roughness",
+            "required": true,
+            "status": "missing",
+            "candidateDatasetIds": [
+              "rer-dbtr-forli-cutoff-2023"
+            ],
+            "acceptanceCriteria": "The Montone and Rabbi channel representation declares bed/cross-section geometry, structures and roughness parameters with source and model versions for the bounded domain.",
+            "blocker": "DBTR supplies planimetric riverbed geometry but no verified bed elevations, cross-sections, structures or hydraulic roughness model."
+          }
+        ],
+        "runGate": {
+          "state": "blocked_missing_required_evidence",
+          "requiredStatus": "available",
+          "missingPolicy": "block_run_not_zero_or_inferred",
+          "noStageToDischargeWithoutRatingCurve": true,
+          "noBreachInferenceFromFloodExtent": true,
+          "noTuningToEventExtent": true
+        },
+        "methodologyNote": "This protocol is frozen after the V7 extent and ARPAE comparison values were already loaded for earlier diagnostics, so it is explicitly post-hoc and not a blind hindcast. It freezes the conditioned-input gate before acquiring new rating curves, discharge hydrographs, breach parameters, crest elevations or channel parameters. Passing the gate would authorize only a diagnostic conditioned replay with separately versioned inputs and parameters; it would not constitute independent validation. A future validation claim requires a new event or spatial holdout whose reference remains withheld until prediction freeze."
+      }
+    ],
+    "conditionedReplaySourceAudits": [
+      {
+        "id": "forli-conditioned-replay-arpae-annale-2023-audit-v0",
+        "protocolId": "forli-conditioned-inundation-replay-v0",
+        "state": "materialized",
+        "sourceAccess": "loaded_after_protocol_freeze",
+        "sourceDatasetIds": [
+          "arpae-2023-hydrometry"
+        ],
+        "sourcePages": [
+          17,
+          26,
+          54,
+          65,
+          68,
+          69
+        ],
+        "quality": "incomplete_window",
+        "dischargeNetwork": {
+          "listedStationCount": 45,
+          "requiredStationNames": [
+            "Montone",
+            "Rabbi"
+          ],
+          "containsRequiredStations": false,
+          "eventValidRatingCurvesAvailable": false,
+          "dischargeHydrographsAvailable": false
+        },
+        "stationDatums": [
+          {
+            "stationId": "-/1194940,4417012/spdsra",
+            "name": "Castrocaro",
+            "datumMslM": 53.48,
+            "status": "available"
+          },
+          {
+            "stationId": "-/1198305,4410502/spdsra",
+            "name": "Predappio",
+            "datumMslM": 120.13,
+            "status": "available"
+          },
+          {
+            "stationId": "-/1199295,4426279/spdsra",
+            "name": "Ponte Braldo",
+            "datumMslM": null,
+            "status": "missing"
+          },
+          {
+            "stationId": "-/1203134,4433002/spdsra",
+            "name": "Ponte Vico",
+            "datumMslM": 8.51,
+            "status": "available"
+          }
+        ],
+        "conclusions": {
+          "inflowStatus": "incomplete_window",
+          "downstreamStatus": "incomplete_window",
+          "hydraulicUseEligible": false,
+          "protocolRunGate": "blocked_missing_required_evidence",
+          "missingPolicy": "missing_not_zero_or_inferred"
+        },
+        "methodologyNote": "Materialized from the official 2023 ARPAE Annale after the conditioned-input protocol was frozen. Page 17 defines stage relative to the gauge zero and the guillemet symbol as missing data. Page 26 publishes gauge-zero elevations for Castrocaro, Predappio and Ponte Vico while Ponte Braldo is explicitly missing. Pages 54 and 65 retain daily stage observations, gaps and maximum-increment context. Pages 68-69 define discharge semantics and list 45 discharge-measurement stations, but neither Montone nor Rabbi appears. The Annale therefore does not supply an event-valid rating curve or discharge hydrograph for the required rivers. Ponte Vico's datum does not by itself define a boundary at the frozen AOI outlet, and Ponte Braldo's datum remains missing. No stage was converted to discharge, no missing datum became zero and the conditioned replay remains blocked."
+      }
+    ],
+    "conditionedReplayTerrainAudits": [
+      {
+        "id": "forli-conditioned-replay-rer-dtm1m-coverage-audit-v0",
+        "protocolId": "forli-conditioned-inundation-replay-v0",
+        "state": "materialized",
+        "sourceAccess": "loaded_after_protocol_freeze",
+        "sourceDatasetId": "rer-dtm-1m-pst",
+        "quality": "incomplete_window",
+        "coverageRequest": {
+          "sourceCrs": "EPSG:23032",
+          "sourceResolutionM": 1,
+          "representationResolutionM": 5,
+          "interpolation": "nearest_neighbor",
+          "bounds": [
+            737875,
+            4895267,
+            747926,
+            4907868
+          ],
+          "width": 2011,
+          "height": 2521,
+          "declaredNoData": -3,
+          "geoTiffNoDataTag": "missing",
+          "aoiRelation": {
+            "sourceBounds": [
+              737875,
+              4895267,
+              747926,
+              4907868
+            ],
+            "targetCrs": "EPSG:32632",
+            "transformedBounds": [
+              737790.000838944,
+              4895069.588412029,
+              747840.9310682673,
+              4907670.496913256
+            ],
+            "transformation": "proj4 EPSG:23032 ED50 UTM32 to EPSG:32632 with towgs84=-87,-98,-121,0,0,0,0",
+            "reference": "benchmark_spatial_grid_bounds",
+            "relation": "contains_with_tolerance",
+            "toleranceM": 1
+          }
+        },
+        "counts": {
+          "totalPixels": 5069731,
+          "availablePixels": 4508766,
+          "missingPixels": 560965,
+          "missingFraction": 0.1106498549923063
+        },
+        "physicalFeatureCoverage": [
+          {
+            "layer": "riverbed",
+            "knownCenterCells": 12762,
+            "terrainAvailableAtCenter": 11218,
+            "terrainMissingAtCenter": 1544
+          },
+          {
+            "layer": "embankment",
+            "knownCenterCells": 10525,
+            "terrainAvailableAtCenter": 8983,
+            "terrainMissingAtCenter": 1542
+          },
+          {
+            "layer": "permanent_water",
+            "knownCenterCells": 10859,
+            "terrainAvailableAtCenter": 9309,
+            "terrainMissingAtCenter": 1550
+          }
+        ],
+        "conclusions": {
+          "terrainStatus": "incomplete_window",
+          "hydraulicUseEligible": false,
+          "noDataPolicy": "missing_not_zero_or_interpolated",
+          "fullResolutionDownloadDecision": "not_downloaded_coverage_gap_already_disqualifies_sole_source"
+        },
+        "methodologyNote": "The official WCS DescribeCoverage declares a native 1 m EPSG:23032 grid and -3 as null. The bounded diagnostic request transforms the frozen EPSG:32632 AOI corners into an integer EPSG:23032 envelope and requests a 5 m nearest-neighbour representation only to audit source coverage before a full-resolution acquisition. The returned GeoTIFF omits a GDAL nodata tag, so -3 is interpreted only from the pinned DescribeCoverage rather than as elevation. The source is missing across 11.06% of the requested pixels and at material portions of known DBTR riverbed, embankment and permanent-water cell centres. A full 1 m download would preserve rather than repair those gaps, so it is not acquired at this gate. No -3 value becomes zero, terrain or an interpolated hydraulic surface."
+      }
     ]
   },
   "datasets": [
@@ -621,7 +877,7 @@
       "sourceUrl": "https://servizigis.regione.emilia-romagna.it/wcs/dtm1x1pst",
       "accessMethod": "WCS 1.0.0 bounded coverage request",
       "sourceResolution": "1 m in available lowland coverage; derived from 2009-2014 surveys",
-      "acquisitionStatus": "remote_verified",
+      "acquisitionStatus": "downloaded_verified",
       "license": {
         "name": "Not OpenData; MASE PST distribution terms apply",
         "access": "public",
@@ -638,9 +894,19 @@
           "relativePath": "source/rer-dtm1x1-wcs-capabilities.xml",
           "bytes": 3541,
           "sha256": "0D66F613BEC4A3D468AD924F4C9ED428D6E1ADA746872270CCA9E9A8110026BF"
+        },
+        {
+          "relativePath": "source/rer-dtm1x1-wcs-describe-coverage.xml",
+          "bytes": 2835,
+          "sha256": "CC172CD9E5E50EB220D78FF2E73F9998CC3EFB9C81BA5536D73C8E4873705E70"
+        },
+        {
+          "relativePath": "source/rer-dtm1x1-forli-aoi-5m-nearest.tif",
+          "bytes": 20975238,
+          "sha256": "124E30465B1B7EA65DCEB3D21F7786EC8475243F4ED8F65D68374487BB90364C"
         }
       ],
-      "methodologyNote": "The terrain survey predates the event, but availability of this exact WCS/source by the knowledge cutoff is not yet proven. It remains excluded from the cutoff-constrained model path."
+      "methodologyNote": "The terrain survey predates the event, but availability of this exact WCS/source by the knowledge cutoff is not yet proven. DescribeCoverage and a bounded 5 m nearest-neighbour representation are pinned only for a post-freeze source-coverage audit. The WCS declares -3 as null but the returned GeoTIFF has no GDAL nodata tag; 560,965 of 5,069,731 pixels are null and critical DBTR feature centres are affected. The source remains excluded from the model path and cannot become a hydraulic surface without a declared complementary source and missing-data treatment."
     },
     {
       "id": "copernicus-dem-glo-30-2022",
@@ -881,6 +1147,38 @@
           "relativePath": "source/arpae-dext3r/dexter-be86675d-a290-4208-8b38-0bb420396ca0.csv",
           "bytes": 68115,
           "sha256": "31C1CEFBBBEF544CD19C1FF3E897750B18306887107458B482DFEE5D4BA27418"
+        }
+      ]
+    },
+    {
+      "id": "rer-forli-may-2023-breach-repair-record",
+      "role": "context_only",
+      "temporalRelation": "post_event",
+      "availableAt": "2023-11-14T00:00:00Z",
+      "publisher": "Regione Emilia-Romagna - Agenzia per la sicurezza territoriale e la protezione civile",
+      "dataset": "Official account of May 2023 embankment damage and repair works in the Forli area",
+      "datasetVersion": "published 2023-11-14; HTML snapshot acquired 2026-08-25",
+      "acquiredAt": "2026-08-25T13:51:15Z",
+      "sourceUrl": "https://protezionecivile.regione.emilia-romagna.it/novita/notizie/2023/novembre/alluvione-il-punto-sugli-interventi-nel-forlivese",
+      "accessMethod": "public official narrative record with byte-pinned HTML snapshot retained outside Git",
+      "sourceResolution": "named breach and repair locations; no machine-readable coordinates, activation times, elevations or geometry",
+      "acquisitionStatus": "downloaded_verified",
+      "license": {
+        "name": "Website legal terms not yet pinned for dataset redistribution",
+        "access": "public",
+        "redistribution": "unknown"
+      },
+      "allowedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "evaluation": true
+      },
+      "methodologyNote": "The byte-pinned page verifies that the 16-18 May event damaged Montone and Rabbi embankments and names repairs at Cavo Fontana 2/via Martiri delle Foibe, Villanova/via Zignola near rio San Lazzaro and via Isonzo. It is context only: named locations cannot be converted into breach coordinates, timings, widths or hydrographs and cannot be inferred from the observed flood extent. Redistribution remains unknown, so the snapshot stays outside Git.",
+      "localArtifacts": [
+        {
+          "relativePath": "source/rer-forli-may-2023-breach-repair-record.html",
+          "bytes": 365414,
+          "sha256": "8855B27FCDF21CA0B74F687698B0BDBFF95B510B7AA9D40DDE57A952F406B26F"
         }
       ]
     },

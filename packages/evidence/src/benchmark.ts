@@ -49,7 +49,7 @@ export interface BenchmarkDataset {
 }
 
 export interface HistoricalBenchmarkManifest {
-  readonly manifestVersion: '1.9.0';
+  readonly manifestVersion: '1.12.0';
   readonly benchmark: {
     readonly id: string;
     readonly title: string;
@@ -79,10 +79,145 @@ export interface HistoricalBenchmarkManifest {
     readonly evaluationRuns: readonly BenchmarkEvaluationRun[];
     readonly observationComparisonProtocols: readonly BenchmarkObservationComparisonProtocol[];
     readonly observationComparisonRuns: readonly BenchmarkObservationComparisonRun[];
+    readonly conditionedReplayProtocols: readonly BenchmarkConditionedReplayProtocol[];
+    readonly conditionedReplaySourceAudits: readonly BenchmarkConditionedReplaySourceAudit[];
+    readonly conditionedReplayTerrainAudits: readonly BenchmarkConditionedReplayTerrainAudit[];
     readonly evaluationMetrics: readonly string[];
     readonly forbiddenClaims: readonly string[];
   };
   readonly datasets: readonly BenchmarkDataset[];
+}
+
+export type BenchmarkConditionedBoundaryEvidenceId =
+  | 'rainfall_and_surface_runoff_forcing'
+  | 'antecedent_moisture_or_model_warmup'
+  | 'montone_and_rabbi_inflow_hydrographs'
+  | 'downstream_stage_or_discharge_boundary'
+  | 'breach_location_timing_and_geometry'
+  | 'embankment_crest_geometry'
+  | 'bare_earth_terrain'
+  | 'channel_geometry_and_roughness';
+
+export type BenchmarkConditionedBoundaryEvidenceStatus =
+  | 'available'
+  | 'missing'
+  | 'incomplete_window'
+  | 'metadata_only';
+
+export interface BenchmarkConditionedBoundaryEvidence {
+  readonly id: BenchmarkConditionedBoundaryEvidenceId;
+  readonly required: true;
+  readonly status: BenchmarkConditionedBoundaryEvidenceStatus;
+  readonly candidateDatasetIds: readonly string[];
+  readonly acceptanceCriteria: string;
+  readonly blocker?: string;
+}
+
+export interface BenchmarkConditionedReplayProtocol {
+  readonly id: string;
+  readonly state: 'input_protocol_frozen';
+  readonly claimLevelAtFreeze: 'hydrologic_routing';
+  readonly validationMode: 'diagnostic_not_blind';
+  readonly evaluationReferenceAccessAtFreeze:
+    'already_loaded_for_prior_hydrologic_routing_evaluation';
+  readonly boundaryConditionAccessAtFreeze:
+    'metadata_and_prior_comparison_values_only';
+  readonly calibration: false;
+  readonly window: {
+    readonly start: string;
+    readonly endExclusive: string;
+    readonly timezone: 'UTC';
+  };
+  readonly requiredBoundaryEvidence: readonly BenchmarkConditionedBoundaryEvidence[];
+  readonly runGate: {
+    readonly state: 'blocked_missing_required_evidence' | 'eligible';
+    readonly requiredStatus: 'available';
+    readonly missingPolicy: 'block_run_not_zero_or_inferred';
+    readonly noStageToDischargeWithoutRatingCurve: true;
+    readonly noBreachInferenceFromFloodExtent: true;
+    readonly noTuningToEventExtent: true;
+  };
+  readonly methodologyNote: string;
+}
+
+export interface BenchmarkConditionedReplaySourceAudit {
+  readonly id: string;
+  readonly protocolId: string;
+  readonly state: 'materialized';
+  readonly sourceAccess: 'loaded_after_protocol_freeze';
+  readonly sourceDatasetIds: readonly string[];
+  readonly sourcePages: readonly number[];
+  readonly quality: 'incomplete_window';
+  readonly dischargeNetwork: {
+    readonly listedStationCount: number;
+    readonly requiredStationNames: readonly string[];
+    readonly containsRequiredStations: false;
+    readonly eventValidRatingCurvesAvailable: false;
+    readonly dischargeHydrographsAvailable: false;
+  };
+  readonly stationDatums: readonly {
+    readonly stationId: string;
+    readonly name: string;
+    readonly datumMslM: number | null;
+    readonly status: 'available' | 'missing';
+  }[];
+  readonly conclusions: {
+    readonly inflowStatus: 'incomplete_window';
+    readonly downstreamStatus: 'incomplete_window';
+    readonly hydraulicUseEligible: false;
+    readonly protocolRunGate: 'blocked_missing_required_evidence';
+    readonly missingPolicy: 'missing_not_zero_or_inferred';
+  };
+  readonly methodologyNote: string;
+}
+
+export interface BenchmarkConditionedReplayTerrainAudit {
+  readonly id: string;
+  readonly protocolId: string;
+  readonly state: 'materialized';
+  readonly sourceAccess: 'loaded_after_protocol_freeze';
+  readonly sourceDatasetId: string;
+  readonly quality: 'incomplete_window';
+  readonly coverageRequest: {
+    readonly sourceCrs: string;
+    readonly sourceResolutionM: number;
+    readonly representationResolutionM: number;
+    readonly interpolation: 'nearest_neighbor' | 'bilinear' | 'bicubic';
+    readonly bounds: readonly [number, number, number, number];
+    readonly width: number;
+    readonly height: number;
+    readonly declaredNoData: number;
+    readonly geoTiffNoDataTag: 'missing' | 'present';
+    readonly aoiRelation: {
+      readonly sourceBounds: readonly [number, number, number, number];
+      readonly targetCrs: string;
+      readonly transformedBounds: readonly [number, number, number, number];
+      readonly transformation: string;
+      readonly reference: 'benchmark_spatial_grid_bounds';
+      readonly relation: 'contains_with_tolerance';
+      readonly toleranceM: number;
+    };
+  };
+  readonly counts: {
+    readonly totalPixels: number;
+    readonly availablePixels: number;
+    readonly missingPixels: number;
+    readonly missingFraction: number;
+  };
+  readonly physicalFeatureCoverage: readonly {
+    readonly layer: 'riverbed' | 'embankment' | 'permanent_water';
+    readonly knownCenterCells: number;
+    readonly terrainAvailableAtCenter: number;
+    readonly terrainMissingAtCenter: number;
+  }[];
+  readonly conclusions: {
+    readonly terrainStatus: 'incomplete_window';
+    readonly hydraulicUseEligible: false;
+    readonly noDataPolicy: 'missing_not_zero_or_interpolated';
+    readonly fullResolutionDownloadDecision:
+      'not_downloaded_coverage_gap_already_disqualifies_sole_source';
+  };
+  readonly methodologyNote: string;
 }
 
 export interface BenchmarkObservationStation {
@@ -344,12 +479,13 @@ const acquisitionStatuses = new Set([
   'blocked',
 ]);
 
+/** Validates structural evidence, isolation and fail-closed replay invariants. */
 export function assertHistoricalBenchmarkManifest(
   value: unknown,
 ): asserts value is HistoricalBenchmarkManifest {
   const root = objectValue(value, 'manifest');
-  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.9.0') {
-    throw new Error('manifestVersion must be "1.9.0"');
+  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.12.0') {
+    throw new Error('manifestVersion must be "1.12.0"');
   }
 
   const benchmark = objectValue(root.benchmark, 'benchmark');
@@ -682,6 +818,465 @@ export function assertHistoricalBenchmarkManifest(
     observationProtocolStations,
     artifactPaths,
   );
+  if (
+    !Array.isArray(benchmark.conditionedReplayProtocols) ||
+    benchmark.conditionedReplayProtocols.length !== 1
+  ) {
+    throw new Error(
+      'benchmark.conditionedReplayProtocols must contain the single frozen v0 protocol',
+    );
+  }
+  const conditionedReplayDatasetReferences: Array<{
+    readonly label: string;
+    readonly ids: readonly string[];
+  }> = [];
+  const conditionedProtocolIds = new Set<string>();
+  const conditionedProtocolRunStates = new Map<string, string>();
+  const expectedConditionedEvidenceIds: readonly BenchmarkConditionedBoundaryEvidenceId[] = [
+    'rainfall_and_surface_runoff_forcing',
+    'antecedent_moisture_or_model_warmup',
+    'montone_and_rabbi_inflow_hydrographs',
+    'downstream_stage_or_discharge_boundary',
+    'breach_location_timing_and_geometry',
+    'embankment_crest_geometry',
+    'bare_earth_terrain',
+    'channel_geometry_and_roughness',
+  ];
+  benchmark.conditionedReplayProtocols.forEach((rawProtocol, index) => {
+    const label = `benchmark.conditionedReplayProtocols[${index}]`;
+    const protocol = objectValue(rawProtocol, label);
+    const id = stringValue(protocol.id, `${label}.id`);
+    if (conditionedProtocolIds.has(id)) {
+      throw new Error(`Duplicate conditioned replay protocol id "${id}"`);
+    }
+    conditionedProtocolIds.add(id);
+    if (protocol.state !== 'input_protocol_frozen') {
+      throw new Error(`${label}.state must be input_protocol_frozen`);
+    }
+    if (protocol.claimLevelAtFreeze !== 'hydrologic_routing') {
+      throw new Error(`${label} cannot claim inundation before the run gate passes`);
+    }
+    if (protocol.validationMode !== 'diagnostic_not_blind') {
+      throw new Error(`${label} must disclose that the event extent was already accessed`);
+    }
+    if (
+      protocol.evaluationReferenceAccessAtFreeze !==
+      'already_loaded_for_prior_hydrologic_routing_evaluation'
+    ) {
+      throw new Error(`${label} must disclose prior evaluation-reference access`);
+    }
+    if (
+      protocol.boundaryConditionAccessAtFreeze !==
+      'metadata_and_prior_comparison_values_only'
+    ) {
+      throw new Error(`${label} must freeze before loading new conditioning values`);
+    }
+    if (booleanValue(protocol.calibration, `${label}.calibration`)) {
+      throw new Error(`${label} must not calibrate on the observed event extent`);
+    }
+
+    const window = objectValue(protocol.window, `${label}.window`);
+    const protocolStart = isoTime(window.start, `${label}.window.start`);
+    const protocolEnd = isoTime(
+      window.endExclusive,
+      `${label}.window.endExclusive`,
+    );
+    if (protocolStart !== start || protocolEnd !== end) {
+      throw new Error(`${label} window must equal the frozen event window`);
+    }
+    if (window.timezone !== 'UTC') {
+      throw new Error(`${label}.window.timezone must be UTC`);
+    }
+
+    const evidence = assertObjectArray(
+      protocol.requiredBoundaryEvidence,
+      `${label}.requiredBoundaryEvidence`,
+    );
+    if (evidence.length !== expectedConditionedEvidenceIds.length) {
+      throw new Error(`${label} must retain the complete conditioned-input gate`);
+    }
+    let blockedRequirements = 0;
+    evidence.forEach((rawEvidence, evidenceIndex) => {
+      const evidenceLabel = `${label}.requiredBoundaryEvidence[${evidenceIndex}]`;
+      const requirement = objectValue(rawEvidence, evidenceLabel);
+      if (requirement.id !== expectedConditionedEvidenceIds[evidenceIndex]) {
+        throw new Error(`${evidenceLabel}.id drifted from the frozen gate`);
+      }
+      if (requirement.required !== true) {
+        throw new Error(`${evidenceLabel} must remain required`);
+      }
+      const status = allowedString(
+        requirement.status,
+        new Set(['available', 'missing', 'incomplete_window', 'metadata_only']),
+        `${evidenceLabel}.status`,
+      );
+      const candidateDatasetIds = uniqueStringArray(
+        requirement.candidateDatasetIds,
+        `${evidenceLabel}.candidateDatasetIds`,
+      );
+      if (candidateDatasetIds.length === 0) {
+        throw new Error(`${evidenceLabel} requires at least one candidate dataset`);
+      }
+      stringValue(requirement.acceptanceCriteria, `${evidenceLabel}.acceptanceCriteria`);
+      if (status === 'available') {
+        if (requirement.blocker !== undefined) {
+          throw new Error(`${evidenceLabel} available evidence cannot retain a blocker`);
+        }
+      } else {
+        blockedRequirements += 1;
+        stringValue(requirement.blocker, `${evidenceLabel}.blocker`);
+      }
+      conditionedReplayDatasetReferences.push({
+        label: evidenceLabel,
+        ids: candidateDatasetIds,
+      });
+    });
+
+    const runGate = objectValue(protocol.runGate, `${label}.runGate`);
+    const expectedRunState =
+      blockedRequirements === 0
+        ? 'eligible'
+        : 'blocked_missing_required_evidence';
+    if (runGate.state !== expectedRunState) {
+      throw new Error(`${label}.runGate.state disagrees with required evidence`);
+    }
+    conditionedProtocolRunStates.set(id, runGate.state as string);
+    if (
+      runGate.requiredStatus !== 'available' ||
+      runGate.missingPolicy !== 'block_run_not_zero_or_inferred'
+    ) {
+      throw new Error(`${label} must block missing conditioned inputs`);
+    }
+    if (runGate.noStageToDischargeWithoutRatingCurve !== true) {
+      throw new Error(`${label} must not infer discharge from local-datum stage`);
+    }
+    if (runGate.noBreachInferenceFromFloodExtent !== true) {
+      throw new Error(`${label} must not infer breaches from the observed extent`);
+    }
+    if (runGate.noTuningToEventExtent !== true) {
+      throw new Error(`${label} must not tune parameters to the event extent`);
+    }
+    stringValue(protocol.methodologyNote, `${label}.methodologyNote`);
+  });
+  if (
+    !Array.isArray(benchmark.conditionedReplaySourceAudits) ||
+    benchmark.conditionedReplaySourceAudits.length === 0
+  ) {
+    throw new Error(
+      'benchmark.conditionedReplaySourceAudits must retain post-freeze source findings',
+    );
+  }
+  const conditionedReplayAuditDatasetReferences: Array<{
+    readonly label: string;
+    readonly ids: readonly string[];
+  }> = [];
+  const conditionedAuditIds = new Set<string>();
+  benchmark.conditionedReplaySourceAudits.forEach((rawAudit, index) => {
+    const label = `benchmark.conditionedReplaySourceAudits[${index}]`;
+    const audit = objectValue(rawAudit, label);
+    const id = stringValue(audit.id, `${label}.id`);
+    if (conditionedAuditIds.has(id)) {
+      throw new Error(`Duplicate conditioned replay source audit id "${id}"`);
+    }
+    conditionedAuditIds.add(id);
+    const protocolId = stringValue(audit.protocolId, `${label}.protocolId`);
+    if (!conditionedProtocolIds.has(protocolId)) {
+      throw new Error(`${label} references unknown conditioned replay protocol`);
+    }
+    if (
+      audit.state !== 'materialized' ||
+      audit.sourceAccess !== 'loaded_after_protocol_freeze'
+    ) {
+      throw new Error(`${label} must remain a materialized post-freeze audit`);
+    }
+    const sourceDatasetIds = uniqueStringArray(
+      audit.sourceDatasetIds,
+      `${label}.sourceDatasetIds`,
+    );
+    if (sourceDatasetIds.length === 0) {
+      throw new Error(`${label}.sourceDatasetIds must not be empty`);
+    }
+    conditionedReplayAuditDatasetReferences.push({
+      label,
+      ids: sourceDatasetIds,
+    });
+    if (!Array.isArray(audit.sourcePages) || audit.sourcePages.length === 0) {
+      throw new Error(`${label}.sourcePages must be a non-empty array`);
+    }
+    const sourcePages = audit.sourcePages.map((page, pageIndex) =>
+      positiveInteger(page, `${label}.sourcePages[${pageIndex}]`),
+    );
+    if (
+      new Set(sourcePages).size !== sourcePages.length ||
+      sourcePages.some((page, pageIndex) => pageIndex > 0 && page <= sourcePages[pageIndex - 1])
+    ) {
+      throw new Error(`${label}.sourcePages must be unique and ascending`);
+    }
+    if (audit.quality !== 'incomplete_window') {
+      throw new Error(`${label}.quality must retain incomplete_window`);
+    }
+
+    const dischargeNetwork = objectValue(
+      audit.dischargeNetwork,
+      `${label}.dischargeNetwork`,
+    );
+    positiveInteger(
+      dischargeNetwork.listedStationCount,
+      `${label}.dischargeNetwork.listedStationCount`,
+    );
+    const requiredStationNames = uniqueStringArray(
+      dischargeNetwork.requiredStationNames,
+      `${label}.dischargeNetwork.requiredStationNames`,
+    );
+    if (requiredStationNames.length === 0) {
+      throw new Error(`${label} must declare the required discharge stations`);
+    }
+    if (
+      dischargeNetwork.containsRequiredStations !== false ||
+      dischargeNetwork.eventValidRatingCurvesAvailable !== false ||
+      dischargeNetwork.dischargeHydrographsAvailable !== false
+    ) {
+      throw new Error(`${label} cannot promote absent discharge evidence`);
+    }
+
+    const stationDatums = assertObjectArray(
+      audit.stationDatums,
+      `${label}.stationDatums`,
+    );
+    const datumStationIds = new Set<string>();
+    stationDatums.forEach((rawDatum, datumIndex) => {
+      const datumLabel = `${label}.stationDatums[${datumIndex}]`;
+      const datum = objectValue(rawDatum, datumLabel);
+      const stationId = stringValue(datum.stationId, `${datumLabel}.stationId`);
+      if (datumStationIds.has(stationId)) {
+        throw new Error(`${label}.stationDatums repeats station "${stationId}"`);
+      }
+      datumStationIds.add(stationId);
+      stringValue(datum.name, `${datumLabel}.name`);
+      if (datum.status === 'available') {
+        finiteNumber(datum.datumMslM, `${datumLabel}.datumMslM`);
+      } else if (datum.status === 'missing') {
+        if (datum.datumMslM !== null) {
+          throw new Error(`${datumLabel} missing datum must remain null`);
+        }
+      } else {
+        throw new Error(`${datumLabel}.status is unsupported`);
+      }
+    });
+
+    const conclusions = objectValue(audit.conclusions, `${label}.conclusions`);
+    if (
+      conclusions.inflowStatus !== 'incomplete_window' ||
+      conclusions.downstreamStatus !== 'incomplete_window' ||
+      conclusions.hydraulicUseEligible !== false ||
+      conclusions.protocolRunGate !== 'blocked_missing_required_evidence' ||
+      conclusions.missingPolicy !== 'missing_not_zero_or_inferred'
+    ) {
+      throw new Error(`${label} must keep the hydraulic replay fail-closed`);
+    }
+    if (conclusions.protocolRunGate !== conditionedProtocolRunStates.get(protocolId)) {
+      throw new Error(`${label} contradicts the conditioned replay protocol run gate`);
+    }
+    stringValue(audit.methodologyNote, `${label}.methodologyNote`);
+  });
+  if (
+    !Array.isArray(benchmark.conditionedReplayTerrainAudits) ||
+    benchmark.conditionedReplayTerrainAudits.length !== 1
+  ) {
+    throw new Error(
+      'benchmark.conditionedReplayTerrainAudits must retain the bounded PST audit',
+    );
+  }
+  const conditionedTerrainAuditDatasetReferences: Array<{
+    readonly label: string;
+    readonly id: string;
+  }> = [];
+  benchmark.conditionedReplayTerrainAudits.forEach((rawAudit, index) => {
+    const label = `benchmark.conditionedReplayTerrainAudits[${index}]`;
+    const audit = objectValue(rawAudit, label);
+    stringValue(audit.id, `${label}.id`);
+    const protocolId = stringValue(audit.protocolId, `${label}.protocolId`);
+    if (!conditionedProtocolIds.has(protocolId)) {
+      throw new Error(`${label} references unknown conditioned replay protocol`);
+    }
+    if (
+      audit.state !== 'materialized' ||
+      audit.sourceAccess !== 'loaded_after_protocol_freeze' ||
+      audit.quality !== 'incomplete_window'
+    ) {
+      throw new Error(`${label} must retain the incomplete post-freeze terrain audit`);
+    }
+    const sourceDatasetId = stringValue(
+      audit.sourceDatasetId,
+      `${label}.sourceDatasetId`,
+    );
+    conditionedTerrainAuditDatasetReferences.push({
+      label,
+      id: sourceDatasetId,
+    });
+
+    const request = objectValue(audit.coverageRequest, `${label}.coverageRequest`);
+    stringValue(request.sourceCrs, `${label}.coverageRequest.sourceCrs`);
+    const sourceResolutionM = finiteNumber(
+      request.sourceResolutionM,
+      `${label}.coverageRequest.sourceResolutionM`,
+    );
+    const representationResolutionM = finiteNumber(
+      request.representationResolutionM,
+      `${label}.coverageRequest.representationResolutionM`,
+    );
+    if (sourceResolutionM <= 0 || representationResolutionM <= 0) {
+      throw new Error(`${label}.coverageRequest resolutions must be positive`);
+    }
+    if (representationResolutionM < sourceResolutionM) {
+      throw new Error(
+        `${label}.coverageRequest representation cannot claim finer resolution than the source`,
+      );
+    }
+    allowedString(
+      request.interpolation,
+      new Set(['nearest_neighbor', 'bilinear', 'bicubic']),
+      `${label}.coverageRequest.interpolation`,
+    );
+    finiteNumber(request.declaredNoData, `${label}.coverageRequest.declaredNoData`);
+    allowedString(
+      request.geoTiffNoDataTag,
+      new Set(['missing', 'present']),
+      `${label}.coverageRequest.geoTiffNoDataTag`,
+    );
+    const requestBounds = numberArray(
+      request.bounds,
+      `${label}.coverageRequest.bounds`,
+      4,
+    );
+    if (requestBounds[0] >= requestBounds[2] || requestBounds[1] >= requestBounds[3]) {
+      throw new Error(`${label}.coverageRequest.bounds must be ordered`);
+    }
+    const aoiRelation = objectValue(
+      request.aoiRelation,
+      `${label}.coverageRequest.aoiRelation`,
+    );
+    const relationSourceBounds = numberArray(
+      aoiRelation.sourceBounds,
+      `${label}.coverageRequest.aoiRelation.sourceBounds`,
+      4,
+    );
+    if (relationSourceBounds.some((bound, boundIndex) => bound !== requestBounds[boundIndex])) {
+      throw new Error(`${label}.coverageRequest AOI source bounds must equal the request`);
+    }
+    if (aoiRelation.targetCrs !== spatialReferences.gridCrs) {
+      throw new Error(`${label}.coverageRequest AOI target CRS must equal the benchmark grid`);
+    }
+    const transformedBounds = numberArray(
+      aoiRelation.transformedBounds,
+      `${label}.coverageRequest.aoiRelation.transformedBounds`,
+      4,
+    );
+    assertOrderedBounds(
+      transformedBounds,
+      `${label}.coverageRequest.aoiRelation.transformedBounds`,
+    );
+    stringValue(
+      aoiRelation.transformation,
+      `${label}.coverageRequest.aoiRelation.transformation`,
+    );
+    if (
+      aoiRelation.reference !== 'benchmark_spatial_grid_bounds' ||
+      aoiRelation.relation !== 'contains_with_tolerance'
+    ) {
+      throw new Error(`${label}.coverageRequest must relate terrain to the benchmark grid`);
+    }
+    const relationToleranceM = finiteNumber(
+      aoiRelation.toleranceM,
+      `${label}.coverageRequest.aoiRelation.toleranceM`,
+    );
+    if (relationToleranceM < 0 || relationToleranceM > sourceResolutionM) {
+      throw new Error(
+        `${label}.coverageRequest AOI tolerance must be between zero and one source cell`,
+      );
+    }
+    const gridBounds = spatialReferences.gridBounds;
+    if (
+      transformedBounds[0] > gridBounds[0] + relationToleranceM ||
+      transformedBounds[1] > gridBounds[1] + relationToleranceM ||
+      transformedBounds[2] < gridBounds[2] - relationToleranceM ||
+      transformedBounds[3] < gridBounds[3] - relationToleranceM
+    ) {
+      throw new Error(`${label}.coverageRequest transformed bounds do not contain the benchmark grid`);
+    }
+    const width = positiveInteger(request.width, `${label}.coverageRequest.width`);
+    const height = positiveInteger(request.height, `${label}.coverageRequest.height`);
+
+    const counts = objectValue(audit.counts, `${label}.counts`);
+    const totalPixels = positiveInteger(counts.totalPixels, `${label}.counts.totalPixels`);
+    const availablePixels = nonNegativeInteger(
+      counts.availablePixels,
+      `${label}.counts.availablePixels`,
+    );
+    const missingPixels = nonNegativeInteger(
+      counts.missingPixels,
+      `${label}.counts.missingPixels`,
+    );
+    const missingFraction = finiteNumber(
+      counts.missingFraction,
+      `${label}.counts.missingFraction`,
+    );
+    if (
+      totalPixels !== width * height ||
+      availablePixels + missingPixels !== totalPixels ||
+      !approximatelyEqual(missingFraction, missingPixels / totalPixels)
+    ) {
+      throw new Error(`${label}.counts are inconsistent with the bounded raster`);
+    }
+
+    const physicalCoverage = assertObjectArray(
+      audit.physicalFeatureCoverage,
+      `${label}.physicalFeatureCoverage`,
+    );
+    const physicalLayers = new Set<string>();
+    physicalCoverage.forEach((rawCoverage, coverageIndex) => {
+      const coverageLabel = `${label}.physicalFeatureCoverage[${coverageIndex}]`;
+      const coverage = objectValue(rawCoverage, coverageLabel);
+      const layer = allowedString(
+        coverage.layer,
+        new Set(['riverbed', 'embankment', 'permanent_water']),
+        `${coverageLabel}.layer`,
+      );
+      if (physicalLayers.has(layer)) {
+        throw new Error(`${label}.physicalFeatureCoverage repeats layer "${layer}"`);
+      }
+      physicalLayers.add(layer);
+      const knownCenterCells = positiveInteger(
+        coverage.knownCenterCells,
+        `${coverageLabel}.knownCenterCells`,
+      );
+      const terrainAvailableAtCenter = nonNegativeInteger(
+        coverage.terrainAvailableAtCenter,
+        `${coverageLabel}.terrainAvailableAtCenter`,
+      );
+      const terrainMissingAtCenter = nonNegativeInteger(
+        coverage.terrainMissingAtCenter,
+        `${coverageLabel}.terrainMissingAtCenter`,
+      );
+      if (
+        knownCenterCells !== terrainAvailableAtCenter + terrainMissingAtCenter
+      ) {
+        throw new Error(`${coverageLabel} center-cell counts are inconsistent`);
+      }
+    });
+
+    const conclusions = objectValue(audit.conclusions, `${label}.conclusions`);
+    if (
+      conclusions.terrainStatus !== 'incomplete_window' ||
+      conclusions.hydraulicUseEligible !== false ||
+      conclusions.noDataPolicy !== 'missing_not_zero_or_interpolated' ||
+      conclusions.fullResolutionDownloadDecision !==
+        'not_downloaded_coverage_gap_already_disqualifies_sole_source'
+    ) {
+      throw new Error(`${label} must keep incomplete terrain fail-closed`);
+    }
+    stringValue(audit.methodologyNote, `${label}.methodologyNote`);
+  });
   if (
     !Array.isArray(benchmark.evaluationProtocols) ||
     benchmark.evaluationProtocols.length === 0
@@ -1264,6 +1859,31 @@ export function assertHistoricalBenchmarkManifest(
       throw new Error(`${protocol.label} source must be a comparison_reference`);
     }
   }
+  for (const requirement of conditionedReplayDatasetReferences) {
+    for (const datasetId of requirement.ids) {
+      if (!ids.has(datasetId)) {
+        throw new Error(
+          `${requirement.label} references unknown candidate dataset "${datasetId}"`,
+        );
+      }
+    }
+  }
+  for (const audit of conditionedReplayAuditDatasetReferences) {
+    for (const datasetId of audit.ids) {
+      if (!ids.has(datasetId)) {
+        throw new Error(
+          `${audit.label} references unknown source dataset "${datasetId}"`,
+        );
+      }
+    }
+  }
+  for (const audit of conditionedTerrainAuditDatasetReferences) {
+    if (!ids.has(audit.id)) {
+      throw new Error(
+        `${audit.label} references unknown terrain dataset "${audit.id}"`,
+      );
+    }
+  }
   for (const protocol of evaluationProtocolReferences) {
     if (!routingBaselineIds.has(protocol.predictionBaselineId)) {
       throw new Error(
@@ -1647,6 +2267,7 @@ function assertLocalArtifacts(
   });
 }
 
+/** Validates benchmark-wide coverage, grid, mask and tolerance semantics. */
 function assertBenchmarkSpatialProtocol(
   raw: Record<string, unknown>,
   aoiBounds: readonly number[],
@@ -1654,6 +2275,8 @@ function assertBenchmarkSpatialProtocol(
   readonly verifiedDatasetIds: readonly string[];
   readonly permanentWaterDatasetId: string;
   readonly cellAreaM2: number;
+  readonly gridCrs: string;
+  readonly gridBounds: readonly number[];
 } {
   const coverage = objectValue(
     raw.coverage,
@@ -1837,6 +2460,8 @@ function assertBenchmarkSpatialProtocol(
     verifiedDatasetIds,
     permanentWaterDatasetId,
     cellAreaM2: cellSizeM * cellSizeM,
+    gridCrs: 'EPSG:32632',
+    gridBounds,
   };
 }
 

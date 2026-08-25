@@ -16,6 +16,7 @@ const manifestPath = path.join(
   'manifest.json',
 );
 
+/** Loads an isolated mutable copy of the frozen benchmark manifest. */
 function manifestFixture() {
   return JSON.parse(readFileSync(manifestPath, 'utf8'));
 }
@@ -30,7 +31,7 @@ test('Emilia-Romagna manifest passes the historical benchmark contract', () => {
     'retrospective_reconstruction',
   );
   assert.equal(manifest.benchmark.claimLevel, 'hydrologic_routing');
-  assert.equal(manifest.manifestVersion, '1.9.0');
+  assert.equal(manifest.manifestVersion, '1.12.0');
   assert.ok(manifest.benchmark.forbiddenClaims.includes('validated_water_depth'));
 });
 
@@ -164,6 +165,277 @@ test('ARPAE comparison rejects calibration, silent zero and datum mixing', () =>
     () => assertHistoricalBenchmarkManifest(unknownSource),
     /references unknown observation dataset/,
   );
+});
+
+test('conditioned replay freezes a non-blind, fail-closed physical input gate', () => {
+  const manifest = manifestFixture();
+  const protocol = manifest.benchmark.conditionedReplayProtocols[0];
+
+  assert.equal(protocol.state, 'input_protocol_frozen');
+  assert.equal(protocol.claimLevelAtFreeze, 'hydrologic_routing');
+  assert.equal(protocol.validationMode, 'diagnostic_not_blind');
+  assert.equal(
+    protocol.evaluationReferenceAccessAtFreeze,
+    'already_loaded_for_prior_hydrologic_routing_evaluation',
+  );
+  assert.equal(protocol.calibration, false);
+  assert.deepEqual(
+    protocol.requiredBoundaryEvidence.map((requirement) => requirement.id),
+    [
+      'rainfall_and_surface_runoff_forcing',
+      'antecedent_moisture_or_model_warmup',
+      'montone_and_rabbi_inflow_hydrographs',
+      'downstream_stage_or_discharge_boundary',
+      'breach_location_timing_and_geometry',
+      'embankment_crest_geometry',
+      'bare_earth_terrain',
+      'channel_geometry_and_roughness',
+    ],
+  );
+  assert.equal(protocol.runGate.state, 'blocked_missing_required_evidence');
+  assert.equal(protocol.runGate.missingPolicy, 'block_run_not_zero_or_inferred');
+  assert.equal(protocol.runGate.noStageToDischargeWithoutRatingCurve, true);
+  assert.equal(protocol.runGate.noBreachInferenceFromFloodExtent, true);
+  assert.equal(protocol.runGate.noTuningToEventExtent, true);
+  assert.match(protocol.methodologyNote, /not a blind hindcast/);
+});
+
+test('conditioned replay rejects leakage, invented boundaries and gate drift', () => {
+  const calibrated = manifestFixture();
+  calibrated.benchmark.conditionedReplayProtocols[0].calibration = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(calibrated),
+    /must not calibrate on the observed event extent/,
+  );
+
+  const inventedDischarge = manifestFixture();
+  inventedDischarge.benchmark.conditionedReplayProtocols[0].runGate
+    .noStageToDischargeWithoutRatingCurve = false;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(inventedDischarge),
+    /must not infer discharge from local-datum stage/,
+  );
+
+  const inferredBreach = manifestFixture();
+  inferredBreach.benchmark.conditionedReplayProtocols[0].runGate
+    .noBreachInferenceFromFloodExtent = false;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(inferredBreach),
+    /must not infer breaches from the observed extent/,
+  );
+
+  const prematureRun = manifestFixture();
+  prematureRun.benchmark.conditionedReplayProtocols[0].runGate.state = 'eligible';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(prematureRun),
+    /runGate.state disagrees with required evidence/,
+  );
+
+  const contradictoryAudit = manifestFixture();
+  contradictoryAudit.benchmark.conditionedReplayProtocols[0]
+    .requiredBoundaryEvidence.forEach((requirement) => {
+      requirement.status = 'available';
+      delete requirement.blocker;
+    });
+  contradictoryAudit.benchmark.conditionedReplayProtocols[0].runGate.state = 'eligible';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(contradictoryAudit),
+    /contradicts the conditioned replay protocol run gate/,
+  );
+
+  const unknownSource = manifestFixture();
+  unknownSource.benchmark.conditionedReplayProtocols[0]
+    .requiredBoundaryEvidence[4].candidateDatasetIds = ['unknown-breach-source'];
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(unknownSource),
+    /references unknown candidate dataset/,
+  );
+});
+
+test('post-freeze ARPAE audit retains datums but finds no required discharge station', () => {
+  const manifest = manifestFixture();
+  const audit = manifest.benchmark.conditionedReplaySourceAudits[0];
+
+  assert.equal(audit.sourceAccess, 'loaded_after_protocol_freeze');
+  assert.equal(audit.quality, 'incomplete_window');
+  assert.equal(audit.dischargeNetwork.listedStationCount, 45);
+  assert.deepEqual(audit.dischargeNetwork.requiredStationNames, [
+    'Montone',
+    'Rabbi',
+  ]);
+  assert.equal(audit.dischargeNetwork.containsRequiredStations, false);
+  assert.equal(audit.dischargeNetwork.eventValidRatingCurvesAvailable, false);
+  assert.equal(audit.dischargeNetwork.dischargeHydrographsAvailable, false);
+  assert.deepEqual(
+    audit.stationDatums.map(({ name, datumMslM, status }) => ({
+      name,
+      datumMslM,
+      status,
+    })),
+    [
+      { name: 'Castrocaro', datumMslM: 53.48, status: 'available' },
+      { name: 'Predappio', datumMslM: 120.13, status: 'available' },
+      { name: 'Ponte Braldo', datumMslM: null, status: 'missing' },
+      { name: 'Ponte Vico', datumMslM: 8.51, status: 'available' },
+    ],
+  );
+  assert.equal(audit.conclusions.hydraulicUseEligible, false);
+  assert.equal(
+    audit.conclusions.protocolRunGate,
+    'blocked_missing_required_evidence',
+  );
+  assert.match(audit.methodologyNote, /No stage was converted to discharge/);
+});
+
+test('ARPAE source audit rejects inconsistent missing datum or hydraulic eligibility', () => {
+  const inconsistentDatum = manifestFixture();
+  inconsistentDatum.benchmark.conditionedReplaySourceAudits[0]
+    .stationDatums[2].datumMslM = 0;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(inconsistentDatum),
+    /missing datum must remain null/,
+  );
+
+  const fabricatedDischarge = manifestFixture();
+  fabricatedDischarge.benchmark.conditionedReplaySourceAudits[0]
+    .dischargeNetwork.containsRequiredStations = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(fabricatedDischarge),
+    /cannot promote absent discharge evidence/,
+  );
+
+  const prematureHydraulics = manifestFixture();
+  prematureHydraulics.benchmark.conditionedReplaySourceAudits[0]
+    .conclusions.hydraulicUseEligible = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(prematureHydraulics),
+    /keep the hydraulic replay fail-closed/,
+  );
+});
+
+test('bounded PST terrain audit preserves source nodata and critical gaps', () => {
+  const manifest = manifestFixture();
+  const audit = manifest.benchmark.conditionedReplayTerrainAudits[0];
+  const dataset = manifest.datasets.find(
+    (candidate) => candidate.id === 'rer-dtm-1m-pst',
+  );
+
+  assert.equal(audit.sourceAccess, 'loaded_after_protocol_freeze');
+  assert.equal(audit.quality, 'incomplete_window');
+  assert.equal(audit.coverageRequest.sourceCrs, 'EPSG:23032');
+  assert.equal(audit.coverageRequest.sourceResolutionM, 1);
+  assert.equal(audit.coverageRequest.representationResolutionM, 5);
+  assert.equal(audit.coverageRequest.declaredNoData, -3);
+  assert.equal(audit.coverageRequest.geoTiffNoDataTag, 'missing');
+  assert.deepEqual(
+    audit.coverageRequest.aoiRelation.sourceBounds,
+    audit.coverageRequest.bounds,
+  );
+  assert.equal(audit.coverageRequest.aoiRelation.targetCrs, 'EPSG:32632');
+  assert.equal(
+    audit.coverageRequest.aoiRelation.reference,
+    'benchmark_spatial_grid_bounds',
+  );
+  assert.equal(audit.coverageRequest.aoiRelation.toleranceM, 1);
+  assert.deepEqual(audit.counts, {
+    totalPixels: 5069731,
+    availablePixels: 4508766,
+    missingPixels: 560965,
+    missingFraction: 0.1106498549923063,
+  });
+  assert.deepEqual(
+    audit.physicalFeatureCoverage.map(
+      ({ layer, knownCenterCells, terrainMissingAtCenter }) => ({
+        layer,
+        knownCenterCells,
+        terrainMissingAtCenter,
+      }),
+    ),
+    [
+      { layer: 'riverbed', knownCenterCells: 12762, terrainMissingAtCenter: 1544 },
+      { layer: 'embankment', knownCenterCells: 10525, terrainMissingAtCenter: 1542 },
+      { layer: 'permanent_water', knownCenterCells: 10859, terrainMissingAtCenter: 1550 },
+    ],
+  );
+  assert.equal(audit.conclusions.hydraulicUseEligible, false);
+  assert.equal(audit.conclusions.noDataPolicy, 'missing_not_zero_or_interpolated');
+  assert.equal(dataset.acquisitionStatus, 'downloaded_verified');
+  assert.equal(dataset.localArtifacts.length, 3);
+});
+
+test('terrain audit rejects invalid resolution, count drift and premature eligibility', () => {
+  const invalidResolution = manifestFixture();
+  invalidResolution.benchmark.conditionedReplayTerrainAudits[0]
+    .coverageRequest.representationResolutionM = 0;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(invalidResolution),
+    /resolutions must be positive/,
+  );
+
+  const falsePrecision = manifestFixture();
+  falsePrecision.benchmark.conditionedReplayTerrainAudits[0]
+    .coverageRequest.representationResolutionM = 0.5;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(falsePrecision),
+    /representation cannot claim finer resolution than the source/,
+  );
+
+  const unrelatedRequest = manifestFixture();
+  unrelatedRequest.benchmark.conditionedReplayTerrainAudits[0]
+    .coverageRequest.bounds = [0, 0, 10, 10];
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(unrelatedRequest),
+    /AOI source bounds must equal the request/,
+  );
+
+  const unrelatedTransformedBounds = manifestFixture();
+  unrelatedTransformedBounds.benchmark.conditionedReplayTerrainAudits[0]
+    .coverageRequest.aoiRelation.transformedBounds = [0, 0, 10, 10];
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(unrelatedTransformedBounds),
+    /transformed bounds do not contain the benchmark grid/,
+  );
+
+  const unboundedTolerance = manifestFixture();
+  unboundedTolerance.benchmark.conditionedReplayTerrainAudits[0]
+    .coverageRequest.aoiRelation.toleranceM = 2;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(unboundedTolerance),
+    /AOI tolerance must be between zero and one source cell/,
+  );
+
+  const countDrift = manifestFixture();
+  countDrift.benchmark.conditionedReplayTerrainAudits[0].counts.missingPixels -= 1;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(countDrift),
+    /counts are inconsistent with the bounded raster/,
+  );
+
+  const prematureHydraulics = manifestFixture();
+  prematureHydraulics.benchmark.conditionedReplayTerrainAudits[0]
+    .conclusions.hydraulicUseEligible = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(prematureHydraulics),
+    /keep incomplete terrain fail-closed/,
+  );
+});
+
+test('terrain audit accepts truthful zero component counts', () => {
+  const noAvailableTerrain = manifestFixture();
+  const coverage = noAvailableTerrain.benchmark.conditionedReplayTerrainAudits[0]
+    .physicalFeatureCoverage[0];
+  coverage.terrainAvailableAtCenter = 0;
+  coverage.terrainMissingAtCenter = coverage.knownCenterCells;
+
+  assert.doesNotThrow(() => assertHistoricalBenchmarkManifest(noAvailableTerrain));
+
+  const completeFeatureCoverage = manifestFixture();
+  const completeCoverage = completeFeatureCoverage.benchmark
+    .conditionedReplayTerrainAudits[0].physicalFeatureCoverage[0];
+  completeCoverage.terrainAvailableAtCenter = completeCoverage.knownCenterCells;
+  completeCoverage.terrainMissingAtCenter = 0;
+
+  assert.doesNotThrow(() => assertHistoricalBenchmarkManifest(completeFeatureCoverage));
 });
 
 test('ARPAE comparison run materializes rain and explicit stage gaps', () => {
