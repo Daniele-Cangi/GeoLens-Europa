@@ -1267,6 +1267,11 @@ export function assertHistoricalBenchmarkManifest(
       recalibration.sourceDatasetId,
       `${label}.effortsRecalibrationContext.sourceDatasetId`,
     );
+    if (recalibrationDatasetId !== 'arpae-efforts-romagna-recalibration-2024') {
+      throw new Error(
+        `${label} must reference the official EFFORTS recalibration dataset`,
+      );
+    }
     conditionedReplayAuditDatasetReferences.push({
       label,
       ids: [sourceDatasetId, recalibrationDatasetId],

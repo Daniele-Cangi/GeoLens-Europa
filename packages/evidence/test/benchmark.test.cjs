@@ -453,6 +453,14 @@ test('regional Commission audit rejects digitization, numeric drift and gate pro
     () => assertHistoricalBenchmarkManifest(inventedHighFlowCurve),
     /must retain the official high-flow recalibration constraints/,
   );
+
+  const unrelatedRecalibrationSource = manifestFixture();
+  unrelatedRecalibrationSource.benchmark.conditionedReplayHydrographAudits[0]
+    .effortsRecalibrationContext.sourceDatasetId = 'arpae-2023-hydrometry';
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(unrelatedRecalibrationSource),
+    /must reference the official EFFORTS recalibration dataset/,
+  );
 });
 
 test('official physical-source audit retains narrative breaches and drawing-only archives', () => {
