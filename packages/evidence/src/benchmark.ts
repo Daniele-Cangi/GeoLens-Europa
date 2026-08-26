@@ -202,6 +202,7 @@ export interface BenchmarkConditionedReplayHydrographAudit {
     readonly priorCurveCalibrationBasis: 'direct_discharge_measurements_low_flow_only';
     readonly minimumHistoricalFloodEvents: 2;
     readonly separateValidationEventRequired: true;
+    readonly uncertaintyAssessmentRequired: true;
     readonly nonBijectiveOrFloodLoopBehaviourMustBeAssessed: true;
     readonly requiredDeliveryDate: '2025-12-31';
     readonly publicMachineReadableDeliverablesAvailable: false;
@@ -1286,6 +1287,7 @@ export function assertHistoricalBenchmarkManifest(
         'direct_discharge_measurements_low_flow_only' ||
       recalibration.minimumHistoricalFloodEvents !== 2 ||
       recalibration.separateValidationEventRequired !== true ||
+      recalibration.uncertaintyAssessmentRequired !== true ||
       recalibration.nonBijectiveOrFloodLoopBehaviourMustBeAssessed !== true ||
       recalibration.requiredDeliveryDate !== '2025-12-31' ||
       recalibration.publicMachineReadableDeliverablesAvailable !== false

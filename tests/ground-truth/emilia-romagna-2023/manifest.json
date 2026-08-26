@@ -752,6 +752,7 @@
           "priorCurveCalibrationBasis": "direct_discharge_measurements_low_flow_only",
           "minimumHistoricalFloodEvents": 2,
           "separateValidationEventRequired": true,
+          "uncertaintyAssessmentRequired": true,
           "nonBijectiveOrFloodLoopBehaviourMustBeAssessed": true,
           "requiredDeliveryDate": "2025-12-31",
           "publicMachineReadableDeliverablesAvailable": false

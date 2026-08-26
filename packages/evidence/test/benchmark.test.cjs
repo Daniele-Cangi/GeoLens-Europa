@@ -372,6 +372,7 @@ test('regional Commission audit retains plotted Montone discharge without promot
     priorCurveCalibrationBasis: 'direct_discharge_measurements_low_flow_only',
     minimumHistoricalFloodEvents: 2,
     separateValidationEventRequired: true,
+    uncertaintyAssessmentRequired: true,
     nonBijectiveOrFloodLoopBehaviourMustBeAssessed: true,
     requiredDeliveryDate: '2025-12-31',
     publicMachineReadableDeliverablesAvailable: false,
@@ -460,6 +461,14 @@ test('regional Commission audit rejects digitization, numeric drift and gate pro
   assert.throws(
     () => assertHistoricalBenchmarkManifest(unrelatedRecalibrationSource),
     /must reference the official EFFORTS recalibration dataset/,
+  );
+
+  const missingUncertaintyRequirement = manifestFixture();
+  missingUncertaintyRequirement.benchmark.conditionedReplayHydrographAudits[0]
+    .effortsRecalibrationContext.uncertaintyAssessmentRequired = false;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(missingUncertaintyRequirement),
+    /must retain the official high-flow recalibration constraints/,
   );
 });
 
