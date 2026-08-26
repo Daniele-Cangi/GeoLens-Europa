@@ -49,7 +49,7 @@ test('Emilia-Romagna manifest passes the historical benchmark contract', () => {
     'retrospective_reconstruction',
   );
   assert.equal(manifest.benchmark.claimLevel, 'hydrologic_routing');
-  assert.equal(manifest.manifestVersion, '1.14.0');
+  assert.equal(manifest.manifestVersion, '1.15.0');
   assert.ok(manifest.benchmark.forbiddenClaims.includes('validated_water_depth'));
 });
 
@@ -362,6 +362,20 @@ test('regional Commission audit retains plotted Montone discharge without promot
   assert.equal(audit.quality, 'incomplete_window');
   assert.equal(audit.ratingCurveEvidence.vintageYear, 2022);
   assert.equal(audit.ratingCurveEvidence.formulaOrTableAvailable, false);
+  assert.deepEqual(audit.effortsRecalibrationContext, {
+    sourceDatasetId: 'arpae-efforts-romagna-recalibration-2024',
+    determinationId: 'DET-2024-723',
+    topkapiCalibrationBasin: 'Montone-Rabbi',
+    hecRasCalibrationRiver: 'Montone',
+    measuredVsModelledHydrographsRequired: true,
+    highFlowRatingCurveStation: 'Montone at Castrocaro',
+    priorCurveCalibrationBasis: 'direct_discharge_measurements_low_flow_only',
+    minimumHistoricalFloodEvents: 2,
+    separateValidationEventRequired: true,
+    nonBijectiveOrFloodLoopBehaviourMustBeAssessed: true,
+    requiredDeliveryDate: '2025-12-31',
+    publicMachineReadableDeliverablesAvailable: false,
+  });
   assert.equal(audit.hydrographEvidence.figureNumber, 63);
   assert.equal(audit.hydrographEvidence.temporalResolutionMinutes, 60);
   assert.equal(audit.hydrographEvidence.machineReadableSeriesAvailable, false);
@@ -430,6 +444,14 @@ test('regional Commission audit rejects digitization, numeric drift and gate pro
   assert.throws(
     () => assertHistoricalBenchmarkManifest(incompleteArchiveReceipt),
     /archived retrieval URL and timestamp must be paired/,
+  );
+
+  const inventedHighFlowCurve = manifestFixture();
+  inventedHighFlowCurve.benchmark.conditionedReplayHydrographAudits[0]
+    .effortsRecalibrationContext.publicMachineReadableDeliverablesAvailable = true;
+  assert.throws(
+    () => assertHistoricalBenchmarkManifest(inventedHighFlowCurve),
+    /must retain the official high-flow recalibration constraints/,
   );
 });
 
