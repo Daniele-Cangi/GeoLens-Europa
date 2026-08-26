@@ -1,1397 +1,367 @@
-'use client';
+import Link from 'next/link';
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type FormEvent,
-  type KeyboardEvent,
-} from 'react';
-
-import ObservedInfrastructurePanel from './components/ObservedInfrastructurePanel';
-
-import {
-  PROOF_ZERO_NODE_POSITIONS,
-  PROOF_ZERO_PIPES,
-} from './lib/fixture';
-import {
-  getObservedInfrastructure,
-  runProofZero,
-  type Evidence,
-  type EvidenceStatus,
-  type ObservedInfrastructureResult,
-  type ProofZeroResult,
-  type ProviderSummary,
-} from './lib/api';
-
-type Selection =
-  | { readonly kind: 'catchment'; readonly id: string }
-  | { readonly kind: 'node'; readonly id: string }
-  | { readonly kind: 'pipe'; readonly id: string };
-
-type DisplayStatus = EvidenceStatus | 'not_requested';
-
-const VERIFIED_REFERENCE_TIME_INPUT = '2026-08-20T00:00';
-const VERIFIED_REFERENCE_TIME_ISO =
-  '2026-08-20T00:00:00.000Z';
-
-function utcInputToIso(value: string): string {
-  const instant = new Date(value + ':00.000Z');
-
-  if (Number.isNaN(instant.getTime())) {
-    throw new Error('Observation reference must be a valid UTC timestamp.');
-  }
-
-  return instant.toISOString();
-}
-
-const SOURCE_DEFAULTS = {
-  rainfall: {
-    provider: 'NASA GES DISC',
-    dataset: 'GPM IMERG',
-    sourceResolution: '0.1° source grid',
-    layers: ['rainfall24h_mm'],
+const evidenceSources = [
+  {
+    index: '01',
+    label: 'Observation',
+    name: 'IMERG precipitation',
+    detail: 'Temporal window + granule provenance',
   },
-  terrain: {
-    provider: 'Copernicus Data Space Ecosystem',
-    dataset: 'Copernicus DEM GLO-30',
-    sourceResolution: '1 arc-second (~30 m at equator)',
-    layers: ['elevation_m', 'slope_deg'],
+  {
+    index: '02',
+    label: 'Terrain',
+    name: 'Copernicus DEM',
+    detail: 'Elevation + derived slope',
   },
-  landCover: {
-    provider: 'Copernicus Land Monitoring Service',
-    dataset: 'CORINE Land Cover',
-    sourceResolution: '100 m source raster',
-    layers: ['land_cover_class'],
+  {
+    index: '03',
+    label: 'Surface',
+    name: 'CORINE land cover',
+    detail: 'Class + source resolution',
   },
-} as const;
+] as const;
 
-function statusLabel(status: string): string {
-  return status.replaceAll('_', ' ');
-}
+const methodSteps = [
+  {
+    number: '01',
+    label: 'Acquire',
+    title: 'Observe what is actually available.',
+    copy: 'Providers return evidence with time, coverage, resolution and an explicit quality state. Failure never becomes a plausible zero.',
+    output: 'Evidence<T>',
+  },
+  {
+    number: '02',
+    label: 'Compose',
+    title: 'Place unlike sources on one spatial ledger.',
+    copy: 'H3 connects rainfall, terrain, land cover and infrastructure while the native source resolution remains visible.',
+    output: 'H3 bundle',
+  },
+  {
+    number: '03',
+    label: 'Derive',
+    title: 'Turn observations into inspectable quantities.',
+    copy: 'Deterministic models expose rainfall, slope, land cover, coefficients, runoff depth and represented volume.',
+    output: 'Physical state',
+  },
+  {
+    number: '04',
+    label: 'Route',
+    title: 'Move state only across defensible connections.',
+    copy: 'Catchment attachment, topology and edge direction are validated independently. Unknown remains unknown.',
+    output: 'Network state',
+  },
+] as const;
 
-function formatNumber(
-  value: number | null | undefined,
-  digits = 2,
-  unit = '',
-): string {
-  if (value === null || value === undefined) {
-    return '—';
-  }
-
-  return `${value.toLocaleString('en-GB', {
-    maximumFractionDigits: digits,
-  })}${unit ? ` ${unit}` : ''}`;
-}
-
-function evidenceText(
-  evidence: Evidence<number> | undefined,
-  digits = 2,
-): string {
-  if (!evidence || evidence.value === null) {
-    return evidence
-      ? statusLabel(evidence.quality.status)
-      : '—';
-  }
-
-  return formatNumber(evidence.value, digits, evidence.unit);
-}
-
-function resolveSourceStatus(
-  result: ProofZeroResult | null,
-  source: ProviderSummary | undefined,
-  layers: readonly string[],
-): DisplayStatus {
-  if (!result) {
-    return 'not_requested';
-  }
-
-  const issue = result.environmental.issues.find((candidate) =>
-    layers.includes(candidate.layer),
-  );
-
-  if (issue) {
-    return issue.status;
-  }
-
-  return source?.status === 'upstream_error'
-    ? 'upstream_error'
-    : 'available';
-}
-
-function StatusPill({
-  status,
-}: {
-  readonly status:
-    | DisplayStatus
-    | 'complete'
-    | 'incomplete'
-    | 'known'
-    | 'unknown'
-    | 'ambiguous';
-}) {
-  return (
-    <span className="status-pill" data-status={status}>
-      <span className="status-dot" aria-hidden="true" />
-      {statusLabel(status)}
-    </span>
-  );
-}
-
-function SourceCard({
-  eyebrow,
-  source,
-  fallback,
-  status,
-}: {
-  readonly eyebrow: string;
-  readonly source?: ProviderSummary;
-  readonly fallback: {
-    readonly provider: string;
-    readonly dataset: string;
-    readonly sourceResolution: string;
-  };
-  readonly status: DisplayStatus;
-}) {
-  return (
-    <article className="source-card">
-      <div className="source-card-heading">
-        <p className="eyebrow">{eyebrow}</p>
-        <StatusPill status={status} />
-      </div>
-      <h3>{source?.dataset ?? fallback.dataset}</h3>
-      <p>{source?.provider ?? fallback.provider}</p>
-      <dl className="compact-facts">
-        <div>
-          <dt>Source resolution</dt>
-          <dd>{fallback.sourceResolution}</dd>
-        </div>
-        <div>
-          <dt>Acquired</dt>
-          <dd>
-            {source
-              ? formatUtcTimestamp(source.acquiredAt)
-              : 'Not requested'}
-          </dd>
-        </div>
-      </dl>
-      {source?.missingReason ? (
-        <p className="source-reason">{source.missingReason}</p>
-      ) : null}
-    </article>
-  );
-}
-
-function MetricCard({
-  label,
-  value,
-  detail,
-}: {
-  readonly label: string;
-  readonly value: string;
-  readonly detail: string;
-}) {
-  return (
-    <article className="metric-card">
-      <p>{label}</p>
-      <strong>{value}</strong>
-      <span>{detail}</span>
-    </article>
-  );
-}
-
-function activateOnKeyboard(
-  event: KeyboardEvent<SVGGElement>,
-  action: () => void,
-): void {
-  if (event.key === 'Enter' || event.key === ' ') {
-    event.preventDefault();
-    action();
-  }
-}
-
-type ProofZeroNodeId =
-  keyof typeof PROOF_ZERO_NODE_POSITIONS;
-
-function positionForNode(nodeId: string) {
-  return PROOF_ZERO_NODE_POSITIONS[
-    nodeId as ProofZeroNodeId
-  ];
-}
-
-function NetworkCanvas({
-  result,
-  selection,
-  onSelect,
-}: {
-  readonly result: ProofZeroResult | null;
-  readonly selection: Selection;
-  readonly onSelect: (selection: Selection) => void;
-}) {
-  const catchment = result?.catchmentContributions[0];
-
-  return (
-    <div className="network-canvas">
-      <svg
-        viewBox="0 0 820 520"
-        role="img"
-        aria-labelledby="network-title network-description"
-      >
-        <title id="network-title">
-          Proof 0 stormwater network
-        </title>
-        <desc id="network-description">
-          One catchment connected to an inlet, manhole and
-          outfall through two pipes.
-        </desc>
-        <defs>
-          <pattern
-            id="minor-grid"
-            width="32"
-            height="32"
-            patternUnits="userSpaceOnUse"
-          >
-            <path
-              d="M 32 0 L 0 0 0 32"
-              className="grid-minor"
-            />
-          </pattern>
-          <pattern
-            id="major-grid"
-            width="160"
-            height="160"
-            patternUnits="userSpaceOnUse"
-          >
-            <rect
-              width="160"
-              height="160"
-              fill="url(#minor-grid)"
-            />
-            <path
-              d="M 160 0 L 0 0 0 160"
-              className="grid-major"
-            />
-          </pattern>
-          <marker
-            id="flow-arrow"
-            viewBox="0 0 10 10"
-            refX="8"
-            refY="5"
-            markerWidth="7"
-            markerHeight="7"
-            orient="auto-start-reverse"
-          >
-            <path d="M 0 0 L 10 5 L 0 10 z" />
-          </marker>
-        </defs>
-
-        <rect width="820" height="520" fill="url(#major-grid)" />
-
-        <g
-          role="button"
-          tabIndex={0}
-          aria-label="Inspect catchment A"
-          className="catchment-shape"
-          data-selected={
-            selection.kind === 'catchment' || undefined
-          }
-          data-status={catchment?.status ?? 'not_requested'}
-          onClick={() =>
-            onSelect({ kind: 'catchment', id: 'catchment_A' })
-          }
-          onKeyDown={(event) =>
-            activateOnKeyboard(event, () =>
-              onSelect({
-                kind: 'catchment',
-                id: 'catchment_A',
-              }),
-            )
-          }
-        >
-          <path d="M 92 84 L 344 102 L 370 246 L 192 292 L 72 206 Z" />
-          <text x="104" y="124">
-            CATCHMENT A
-          </text>
-          <text x="104" y="148" className="shape-detail">
-            {catchment
-              ? `${formatNumber(
-                  catchment.representedAreaM2,
-                  0,
-                  'm²',
-                )} represented`
-              : 'Evidence not requested'}
-          </text>
-        </g>
-
-        {PROOF_ZERO_PIPES.map((pipe) => {
-          const direction =
-            result?.orientedNetwork.directions[pipe.id];
-          const known =
-            direction?.status === 'known' ? direction : null;
-          const fromId = known?.fromNodeId ?? pipe.from;
-          const toId = known?.toNodeId ?? pipe.to;
-          const from =
-            positionForNode(fromId) ??
-            PROOF_ZERO_NODE_POSITIONS[pipe.from];
-          const to =
-            positionForNode(toId) ??
-            PROOF_ZERO_NODE_POSITIONS[pipe.to];
-          const selected =
-            selection.kind === 'pipe' &&
-            selection.id === pipe.id;
-
-          return (
-            <g
-              key={pipe.id}
-              role="button"
-              tabIndex={0}
-              aria-label={`Inspect ${pipe.id}`}
-              className="pipe-shape"
-              data-selected={selected || undefined}
-              data-status={
-                direction?.status ?? 'not_requested'
-              }
-              onClick={() =>
-                onSelect({ kind: 'pipe', id: pipe.id })
-              }
-              onKeyDown={(event) =>
-                activateOnKeyboard(event, () =>
-                  onSelect({ kind: 'pipe', id: pipe.id }),
-                )
-              }
-            >
-              <line
-                x1={from.x}
-                y1={from.y}
-                x2={to.x}
-                y2={to.y}
-                markerEnd={known ? 'url(#flow-arrow)' : undefined}
-              />
-              <line
-                x1={from.x}
-                y1={from.y}
-                x2={to.x}
-                y2={to.y}
-                className="pipe-hit-area"
-              />
-              <text
-                x={(from.x + to.x) / 2}
-                y={(from.y + to.y) / 2 - 16}
-              >
-                {direction?.status ?? 'unresolved'}
-              </text>
-            </g>
-          );
-        })}
-
-        {Object.entries(PROOF_ZERO_NODE_POSITIONS).map(
-          ([nodeId, position]) => {
-            const node =
-              result?.topology.nodes[nodeId];
-            const evidenceStatus =
-              node?.elevationM.quality.status ??
-              'not_requested';
-            const selected =
-              selection.kind === 'node' &&
-              selection.id === nodeId;
-
-            return (
-              <g
-                key={nodeId}
-                role="button"
-                tabIndex={0}
-                aria-label={`Inspect ${position.label}`}
-                className="node-shape"
-                data-selected={selected || undefined}
-                data-status={evidenceStatus}
-                onClick={() =>
-                  onSelect({ kind: 'node', id: nodeId })
-                }
-                onKeyDown={(event) =>
-                  activateOnKeyboard(event, () =>
-                    onSelect({
-                      kind: 'node',
-                      id: nodeId,
-                    }),
-                  )
-                }
-              >
-                <circle
-                  cx={position.x}
-                  cy={position.y}
-                  r="18"
-                />
-                <circle
-                  cx={position.x}
-                  cy={position.y}
-                  r="6"
-                  className="node-core"
-                />
-                <text
-                  x={position.x}
-                  y={position.y + 40}
-                  textAnchor="middle"
-                >
-                  {position.label}
-                </text>
-                <text
-                  x={position.x}
-                  y={position.y + 58}
-                  textAnchor="middle"
-                  className="shape-detail"
-                >
-                  {node
-                    ? evidenceText(node.elevationM, 1)
-                    : 'elevation pending'}
-                </text>
-              </g>
-            );
-          },
-        )}
-      </svg>
-      <div className="canvas-legend" aria-label="Network legend">
-        <span><i className="legend-node" /> Node</span>
-        <span><i className="legend-pipe" /> Pipe</span>
-        <span><i className="legend-catchment" /> Catchment</span>
-      </div>
-    </div>
-  );
-}
-
-function EvidenceDetail({
-  label,
-  evidence,
-  value,
-  emptyMessage,
-}: {
-  readonly label: string;
-  readonly evidence?: Evidence<unknown>;
-  readonly value?: string;
-  readonly emptyMessage?: string;
-}) {
-  return (
-    <section className="evidence-detail">
-      <div className="detail-heading">
-        <h4>{label}</h4>
-        {evidence ? (
-          <StatusPill status={evidence.quality.status} />
-        ) : null}
-      </div>
-      <p className="detail-value">
-        {value ??
-          (evidence?.value === null ||
-          evidence?.value === undefined
-            ? evidence
-              ? statusLabel(evidence.quality.status)
-              : '—'
-            : String(evidence.value))}
-      </p>
-      {evidence ? (
-        <dl className="detail-grid">
-          <div>
-            <dt>Provider</dt>
-            <dd>{evidence.provenance.provider}</dd>
-          </div>
-          <div>
-            <dt>Dataset</dt>
-            <dd>{evidence.provenance.dataset}</dd>
-          </div>
-          <div>
-            <dt>Source resolution</dt>
-            <dd>
-              {evidence.spatial.sourceResolution ?? 'Not stated'}
-            </dd>
-          </div>
-          <div>
-            <dt>Transformation</dt>
-            <dd>
-              {evidence.provenance.transformation ??
-                'Direct observation'}
-            </dd>
-          </div>
-        </dl>
-      ) : (
-        <p className="empty-copy">
-          {emptyMessage ??
-            'Run Proof 0 to inspect traceable evidence.'}
-        </p>
-      )}
-      {evidence?.quality.missingReason ? (
-        <p className="missing-reason">
-          {evidence.quality.missingReason}
-        </p>
-      ) : null}
-    </section>
-  );
-}
-
-function Inspector({
-  result,
-  selection,
-}: {
-  readonly result: ProofZeroResult | null;
-  readonly selection: Selection;
-}) {
-  if (selection.kind === 'catchment') {
-    const contribution =
-      result?.catchmentContributions.find(
-        (candidate) => candidate.catchmentId === selection.id,
-      );
-    const firstCell = contribution?.cells[0];
-    const runoff = firstCell?.runoff.output.value;
-
-    return (
-      <>
-        <div className="inspector-heading">
-          <p className="eyebrow">Catchment</p>
-          <h2>{selection.id}</h2>
-          {contribution ? (
-            <StatusPill status={contribution.status} />
-          ) : null}
-        </div>
-        <EvidenceDetail
-          label="Total contribution"
-          evidence={contribution?.totalVolumeM3}
-          value={
-            contribution
-              ? evidenceText(contribution.totalVolumeM3, 3)
-              : undefined
-          }
-        />
-        <section className="model-card">
-          <p className="eyebrow">Runoff model v0</p>
-          <dl className="inspector-facts">
-            <div>
-              <dt>Rainfall input</dt>
-              <dd>
-                {runoff
-                  ? formatNumber(runoff.rainfallMm, 2, 'mm')
-                  : '—'}
-              </dd>
-            </div>
-            <div>
-              <dt>Land cover</dt>
-              <dd>
-                {runoff
-                  ? `${runoff.landCoverClass} · ${runoff.landCoverGroup}`
-                  : '—'}
-              </dd>
-            </div>
-            <div>
-              <dt>Imperviousness proxy</dt>
-              <dd>
-                {runoff
-                  ? formatNumber(
-                      runoff.imperviousnessProxy,
-                      3,
-                    )
-                  : '—'}
-              </dd>
-            </div>
-            <div>
-              <dt>Runoff coefficient</dt>
-              <dd>
-                {runoff
-                  ? formatNumber(
-                      runoff.runoffCoefficient,
-                      3,
-                    )
-                  : '—'}
-              </dd>
-            </div>
-            <div>
-              <dt>Derived runoff</dt>
-              <dd>
-                {runoff
-                  ? formatNumber(
-                      runoff.derivedRunoffMm,
-                      2,
-                      'mm',
-                    )
-                  : '—'}
-              </dd>
-            </div>
-            <div>
-              <dt>Model version</dt>
-              <dd>{runoff?.modelVersion ?? '—'}</dd>
-            </div>
-          </dl>
-        </section>
-      </>
-    );
-  }
-
-  if (selection.kind === 'node') {
-    const node = result?.topology.nodes[selection.id];
-    const accumulation =
-      result?.propagation.status === 'complete'
-        ? result.propagation.nodes[selection.id]
-            ?.downstreamAccumulationM3
-        : undefined;
-
-    return (
-      <>
-        <div className="inspector-heading">
-          <p className="eyebrow">Network node</p>
-          <h2>{selection.id}</h2>
-          {node ? (
-            <StatusPill status={node.elevationM.quality.status} />
-          ) : null}
-        </div>
-        <EvidenceDetail
-          label="Elevation evidence"
-          evidence={node?.elevationM}
-          value={
-            node ? evidenceText(node.elevationM, 2) : undefined
-          }
-        />
-        <EvidenceDetail
-          label="Downstream accumulation"
-          evidence={accumulation}
-          value={
-            accumulation
-              ? evidenceText(accumulation, 3)
-              : undefined
-          }
-          emptyMessage={
-            result && result.propagation.status !== 'complete'
-              ? `Propagation ${statusLabel(
-                  result.propagation.status,
-                )}: ${result.propagation.reason}`
-              : undefined
-          }
-        />
-      </>
-    );
-  }
-
-  const pipe = result?.topology.pipes[selection.id];
-  const direction =
-    result?.orientedNetwork.directions[selection.id];
-  const transfer =
-    result?.propagation.status === 'complete'
-      ? result.propagation.pipes[selection.id]
-          ?.transferredVolumeM3
-      : undefined;
-
-  return (
-    <>
-      <div className="inspector-heading">
-        <p className="eyebrow">Network pipe</p>
-        <h2>{selection.id}</h2>
-        {direction ? (
-          <StatusPill status={direction.status} />
-        ) : null}
-      </div>
-      <section className="model-card">
-        <dl className="inspector-facts">
-          <div>
-            <dt>Endpoints</dt>
-            <dd>
-              {pipe
-                ? `${pipe.nodeAId} ↔ ${pipe.nodeBId}`
-                : '—'}
-            </dd>
-          </div>
-          <div>
-            <dt>Length</dt>
-            <dd>
-              {pipe
-                ? formatNumber(pipe.lengthM, 2, 'm')
-                : '—'}
-            </dd>
-          </div>
-          <div>
-            <dt>Direction state</dt>
-            <dd>{direction?.status ?? '—'}</dd>
-          </div>
-          <div>
-            <dt>Resolved flow</dt>
-            <dd>
-              {direction?.status === 'known'
-                ? `${direction.fromNodeId} → ${direction.toNodeId}`
-                : direction
-                  ? statusLabel(direction.reason)
-                  : '—'}
-            </dd>
-          </div>
-          <div>
-            <dt>Vertical drop</dt>
-            <dd>
-              {direction?.status === 'known'
-                ? formatNumber(
-                    direction.verticalDropM,
-                    3,
-                    'm',
-                  )
-                : '—'}
-            </dd>
-          </div>
-          <div>
-            <dt>Grade</dt>
-            <dd>
-              {direction?.status === 'known'
-                ? formatNumber(direction.grade, 4)
-                : '—'}
-            </dd>
-          </div>
-        </dl>
-      </section>
-      <EvidenceDetail
-        label="Transferred volume"
-        evidence={transfer}
-        value={transfer ? evidenceText(transfer, 3) : undefined}
-        emptyMessage={
-          result && result.propagation.status !== 'complete'
-            ? `Propagation ${statusLabel(
-                result.propagation.status,
-              )}: ${result.propagation.reason}`
-            : undefined
-        }
-      />
-    </>
-  );
-}
-
-function EvidenceTable({
-  result,
-}: {
-  readonly result: ProofZeroResult | null;
-}) {
-  const cells = result
-    ? Object.values(result.environmental.cells)
-    : [];
-
-  return (
-    <div className="table-scroll">
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">H3 index</th>
-            <th scope="col">Rain 24 h</th>
-            <th scope="col">Elevation</th>
-            <th scope="col">Slope</th>
-            <th scope="col">CLC class</th>
-            <th scope="col">Runoff</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cells.length > 0 ? (
-            cells.map((cell) => {
-              const runoff = result?.catchmentContributions
-                .flatMap((item) => item.cells)
-                .find((item) => item.h3 === cell.h3)
-                ?.runoff.output;
-
-              return (
-                <tr key={cell.h3}>
-                  <th scope="row">
-                    <code>{cell.h3}</code>
-                    <small>H3 representation</small>
-                  </th>
-                  <td>{evidenceText(cell.rainfall24hMm)}</td>
-                  <td>{evidenceText(cell.elevationM, 1)}</td>
-                  <td>{evidenceText(cell.slopeDeg, 2)}</td>
-                  <td>
-                    {evidenceText(
-                      cell.landCoverClass,
-                      0,
-                    )}
-                  </td>
-                  <td>
-                    {runoff?.value
-                      ? formatNumber(
-                          runoff.value.derivedRunoffMm,
-                          2,
-                          'mm',
-                        )
-                      : runoff
-                        ? statusLabel(runoff.quality.status)
-                        : '—'}
-                  </td>
-                </tr>
-              );
-            })
-          ) : (
-            <tr>
-              <td colSpan={6} className="table-empty">
-                No environmental evidence requested yet.
-                A true measured zero will be shown as 0;
-                missing evidence keeps its explicit status.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function metadataNumber(
-  metadata: Readonly<Record<string, unknown>> | undefined,
-  key: string,
-): number | undefined {
-  const value = metadata?.[key];
-  return typeof value === 'number' ? value : undefined;
-}
-
-function metadataString(
-  metadata: Readonly<Record<string, unknown>> | undefined,
-  key: string,
-): string | undefined {
-  const value = metadata?.[key];
-  return typeof value === 'string' ? value : undefined;
-}
-
-function metadataBoolean(
-  metadata: Readonly<Record<string, unknown>> | undefined,
-  key: string,
-): boolean | undefined {
-  const value = metadata?.[key];
-  return typeof value === 'boolean' ? value : undefined;
-}
-
-function formatUtcTimestamp(value: string | undefined): string {
-  if (!value) {
-    return '—';
-  }
-
-  const instant = new Date(value);
-  if (Number.isNaN(instant.getTime())) {
-    return value;
-  }
-
-  return (
-    instant.toLocaleString('en-GB', {
-      timeZone: 'UTC',
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    }) + ' UTC'
-  );
-}
-
-function formatWindow(
-  start: string | undefined,
-  end: string | undefined,
-): string {
-  if (!start || !end) {
-    return '—';
-  }
-
-  return (
-    formatUtcTimestamp(start) +
-    ' → ' +
-    formatUtcTimestamp(end)
-  );
-}
-
-function ImergReceipt({
-  evidence,
-  isRunning,
-}: {
-  readonly evidence: Evidence<number> | undefined;
-  readonly isRunning: boolean;
-}) {
-  const metadata = evidence?.provenance.sourceMetadata;
-  const runType = metadataString(metadata, 'runType');
-  const actualWindowStart = metadataString(
-    metadata,
-    'actualWindowStart',
-  );
-  const actualWindowEnd = metadataString(
-    metadata,
-    'actualWindowEnd',
-  );
-  const granuleCount = metadataNumber(
-    metadata,
-    'granuleCount',
-  );
-  const expectedGranuleCount = metadataNumber(
-    metadata,
-    'expectedGranuleCount',
-  );
-  const cached = metadataBoolean(metadata, 'cached');
-  const status = evidence?.quality.status ?? 'not_requested';
-
-  return (
-    <section
-      className="imerg-receipt"
-      aria-live="polite"
-      aria-busy={isRunning}
-      data-testid="imerg-receipt"
-      data-evidence-status={status}
-    >
-      <div className="receipt-heading">
-        <div>
-          <p className="eyebrow">Live evidence receipt</p>
-          <h2>NASA IMERG · 24 h</h2>
-        </div>
-        <div className="receipt-state">
-          <StatusPill status={status} />
-          <span>
-            {isRunning
-              ? 'Restoring or acquiring the verified window'
-              : evidence
-                ? 'Traceable observation returned'
-                : 'Verified window queued automatically'}
-          </span>
-        </div>
-      </div>
-
-      <dl className="receipt-grid">
-        <div>
-          <dt>Requested window</dt>
-          <dd>
-            {formatWindow(
-              evidence?.temporal.windowStart,
-              evidence?.temporal.windowEnd,
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt>Actual coverage</dt>
-          <dd>
-            {formatWindow(
-              actualWindowStart,
-              actualWindowEnd,
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt>Product / version</dt>
-          <dd>
-            {evidence
-              ? evidence.provenance.dataset +
-                ' · V' +
-                (evidence.provenance.datasetVersion ?? '—')
-              : '—'}
-          </dd>
-        </div>
-        <div>
-          <dt>Run type</dt>
-          <dd>{runType ? runType + ' run' : '—'}</dd>
-        </div>
-        <div>
-          <dt>Granule coverage</dt>
-          <dd>
-            {granuleCount !== undefined &&
-            expectedGranuleCount !== undefined
-              ? granuleCount + ' / ' + expectedGranuleCount
-              : '—'}
-          </dd>
-        </div>
-        <div>
-          <dt>Source grid</dt>
-          <dd>{evidence?.spatial.sourceResolution ?? '—'}</dd>
-        </div>
-        <div>
-          <dt>Acquired at</dt>
-          <dd>
-            {formatUtcTimestamp(
-              evidence?.temporal.acquiredAt,
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt>Evidence path</dt>
-          <dd>
-            {cached === true
-              ? 'Persistent real-evidence replay'
-              : cached === false
-                ? 'Live provider acquisition'
-                : '—'}
-          </dd>
-        </div>
-      </dl>
-
-      <p className="receipt-note">
-        {cached === true
-          ? 'The cached accumulation retains its original NASA provenance and acquisition time; it is not synthetic evidence.'
-          : isRunning
-            ? 'The first uncached IMERG acquisition can take several minutes. Missing, failed and incomplete windows remain explicit.'
-            : evidence?.quality.status === 'available'
-              ? 'Sampling: ' +
-                (evidence.provenance.samplingMethod ??
-                  'reported by provider') +
-                '.'
-              : evidence?.quality.missingReason ??
-                'Waiting for provider evidence; no zero fallback is permitted.'}
-      </p>
-    </section>
-  );
-}
+const refusalCards = [
+  {
+    mark: '≠ 0',
+    title: 'No silent substitution',
+    copy: 'Unavailable rainfall, elevation, slope or land cover is never converted into a valid-looking zero.',
+  },
+  {
+    mark: '≠ AI',
+    title: 'No generated certainty',
+    copy: 'The core runs without an LLM. No confidence, recommendation or interpretation is invented after the fact.',
+  },
+  {
+    mark: '≠ risk',
+    title: 'No semantic shortcuts',
+    copy: 'Hazard, susceptibility and risk are kept distinct. Physical quantities come before generic scores.',
+  },
+] as const;
 
 export default function Home() {
-  const [referenceTime, setReferenceTime] = useState(
-    VERIFIED_REFERENCE_TIME_INPUT,
-  );
-  const [result, setResult] =
-    useState<ProofZeroResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [selection, setSelection] = useState<Selection>({
-    kind: 'catchment',
-    id: 'catchment_A',
-  });
-  const [isRunning, setIsRunning] = useState(false);
-  const [
-    observedInfrastructure,
-    setObservedInfrastructure,
-  ] = useState<ObservedInfrastructureResult | null>(null);
-  const [
-    observedInfrastructureError,
-    setObservedInfrastructureError,
-  ] = useState<string | null>(null);
-  const [
-    isObservedInfrastructureLoading,
-    setIsObservedInfrastructureLoading,
-  ] = useState(true);
-  const autoRunStartedRef = useRef(false);
-  const requestIdRef = useRef(0);
-  const manualRequestRef = useRef<AbortController | null>(
-    null,
-  );
-
-  const firstCell = result
-    ? Object.values(result.environmental.cells)[0]
-    : undefined;
-  const firstContribution =
-    result?.catchmentContributions[0];
-  const firstRunoff =
-    firstContribution?.cells[0]?.runoff.output.value;
-  const outfallAccumulation =
-    result?.propagation.status === 'complete'
-      ? result.propagation.nodes.node_C_outfall
-          ?.downstreamAccumulationM3
-      : undefined;
-
-  const executeProofZero = useCallback(
-    async (nextReferenceTime: string, signal?: AbortSignal) => {
-      const requestId = requestIdRef.current + 1;
-      requestIdRef.current = requestId;
-      setError(null);
-      setIsRunning(true);
-
-      try {
-        const nextResult = await runProofZero(
-          nextReferenceTime,
-          signal,
-        );
-        if (requestId === requestIdRef.current) {
-          setResult(nextResult);
-        }
-      } catch (cause) {
-        if (
-          requestId === requestIdRef.current &&
-          !(cause instanceof DOMException && cause.name === 'AbortError')
-        ) {
-          setError(
-            cause instanceof Error
-              ? cause.message
-              : 'Proof 0 request failed.',
-          );
-        }
-      } finally {
-        if (requestId === requestIdRef.current) {
-          setIsRunning(false);
-        }
-      }
-    },
-    [],
-  );
-
-  useEffect(() => {
-    if (autoRunStartedRef.current) {
-      return;
-    }
-
-    autoRunStartedRef.current = true;
-    void executeProofZero(VERIFIED_REFERENCE_TIME_ISO);
-  }, [executeProofZero]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    setIsObservedInfrastructureLoading(true);
-    setObservedInfrastructureError(null);
-    void getObservedInfrastructure(
-      controller.signal,
-    )
-      .then(setObservedInfrastructure)
-      .catch((cause: unknown) => {
-        if (
-          !(
-            cause instanceof DOMException &&
-            cause.name === 'AbortError'
-          )
-        ) {
-          setObservedInfrastructureError(
-            cause instanceof Error
-              ? cause.message
-              : 'Observed infrastructure request failed.',
-          );
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setIsObservedInfrastructureLoading(false);
-        }
-      });
-
-    return () => controller.abort();
-  }, []);
-
-  useEffect(
-    () => () => {
-      manualRequestRef.current?.abort();
-    },
-    [],
-  );
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    manualRequestRef.current?.abort();
-
-    let nextReferenceTime: string;
-    try {
-      nextReferenceTime = utcInputToIso(referenceTime);
-    } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : 'Observation reference is invalid.',
-      );
-      return;
-    }
-
-    const controller = new AbortController();
-    manualRequestRef.current = controller;
-    void executeProofZero(
-      nextReferenceTime,
-      controller.signal,
-    );
-  }
-
-  const rainfallSource =
-    result?.environmental.sources.rainfall;
-  const terrainSource =
-    result?.environmental.sources.terrain;
-  const landCoverSource =
-    result?.environmental.sources.landCover;
-
   return (
-    <div className="app-shell">
-      <header className="topbar">
-        <div className="brand-lockup">
-          <span className="brand-mark" aria-hidden="true">
-            GL
-          </span>
-          <div>
-            <p className="eyebrow">Spatial evidence engine</p>
-            <h1>GeoLens</h1>
+    <main className="landing-shell">
+      <nav className="landing-nav" aria-label="Primary navigation">
+        <Link className="landing-brand" href="/" aria-label="GeoLens home">
+          <span className="landing-brand-mark" aria-hidden="true">GL</span>
+          <span>GeoLens</span>
+        </Link>
+        <div className="landing-nav-links">
+          <a href="#method">Method</a>
+          <a href="#cases">Cases</a>
+          <Link className="landing-nav-cta" href="/proof-zero">
+            Open Proof 0
+          </Link>
+        </div>
+      </nav>
+
+      <section className="landing-hero">
+        <div className="landing-hero-copy">
+          <p className="landing-kicker">
+            Spatial evidence engine <span>·</span> Refoundation 2026
+          </p>
+          <h1>
+            Environmental evidence,
+            <span>made physical.</span>
+          </h1>
+          <p className="landing-lede">
+            GeoLens composes real observations, terrain and infrastructure
+            into traceable derived state—without turning missing data into
+            certainty.
+          </p>
+          <div className="landing-actions">
+            <Link className="landing-primary-action" href="/proof-zero">
+              Inspect the engine
+              <span aria-hidden="true">↗</span>
+            </Link>
+            <a className="landing-text-action" href="#method">
+              Follow the evidence chain
+            </a>
           </div>
-        </div>
-
-        <form className="run-controls" onSubmit={handleSubmit}>
-          <label htmlFor="reference-time">
-            Observation reference (UTC)
-          </label>
-          <input
-            id="reference-time"
-            type="datetime-local"
-            value={referenceTime}
-            onChange={(event) =>
-              setReferenceTime(event.target.value)
-            }
-            required
-          />
-          <button type="submit" disabled={isRunning}>
-            {isRunning
-              ? 'Restoring/acquiring evidence…'
-              : 'Run requested window'}
-          </button>
-        </form>
-
-        <div
-          className="run-state"
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          <StatusPill
-            status={result?.status ?? 'not_requested'}
-          />
-          <span>
-            {result
-              ? `Proof ${result.proofVersion}`
-              : 'Bounded Trento fixture'}
-          </span>
-        </div>
-      </header>
-
-      {error ? (
-        <div className="error-banner" role="alert">
-          <strong>Request failed.</strong> {error}
-        </div>
-      ) : null}
-
-      <main className="workspace">
-        <aside className="source-rail" aria-label="Evidence sources">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">Input evidence</p>
-              <h2>Sources</h2>
-            </div>
-            <span>3 layers</span>
-          </div>
-          <SourceCard
-            eyebrow="Precipitation"
-            source={rainfallSource}
-            fallback={SOURCE_DEFAULTS.rainfall}
-            status={resolveSourceStatus(
-              result,
-              rainfallSource,
-              SOURCE_DEFAULTS.rainfall.layers,
-            )}
-          />
-          <SourceCard
-            eyebrow="Terrain"
-            source={terrainSource}
-            fallback={SOURCE_DEFAULTS.terrain}
-            status={resolveSourceStatus(
-              result,
-              terrainSource,
-              SOURCE_DEFAULTS.terrain.layers,
-            )}
-          />
-          <SourceCard
-            eyebrow="Land cover"
-            source={landCoverSource}
-            fallback={SOURCE_DEFAULTS.landCover}
-            status={resolveSourceStatus(
-              result,
-              landCoverSource,
-              SOURCE_DEFAULTS.landCover.layers,
-            )}
-          />
-          <div className="principle-note">
-            <span aria-hidden="true">≠</span>
+          <div className="landing-claim">
+            <span className="landing-claim-rule" aria-hidden="true" />
             <p>
-              <strong>Missing is not zero.</strong>
-              Provider failure remains explicit and cannot
-              become a valid-looking measurement.
+              <strong>Missing is not zero.</strong> Every material value keeps
+              its source, time, resolution, transformation and quality state.
             </p>
           </div>
-        </aside>
+        </div>
 
-        <section className="analysis-column">
-          <ImergReceipt
-            evidence={firstCell?.rainfall24hMm}
-            isRunning={isRunning}
-          />
-
-          <ObservedInfrastructurePanel
-            result={observedInfrastructure}
-            isLoading={
-              isObservedInfrastructureLoading
-            }
-            error={observedInfrastructureError}
-          />
-
-          <div className="metric-grid" aria-label="Physical quantities">
-            <MetricCard
-              label="Rainfall · 24 h"
-              value={evidenceText(
-                firstCell?.rainfall24hMm,
-                2,
-              )}
-              detail="IMERG observation window"
-            />
-            <MetricCard
-              label="Runoff coefficient"
-              value={
-                firstRunoff
-                  ? formatNumber(
-                      firstRunoff.runoffCoefficient,
-                      3,
-                    )
-                  : '—'
-              }
-              detail="Inspectable model parameter"
-            />
-            <MetricCard
-              label="Catchment contribution"
-              value={evidenceText(
-                firstContribution?.totalVolumeM3,
-                3,
-              )}
-              detail="Derived water volume"
-            />
-            <MetricCard
-              label="Outfall accumulation"
-              value={evidenceText(
-                outfallAccumulation,
-                3,
-              )}
-              detail="No-loss propagation v0"
-            />
+        <div className="landing-evidence-stage" aria-label="GeoLens evidence chain">
+          <div className="landing-stage-grid" aria-hidden="true" />
+          <div className="landing-stage-heading">
+            <p>Evidence ledger</p>
+            <span>Proof 0 / bounded system</span>
           </div>
 
-          <section className="network-panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">
-                  Bounded stormwater network
-                </p>
-                <h2>Derived downstream state</h2>
-              </div>
-              <div className="panel-meta">
-                <span>H3 nodes r11 · catchments r13</span>
-                <span>
-                  {result
-                    ? formatUtcTimestamp(
-                        result.environmental.referenceTime,
-                      )
-                    : 'Awaiting evidence'}
-                </span>
-              </div>
-            </div>
-            <NetworkCanvas
-              result={result}
-              selection={selection}
-              onSelect={setSelection}
-            />
-          </section>
+          <div className="landing-source-stack">
+            {evidenceSources.map((source) => (
+              <article className="landing-source-row" key={source.index}>
+                <span className="landing-source-index">{source.index}</span>
+                <div>
+                  <p>{source.label}</p>
+                  <h2>{source.name}</h2>
+                  <span>{source.detail}</span>
+                </div>
+                <i aria-hidden="true" />
+              </article>
+            ))}
+          </div>
 
-          <section className="evidence-panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">Spatial normalization</p>
-                <h2>H3 evidence bundle</h2>
+          <div className="landing-flow">
+            <div className="landing-flow-node">
+              <span>H3</span>
+              <p>spatial normalization</p>
+            </div>
+            <span className="landing-flow-line" aria-hidden="true" />
+            <div className="landing-flow-output">
+              <p>Derived state</p>
+              <strong>runoff → catchment → network</strong>
+              <span>Inspectable at every boundary</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="landing-proof-strip" aria-label="Current system commitments">
+        <p><span>01</span> Real evidence first</p>
+        <p><span>02</span> Explicit uncertainty</p>
+        <p><span>03</span> Physical quantities</p>
+        <p><span>04</span> Full provenance</p>
+      </section>
+
+      <section className="landing-intro" id="method">
+        <div className="landing-section-index" aria-hidden="true">01</div>
+        <div className="landing-section-copy">
+          <p className="landing-section-kicker">The operating idea</p>
+          <h2>
+            A result is only as credible as the chain that produced it.
+          </h2>
+        </div>
+        <div className="landing-intro-body">
+          <p>
+            GeoLens is not another map of coloured scores. It is an evidence
+            system for asking what was observed, how that observation was
+            transformed and where the resulting physical state can move.
+          </p>
+          <p>
+            Every step is designed to be inspected independently—from a NASA
+            granule and a terrain pixel to runoff volume at a catchment and
+            accumulation at a downstream node.
+          </p>
+        </div>
+      </section>
+
+      <section className="landing-method" aria-labelledby="method-heading">
+        <div className="landing-method-header">
+          <p className="landing-section-kicker">Evidence → state</p>
+          <h2 id="method-heading">One chain. Five accountable boundaries.</h2>
+          <p>
+            Provenance travels with the value. It is not reconstructed after
+            the model runs.
+          </p>
+        </div>
+        <div className="landing-method-grid">
+          {methodSteps.map((step) => (
+            <article className="landing-method-card" key={step.number}>
+              <div className="landing-method-meta">
+                <span>{step.number}</span>
+                <p>{step.label}</p>
               </div>
-              <span>
-                {result
-                  ? `${Object.keys(
-                      result.environmental.cells,
-                    ).length} indexed cell(s)`
-                  : 'No bundle'}
+              <h3>{step.title}</h3>
+              <p>{step.copy}</p>
+              <code>{step.output}</code>
+            </article>
+          ))}
+          <article className="landing-method-card landing-method-result">
+            <div className="landing-method-meta">
+              <span>05</span>
+              <p>Explain</p>
+            </div>
+            <h3>Return the value and its evidence receipt.</h3>
+            <p>
+              Provider, dataset version, reference time, acquisition time,
+              source resolution, transformation and missing state remain
+              attached.
+            </p>
+            <code>Result + provenance</code>
+          </article>
+        </div>
+      </section>
+
+      <section className="landing-cases" id="cases" aria-labelledby="cases-heading">
+        <div className="landing-cases-heading">
+          <div>
+            <p className="landing-section-kicker">Bounded proofs</p>
+            <h2 id="cases-heading">Built to be challenged by reality.</h2>
+          </div>
+          <p>
+            Three deliberately different experiments test completeness,
+            infrastructure truth and independent historical comparison.
+          </p>
+        </div>
+
+        <article className="landing-case landing-case-featured">
+          <div className="landing-case-number">00</div>
+          <div className="landing-case-title">
+            <p>Trento · Proof 0</p>
+            <h3>Can the complete chain remain traceable?</h3>
+            <span className="landing-case-status" data-state="complete">
+              Complete bounded proof
+            </span>
+          </div>
+          <div className="landing-case-description">
+            <p>
+              Real IMERG, GLO-30 and CLC evidence flows through deterministic
+              runoff, a bounded network fixture and mass-conserving downstream
+              propagation.
+            </p>
+            <Link href="/proof-zero">Open the evidence inspector ↗</Link>
+          </div>
+          <dl className="landing-case-metrics">
+            <div><dt>Rainfall</dt><dd>9.24 mm</dd></div>
+            <div><dt>Runoff</dt><dd>2.957 m³</dd></div>
+            <div><dt>Mass difference</dt><dd>0 m³</dd></div>
+          </dl>
+          <p className="landing-case-boundary">
+            Boundary: environmental inputs are real; the stormwater network is
+            a deterministic fixture, not surveyed infrastructure.
+          </p>
+        </article>
+
+        <div className="landing-case-pair">
+          <article className="landing-case">
+            <div className="landing-case-number">01</div>
+            <div className="landing-case-title">
+              <p>Amsterdam · Urban drainage proof</p>
+              <h3>Can the engine refuse an invented attachment?</h3>
+              <span className="landing-case-status" data-state="bounded">
+                Observed infrastructure
               </span>
             </div>
-            <EvidenceTable result={result} />
-          </section>
-        </section>
+            <div className="landing-case-description">
+              <p>
+                Waternet topology, AHN4 terrain and BGT surfaces produce a
+                traceable runoff source. Propagation stops because the public
+                record does not prove the surface-to-pipe relationship.
+              </p>
+            </div>
+            <dl className="landing-case-metrics">
+              <div><dt>Observed nodes / pipes</dt><dd>47 / 47</dd></div>
+              <div><dt>Known / ambiguous direction</dt><dd>26 / 21</dd></div>
+              <div><dt>Derived source term</dt><dd>11.4145 m³</dd></div>
+            </dl>
+            <p className="landing-case-boundary">
+              The missing authoritative crosswalk is visible—and remains a
+              blocker instead of being replaced by a convenient guess.
+            </p>
+          </article>
 
-        <aside className="inspector-panel" aria-label="Evidence inspector">
-          <Inspector result={result} selection={selection} />
-        </aside>
-      </main>
+          <article className="landing-case landing-case-negative">
+            <div className="landing-case-number">02</div>
+            <div className="landing-case-title">
+              <p>Emilia-Romagna 2023 · Historical replay</p>
+              <h3>Can a physical hypothesis survive independent ground truth?</h3>
+              <span className="landing-case-status" data-state="research">
+                Benchmark in progress
+              </span>
+            </div>
+            <div className="landing-case-description">
+              <p>
+                A blind Forlì reconstruction keeps the official flood extent
+                outside the model, then compares it with the frozen prediction.
+                The first D8 baseline performed no better than chance.
+              </p>
+            </div>
+            <dl className="landing-case-metrics">
+              <div><dt>IMERG granules</dt><dd>96 / 96</dd></div>
+              <div><dt>Evaluation grid</dt><dd>30 m</dd></div>
+              <div><dt>Frozen ROC AUC</dt><dd>0.4916</dd></div>
+            </dl>
+            <p className="landing-case-boundary">
+              Negative evidence is retained as a versioned result. GeoLens does
+              not relabel it as inundation prediction or validation.
+            </p>
+          </article>
+        </div>
+      </section>
 
-      <footer>
-        <span>GeoLens refoundation · Proof 0</span>
-        <span>
-          Physical state, source resolution and provenance
-          remain inspectable.
-        </span>
+      <section className="landing-refusals" aria-labelledby="refusals-heading">
+        <div className="landing-refusals-copy">
+          <p className="landing-section-kicker">Scientific discipline</p>
+          <h2 id="refusals-heading">What the engine refuses to manufacture.</h2>
+          <p>
+            GeoLens is intentionally narrower than the product it replaces.
+            That constraint is part of the architecture.
+          </p>
+        </div>
+        <div className="landing-refusal-grid">
+          {refusalCards.map((card) => (
+            <article key={card.mark}>
+              <span>{card.mark}</span>
+              <h3>{card.title}</h3>
+              <p>{card.copy}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="landing-final-cta">
+        <p className="landing-section-kicker">See the system, not the slogan</p>
+        <h2>Inspect every boundary.</h2>
+        <p>
+          Open Proof 0 to follow source evidence through runoff, catchment
+          contribution, network direction and downstream state.
+        </p>
+        <Link className="landing-primary-action" href="/proof-zero">
+          Enter the evidence inspector
+          <span aria-hidden="true">↗</span>
+        </Link>
+      </section>
+
+      <footer className="landing-footer">
+        <Link className="landing-brand" href="/">
+          <span className="landing-brand-mark" aria-hidden="true">GL</span>
+          <span>GeoLens</span>
+        </Link>
+        <p>Spatial evidence → traceable physical state.</p>
+        <div>
+          <span>Experimental system</span>
+          <span>Refoundation 2026</span>
+        </div>
       </footer>
-    </div>
+    </main>
   );
 }
