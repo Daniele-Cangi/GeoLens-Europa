@@ -52,7 +52,7 @@ export interface BenchmarkDataset {
 }
 
 export interface HistoricalBenchmarkManifest {
-  readonly manifestVersion: '1.14.0';
+  readonly manifestVersion: '1.15.0';
   readonly benchmark: {
     readonly id: string;
     readonly title: string;
@@ -191,6 +191,21 @@ export interface BenchmarkConditionedReplayHydrographAudit {
     readonly vintageYear: 2022;
     readonly eventApplication: 'used_by_regional_commission_for_may_2023_reconstruction';
     readonly formulaOrTableAvailable: false;
+  };
+  readonly effortsRecalibrationContext: {
+    readonly sourceDatasetId: string;
+    readonly determinationId: 'DET-2024-723';
+    readonly topkapiCalibrationBasin: 'Montone-Rabbi';
+    readonly hecRasCalibrationRiver: 'Montone';
+    readonly measuredVsModelledHydrographsRequired: true;
+    readonly highFlowRatingCurveStation: 'Montone at Castrocaro';
+    readonly priorCurveCalibrationBasis: 'direct_discharge_measurements_low_flow_only';
+    readonly minimumHistoricalFloodEvents: 2;
+    readonly separateValidationEventRequired: true;
+    readonly uncertaintyAssessmentRequired: true;
+    readonly nonBijectiveOrFloodLoopBehaviourMustBeAssessed: true;
+    readonly requiredDeliveryDate: '2025-12-31';
+    readonly publicMachineReadableDeliverablesAvailable: false;
   };
   readonly hydrographEvidence: {
     readonly figureNumber: 63;
@@ -586,8 +601,8 @@ export function assertHistoricalBenchmarkManifest(
   value: unknown,
 ): asserts value is HistoricalBenchmarkManifest {
   const root = objectValue(value, 'manifest');
-  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.14.0') {
-    throw new Error('manifestVersion must be "1.14.0"');
+  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.15.0') {
+    throw new Error('manifestVersion must be "1.15.0"');
   }
 
   const benchmark = objectValue(root.benchmark, 'benchmark');
@@ -1223,10 +1238,6 @@ export function assertHistoricalBenchmarkManifest(
       stringValue(audit.sourceArtifactPath, `${label}.sourceArtifactPath`),
       `${label}.sourceArtifactPath`,
     );
-    conditionedReplayAuditDatasetReferences.push({
-      label,
-      ids: [sourceDatasetId],
-    });
     conditionedHydrographAuditArtifactReferences.push({
       label,
       datasetId: sourceDatasetId,
@@ -1247,6 +1258,43 @@ export function assertHistoricalBenchmarkManifest(
       ratingCurve.formulaOrTableAvailable !== false
     ) {
       throw new Error(`${label} must not promote the unpublished 2022 rating curve`);
+    }
+
+    const recalibration = objectValue(
+      audit.effortsRecalibrationContext,
+      `${label}.effortsRecalibrationContext`,
+    );
+    const recalibrationDatasetId = stringValue(
+      recalibration.sourceDatasetId,
+      `${label}.effortsRecalibrationContext.sourceDatasetId`,
+    );
+    if (recalibrationDatasetId !== 'arpae-efforts-romagna-recalibration-2024') {
+      throw new Error(
+        `${label} must reference the official EFFORTS recalibration dataset`,
+      );
+    }
+    conditionedReplayAuditDatasetReferences.push({
+      label,
+      ids: [sourceDatasetId, recalibrationDatasetId],
+    });
+    if (
+      recalibration.determinationId !== 'DET-2024-723' ||
+      recalibration.topkapiCalibrationBasin !== 'Montone-Rabbi' ||
+      recalibration.hecRasCalibrationRiver !== 'Montone' ||
+      recalibration.measuredVsModelledHydrographsRequired !== true ||
+      recalibration.highFlowRatingCurveStation !== 'Montone at Castrocaro' ||
+      recalibration.priorCurveCalibrationBasis !==
+        'direct_discharge_measurements_low_flow_only' ||
+      recalibration.minimumHistoricalFloodEvents !== 2 ||
+      recalibration.separateValidationEventRequired !== true ||
+      recalibration.uncertaintyAssessmentRequired !== true ||
+      recalibration.nonBijectiveOrFloodLoopBehaviourMustBeAssessed !== true ||
+      recalibration.requiredDeliveryDate !== '2025-12-31' ||
+      recalibration.publicMachineReadableDeliverablesAvailable !== false
+    ) {
+      throw new Error(
+        `${label} must retain the official high-flow recalibration constraints`,
+      );
     }
 
     const hydrograph = objectValue(

@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "1.14.0",
+  "manifestVersion": "1.15.0",
   "benchmark": {
     "id": "emilia-romagna-2023-forli-retrospective-reconstruction",
     "title": "Case 02 - Emilia-Romagna 2023 / Retrospective Flood Reconstruction",
@@ -582,10 +582,11 @@
             "candidateDatasetIds": [
               "arpae-dext3r-2023-hourly-observations",
               "arpae-2023-hydrometry",
-              "rer-commissione-tecnico-scientifica-maggio-2023"
+              "rer-commissione-tecnico-scientifica-maggio-2023",
+              "arpae-efforts-romagna-recalibration-2024"
             ],
-            "acceptanceCriteria": "Time-varying Montone and Rabbi inflows cover the full event window as discharge, or as stage paired with station datum, cross-section and an event-valid rating curve; uncertainty and gaps remain explicit.",
-            "blocker": "Dext3r supplies local-datum stage and the Rabbi/Predappio series is incomplete. The regional Commission report states that its hourly Montone/Castrocaro reconstruction used an ARPAE 2022 rating curve and publishes a plotted hydrograph plus volume balance, but it provides neither the machine-readable discharge series nor the rating-curve formula/table and supplies no Rabbi discharge hydrograph."
+            "acceptanceCriteria": "Time-varying Montone and Rabbi inflows cover the full event window as discharge, or as stage paired with station datum, cross-section and a high-flow-calibrated event-valid rating relation; the valid range, calibration/validation events, non-bijective or flood-loop behaviour, uncertainty and gaps remain explicit.",
+            "blocker": "Dext3r supplies local-datum stage, its public daily-discharge catalogue ends before the May 2023 event for the target stations, and the Rabbi/Predappio stage series is incomplete. The regional Commission report states that its hourly Montone/Castrocaro reconstruction used an ARPAE 2022 rating curve and publishes a plotted hydrograph plus volume balance, but it provides neither the machine-readable discharge series nor the rating-curve formula/table and supplies no Rabbi discharge hydrograph. ARPAE DET-2024-723 states that the available Castrocaro relation was calibrated only on direct low-flow measurements and separately commissioned high-flow calibration; neither the resulting numerical relation nor the Montone-Rabbi calibration hydrographs are public in the audited sources."
           },
           {
             "id": "downstream_stage_or_discharge_boundary",
@@ -741,6 +742,21 @@
           "eventApplication": "used_by_regional_commission_for_may_2023_reconstruction",
           "formulaOrTableAvailable": false
         },
+        "effortsRecalibrationContext": {
+          "sourceDatasetId": "arpae-efforts-romagna-recalibration-2024",
+          "determinationId": "DET-2024-723",
+          "topkapiCalibrationBasin": "Montone-Rabbi",
+          "hecRasCalibrationRiver": "Montone",
+          "measuredVsModelledHydrographsRequired": true,
+          "highFlowRatingCurveStation": "Montone at Castrocaro",
+          "priorCurveCalibrationBasis": "direct_discharge_measurements_low_flow_only",
+          "minimumHistoricalFloodEvents": 2,
+          "separateValidationEventRequired": true,
+          "uncertaintyAssessmentRequired": true,
+          "nonBijectiveOrFloodLoopBehaviourMustBeAssessed": true,
+          "requiredDeliveryDate": "2025-12-31",
+          "publicMachineReadableDeliverablesAvailable": false
+        },
         "hydrographEvidence": {
           "figureNumber": 63,
           "temporalResolutionMinutes": 60,
@@ -766,7 +782,7 @@
           "protocolRunGate": "blocked_missing_required_evidence",
           "missingPolicy": "missing_not_digitized_or_inferred"
         },
-        "methodologyNote": "Materialized after the conditioned-input protocol freeze from the official 12 December 2023 regional Commission report, recovered byte-for-byte from its 30 December 2023 Internet Archive capture because the current publisher URL returns not found. Page 57 states that the Commission used the 2022 ARPAE rating curve at Montone/Castrocaro; page 58 publishes Figure 63 as an hourly plotted discharge hydrograph; page 59 publishes the rounded rainfall and discharge volume balance. The report does not publish the rating-curve formula/table, machine-readable hourly discharge values, a numerical peak discharge or a Rabbi discharge hydrograph. No chart digitization, stage-to-discharge inference or missing-value substitution is performed, and the conditioned replay remains blocked."
+        "methodologyNote": "Materialized after the conditioned-input protocol freeze from the official 12 December 2023 regional Commission report, recovered byte-for-byte from its 30 December 2023 Internet Archive capture because the current publisher URL returns not found. Page 57 states that the Commission used the 2022 ARPAE rating curve at Montone/Castrocaro; page 58 publishes Figure 63 as an hourly plotted discharge hydrograph; page 59 publishes the rounded rainfall and discharge volume balance. ARPAE DET-2024-723 subsequently documents that the available Castrocaro scale was calibrated on direct low-flow measurements only and commissioned a flood-branch calibration using at least two historical events, separate calibration and validation events, plus assessment of non-bijective h-Q or flood-loop behaviour. The same procurement requires measured-versus-modelled event hydrographs for Topkapi Montone-Rabbi and HEC-RAS Montone, with delivery requested by 2025-12-31, but does not itself publish the resulting numerical deliverables. The Commission report does not publish the rating-curve formula/table, machine-readable hourly discharge values, a numerical peak discharge or a Rabbi discharge hydrograph. No chart digitization, stage-to-discharge inference or missing-value substitution is performed, and the conditioned replay remains blocked."
       }
     ],
     "conditionedReplayPhysicalAudits": [
@@ -1337,6 +1353,30 @@
           "sha256": "D53811DA1087227279625E827FE87E3F2F360F3BB3BD5C784260435B599D6C70"
         }
       ]
+    },
+    {
+      "id": "arpae-efforts-romagna-recalibration-2024",
+      "role": "context_only",
+      "temporalRelation": "post_event",
+      "publisher": "ARPAE Emilia-Romagna",
+      "dataset": "DET-2024-723 - EFFORTS recalibration for Romagna basins",
+      "datasetVersion": "determination dated 2024-09-27; public act inspected 2026-08-26T23:08:58Z",
+      "acquiredAt": "2026-08-26T23:08:58Z",
+      "sourceUrl": "https://apps.arpae.it/documento/DET2024723",
+      "accessMethod": "public official determination and technical specification inspected remotely; numerical contract deliverables are not exposed by this act",
+      "sourceResolution": "procurement requirements for Topkapi Montone-Rabbi, HEC-RAS Montone and the high-flow rating curve at Montone/Castrocaro",
+      "acquisitionStatus": "remote_verified",
+      "license": {
+        "name": "ARPAE institutional publication terms not yet pinned for redistribution",
+        "access": "public",
+        "redistribution": "unknown"
+      },
+      "allowedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "evaluation": false
+      },
+      "methodologyNote": "Technical-specification pages 6-9 require Topkapi calibration for Montone-Rabbi and HEC-RAS calibration for Montone with measured-versus-modelled event hydrographs and quality information. They state that the existing Castrocaro rating relation was based on direct low-flow measurements only, require a high-flow branch calibrated and independently validated on at least two historical floods, and require assessment of non-bijective h-Q or flood-loop behaviour. Delivery was requested by 2025-12-31, but the public determination does not establish acceptance or publish the resulting numerical series, models or rating relation. This source tightens the acquisition gate; it does not satisfy it."
     },
     {
       "id": "adbpo-psp-montone-rabbi-2024",
