@@ -1,21 +1,38 @@
 # GeoLens
 
-**GeoLens turns real environmental observations and stormwater infrastructure into physical results that can be inspected and traced back to their sources.**
+**GeoLens is an experimental spatial evidence engine. It combines real environmental observations, terrain and infrastructure to derive physical results that remain traceable to their sources.**
 
-Give GeoLens a bounded place and a reference time, and it answers a concrete chain of questions:
+GeoLens is being rebuilt around a simple rule:
 
-1. How much rain was actually observed?
-2. What terrain and land cover describe the area?
-3. How much runoff does the stated model derive?
-4. Which surface or catchment contributes that runoff?
-5. Where can the water move through the known stormwater network?
-6. Which source, resolution, timestamp and transformation produced every value?
+> A result is useful only when we can explain where it came from, how it was transformed and what is still unknown.
 
-If evidence is missing, GeoLens stops or returns an explicit missing state. It does not replace missing rainfall, elevation or land cover with zero.
+The first application is water moving from rainfall, across the surface and, where authoritative relationships are available, into a stormwater network.
 
-> GeoLens is currently an experimental spatial-evidence and runoff system. It is not a flood forecast, a hydraulic sewer simulator or a generic risk-score dashboard.
+## GeoLens in one minute
 
-## The idea in one diagram
+Rainfall, terrain, land cover and drainage infrastructure are usually published by different organisations, at different resolutions and in different formats. A map can make these layers look connected even when the underlying relationships have not been demonstrated.
+
+GeoLens tries to build that connection explicitly:
+
+1. acquire real rainfall, terrain and land-cover evidence for a bounded place and time;
+2. retain the provider, dataset version, timestamps and original resolution;
+3. derive an inspectable runoff quantity;
+4. aggregate it over a defined surface or catchment;
+5. connect it to observed infrastructure only when a source-backed attachment exists;
+6. propagate it through known network directions without inventing missing links;
+7. return the result together with its provenance, assumptions and missing-data state.
+
+If an input is unavailable, GeoLens reports it as unavailable. It does not silently turn missing rainfall, elevation or land cover into zero.
+
+GeoLens is not currently a flood forecast, a hydraulic sewer simulator or a generic risk-score dashboard.
+
+## What we are trying to prove
+
+The refoundation has one central question:
+
+> Can real environmental evidence be transformed into an inspectable physical state without hiding uncertainty or inventing data?
+
+For stormwater, the target chain is:
 
 ~~~text
 real rainfall + real terrain + real land cover
@@ -30,7 +47,7 @@ real rainfall + real terrain + real land cover
        contributing surface or catchment
                        |
                        v
-          validated stormwater topology
+          observed stormwater topology
                        |
                        v
           known downstream network state
@@ -39,99 +56,110 @@ real rainfall + real terrain + real land cover
         result + provenance + missing state
 ~~~
 
-H3 connects evidence and infrastructure spatially. H3 is an indexing and representation choice; the original resolution of IMERG, DEM, CLC, AHN and BGT remains visible.
+H3 is used to connect evidence spatially. It is an indexing and representation choice, not a claim that the original datasets have H3-native precision. The source resolution of IMERG, GLO-30, CLC, AHN and BGT remains visible.
 
-## What works today
+## Where the project is today
 
-GeoLens has two complementary proofs and one independent historical benchmark in progress.
+GeoLens has two complementary proofs and one historical benchmark in progress.
 
-| Proof | What is real | What is demonstrated | Current boundary |
+| Case | Plain-language outcome | What is proven | What remains unresolved |
 | --- | --- | --- | --- |
-| Trento Proof 0 | NASA IMERG rainfall, Copernicus GLO-30 terrain and the official local CLC 2018 raster | Complete evidence → runoff → catchment → network → downstream accumulation chain over a deterministic bounded network fixture | The environmental evidence is real; the small network geometry is a test fixture, not surveyed municipal infrastructure |
-| Amsterdam observed proof | Waternet nodes and pipes, AHN4 terrain, BGT physical surfaces, IMERG rainfall, CLC land cover, GLO-30 slope and PDOK/GWSW context | Real municipal topology and a traceable non-zero conditioned runoff source over a bounded urban area | No owner-published surface-to-pipe relation was found in the current public catalogs, so network propagation is intentionally not attempted |
-| Emilia-Romagna 2023 benchmark (in progress) | Official post-event flood extents, bounded IMERG Final Run V07, GLO-30, CLC and official DBTR physical geometry on one frozen 30 m grid | A blind, reproducible comparison of real-event runoff concentration against the independent observed extent | The unconditioned D8 concentration ranks the observed extent no better than chance; it is negative evidence, not a validated inundation model |
+| Trento Proof 0 | The complete software chain works from real environmental inputs to a downstream result | Evidence composition, deterministic runoff, catchment aggregation, network propagation, provenance and mass balance | The small drainage network is a deterministic fixture, not surveyed municipal infrastructure |
+| Amsterdam observed proof | GeoLens can read real Waternet pipes and nodes and derive a real, non-zero surface runoff source | Observed topology, elevation-based direction states, real rainfall/terrain/land cover and an inspectable surface contribution | No owner-published surface-to-pipe attachment has yet been found, so sewer propagation is deliberately blocked |
+| Emilia-Romagna 2023 | A simple terrain-only concentration hypothesis was tested against an independent observed flood extent and did not perform better than chance | A reproducible historical benchmark, withheld evaluation data and honest negative evidence | A conditioned replay requires discharge, boundary, breach and terrain/channel evidence that is not currently available |
 
-### Trento result
+This distinction matters. GeoLens does not describe a software pipeline as scientifically validated merely because it runs.
 
-The fixed verified live window observed 9.24 mm of rainfall, derived 2.957 m³ of runoff contribution and delivered the same volume to the fixture outfall with zero mass-balance difference.
+## Results so far
 
-This proves the complete transformation chain and its failure semantics. It does not claim that the fixture network represents the real Trento drainage system.
+### Case 00 — Trento Proof 0
 
-### Amsterdam result
+The verified live window observed 9.24 mm of rainfall. The model derived 2.957 m³ of runoff contribution and delivered the same volume to the fixture outfall with zero mass-balance difference.
 
-The bounded Amsterdam proof currently exposes:
+In simple terms: the complete transformation chain is operational and numerically inspectable.
 
-- 47 observed Waternet nodes and 47 active stormwater pipes;
+The environmental evidence is real. The network geometry is a small deterministic test fixture, so this result does not claim to represent the real Trento drainage system.
+
+### Case 01 — Amsterdam urban drainage proof
+
+GeoLens currently exposes:
+
+- 47 observed Waternet nodes;
+- 47 active stormwater pipes;
 - 4 explicitly typed rainwater outfalls;
-- 26 known and 21 ambiguous pipe directions from retained endpoint invert levels;
-- an inclusive 0.05 m resolvable-drop boundary with a separately visible 0.000001 m numeric comparison tolerance;
-- a known 5-node, 4-pipe upstream path to the selected rainwater outfall;
+- 26 known and 21 ambiguous pipe directions;
+- one known upstream path containing 5 nodes and 4 pipes;
 - 696 H3 r13 surface cells classified from BGT and conditioned with AHN4 terrain;
 - 100 contributing cells representing 3,676.73 m²;
-- 3.835 mm of real IMERG rainfall across the selected window;
-- a derived runoff source of 11.4145 m³;
-- an explicit missing STOWA 2025 BGT Inlooptabel or equivalent owner-published Waternet asset crosswalk.
+- 3.835 mm of real IMERG rainfall for the selected window;
+- 11.4145 m³ of derived surface runoff.
 
-The 11.4145 m³ result is therefore available as an inspectable environmental source term, but it is not represented as observed sewer inflow. The API shows the authoritative attachment as missing and keeps propagation blocked. The experimental BGT/AHN outlet remains clearly marked as conditioned and not observed.
+The 11.4145 m³ value is a traceable environmental source term. GeoLens does not present it as observed sewer inflow because the authoritative relationship between the contributing surface and an exact Waternet asset is missing.
 
-### Emilia-Romagna benchmark
+The API therefore keeps propagation blocked. The experimental BGT/AHN outlet remains labelled as conditioned and not observed.
 
-Case 02 is a bounded Forlì retrospective reconstruction for the 16–18 May 2023 event. The input/evaluation boundary is explicit:
+### Case 02 — Emilia-Romagna 2023 historical benchmark
 
-- IMERG Final Run V07 rainfall is a version-pinned retrospective model input; GeoLens opened and accumulated all 96 expected half-hour granules over the bounded Forlì AOI;
-- the persisted native 0.1 degree subset is a 3x3 grid with nine finite 48-hour totals from 82.295 to 105.445 mm and a mean of 93.982 mm;
-- the request AOI, loaded source-grid bounds, source resolution, grid shape, granule timestamps, acquisition time and transformation remain in the cache provenance envelope;
-- the common evaluation grid is frozen in EPSG:32632 at 30 m: 335×420 cells over `[737790, 4895070, 747840, 4907670]`;
-- a cell-centre AOI mask retains 130,307 eligible cells and excludes 10,393 envelope cells; H3 r11 is a separate representation choice, not the metric grid or a source resolution;
-- GLO-30 supplies real elevation and four-neighbour slope for every eligible cell: elevation ranges from 9.009 to 181.722 m and slope from 0 to 34.376°;
-- the official CLC raster supplies every eligible cell with a real level-3 class; missing classes use `-1` in the bounded binary artifact and can never become class `0`;
-- observed labels use unbuffered cell-centre containment; boundary-distance metrics remain unavailable until GeoLens produces a physically conditioned inundation extent;
-- the official regional flood extent is evaluation-only, remained unread until protocol commit `110a217` froze the prediction, score and metrics, and cannot enter model input or calibration;
-- the official DBTR service supplied physical EPSG:32632 polygons for water, wet areas, riverbeds, embankments and buildings; styled WMS images remain context only;
-- the extract was generated after the event, so GeoLens retains only features with `DATA_AGG < 2023-05-16`: 119 later features are excluded and counted; zero in a derived mask means no eligible geometry was identified, not observed historical absence;
-- each DBTR class retains a centre-cell known-presence mask and one `float32` coverage fraction per cell, computed from 16 distinct 4x4 subcells; overlapping hits are unioned, `NaN` marks cells outside the AOI, and zero is a valid no-hit value; the current extract cannot reconstruct geometry deleted or overwritten after the event, so its historical quality remains `incomplete_window`;
-- a bounded regional PST terrain audit preserves the declared `-3` source sentinel and exposes 560,965 missing values out of 5,069,731 pixels (`11.064985%`), including gaps on mapped riverbed, embankment and permanent-water cells; no gap is silently filled from GLO-30;
-- the official regional Commission report states that its hourly Montone/Castrocaro discharge reconstruction used an ARPAE 2022 rating curve and publishes a plotted hydrograph plus a rounded 15–19 May volume balance (`201.25 mm` rain, `47.60 Mm3` rainfall volume, `36.86 Mm3` discharge and runoff coefficient `0.77`); it does not publish the numerical series, rating-curve definition, peak discharge or a Rabbi hydrograph, so GeoLens records it as `incomplete_window` and does not digitize the chart;
-- the official March 2024 special-plan monograph retains the reported Montone and Rabbi local-gauge-zero stage peaks and names breach/overtopping areas, but supplies no machine-readable breach coordinates, activation times, elevations, width evolution or hydrographs;
-- the official historical PAI relation says that a steady-flow HEC-RAS analysis and calibrated roughness context existed; the three public archives pinned by GeoLens contain only 19 DWG drawings, not HEC-RAS projects, numerical cross-sections, 2023 roughness or event boundary conditions;
-- the current claim is hydrologic routing, not validated inundation extent, flood depth or operational forecasting.
+The Forlì benchmark reconstructs the 16–18 May 2023 event using inputs that are kept separate from the official post-event flood extent.
 
-The bounded inputs live outside Git under `D:/GeoLens/data/emilia-romagna-2023`. Manifest v1.14.0 pins 55 benchmark artifacts totaling 746,130,293 bytes, including the canonical IMERG cache and portable source grid, DBTR GeoPackage and metadata, ten DBTR masks/coverage arrays, four terrain-routing arrays, five event-runoff arrays, the bounded PST audit, the restricted evaluation mask and receipt, the archived official Commission report, the official event monograph, and the audited PAI relation/DWG archives. A deterministic test derives that inventory from the manifest and keeps this summary synchronized. No observed geometry, source archive or derived mask is committed to Git. Styled WMS images remain per-run context receipts and are never promoted to physical evidence.
+The model uses:
 
-The XDBTR materializer's `--source` points to the delivered `estraz_procons.gpkg`; its parent directory must also contain the five `V_*_GPG.xml` metadata files. The concentration evaluator has a separate optional `--source`: it defaults to `<data-root>/source/rer-flood-extent-v7/Perimetrazioni_maggio_v7_DSG_88_2025.gpkg` and accepts only the extracted official V7 GeoPackage. Both tools verify or import their source into the bounded external-data workflow before deriving arrays.
+- all 96 expected IMERG Final Run V07 half-hour granules;
+- a bounded native rainfall grid with a mean 48-hour accumulation of 93.982 mm;
+- real GLO-30 elevation and slope;
+- real CLC land-cover classes;
+- official DBTR geometry for water, wet areas, riverbeds, embankments and buildings;
+- a frozen 30 m evaluation grid containing 130,307 eligible cells.
 
-The first Forli routing baseline is `bounded-d8-steepest-descent-v0.1.0`. It uses GLO-30 elevation and DBTR known permanent-water cell centres, routes only over a strictly positive D8 downslope gradient, preserves local depressions, and stops AOI-edge cells instead of inventing off-grid elevations. It conserves all `116,856,900 m2` of eligible land area, but the raw 30 m surface produces `7,840` local-depression terminals and a largest terminal catchment of only `491,400 m2`. This fragmentation is retained as diagnostic evidence: the result is terrain-flow concentration with `incomplete_window` quality, not inundation extent or water depth. The regional observed flood extent is not loaded during materialization.
+The first runoff-and-routing baseline derived 6,176,691.50 m³ over 129,841 source cells and conserved that volume to floating-point precision.
 
-The event baseline composes the complete 96-granule IMERG window with real GLO-30 slope and CLC through `runoff-coefficient-proxy-v0.1.0`, then propagates local volume without attenuation over that frozen D8 graph. It derives `6,176,691.50 m3` over 129,841 source cells and closes at the terminals with a floating-point difference of about `-0.0000000475 m3`; the largest terminal accumulation is `24,490.61 m3`. The observed flood extent was not loaded during any of these transformations.
+Only after the prediction protocol was frozen did GeoLens compare the result with the independent regional flood extent. The terrain-only concentration score returned:
 
-Only after the protocol was committed and pushed did GeoLens rasterize the official V7 event-2 union locally. The unbuffered evaluation contains 130,307 cells, of which 37,374 are observed-positive (`28.6815%`). Routed upstream excess volume returns ROC AUC `0.491624` and average precision `0.277679`; an independent scikit-learn calculation reproduces both values. At the frozen 1%, 5%, 10% and 20% selected-area fractions, tie-weighted IoU is respectively `0.00538`, `0.03690`, `0.07373` and `0.12517`.
+- ROC AUC: 0.491624;
+- average precision: 0.277679;
+- observed flooded-cell prevalence: 0.286815.
 
-That is a failed physical hypothesis, not a failed benchmark: raw GLO-30 D8 concentration without depression conditioning, river stage, discharge, breach, embankment or downstream boundary conditions does not reconstruct the observed flood footprint. GeoLens retains the result as a versioned negative baseline and makes no inundation, water-depth, probability or forecast claim.
+That is near-random discrimination. The result is retained as useful negative evidence: raw GLO-30 D8 concentration without depression conditioning, river stage, discharge, breach behaviour, embankment hydraulics or downstream boundary conditions does not reconstruct the observed flood footprint.
 
-~~~powershell
-npm run materialize:emilia-inputs -- `
-  D:\GeoLens\data\emilia-romagna-2023 `
-  D:\GeoLens\data\clc\u2018_clc2018_v2020_20u1_raster100m\DATA\U2018_CLC2018_V2020_20u1.tif
+GeoLens makes no inundation-depth, probability or operational-forecast claim from this result.
 
-npm run materialize:emilia-xdbtr -- `
-  --data-root D:\GeoLens\data\emilia-romagna-2023 `
-  --source D:\path\to\dati_dbtr\estraz_procons.gpkg
+## For Amsterdam data owners and collaborators
 
-npm run materialize:emilia-imerg-cache -- `
-  --data-root D:\GeoLens\data\emilia-romagna-2023 `
-  --metadata D:\GeoLens\cache\imerg\v07_20230518T000000Z_48h_669b94d37ff0.json `
-  --netcdf D:\GeoLens\cache\imerg\v07_20230518T000000Z_48h_669b94d37ff0.nc
+GeoLens already uses public Waternet infrastructure, AHN4 terrain, BGT physical surfaces, PDOK/GWSW context, NASA IMERG rainfall, CORINE Land Cover and Copernicus GLO-30.
 
-npm run verify:emilia-inputs -- D:\GeoLens\data\emilia-romagna-2023
-npm run materialize:emilia-terrain-routing -- D:\GeoLens\data\emilia-romagna-2023
-npm run verify:emilia-terrain-routing -- D:\GeoLens\data\emilia-romagna-2023
-npm run materialize:emilia-event-runoff -- D:\GeoLens\data\emilia-romagna-2023
-npm run verify:emilia-event-runoff -- D:\GeoLens\data\emilia-romagna-2023
-npm run evaluate:emilia-concentration -- --data-root D:\GeoLens\data\emilia-romagna-2023
-npm run verify:ground-truth -- D:\GeoLens\data\emilia-romagna-2023
-~~~
+The specific missing relationship is not another rainfall or terrain layer. It is authoritative attachment evidence connecting a contributing surface to an observed stormwater destination.
 
-V07 was released after the event and materially differs from V06, which GeoLens rejects because it is unavailable through the canonical GES DISC/CMR path. GeoLens therefore labels the case `retrospective_reconstruction` and retains the event-time knowledge cutoff to make that temporal distinction inspectable.
+Useful material could include:
+
+- an Amsterdam owner-published BGT Inlooptabel;
+- a hydraulic-model surface-to-inlet or surface-to-outfall relation;
+- an exact crosswalk between BGT surface identifiers and Waternet assets;
+- documentation of the relevant relationship semantics and identifiers;
+- guidance to the municipal or Waternet team responsible for these data.
+
+GeoLens will not infer an observed sewer attachment from proximity, polygon containment or a conditioned terrain outlet. Those may remain experimental proxies, but they cannot be represented as authoritative infrastructure evidence.
+
+## The non-negotiable rules
+
+### Missing is not zero
+
+Zero is valid only when it is observed or legitimately derived. Provider failure, missing coverage and incomplete time windows remain explicit states.
+
+### Real evidence comes before interpretation
+
+Important values retain their provider, dataset, version, observation time, acquisition time, source resolution, transformation and quality state.
+
+### Synthetic data cannot masquerade as real evidence
+
+Fixtures are allowed for deterministic tests and explicit demos. They are structurally labelled as synthetic and cannot enter the real-data runtime as observations.
+
+### Physical quantities come before generic scores
+
+GeoLens prefers rainfall in millimetres, elevation in metres, slope in degrees, runoff depth, runoff volume and downstream accumulation. A normalised score is used only when its meaning is explicit.
+
+### Uncertainty can stop the chain
+
+Unknown pipe direction, missing attachment evidence or incomplete provider coverage can block propagation. A blocked result is more useful than a plausible-looking result built on invented assumptions.
 
 ## What GeoLens is
 
@@ -144,8 +172,6 @@ GeoLens is:
 - typed catchment and stormwater-network models;
 - a bounded API and visual evidence inspector;
 - a foundation for later environmental and infrastructure applications.
-
-GeoLens prefers physical quantities such as rainfall in millimetres, elevation in metres, slope in degrees, runoff depth, runoff volume and downstream accumulation.
 
 ## What GeoLens is not
 
@@ -160,9 +186,15 @@ GeoLens does not currently claim to provide:
 - continent-scale real-time operation;
 - AI-generated assessment, recommendations or confidence.
 
-AI, Gemini, RAG, mineral prospectivity and the old generic multi-hazard product framing are outside the active runtime.
+AI, Gemini, RAG, mineral prospectivity and the previous generic multi-hazard framing are outside the active runtime.
 
-## Evidence is the product boundary
+---
+
+# Technical guide
+
+The remainder of this document is for developers, data providers and reviewers who want to reproduce or inspect the implementation.
+
+## Evidence contract
 
 Every important evidence value retains:
 
@@ -192,7 +224,7 @@ incomplete_window
 synthetic_fixture
 ~~~
 
-Observed zero is valid evidence. Missing is not zero. Synthetic fixtures are structurally labelled and cannot masquerade as production evidence.
+Observed zero is valid evidence. Missing is not zero.
 
 ## Active architecture
 
@@ -211,7 +243,7 @@ nasa-precip-engine/    canonical Python earthaccess + xarray IMERG service
 copernicus-engine/     local acquisition tooling outside the active npm runtime
 ~~~
 
-Only these npm workspaces are active:
+Active npm workspaces:
 
 ~~~text
 apps/api
@@ -222,7 +254,7 @@ packages/stormwater
 packages/proof-zero
 ~~~
 
-The canonical production precipitation path is the Python IMERG service. GeoLens does not maintain a second TypeScript precipitation implementation with synthetic zero fallback.
+The Python IMERG service is the only production precipitation path. GeoLens does not maintain a second TypeScript precipitation implementation with a synthetic zero fallback.
 
 ## Quick start
 
@@ -234,7 +266,7 @@ The canonical production precipitation path is the Python IMERG service. GeoLens
 - NASA Earthdata credentials for live IMERG;
 - an official local CLC 2018 V2020_20u1 100 m GeoTIFF for live land-cover evidence.
 
-Copernicus GLO-30, PDOK AHN4, PDOK BGT, Waternet public infrastructure and the public PDOK/GWSW context do not require credentials.
+Copernicus GLO-30, PDOK AHN4, PDOK BGT, Waternet public infrastructure and public PDOK/GWSW context do not require credentials.
 
 ### Install
 
@@ -272,9 +304,11 @@ GEOLENS_PYTHON=D:/GeoLens/venvs/nasa-precip/Scripts/python.exe
 GEOLENS_TEMP_DIR=D:/GeoLens/tmp
 ~~~
 
-IMERG source resolution is approximately 0.1 degree. H3 does not change that precision. Acquisition is bounded to the requested H3 scope plus one source-cell sampling margin, and cache identities include the AOI so two places cannot share an accumulation. Only complete `available` windows may be persisted in the optional disk cache. The short-lived in-memory cache can replay an explicit unavailable or incomplete result, but its evidence status remains unchanged: it never becomes an observation or a zero.
+IMERG source resolution is approximately 0.1 degree. H3 does not change that precision. Acquisition is bounded to the requested H3 scope plus one source-cell sampling margin. Cache identities include the area of interest so two places cannot share an accumulation.
 
-The default host exposes the unauthenticated development service only on the local machine. Set `API_HOST=0.0.0.0` only when network access is intentional and protected by an appropriate boundary.
+Only complete, available windows may be persisted in the optional disk cache. An unavailable or incomplete cached result never becomes an observation or a zero.
+
+The default service binds to the local machine. Use API_HOST=0.0.0.0 only when network access is intentional and protected.
 
 ### Configure CORINE Land Cover
 
@@ -299,7 +333,7 @@ If the raster is absent, unreadable or outside coverage, CLC remains explicitly 
 
 ### Run
 
-Start IMERG, the API and the inspector together:
+Start IMERG, the API and the web application together:
 
 ~~~bash
 npm run dev
@@ -312,16 +346,9 @@ Default local endpoints:
 - GeoLens API: http://localhost:3003
 - API health: http://localhost:3003/health
 - IMERG service: http://localhost:8001
-- observed Amsterdam proof: http://localhost:3003/api/infrastructure/amsterdam-waternet
+- Amsterdam observed proof: http://localhost:3003/api/infrastructure/amsterdam-waternet
 
-If port 3000 is occupied, choose another port in PowerShell:
-
-~~~powershell
-$env:GEOLENS_WEB_PORT = '3004'
-npm run dev
-~~~
-
-The root launcher starts services in dependency order and waits for their health gates. On Windows, Ctrl+C stops each complete descendant process tree; on POSIX systems it sends `SIGTERM` to each launched service. The first uncached IMERG acquisition can take several minutes.
+The root launcher starts services in dependency order and waits for their health gates. The first uncached IMERG acquisition can take several minutes.
 
 ## APIs
 
@@ -329,7 +356,7 @@ The root launcher starts services in dependency order and waits for their health
 
 GET /api/infrastructure/amsterdam-waternet acquires a small bounded response from the official [Amsterdam Waternet infrastructure API](https://api.data.amsterdam.nl/v1/docs/datasets/leidingeninfrastructuur.html).
 
-Default bbox:
+Default bounding box:
 
 ~~~text
 latitude  52.3375 – 52.3395
@@ -344,18 +371,18 @@ The response keeps these layers separate:
 - raw AHN4 terrain evidence;
 - BGT physical-surface classification;
 - the experimental conditioned BGT/AHN surface proxy;
-- real IMERG, CLC and GLO-30 evidence over the selected cells;
+- real IMERG, CLC and GLO-30 evidence;
 - derived runoff and catchment contribution;
-- the authoritative STOWA BGT Inlooptabel attachment boundary;
+- the authoritative BGT Inlooptabel attachment boundary;
 - the reason network propagation was or was not attempted.
 
-The public GWSW polygon containing the selected outfall is context only. Point containment does not prove that a surface drains to an outfall.
+The GWSW polygon containing the selected outfall is context only. Point containment does not prove that a surface drains to an outfall.
 
 ### Generic Proof 0
 
-POST /api/proof-zero/run accepts a bounded typed GeoJSON network and an explicit reference time. A complete example is available in [apps/web/app/lib/fixture.ts](apps/web/app/lib/fixture.ts).
+POST /api/proof-zero/run accepts a bounded typed GeoJSON network and an explicit reference time. A complete example is available in apps/web/app/lib/fixture.ts.
 
-Supported entities are:
+Supported entities:
 
 - Point node with type inlet, manhole or outfall;
 - LineString pipe with type pipe;
@@ -376,6 +403,56 @@ Proof 0 guardrails:
 
 These are bounded research-system limits, not continent-scale performance claims.
 
+## Technical benchmark notes
+
+### Amsterdam direction and attachment semantics
+
+Waternet endpoint invert levels are retained without rounding. The orientation model uses an inclusive 0.05 m resolvable-drop boundary and a separately visible 0.000001 m numeric comparison tolerance.
+
+Direction can be known, unknown or ambiguous. The numeric tolerance handles serialisation noise; it is not a claim about survey accuracy.
+
+The authoritative attachment boundary is modelled as STOWA 2025 BGT Inlooptabel or equivalent owner-published evidence. No such bounded Amsterdam relation has yet been located in the public catalogues.
+
+### Emilia-Romagna reproducibility boundary
+
+Case 02 is a retrospective reconstruction, not an as-known-at-the-time forecast. IMERG V07 was released after the event and is therefore labelled as retrospective model input.
+
+The official regional flood extent is evaluation-only. It remained unread until protocol commit 110a217 froze the prediction, score and metrics. It cannot enter model input or calibration.
+
+The common evaluation grid is EPSG:32632 at 30 m, 335 × 420 cells, over bounds [737790, 4895070, 747840, 4907670]. A cell-centre mask retains 130,307 eligible cells.
+
+Important data-quality boundaries remain explicit:
+
+- missing CLC classes use -1 and never class 0;
+- NaN marks values outside the analysis area or unavailable numeric evidence;
+- 119 DBTR features added after 16 May 2023 are excluded and counted;
+- the current DBTR extract cannot reconstruct deleted or overwritten historical geometry;
+- the regional PST terrain audit contains 560,965 missing values out of 5,069,731 pixels;
+- no PST gap is silently filled from GLO-30;
+- published charts are not digitised into unavailable numerical hydrographs;
+- missing discharge, breach and boundary evidence keeps a conditioned replay blocked.
+
+External benchmark inputs remain outside Git under D:/GeoLens/data/emilia-romagna-2023.
+
+Manifest v1.15.0 pins 55 benchmark artifacts totalling 746,130,293 bytes. This includes the canonical IMERG cache and portable source grid, DBTR source and metadata, derived masks, terrain routing, runoff arrays, evaluation receipts and audited official reports. Restricted observed geometry and source archives are not redistributed through Git.
+
+For the complete audit trail, phase state and source-by-source limitations, read [REFOUNDATION_PLAN.md](REFOUNDATION_PLAN.md) and the [Emilia-Romagna manifest](tests/ground-truth/emilia-romagna-2023/manifest.json).
+
+When the external data root is available, reproduce the bounded workflow in this order:
+
+~~~powershell
+npm run materialize:emilia-inputs -- D:\GeoLens\data\emilia-romagna-2023 D:\GeoLens\data\clc\u2018_clc2018_v2020_20u1_raster100m\DATA\U2018_CLC2018_V2020_20u1.tif
+npm run materialize:emilia-xdbtr -- --data-root D:\GeoLens\data\emilia-romagna-2023 --source D:\path\to\dati_dbtr\estraz_procons.gpkg
+npm run materialize:emilia-imerg-cache -- --data-root D:\GeoLens\data\emilia-romagna-2023 --metadata D:\GeoLens\cache\imerg\v07_20230518T000000Z_48h_669b94d37ff0.json --netcdf D:\GeoLens\cache\imerg\v07_20230518T000000Z_48h_669b94d37ff0.nc
+npm run verify:emilia-inputs -- D:\GeoLens\data\emilia-romagna-2023
+npm run materialize:emilia-terrain-routing -- D:\GeoLens\data\emilia-romagna-2023
+npm run verify:emilia-terrain-routing -- D:\GeoLens\data\emilia-romagna-2023
+npm run materialize:emilia-event-runoff -- D:\GeoLens\data\emilia-romagna-2023
+npm run verify:emilia-event-runoff -- D:\GeoLens\data\emilia-romagna-2023
+npm run evaluate:emilia-concentration -- --data-root D:\GeoLens\data\emilia-romagna-2023
+npm run verify:ground-truth -- D:\GeoLens\data\emilia-romagna-2023
+~~~
+
 ## Verification
 
 Run deterministic verification:
@@ -386,7 +463,7 @@ npm test
 npm run build
 ~~~
 
-Live providers remain opt-in and separate from deterministic fixtures.
+Live providers are opt-in and separate from deterministic fixtures:
 
 ~~~powershell
 $env:GEOLENS_RUN_LIVE_PROVIDER_TESTS = '1'
@@ -410,20 +487,18 @@ A live-provider failure may reflect credentials, network, rate limits or incompl
 
 ## Scientific limits
 
-- Runoff v0 is deterministic and inspectable, but not calibrated flood validation.
+- Runoff v0 is deterministic and inspectable, but not a calibrated flood model.
 - Land-cover-derived imperviousness and runoff parameters are model inputs or proxies.
 - GLO-30 slope and AHN/BGT terrain conditioning have different roles and remain separate.
 - H3 resolution never replaces provider resolution.
-- Waternet direction uses endpoint invert evidence; missing or insufficient evidence remains unknown or ambiguous.
-- Numeric comparison tolerance handles serialization noise and is not provider survey accuracy.
+- Waternet direction uses endpoint invert evidence; insufficient evidence remains unknown or ambiguous.
 - The conditioned Amsterdam outlet is a model boundary, not an observed sewer attachment.
-- Sewer propagation requires an owner-published BGT Inlooptabel, hydraulic surface relation or equivalent exact asset crosswalk.
 - Propagation does not model pipe capacity, storage, travel time, surcharge or overflow.
 - No percentage confidence or production-readiness claim is generated without a separate validation procedure.
 
 ## Refoundation and project history
 
-GeoLens originally contained a broad multi-hazard product, AI analysis, mineral exploration and several contradictory data paths. The refoundation deliberately reduced the active system to one physically meaningful, provenance-complete chain.
+GeoLens originally contained a broad multi-hazard product, AI analysis, mineral exploration and contradictory data paths. The refoundation deliberately reduced the active system to one physically meaningful, provenance-complete chain.
 
 The pre-overhaul repository is preserved on branch codex/pre-overhaul-snapshot-20260822. Do not rewrite that branch.
 
@@ -431,11 +506,11 @@ The latest repository tag is v0.1.0-alpha.4. Current main may contain later veri
 
 When repository materials disagree, use this order:
 
-1. [AGENTS.md](AGENTS.md)
-2. [REFOUNDATION_PLAN.md](REFOUNDATION_PLAN.md)
-3. verified runtime behavior
-4. tests expressing intended behavior
+1. AGENTS.md
+2. REFOUNDATION_PLAN.md
+3. verified runtime behaviour
+4. tests expressing intended behaviour
 5. implementation
 6. historical documentation
 
-The durable execution state belongs in the plan, code, tests and commits—not in generated completion reports.
+The durable execution state belongs in the plan, code, tests and commits, not in generated completion reports.
