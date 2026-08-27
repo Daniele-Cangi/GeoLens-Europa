@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 
 import './globals.css';
@@ -14,7 +14,7 @@ const deploymentOrigin =
 export const metadata: Metadata = {
   metadataBase: new URL(deploymentOrigin),
   title: {
-    default: 'GeoLens — Spatial Evidence Engine',
+    default: 'GeoLens — Environmental Evidence Infrastructure',
     template: '%s · GeoLens',
   },
   description:
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     'provenance',
   ],
   openGraph: {
-    title: 'GeoLens — Spatial Evidence Engine',
+    title: 'GeoLens — Environmental Evidence Infrastructure',
     description:
       'Real observations become inspectable physical state, with provenance and uncertainty intact.',
     type: 'website',
@@ -36,10 +36,14 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'GeoLens — Spatial Evidence Engine',
+    title: 'GeoLens — Environmental Evidence Infrastructure',
     description:
       'Real observations become inspectable physical state, with provenance and uncertainty intact.',
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#102a43',
 };
 
 export default function RootLayout({

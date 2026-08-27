@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 
-export const alt = 'GeoLens — Environmental evidence, made physical.';
+export const alt = 'GeoLens — Environmental Evidence Infrastructure';
 export const size = {
   width: 1200,
   height: 630,
@@ -18,8 +18,8 @@ export default function OpenGraphImage() {
           flexDirection: 'column',
           justifyContent: 'space-between',
           padding: '64px 72px',
-          background: '#07130f',
-          color: '#f2f3e9',
+          background: '#f5f6f4',
+          color: '#102a43',
           fontFamily: 'Arial, sans-serif',
         }}
       >
@@ -39,9 +39,8 @@ export default function OpenGraphImage() {
               height: 52,
               alignItems: 'center',
               justifyContent: 'center',
-              border: '1px solid #b9f454',
-              borderRadius: '50%',
-              color: '#b9f454',
+              border: '2px solid #185f9d',
+              color: '#185f9d',
               fontSize: 15,
               letterSpacing: '0.08em',
             }}
@@ -57,21 +56,22 @@ export default function OpenGraphImage() {
               display: 'flex',
               maxWidth: 980,
               flexDirection: 'column',
-              fontSize: 82,
-              fontWeight: 600,
-              letterSpacing: '-0.06em',
-              lineHeight: 0.94,
+              fontFamily: 'Georgia, serif',
+              fontSize: 78,
+              fontWeight: 400,
+              letterSpacing: '-0.045em',
+              lineHeight: 1,
             }}
           >
-            <span>Environmental evidence,</span>
-            <span style={{ color: '#b9f454' }}>made physical.</span>
+            <span>Environmental evidence</span>
+            <span style={{ color: '#185f9d' }}>infrastructure.</span>
           </div>
           <div
             style={{
               display: 'flex',
               maxWidth: 850,
               marginTop: 32,
-              color: '#a9b4aa',
+              color: '#5e6d78',
               fontSize: 24,
               lineHeight: 1.4,
             }}
@@ -86,14 +86,14 @@ export default function OpenGraphImage() {
             display: 'flex',
             alignItems: 'center',
             gap: '18px',
-            color: '#a9b4aa',
+            color: '#5e6d78',
             fontSize: 16,
             fontWeight: 700,
             letterSpacing: '0.13em',
             textTransform: 'uppercase',
           }}
         >
-          <span style={{ display: 'flex', width: 80, height: 2, background: '#b9f454' }} />
+          <span style={{ display: 'flex', width: 80, height: 2, background: '#185f9d' }} />
           Spatial evidence → traceable physical state
         </div>
       </div>

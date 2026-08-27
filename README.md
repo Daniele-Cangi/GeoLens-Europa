@@ -199,7 +199,7 @@ Observed zero is valid evidence. Missing is not zero. Synthetic fixtures are str
 ~~~text
 apps/
   api/                 Fastify spatial-evidence API
-  web/                 Next.js evidence inspector
+  web/                 Next.js institutional site and evidence inspector
 
 packages/
   evidence/            canonical Evidence<T> model and invariants
@@ -307,7 +307,8 @@ npm run dev
 
 Default local endpoints:
 
-- inspector: http://localhost:3000
+- institutional site: http://localhost:3000
+- Proof 0 inspector: http://localhost:3000/proof-zero
 - GeoLens API: http://localhost:3003
 - API health: http://localhost:3003/health
 - IMERG service: http://localhost:8001
