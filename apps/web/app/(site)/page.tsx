@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 
 import CaseCard from '../_components/CaseCard';
@@ -21,6 +22,15 @@ export default function HomePage() {
   return (
     <main>
       <section className="institutional-hero">
+        <div className="institutional-hero-media" aria-hidden="true">
+          <Image
+            src="/images/geolens-evidence-landscape.png"
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+          />
+        </div>
         <div className="institutional-hero-copy">
           <p className="site-overline">Environmental evidence infrastructure</p>
           <h1>Traceable physical state from real environmental evidence.</h1>

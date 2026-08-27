@@ -1,21 +1,21 @@
 :root {
-  --ink-950: #061116;
-  --ink-900: #0a1a20;
-  --ink-850: #10242a;
-  --ink-800: #153038;
-  --ink-700: #29444b;
-  --paper: #f2f0e8;
-  --paper-strong: #fffdf6;
-  --paper-muted: #d9d8d0;
-  --teal: #3dd6c1;
-  --teal-dark: #157f78;
-  --amber: #f2b84b;
+  --ink-950: #071827;
+  --ink-900: #0b2236;
+  --ink-850: #102d44;
+  --ink-800: #163b56;
+  --ink-700: #31516a;
+  --paper: #edf3f7;
+  --paper-strong: #ffffff;
+  --paper-muted: #c0ccd6;
+  --teal: #68aeda;
+  --teal-dark: #2878ad;
+  --amber: #d5ad62;
   --coral: #ef806f;
-  --blue: #77b9ff;
+  --blue: #9dcdf0;
   --violet: #b49cff;
-  --line-dark: rgba(227, 241, 237, 0.14);
-  --line-light: rgba(6, 17, 22, 0.16);
-  --shadow: 0 22px 55px rgba(0, 0, 0, 0.22);
+  --line-dark: rgba(218, 232, 241, 0.16);
+  --line-light: rgba(7, 24, 39, 0.16);
+  --shadow: 0 22px 55px rgba(1, 12, 21, 0.24);
   color-scheme: dark;
 }
 
@@ -503,7 +503,7 @@ body {
   margin: 0;
   min-width: 320px;
   background:
-    radial-gradient(circle at 58% -18%, rgba(61, 214, 193, 0.13), transparent 36rem),
+    radial-gradient(circle at 58% -18%, rgba(24, 95, 157, 0.18), transparent 36rem),
     var(--ink-950);
   color: var(--paper);
   font-family:
@@ -552,6 +552,10 @@ th {
 
 .app-shell {
   min-height: 100vh;
+  background:
+    linear-gradient(180deg, rgba(7, 24, 39, 0.72) 0, rgba(7, 24, 39, 0.96) 310px, var(--ink-950) 560px),
+    url('/images/geolens-evidence-landscape.png') top center / 100% 560px no-repeat,
+    var(--ink-950);
 }
 
 .topbar {
@@ -560,8 +564,8 @@ th {
   align-items: center;
   gap: 28px;
   padding: 22px clamp(20px, 3vw, 54px);
-  border-bottom: 1px solid var(--line-dark);
-  background: rgba(6, 17, 22, 0.86);
+  border-bottom: 3px solid rgba(104, 174, 218, 0.56);
+  background: rgba(7, 24, 39, 0.92);
   backdrop-filter: blur(20px);
 }
 
@@ -576,21 +580,31 @@ th {
   width: 46px;
   height: 46px;
   place-items: center;
-  border: 1px solid rgba(61, 214, 193, 0.64);
-  border-radius: 50%;
-  background: rgba(61, 214, 193, 0.08);
+  border: 1px solid rgba(104, 174, 218, 0.82);
+  border-radius: 0;
+  background: rgba(104, 174, 218, 0.06);
   color: var(--teal);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.08em;
-  box-shadow: inset 0 0 0 7px rgba(61, 214, 193, 0.04);
 }
 
 .brand-lockup h1 {
   margin: 1px 0 0;
-  font-size: 1.55rem;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.38rem;
+  font-weight: 400;
   line-height: 1;
+}
+
+.proof-brand-link {
+  color: var(--paper-strong);
+  text-decoration: none;
+}
+
+.proof-brand-link:hover h1 {
+  color: #cfe5f4;
 }
 
 .eyebrow {
@@ -620,7 +634,7 @@ th {
 .run-controls input {
   min-height: 42px;
   border: 1px solid var(--line-dark);
-  border-radius: 7px;
+  border-radius: 2px;
   padding: 9px 12px;
   background: var(--ink-900);
   color: var(--paper-strong);
@@ -629,18 +643,18 @@ th {
 .run-controls button {
   min-height: 42px;
   border: 1px solid var(--teal);
-  border-radius: 7px;
+  border-radius: 2px;
   padding: 9px 18px;
   background: var(--teal);
   color: var(--ink-950);
   font-weight: 850;
-  box-shadow: 0 8px 25px rgba(61, 214, 193, 0.16);
+  box-shadow: 0 8px 25px rgba(24, 95, 157, 0.22);
   transition: transform 140ms ease, background 140ms ease;
 }
 
 .run-controls button:hover:not(:disabled) {
   transform: translateY(-1px);
-  background: #61e2d0;
+  background: #8bc2e5;
 }
 
 .run-state {
@@ -680,8 +694,8 @@ th {
 .status-pill[data-status="available"],
 .status-pill[data-status="complete"],
 .status-pill[data-status="known"] {
-  border-color: rgba(61, 214, 193, 0.32);
-  background: rgba(61, 214, 193, 0.08);
+  border-color: rgba(104, 174, 218, 0.32);
+  background: rgba(104, 174, 218, 0.08);
   color: var(--teal);
 }
 
@@ -715,7 +729,7 @@ th {
 .error-banner {
   margin: 18px clamp(20px, 3vw, 54px) 0;
   border: 1px solid rgba(239, 128, 111, 0.42);
-  border-radius: 8px;
+  border-radius: 2px;
   padding: 13px 16px;
   background: rgba(239, 128, 111, 0.1);
   color: #ffc2b8;
@@ -736,8 +750,8 @@ th {
 .network-panel,
 .evidence-panel {
   border: 1px solid var(--line-dark);
-  border-radius: 10px;
-  background: rgba(10, 26, 32, 0.83);
+  border-radius: 2px;
+  background: rgba(11, 34, 54, 0.88);
   box-shadow: var(--shadow);
 }
 
@@ -784,7 +798,7 @@ th {
 .source-card {
   margin-top: 14px;
   border: 1px solid var(--line-dark);
-  border-radius: 8px;
+  border-radius: 2px;
   padding: 14px;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.035), transparent 70%),
@@ -889,12 +903,12 @@ th {
 .imerg-receipt {
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(61, 214, 193, 0.28);
-  border-radius: 10px;
+  border: 1px solid rgba(104, 174, 218, 0.28);
+  border-radius: 2px;
   padding: 17px 19px 15px;
   background:
-    linear-gradient(135deg, rgba(61, 214, 193, 0.09), transparent 48%),
-    rgba(10, 26, 32, 0.88);
+    linear-gradient(135deg, rgba(104, 174, 218, 0.09), transparent 48%),
+    rgba(11, 34, 54, 0.92);
   box-shadow: var(--shadow);
 }
 
@@ -946,14 +960,14 @@ th {
   overflow: hidden;
   margin: 16px 0 0;
   border: 1px solid var(--line-dark);
-  border-radius: 8px;
+  border-radius: 2px;
   background: var(--line-dark);
 }
 
 .receipt-grid > div {
   min-width: 0;
   padding: 10px 11px;
-  background: rgba(7, 21, 26, 0.96);
+  background: rgba(7, 24, 39, 0.96);
 }
 
 .receipt-grid dt {
@@ -982,10 +996,10 @@ th {
 .observed-infrastructure {
   overflow: hidden;
   border: 1px solid rgba(119, 185, 255, 0.32);
-  border-radius: 10px;
+  border-radius: 2px;
   background:
     linear-gradient(135deg, rgba(119, 185, 255, 0.08), transparent 44%),
-    rgba(10, 26, 32, 0.88);
+    rgba(11, 34, 54, 0.92);
   box-shadow: var(--shadow);
 }
 
@@ -1005,7 +1019,7 @@ th {
   border-right: 1px solid var(--line-dark);
   background:
     radial-gradient(circle at 48% 48%, rgba(119, 185, 255, 0.09), transparent 45%),
-    #08171c;
+    #081c2d;
 }
 
 .observed-map svg {
@@ -1026,8 +1040,8 @@ th {
 }
 
 .surface-proxy-cell[data-contributes="true"] {
-  fill: rgba(61, 214, 193, 0.13);
-  stroke: rgba(61, 214, 193, 0.52);
+  fill: rgba(104, 174, 218, 0.13);
+  stroke: rgba(104, 174, 218, 0.52);
 }
 
 .surface-proxy-cell[data-termination="coverage_exit"],
@@ -1142,7 +1156,7 @@ th {
 
 .observed-receipt {
   padding: 16px;
-  background: rgba(7, 21, 26, 0.68);
+  background: rgba(7, 24, 39, 0.68);
 }
 
 .observed-facts {
@@ -1177,7 +1191,7 @@ th {
 .observed-selection {
   margin-top: 16px;
   border: 1px solid rgba(119, 185, 255, 0.24);
-  border-radius: 8px;
+  border-radius: 2px;
   padding: 12px;
   background: rgba(119, 185, 255, 0.055);
 }
@@ -1192,8 +1206,8 @@ th {
 
 
 .conditioned-runoff-receipt {
-  border-color: rgba(61, 214, 193, 0.3);
-  background: rgba(61, 214, 193, 0.06);
+  border-color: rgba(104, 174, 218, 0.3);
+  background: rgba(104, 174, 218, 0.06);
 }
 
 .surface-proxy-heading {
@@ -1250,9 +1264,9 @@ th {
 .metric-card {
   min-height: 112px;
   border: 1px solid var(--line-dark);
-  border-radius: 9px;
+  border-radius: 2px;
   padding: 14px;
-  background: rgba(10, 26, 32, 0.83);
+  background: rgba(11, 34, 54, 0.88);
 }
 
 .metric-card p {
@@ -1294,8 +1308,8 @@ th {
   overflow: hidden;
   min-height: 500px;
   background:
-    radial-gradient(circle at 30% 24%, rgba(61, 214, 193, 0.08), transparent 32%),
-    #08171c;
+    radial-gradient(circle at 30% 24%, rgba(104, 174, 218, 0.08), transparent 32%),
+    #081c2d;
 }
 
 .network-canvas svg {
@@ -1323,15 +1337,15 @@ th {
 }
 
 .catchment-shape path {
-  fill: rgba(61, 214, 193, 0.07);
-  stroke: rgba(61, 214, 193, 0.52);
+  fill: rgba(104, 174, 218, 0.07);
+  stroke: rgba(104, 174, 218, 0.52);
   stroke-width: 1.5;
   stroke-dasharray: 6 5;
   transition: fill 140ms ease, stroke 140ms ease;
 }
 
 .catchment-shape[data-selected="true"] path {
-  fill: rgba(61, 214, 193, 0.15);
+  fill: rgba(104, 174, 218, 0.15);
   stroke: var(--teal);
   stroke-width: 2.5;
 }
@@ -1418,7 +1432,7 @@ th {
 }
 
 .node-shape[data-selected="true"] circle:first-of-type {
-  fill: rgba(61, 214, 193, 0.18);
+  fill: rgba(104, 174, 218, 0.18);
   stroke-width: 5;
 }
 
@@ -1431,7 +1445,7 @@ th {
   border: 1px solid var(--line-dark);
   border-radius: 7px;
   padding: 8px 10px;
-  background: rgba(6, 17, 22, 0.84);
+  background: rgba(7, 24, 39, 0.84);
   color: #91a5a6;
   font-size: 0.62rem;
   backdrop-filter: blur(8px);
@@ -1464,7 +1478,7 @@ th {
   width: 13px;
   height: 9px;
   border: 1px dashed var(--teal);
-  background: rgba(61, 214, 193, 0.1);
+  background: rgba(104, 174, 218, 0.1);
 }
 
 .table-scroll {
@@ -1554,7 +1568,7 @@ table small {
 .model-card {
   margin-top: 15px;
   border: 1px solid var(--line-dark);
-  border-radius: 8px;
+  border-radius: 2px;
   padding: 14px;
   background: var(--ink-900);
 }
