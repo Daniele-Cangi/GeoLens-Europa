@@ -216,7 +216,7 @@ async function waitForGeoLensPage(name, url) {
       if (
         response.ok &&
         html.includes('GeoLens') &&
-        html.includes('Spatial Evidence Inspector')
+        html.includes('Environmental evidence infrastructure')
       ) {
         console.log(`[GeoLens] ${name} ready.`);
         return;
