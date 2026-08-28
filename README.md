@@ -6,6 +6,10 @@ GeoLens is being rebuilt around a simple rule:
 
 > A result is useful only when we can explain where it came from, how it was transformed and what is still unknown.
 
+![GeoLens institutional interface showing the spatial evidence mission and programme status](docs/screenshots/geolens-landing.png)
+
+*The public GeoLens interface presents the research programme, its current proof and the rule that missing evidence must never become a valid-looking zero.*
+
 The first application is water moving from rainfall, across the surface and, where authoritative relationships are available, into a stormwater network.
 
 ## GeoLens in one minute
@@ -67,6 +71,10 @@ GeoLens has two complementary proofs and one historical benchmark in progress.
 | Trento Proof 0 | The complete software chain works from real environmental inputs to a downstream result | Evidence composition, deterministic runoff, catchment aggregation, network propagation, provenance and mass balance | The small drainage network is a deterministic fixture, not surveyed municipal infrastructure |
 | Amsterdam observed proof | GeoLens can read real Waternet pipes and nodes and derive a real, non-zero surface runoff source | Observed topology, elevation-based direction states, real rainfall/terrain/land cover and an inspectable surface contribution | No owner-published surface-to-pipe attachment has yet been found, so sewer propagation is deliberately blocked |
 | Emilia-Romagna 2023 | A simple terrain-only concentration hypothesis was tested against an independent observed flood extent and did not perform better than chance | A reproducible historical benchmark, withheld evaluation data and honest negative evidence | A conditioned replay requires discharge, boundary, breach and terrain/channel evidence that is not currently available |
+
+![GeoLens Case 02 spatial inspector showing the Emilia-Romagna event runoff layer and explicit withheld evidence](docs/screenshots/emilia-event-runoff.png)
+
+*Case 02 exposes the derived event-runoff concentration together with native resolution, transformation and publication state. Restricted or unavailable spatial evidence remains visibly withheld instead of being rendered as zero.*
 
 This distinction matters. GeoLens does not describe a software pipeline as scientifically validated merely because it runs.
 
