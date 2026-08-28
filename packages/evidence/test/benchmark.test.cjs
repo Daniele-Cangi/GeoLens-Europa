@@ -6,6 +6,7 @@ const path = require('node:path');
 const {
   assertHistoricalBenchmarkManifest,
   EMILIA_ROMAGNA_2023_BENCHMARK,
+  EMILIA_ROMAGNA_2023_MAP_MANIFEST,
 } = require('../dist');
 
 const manifestPath = path.join(
@@ -128,6 +129,58 @@ test('API-safe Emilia snapshot remains aligned with the pinned manifest', () => 
     ),
   );
   assert.deepEqual(snapshot.claims.forbidden, manifest.benchmark.forbiddenClaims);
+});
+
+test('publication-safe Emilia map manifest keeps restricted geometry withheld', () => {
+  const manifest = manifestFixture();
+  const map = EMILIA_ROMAGNA_2023_MAP_MANIFEST;
+  const manifestArtifacts = new Map(
+    [
+      { localArtifacts: manifest.benchmark.localArtifacts ?? [] },
+      ...(manifest.benchmark.routingBaselines ?? []),
+      ...(manifest.benchmark.evaluationRuns ?? []),
+      ...(manifest.benchmark.observationComparisonRuns ?? []),
+      ...manifest.datasets,
+    ]
+      .flatMap((group) => group.localArtifacts ?? [])
+      .map((artifact) => [artifact.relativePath, artifact]),
+  );
+  const displayCellCount = map.displayGrid.width * map.displayGrid.height;
+
+  assert.equal(map.manifestVersion, manifest.manifestVersion);
+  assert.equal(map.benchmarkId, manifest.benchmark.id);
+  assert.equal(map.displayGrid.cellCount, displayCellCount);
+  assert.equal(map.displayGrid.nominalCellSizeM, 300);
+  assert.equal(
+    Buffer.from(map.aoiCoverage.values, 'base64').length,
+    displayCellCount,
+  );
+  for (const artifact of Object.values(map.sourceArtifacts)) {
+    const pinned = manifestArtifacts.get(artifact.relativePath);
+    assert.ok(pinned, `${artifact.relativePath} must remain pinned`);
+    assert.equal(artifact.bytes, pinned.bytes);
+    assert.equal(artifact.sha256, pinned.sha256);
+  }
+  for (const layer of map.layers) {
+    if (layer.renderState === 'renderable') {
+      assert.ok(layer.data);
+      assert.equal(
+        Buffer.from(layer.data.values, 'base64').length,
+        displayCellCount,
+      );
+    } else {
+      assert.equal(layer.data, null);
+      assert.ok(layer.missingReason);
+    }
+  }
+  const observedExtent = map.layers.find(
+    (layer) => layer.id === 'observed_flood_extent',
+  );
+  assert.equal(observedExtent.publicationState, 'restricted');
+  assert.equal(observedExtent.renderState, 'withheld');
+  assert.equal(observedExtent.data, null);
+  assert.ok(map.claims.mapIsNot.includes('inundation_map'));
+  assert.ok(map.claims.mapIsNot.includes('operational_forecast'));
 });
 
 test('terrain-routing baseline is materialized without evaluation leakage', () => {

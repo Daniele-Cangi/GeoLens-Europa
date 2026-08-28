@@ -1,6 +1,7 @@
 import compress from '@fastify/compress';
 import {
   EMILIA_ROMAGNA_2023_BENCHMARK,
+  EMILIA_ROMAGNA_2023_MAP_MANIFEST,
   EvidenceStatus,
 } from '@geo-lens/evidence';
 import cors from '@fastify/cors';
@@ -155,6 +156,8 @@ export function buildGeoLensApi(
         'GET /api/infrastructure/amsterdam-waternet',
       emiliaHistoricalBenchmark:
         'GET /api/benchmarks/emilia-romagna-2023',
+      emiliaHistoricalBenchmarkMap:
+        'GET /api/benchmarks/emilia-romagna-2023/map-manifest',
       proofZero: 'POST /api/proof-zero/run',
     },
   }));
@@ -169,6 +172,18 @@ export function buildGeoLensApi(
         )
         .code(200)
         .send(EMILIA_ROMAGNA_2023_BENCHMARK),
+  );
+
+  server.get(
+    '/api/benchmarks/emilia-romagna-2023/map-manifest',
+    async (_request, reply) =>
+      reply
+        .header(
+          'cache-control',
+          'public, max-age=300, stale-while-revalidate=86400',
+        )
+        .code(200)
+        .send(EMILIA_ROMAGNA_2023_MAP_MANIFEST),
   );
 
   server.get(
