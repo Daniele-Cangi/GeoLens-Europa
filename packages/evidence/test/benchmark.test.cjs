@@ -3,7 +3,10 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const path = require('node:path');
 
-const { assertHistoricalBenchmarkManifest } = require('../dist');
+const {
+  assertHistoricalBenchmarkManifest,
+  EMILIA_ROMAGNA_2023_BENCHMARK,
+} = require('../dist');
 
 const manifestPath = path.join(
   __dirname,
@@ -67,6 +70,64 @@ test('benchmark documentation inventory is derived from the manifest', () => {
 
   assert.match(readme, new RegExp(inventoryText));
   assert.match(plan, new RegExp(inventoryText));
+});
+
+test('API-safe Emilia snapshot remains aligned with the pinned manifest', () => {
+  const manifest = manifestFixture();
+  const inventory = artifactInventory(manifest);
+  const snapshot = EMILIA_ROMAGNA_2023_BENCHMARK;
+  const eventRun = manifest.benchmark.routingBaselines.find(
+    (candidate) => candidate.id === 'forli-imerg-runoff-d8-v0',
+  );
+  const evaluation = manifest.benchmark.evaluationRuns.find(
+    (candidate) =>
+      candidate.id === 'forli-event-runoff-concentration-v0-v7-event2',
+  );
+  const conditioned = manifest.benchmark.conditionedReplayProtocols[0];
+
+  assert.equal(snapshot.manifest.version, manifest.manifestVersion);
+  assert.equal(snapshot.manifest.artifactCount, inventory.count);
+  assert.equal(snapshot.manifest.artifactBytes, inventory.bytes);
+  assert.equal(snapshot.benchmarkId, manifest.benchmark.id);
+  assert.equal(snapshot.replayMode, manifest.benchmark.replayMode);
+  assert.deepEqual(snapshot.event, manifest.benchmark.event);
+  assert.equal(snapshot.spatial.gridCrs, manifest.benchmark.spatialProtocol.grid.crs);
+  assert.equal(
+    snapshot.spatial.eligibleCells,
+    evaluation.counts.evaluatedCells,
+  );
+  assert.equal(snapshot.routing.modelVersion, eventRun.modelVersion);
+  assert.equal(snapshot.routing.status, eventRun.quality);
+  assert.equal(snapshot.evaluation.rocAuc, evaluation.results.rocAuc);
+  assert.equal(
+    snapshot.evaluation.averagePrecision,
+    evaluation.results.averagePrecision,
+  );
+  assert.equal(snapshot.evaluation.calibration, evaluation.calibration);
+  assert.equal(
+    snapshot.conditionedReplay.status,
+    conditioned.runGate.state,
+  );
+  assert.equal(
+    snapshot.conditionedReplay.missingPolicy,
+    conditioned.runGate.missingPolicy,
+  );
+  assert.deepEqual(
+    snapshot.conditionedReplay.requiredEvidence.map(({ id, status }) => ({
+      id,
+      status,
+    })),
+    conditioned.requiredBoundaryEvidence.map(({ id, status }) => ({
+      id,
+      status,
+    })),
+  );
+  assert.ok(
+    snapshot.evidence.every((summary) =>
+      manifest.datasets.some((dataset) => dataset.id === summary.id),
+    ),
+  );
+  assert.deepEqual(snapshot.claims.forbidden, manifest.benchmark.forbiddenClaims);
 });
 
 test('terrain-routing baseline is materialized without evaluation leakage', () => {

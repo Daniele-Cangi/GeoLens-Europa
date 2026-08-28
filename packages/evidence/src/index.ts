@@ -1,4 +1,5 @@
 export * from './benchmark';
+export * from './emiliaBenchmark';
 
 export const EVIDENCE_STATUSES = [
   'available',
