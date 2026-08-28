@@ -1458,6 +1458,415 @@
   font-size: 0.61rem;
 }
 
+/* Emilia-Romagna spatial inspector */
+
+.emilia-spatial-inspector {
+  padding: 112px max(24px, calc((100vw - 1320px) / 2));
+  background: var(--site-navy-deep);
+}
+
+.emilia-spatial-heading {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(280px, 0.45fr);
+  gap: clamp(50px, 9vw, 140px);
+  align-items: end;
+}
+
+.emilia-spatial-heading h2 {
+  max-width: 820px;
+  margin: 0;
+  color: var(--site-white);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2.35rem, 4.2vw, 4.4rem);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 1.03;
+}
+
+.emilia-spatial-heading > p {
+  margin: 0;
+  color: #aabdc9;
+  font-size: 0.78rem;
+  line-height: 1.72;
+}
+
+.emilia-spatial-inspector .site-overline {
+  color: #6eb0cf;
+}
+
+.emilia-spatial-inspector .emilia-inspector-message {
+  color: var(--site-navy);
+}
+
+.emilia-map-workspace {
+  margin-top: 62px;
+}
+
+.emilia-layer-controls {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(112px, 1fr));
+  border-top: 1px solid #3c5568;
+  border-left: 1px solid #3c5568;
+}
+
+.emilia-layer-controls button {
+  min-height: 86px;
+  border: 0;
+  border-right: 1px solid #3c5568;
+  border-bottom: 1px solid #3c5568;
+  padding: 15px;
+  background: transparent;
+  color: #c5d3dc;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.emilia-layer-controls button:hover,
+.emilia-layer-controls button[aria-pressed='true'] {
+  background: #eef3f3;
+  color: var(--site-navy);
+}
+
+.emilia-layer-controls button:focus-visible,
+.emilia-map-frame canvas:focus-visible {
+  position: relative;
+  z-index: 3;
+  outline: 3px solid #e5b33f;
+  outline-offset: -3px;
+}
+
+.emilia-layer-controls span,
+.emilia-layer-controls small {
+  display: block;
+}
+
+.emilia-layer-controls span {
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.emilia-layer-controls small {
+  margin-top: 13px;
+  color: #7893a4;
+  font-size: 0.57rem;
+  font-weight: 800;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.emilia-layer-controls button[data-render='withheld'] small {
+  color: #c69387;
+}
+
+.emilia-map-layout {
+  display: grid;
+  grid-template-columns: minmax(440px, 0.92fr) minmax(380px, 0.68fr);
+  gap: 1px;
+  margin-top: 26px;
+  background: #3c5568;
+}
+
+.emilia-map-frame {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  background: #eef3f3;
+}
+
+.emilia-map-frame canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 335 / 420;
+  cursor: crosshair;
+}
+
+.emilia-map-north {
+  position: absolute;
+  z-index: 2;
+  top: 20px;
+  left: 20px;
+  display: grid;
+  justify-items: center;
+  width: 32px;
+  padding: 8px 0;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--site-navy);
+  font-size: 0.62rem;
+  font-weight: 900;
+}
+
+.emilia-map-north i {
+  display: block;
+  width: 1px;
+  height: 27px;
+  margin-top: 5px;
+  background: var(--site-navy);
+}
+
+.emilia-map-north i::before {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-top: 1px solid var(--site-navy);
+  border-left: 1px solid var(--site-navy);
+  content: '';
+  transform: translate(-3px, -1px) rotate(45deg);
+}
+
+.emilia-map-coordinates {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  gap: 14px;
+  padding: 8px 10px;
+  background: rgba(8, 35, 56, 0.9);
+  color: #dce7ec;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.55rem;
+}
+
+.emilia-map-withheld {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 50px;
+  background:
+    linear-gradient(rgba(8, 35, 56, 0.88), rgba(8, 35, 56, 0.92)),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 16px,
+      rgba(255, 255, 255, 0.08) 16px,
+      rgba(255, 255, 255, 0.08) 17px
+    );
+  color: var(--site-white);
+  text-align: center;
+}
+
+.emilia-map-withheld span {
+  color: #d3a497;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.emilia-map-withheld strong {
+  margin-top: 20px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2rem, 4vw, 4rem);
+  font-weight: 400;
+}
+
+.emilia-map-withheld p {
+  max-width: 460px;
+  margin: 22px 0 0;
+  color: #bac9d2;
+  font-size: 0.72rem;
+  line-height: 1.65;
+}
+
+.emilia-map-record {
+  padding: clamp(28px, 4vw, 56px);
+  background: #f7f8f6;
+}
+
+.emilia-map-record-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.emilia-map-record-heading > span {
+  border-left: 3px solid var(--site-blue);
+  padding-left: 9px;
+  color: #60737f;
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.emilia-map-record-heading > span[data-state='incomplete_window'] {
+  border-left-color: var(--site-gold);
+  color: #735f38;
+}
+
+.emilia-map-record-heading > span[data-state='withheld'] {
+  border-left-color: #a94941;
+  color: #8d4038;
+}
+
+.emilia-map-record h3 {
+  margin: 30px 0 0;
+  color: var(--site-navy);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2rem, 3vw, 3rem);
+  font-weight: 400;
+  letter-spacing: -0.04em;
+  line-height: 1.04;
+}
+
+.emilia-map-interpretation {
+  margin: 22px 0 0;
+  color: var(--site-muted);
+  font-size: 0.74rem;
+  line-height: 1.68;
+}
+
+.emilia-map-cell-record {
+  display: grid;
+  grid-template-columns: 1fr 0.7fr 1.1fr;
+  margin: 34px 0 0;
+  border-top: 2px solid var(--site-navy);
+  border-left: 1px solid var(--site-line);
+}
+
+.emilia-map-cell-record > div {
+  min-width: 0;
+  border-right: 1px solid var(--site-line);
+  border-bottom: 1px solid var(--site-line);
+  padding: 14px;
+}
+
+.emilia-map-cell-record dt,
+.emilia-map-provenance dt {
+  color: #71808b;
+  font-size: 0.56rem;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.emilia-map-cell-record dd {
+  margin: 10px 0 0;
+  color: var(--site-navy);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.emilia-map-cell-empty {
+  min-height: 74px;
+  margin: 34px 0 0;
+  border-top: 2px solid var(--site-navy);
+  border-bottom: 1px solid var(--site-line);
+  padding: 18px 0;
+  color: #6d7c86;
+  font-size: 0.68rem;
+  line-height: 1.55;
+}
+
+.emilia-map-legend-continuous,
+.emilia-map-legend-categories {
+  margin-top: 30px;
+}
+
+.emilia-map-legend-continuous > div {
+  height: 9px;
+  background: linear-gradient(90deg, #e8f1f1, #76a5a4, #155b6f, #082338);
+}
+
+.emilia-map-legend-continuous > div[data-layer='elevation'] {
+  background: linear-gradient(90deg, #e6efe8, #8fad97, #8d6f46, #49362b);
+}
+
+.emilia-map-legend-continuous {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  color: #6d7c86;
+  font-size: 0.57rem;
+}
+
+.emilia-map-legend-continuous > div {
+  grid-column: 1 / -1;
+}
+
+.emilia-map-legend-continuous span:last-child {
+  text-align: right;
+}
+
+.emilia-map-legend-categories {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 18px;
+  padding: 0;
+  list-style: none;
+}
+
+.emilia-map-legend-categories li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #5e707c;
+  font-size: 0.6rem;
+}
+
+.emilia-map-legend-categories i {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+}
+
+.emilia-map-provenance {
+  margin: 34px 0 0;
+  border-top: 1px solid var(--site-line);
+}
+
+.emilia-map-provenance > div {
+  display: grid;
+  grid-template-columns: 105px 1fr;
+  gap: 18px;
+  border-bottom: 1px solid var(--site-line);
+  padding: 13px 0;
+}
+
+.emilia-map-provenance dd {
+  margin: 0;
+  color: #526672;
+  font-size: 0.63rem;
+  line-height: 1.5;
+}
+
+.emilia-map-limitation {
+  margin: 26px 0 0;
+  border-left: 3px solid var(--site-gold);
+  padding-left: 14px;
+  color: #665b47;
+  font-size: 0.65rem;
+  line-height: 1.58;
+}
+
+.emilia-map-attribution {
+  margin: 24px 0 0;
+  color: #79858c;
+  font-size: 0.57rem;
+  line-height: 1.5;
+}
+
+.emilia-map-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+  border-right: 1px solid #3c5568;
+  border-bottom: 1px solid #3c5568;
+  border-left: 1px solid #3c5568;
+  padding: 17px 20px;
+  color: #8fa5b3;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.57rem;
+}
+
 /* Emilia-Romagna API inspector */
 
 .emilia-inspector {
@@ -2121,6 +2530,15 @@
     grid-template-columns: 1fr;
   }
 
+  .emilia-spatial-heading,
+  .emilia-map-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .emilia-layer-controls {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
   .emilia-snapshot-register,
   .emilia-metric-strip {
     grid-template-columns: 1fr 1fr;
@@ -2215,6 +2633,25 @@
 
   .emilia-inspector {
     padding: 78px 18px;
+  }
+
+  .emilia-spatial-inspector {
+    padding: 78px 18px;
+  }
+
+  .emilia-layer-controls {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .emilia-map-cell-record,
+  .emilia-map-legend-categories {
+    grid-template-columns: 1fr;
+  }
+
+  .emilia-map-footer,
+  .emilia-map-record-heading {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .emilia-snapshot-register,

@@ -348,6 +348,7 @@ Default local endpoints:
 - IMERG service: http://localhost:8001
 - Amsterdam observed proof: http://localhost:3003/api/infrastructure/amsterdam-waternet
 - Emilia-Romagna benchmark: http://localhost:3003/api/benchmarks/emilia-romagna-2023
+- Emilia-Romagna map manifest: http://localhost:3003/api/benchmarks/emilia-romagna-2023/map-manifest
 
 The root launcher starts services in dependency order and waits for their health gates. The first uncached IMERG acquisition can take several minutes.
 
@@ -396,6 +397,17 @@ The response exposes:
 - permitted and forbidden scientific claims.
 
 The institutional Case 02 page reads this endpoint through its evidence inspector. API unavailability is shown as an error; it cannot silently become a valid-looking benchmark result.
+
+The companion GET /api/benchmarks/emilia-romagna-2023/map-manifest serves a deterministic publication-safe spatial projection. Four inspectable layers are aggregated from the pinned 30 m grid onto a nominal 300 m display grid: terrain-only D8 contributing area, mean GLO-30 elevation, dominant CORINE land-cover group and known DBTR permanent-water presence. Every layer retains native resolution, aggregation, evidence state, transformation version and attribution.
+
+The endpoint is intentionally fail-closed. The observed V7 flood extent, event-runoff spatial values and ARPAE station geometry are registered but carry no map data while redistribution is restricted or still under review. The browser therefore cannot turn an unavailable layer into a visual zero, and the displayed D8 concentration cannot be mistaken for inundation extent.
+
+The checked-in display payload is reproducible from verified external artifacts:
+
+```bash
+npm run materialize:emilia-map -- --data-root C:\Users\dacan\GeoLens\data\emilia-romagna-2023
+npm run verify:emilia-map -- --data-root C:\Users\dacan\GeoLens\data\emilia-romagna-2023
+```
 
 ### Generic Proof 0
 
