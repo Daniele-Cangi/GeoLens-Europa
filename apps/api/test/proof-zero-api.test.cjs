@@ -503,10 +503,93 @@ test('API identity exposes health, Proof 0 and observed infrastructure', async (
     root.endpoints.observedInfrastructure,
     'GET /api/infrastructure/amsterdam-waternet',
   );
+  assert.equal(
+    root.endpoints.emiliaHistoricalBenchmark,
+    'GET /api/benchmarks/emilia-romagna-2023',
+  );
+  assert.equal(
+    root.endpoints.emiliaHistoricalBenchmarkMap,
+    'GET /api/benchmarks/emilia-romagna-2023/map-manifest',
+  );
   assert.equal(JSON.stringify(root).includes('ai'), false);
   assert.equal(JSON.stringify(root).includes('mineral'), false);
   assert.equal(health.coreRequiresAi, false);
   assert.equal(health.coreRequiresMineralModel, false);
+});
+
+test('API exposes the verified Emilia negative benchmark without promoting blocked hydraulics', async (context) => {
+  const server = buildTestServer();
+  context.after(() => server.close());
+
+  const response = await server.inject({
+    method: 'GET',
+    url: '/api/benchmarks/emilia-romagna-2023',
+  });
+  const body = response.json();
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(
+    response.headers['cache-control'],
+    'public, max-age=300, stale-while-revalidate=86400',
+  );
+  assert.equal(body.manifest.version, '1.15.0');
+  assert.equal(body.manifest.artifactCount, 55);
+  assert.equal(body.manifest.artifactBytes, 746444721);
+  assert.equal(body.state, 'evaluated_negative_baseline');
+  assert.equal(body.routing.status, 'incomplete_window');
+  assert.equal(body.routing.rainfall.granules, 96);
+  assert.equal(body.routing.rainfall.expectedGranules, 96);
+  assert.ok(body.routing.runoff.localVolumeM3 > 0);
+  assert.ok(Math.abs(body.routing.runoff.massBalanceDifferenceM3) < 1e-6);
+  assert.equal(body.evaluation.calibration, false);
+  assert.equal(body.evaluation.interpretation, 'near_random_negative_baseline');
+  assert.equal(body.conditionedReplay.status, 'blocked_missing_required_evidence');
+  assert.ok(
+    body.conditionedReplay.requiredEvidence.some(
+      (item) => item.status === 'missing',
+    ),
+  );
+  assert.ok(body.claims.forbidden.includes('validated_inundation_extent'));
+  assert.equal(JSON.stringify(body).includes('floodProbability'), false);
+});
+
+test('API exposes only publication-safe Emilia map layers', async (context) => {
+  const server = buildTestServer();
+  context.after(() => server.close());
+
+  const response = await server.inject({
+    method: 'GET',
+    url: '/api/benchmarks/emilia-romagna-2023/map-manifest',
+  });
+  const body = response.json();
+  const renderable = body.layers.filter(
+    (layer) => layer.renderState === 'renderable',
+  );
+  const withheld = body.layers.filter(
+    (layer) => layer.renderState === 'withheld',
+  );
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(body.schemaVersion, 'emilia-map-manifest-v0.1.0');
+  assert.equal(body.manifestVersion, '1.15.0');
+  assert.equal(body.displayGrid.width, 34);
+  assert.equal(body.displayGrid.height, 42);
+  assert.equal(body.displayGrid.nominalCellSizeM, 300);
+  assert.equal(renderable.length, 4);
+  assert.ok(renderable.every((layer) => layer.data !== null));
+  assert.ok(withheld.every((layer) => layer.data === null));
+  assert.equal(
+    body.layers.find((layer) => layer.id === 'observed_flood_extent')
+      .publicationState,
+    'restricted',
+  );
+  assert.equal(
+    body.layers.find((layer) => layer.id === 'event_runoff_concentration')
+      .publicationState,
+    'review_pending',
+  );
+  assert.ok(body.claims.mapIsNot.includes('inundation_map'));
+  assert.equal(JSON.stringify(body).includes('floodProbability'), false);
 });
 
 test('API returns inspectable non-zero downstream fixture state', async (context) => {

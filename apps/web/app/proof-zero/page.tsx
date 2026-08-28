@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import {
   useCallback,
   useEffect,
@@ -9,12 +10,12 @@ import {
   type KeyboardEvent,
 } from 'react';
 
-import ObservedInfrastructurePanel from './components/ObservedInfrastructurePanel';
+import ObservedInfrastructurePanel from '../components/ObservedInfrastructurePanel';
 
 import {
   PROOF_ZERO_NODE_POSITIONS,
   PROOF_ZERO_PIPES,
-} from './lib/fixture';
+} from '../lib/fixture';
 import {
   getObservedInfrastructure,
   runProofZero,
@@ -23,7 +24,7 @@ import {
   type ObservedInfrastructureResult,
   type ProofZeroResult,
   type ProviderSummary,
-} from './lib/api';
+} from '../lib/api';
 
 type Selection =
   | { readonly kind: 'catchment'; readonly id: string }
@@ -1182,15 +1183,19 @@ export default function Home() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div className="brand-lockup">
+        <Link
+          className="brand-lockup proof-brand-link"
+          href="/"
+          aria-label="Return to the GeoLens public site"
+        >
           <span className="brand-mark" aria-hidden="true">
             GL
           </span>
           <div>
-            <p className="eyebrow">Spatial evidence engine</p>
-            <h1>GeoLens</h1>
+            <p className="eyebrow">GeoLens research programme</p>
+            <h1>Proof 0 inspector</h1>
           </div>
-        </div>
+        </Link>
 
         <form className="run-controls" onSubmit={handleSubmit}>
           <label htmlFor="reference-time">

@@ -3,7 +3,11 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const path = require('node:path');
 
-const { assertHistoricalBenchmarkManifest } = require('../dist');
+const {
+  assertHistoricalBenchmarkManifest,
+  EMILIA_ROMAGNA_2023_BENCHMARK,
+  EMILIA_ROMAGNA_2023_MAP_MANIFEST,
+} = require('../dist');
 
 const manifestPath = path.join(
   __dirname,
@@ -67,6 +71,116 @@ test('benchmark documentation inventory is derived from the manifest', () => {
 
   assert.match(readme, new RegExp(inventoryText));
   assert.match(plan, new RegExp(inventoryText));
+});
+
+test('API-safe Emilia snapshot remains aligned with the pinned manifest', () => {
+  const manifest = manifestFixture();
+  const inventory = artifactInventory(manifest);
+  const snapshot = EMILIA_ROMAGNA_2023_BENCHMARK;
+  const eventRun = manifest.benchmark.routingBaselines.find(
+    (candidate) => candidate.id === 'forli-imerg-runoff-d8-v0',
+  );
+  const evaluation = manifest.benchmark.evaluationRuns.find(
+    (candidate) =>
+      candidate.id === 'forli-event-runoff-concentration-v0-v7-event2',
+  );
+  const conditioned = manifest.benchmark.conditionedReplayProtocols[0];
+
+  assert.equal(snapshot.manifest.version, manifest.manifestVersion);
+  assert.equal(snapshot.manifest.artifactCount, inventory.count);
+  assert.equal(snapshot.manifest.artifactBytes, inventory.bytes);
+  assert.equal(snapshot.benchmarkId, manifest.benchmark.id);
+  assert.equal(snapshot.replayMode, manifest.benchmark.replayMode);
+  assert.deepEqual(snapshot.event, manifest.benchmark.event);
+  assert.equal(snapshot.spatial.gridCrs, manifest.benchmark.spatialProtocol.grid.crs);
+  assert.equal(
+    snapshot.spatial.eligibleCells,
+    evaluation.counts.evaluatedCells,
+  );
+  assert.equal(snapshot.routing.modelVersion, eventRun.modelVersion);
+  assert.equal(snapshot.routing.status, eventRun.quality);
+  assert.equal(snapshot.evaluation.rocAuc, evaluation.results.rocAuc);
+  assert.equal(
+    snapshot.evaluation.averagePrecision,
+    evaluation.results.averagePrecision,
+  );
+  assert.equal(snapshot.evaluation.calibration, evaluation.calibration);
+  assert.equal(
+    snapshot.conditionedReplay.status,
+    conditioned.runGate.state,
+  );
+  assert.equal(
+    snapshot.conditionedReplay.missingPolicy,
+    conditioned.runGate.missingPolicy,
+  );
+  assert.deepEqual(
+    snapshot.conditionedReplay.requiredEvidence.map(({ id, status }) => ({
+      id,
+      status,
+    })),
+    conditioned.requiredBoundaryEvidence.map(({ id, status }) => ({
+      id,
+      status,
+    })),
+  );
+  assert.ok(
+    snapshot.evidence.every((summary) =>
+      manifest.datasets.some((dataset) => dataset.id === summary.id),
+    ),
+  );
+  assert.deepEqual(snapshot.claims.forbidden, manifest.benchmark.forbiddenClaims);
+});
+
+test('publication-safe Emilia map manifest keeps restricted geometry withheld', () => {
+  const manifest = manifestFixture();
+  const map = EMILIA_ROMAGNA_2023_MAP_MANIFEST;
+  const manifestArtifacts = new Map(
+    [
+      { localArtifacts: manifest.benchmark.localArtifacts ?? [] },
+      ...(manifest.benchmark.routingBaselines ?? []),
+      ...(manifest.benchmark.evaluationRuns ?? []),
+      ...(manifest.benchmark.observationComparisonRuns ?? []),
+      ...manifest.datasets,
+    ]
+      .flatMap((group) => group.localArtifacts ?? [])
+      .map((artifact) => [artifact.relativePath, artifact]),
+  );
+  const displayCellCount = map.displayGrid.width * map.displayGrid.height;
+
+  assert.equal(map.manifestVersion, manifest.manifestVersion);
+  assert.equal(map.benchmarkId, manifest.benchmark.id);
+  assert.equal(map.displayGrid.cellCount, displayCellCount);
+  assert.equal(map.displayGrid.nominalCellSizeM, 300);
+  assert.equal(
+    Buffer.from(map.aoiCoverage.values, 'base64').length,
+    displayCellCount,
+  );
+  for (const artifact of Object.values(map.sourceArtifacts)) {
+    const pinned = manifestArtifacts.get(artifact.relativePath);
+    assert.ok(pinned, `${artifact.relativePath} must remain pinned`);
+    assert.equal(artifact.bytes, pinned.bytes);
+    assert.equal(artifact.sha256, pinned.sha256);
+  }
+  for (const layer of map.layers) {
+    if (layer.renderState === 'renderable') {
+      assert.ok(layer.data);
+      assert.equal(
+        Buffer.from(layer.data.values, 'base64').length,
+        displayCellCount,
+      );
+    } else {
+      assert.equal(layer.data, null);
+      assert.ok(layer.missingReason);
+    }
+  }
+  const observedExtent = map.layers.find(
+    (layer) => layer.id === 'observed_flood_extent',
+  );
+  assert.equal(observedExtent.publicationState, 'restricted');
+  assert.equal(observedExtent.renderState, 'withheld');
+  assert.equal(observedExtent.data, null);
+  assert.ok(map.claims.mapIsNot.includes('inundation_map'));
+  assert.ok(map.claims.mapIsNot.includes('operational_forecast'));
 });
 
 test('terrain-routing baseline is materialized without evaluation leakage', () => {

@@ -32,7 +32,9 @@
     "verify:emilia-terrain-routing": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/stormwater && node scripts/verify-emilia-terrain-routing.mjs",
     "materialize:emilia-event-runoff": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/stormwater && node scripts/materialize-emilia-event-runoff.mjs",
     "verify:emilia-event-runoff": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/stormwater && node scripts/verify-emilia-event-runoff.mjs",
-    "evaluate:emilia-concentration": "python scripts/evaluate_emilia_concentration.py"
+    "evaluate:emilia-concentration": "python scripts/evaluate_emilia_concentration.py",
+    "materialize:emilia-map": "node scripts/materialize-emilia-map-manifest.mjs",
+    "verify:emilia-map": "node scripts/materialize-emilia-map-manifest.mjs --check"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

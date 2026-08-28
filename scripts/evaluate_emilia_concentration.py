@@ -437,8 +437,8 @@ def main():
         / "manifest.json"
     )
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if not isinstance(manifest, dict) or manifest.get("manifestVersion") != "1.7.0":
-        raise ValueError("Evaluator requires historical benchmark manifest v1.7.0")
+    if not isinstance(manifest, dict) or manifest.get("manifestVersion") != "1.15.0":
+        raise ValueError("Evaluator requires historical benchmark manifest v1.15.0")
     benchmark = manifest.get("benchmark")
     if not isinstance(benchmark, dict):
         raise ValueError("Manifest benchmark must be an object")
