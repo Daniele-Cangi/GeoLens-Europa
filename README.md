@@ -438,19 +438,24 @@ Manifest v1.15.0 pins 55 benchmark artifacts totaling 746,444,721 bytes. This in
 
 For the complete audit trail, phase state and source-by-source limitations, read [REFOUNDATION_PLAN.md](REFOUNDATION_PLAN.md) and the [Emilia-Romagna manifest](tests/ground-truth/emilia-romagna-2023/manifest.json).
 
-When the external data root is available, reproduce the bounded workflow in this order:
+The paths below point to the temporary verified copy on C. Change the four variables when the data move to another volume; the manifest identity and verification rules do not change.
 
 ~~~powershell
-npm run materialize:emilia-inputs -- D:\GeoLens\data\emilia-romagna-2023 D:\GeoLens\data\clc\u2018_clc2018_v2020_20u1_raster100m\DATA\U2018_CLC2018_V2020_20u1.tif
-npm run materialize:emilia-xdbtr -- --data-root D:\GeoLens\data\emilia-romagna-2023 --source D:\path\to\dati_dbtr\estraz_procons.gpkg
-npm run materialize:emilia-imerg-cache -- --data-root D:\GeoLens\data\emilia-romagna-2023 --metadata D:\GeoLens\cache\imerg\v07_20230518T000000Z_48h_669b94d37ff0.json --netcdf D:\GeoLens\cache\imerg\v07_20230518T000000Z_48h_669b94d37ff0.nc
-npm run verify:emilia-inputs -- D:\GeoLens\data\emilia-romagna-2023
-npm run materialize:emilia-terrain-routing -- D:\GeoLens\data\emilia-romagna-2023
-npm run verify:emilia-terrain-routing -- D:\GeoLens\data\emilia-romagna-2023
-npm run materialize:emilia-event-runoff -- D:\GeoLens\data\emilia-romagna-2023
-npm run verify:emilia-event-runoff -- D:\GeoLens\data\emilia-romagna-2023
-npm run evaluate:emilia-concentration -- --data-root D:\GeoLens\data\emilia-romagna-2023
-npm run verify:ground-truth -- D:\GeoLens\data\emilia-romagna-2023
+$benchmarkRoot = 'C:\Users\dacan\GeoLens\data\emilia-romagna-2023'
+$clcRaster = 'C:\Users\dacan\GeoLens\data\clc\clc2018-forli-feature-service\U2018_CLC2018_V2020_20u1_Forli_feature_service_100m.tif'
+$dbtrSource = 'C:\Users\dacan\GeoLens\downloads\dbtr-source\estraz_procons.gpkg'
+$imergCacheRoot = 'C:\Users\dacan\GeoLens\cache\imerg'
+
+npm run materialize:emilia-inputs -- $benchmarkRoot $clcRaster
+npm run materialize:emilia-xdbtr -- --data-root $benchmarkRoot --source $dbtrSource
+npm run materialize:emilia-imerg-cache -- --data-root $benchmarkRoot --metadata "$imergCacheRoot\v07_20230518T000000Z_48h_669b94d37ff0.json" --netcdf "$imergCacheRoot\v07_20230518T000000Z_48h_669b94d37ff0.nc"
+npm run verify:emilia-inputs -- $benchmarkRoot
+npm run materialize:emilia-terrain-routing -- $benchmarkRoot
+npm run verify:emilia-terrain-routing -- $benchmarkRoot
+npm run materialize:emilia-event-runoff -- $benchmarkRoot
+npm run verify:emilia-event-runoff -- $benchmarkRoot
+npm run evaluate:emilia-concentration -- --data-root $benchmarkRoot
+npm run verify:ground-truth -- $benchmarkRoot
 ~~~
 
 ## Verification
