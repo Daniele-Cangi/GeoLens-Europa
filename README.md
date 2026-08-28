@@ -398,9 +398,9 @@ The response exposes:
 
 The institutional Case 02 page reads this endpoint through its evidence inspector. API unavailability is shown as an error; it cannot silently become a valid-looking benchmark result.
 
-The companion GET /api/benchmarks/emilia-romagna-2023/map-manifest serves a deterministic publication-safe spatial projection. Four inspectable layers are aggregated from the pinned 30 m grid onto a nominal 300 m display grid: terrain-only D8 contributing area, mean GLO-30 elevation, dominant CORINE land-cover group and known DBTR permanent-water presence. Every layer retains native resolution, aggregation, evidence state, transformation version and attribution.
+The companion GET /api/benchmarks/emilia-romagna-2023/map-manifest serves a deterministic publication-safe spatial projection. Five inspectable layers are aggregated from the pinned 30 m grid onto a nominal 300 m display grid: terrain-only D8 contributing area, mean GLO-30 elevation, dominant CORINE land-cover group, known DBTR permanent-water presence and event runoff concentration. Every layer retains native resolution, aggregation, evidence state, transformation version and attribution.
 
-The endpoint is intentionally fail-closed. The observed V7 flood extent, event-runoff spatial values and ARPAE station geometry are registered but carry no map data while redistribution is restricted or still under review. The browser therefore cannot turn an unavailable layer into a visual zero, and the displayed D8 concentration cannot be mistaken for inundation extent.
+The event-runoff projection became renderable only after the official NASA Earthdata and GPM policies confirmed free use with source acknowledgement; it cites GPM_3IMERGHH V07 by DOI and does not redistribute source granules. The endpoint remains fail-closed for the observed V7 flood extent and ARPAE station geometry, which are registered but carry no map data while redistribution is restricted or still under review. The browser therefore cannot turn an unavailable layer into a visual zero, and neither concentration layer can be mistaken for inundation extent.
 
 The checked-in display payload is reproducible from verified external artifacts:
 
@@ -465,7 +465,7 @@ Important data-quality boundaries remain explicit:
 
 External benchmark inputs remain outside Git. While the D volume is unavailable, the verified working copy is under C:/Users/dacan/GeoLens/data/emilia-romagna-2023; the manifest uses portable relative paths so it can move back to D without changing dataset identity.
 
-Manifest v1.15.0 pins 55 benchmark artifacts totaling 746,444,721 bytes. This includes the canonical IMERG cache and portable source grid, DBTR source and metadata, derived masks, terrain routing, runoff arrays, evaluation receipts and audited official reports. Restricted observed geometry and source archives are not redistributed through Git.
+Manifest v1.16.0 pins 55 benchmark artifacts totaling 746,444,721 bytes and records the completed NASA/GPM use-policy review. This includes the canonical IMERG cache and portable source grid, DBTR source and metadata, derived masks, terrain routing, runoff arrays, evaluation receipts and audited official reports. Restricted observed geometry and source archives are not redistributed through Git.
 
 For the complete audit trail, phase state and source-by-source limitations, read [REFOUNDATION_PLAN.md](REFOUNDATION_PLAN.md) and the [Emilia-Romagna manifest](tests/ground-truth/emilia-romagna-2023/manifest.json).
 

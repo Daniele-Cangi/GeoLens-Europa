@@ -57,7 +57,7 @@ export interface EmiliaRomagnaMapManifest {
   readonly benchmarkSchemaVersion: 'emilia-benchmark-snapshot-v0.1.0';
   readonly benchmarkId:
     'emilia-romagna-2023-forli-retrospective-reconstruction';
-  readonly manifestVersion: '1.15.0';
+  readonly manifestVersion: '1.16.0';
   readonly state: 'bounded_publication_safe_projection';
   readonly sourceGrid: typeof EMILIA_MAP_DATA.sourceGrid;
   readonly displayGrid: typeof EMILIA_MAP_DATA.displayGrid;
@@ -229,22 +229,31 @@ export const EMILIA_ROMAGNA_2023_MAP_MANIFEST = {
       title: 'Event runoff concentration',
       shortTitle: 'Event runoff',
       evidenceStatus: 'incomplete_window',
-      renderState: 'withheld',
-      publicationState: 'review_pending',
+      renderState: 'renderable',
+      publicationState: 'allowed_with_attribution',
       unit: 'm³',
-      sourceResolution: '30 m derived grid',
+      sourceResolution:
+        'IMERG 0.1° / 30 min; GLO-30 1 arc-second; CLC 100 m; 30 m derived grid; 300 m nominal display aggregate',
       provider: 'GeoLens derived from IMERG, GLO-30, CLC and DBTR',
       dataset: 'Forlì event runoff D8 baseline',
       datasetVersion:
         'runoff-coefficient-proxy-v0.1.0+d8-no-loss-volume-accumulation-v0.1.0',
-      transformation: 'No public spatial projection generated',
+      transformation: `${DISPLAY_TRANSFORMATION}; maximum accumulated runoff volume retained per display cell`,
       transformationVersion: DISPLAY_TRANSFORMATION_VERSION,
       interpretation:
-        'Aggregate quantities remain available in the benchmark record, but spatial values are withheld pending source redistribution review.',
-      attribution: 'Source redistribution review pending.',
+        'Experimental runoff volume accumulated without loss over the unconditioned D8 graph. It is a concentration diagnostic, not inundation extent or water depth.',
+      attribution:
+        'Derived from NASA GPM IMERG Final Run V07 (DOI 10.5067/GPM/IMERG/3B-HH/07), modified Copernicus DEM data (2022), © European Union Copernicus Land Monitoring Service, and Regione Emilia-Romagna DBTR under CC BY 3.0.',
       missingReason:
-        'The IMERG source licence is recorded as redistribution unknown in the frozen manifest.',
-      data: null,
+        'The DBTR known-water input remains an incomplete historical window; the displayed concentration does not establish where flooding occurred.',
+      data: {
+        encoding: 'base64_uint8',
+        values: EMILIA_MAP_DATA.arrays.eventAccumulatedRunoffMaximum,
+        noData: 255,
+        scale: 'log1p',
+        aggregation: 'maximum_of_available_source_cells',
+        domain: EMILIA_MAP_DATA.domains.eventAccumulatedRunoffMaximumM3,
+      },
     },
     {
       id: 'observed_flood_extent',

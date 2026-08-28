@@ -40,6 +40,7 @@ export interface BenchmarkDataset {
     readonly name: string;
     readonly access: 'public' | 'auth_required' | 'restricted' | 'unknown';
     readonly redistribution: 'allowed' | 'restricted' | 'unknown';
+    readonly policyUrl?: string;
     readonly note?: string;
   };
   readonly allowedUses: {
@@ -52,7 +53,7 @@ export interface BenchmarkDataset {
 }
 
 export interface HistoricalBenchmarkManifest {
-  readonly manifestVersion: '1.15.0';
+  readonly manifestVersion: '1.16.0';
   readonly benchmark: {
     readonly id: string;
     readonly title: string;
@@ -601,8 +602,8 @@ export function assertHistoricalBenchmarkManifest(
   value: unknown,
 ): asserts value is HistoricalBenchmarkManifest {
   const root = objectValue(value, 'manifest');
-  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.15.0') {
-    throw new Error('manifestVersion must be "1.15.0"');
+  if (stringValue(root.manifestVersion, 'manifestVersion') !== '1.16.0') {
+    throw new Error('manifestVersion must be "1.16.0"');
   }
 
   const benchmark = objectValue(root.benchmark, 'benchmark');
@@ -2208,6 +2209,9 @@ export function assertHistoricalBenchmarkManifest(
       new Set(['allowed', 'restricted', 'unknown']),
       label + '.license.redistribution',
     );
+    if (license.policyUrl !== undefined) {
+      httpsUrl(license.policyUrl, label + '.license.policyUrl');
+    }
 
     const uses = objectValue(dataset.allowedUses, label + '.allowedUses');
     const modelInput = booleanValue(

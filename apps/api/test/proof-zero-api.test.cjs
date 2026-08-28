@@ -532,7 +532,7 @@ test('API exposes the verified Emilia negative benchmark without promoting block
     response.headers['cache-control'],
     'public, max-age=300, stale-while-revalidate=86400',
   );
-  assert.equal(body.manifest.version, '1.15.0');
+  assert.equal(body.manifest.version, '1.16.0');
   assert.equal(body.manifest.artifactCount, 55);
   assert.equal(body.manifest.artifactBytes, 746444721);
   assert.equal(body.state, 'evaluated_negative_baseline');
@@ -571,11 +571,11 @@ test('API exposes only publication-safe Emilia map layers', async (context) => {
 
   assert.equal(response.statusCode, 200);
   assert.equal(body.schemaVersion, 'emilia-map-manifest-v0.1.0');
-  assert.equal(body.manifestVersion, '1.15.0');
+  assert.equal(body.manifestVersion, '1.16.0');
   assert.equal(body.displayGrid.width, 34);
   assert.equal(body.displayGrid.height, 42);
   assert.equal(body.displayGrid.nominalCellSizeM, 300);
-  assert.equal(renderable.length, 4);
+  assert.equal(renderable.length, 5);
   assert.ok(renderable.every((layer) => layer.data !== null));
   assert.ok(withheld.every((layer) => layer.data === null));
   assert.equal(
@@ -586,7 +586,11 @@ test('API exposes only publication-safe Emilia map layers', async (context) => {
   assert.equal(
     body.layers.find((layer) => layer.id === 'event_runoff_concentration')
       .publicationState,
-    'review_pending',
+    'allowed_with_attribution',
+  );
+  assert.ok(
+    body.layers.find((layer) => layer.id === 'event_runoff_concentration')
+      .data,
   );
   assert.ok(body.claims.mapIsNot.includes('inundation_map'));
   assert.equal(JSON.stringify(body).includes('floodProbability'), false);

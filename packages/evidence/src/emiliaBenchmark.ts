@@ -38,7 +38,7 @@ export interface EmiliaRomagnaBenchmarkSnapshot {
   readonly benchmarkId:
     'emilia-romagna-2023-forli-retrospective-reconstruction';
   readonly manifest: {
-    readonly version: '1.15.0';
+    readonly version: '1.16.0';
     readonly artifactCount: 55;
     readonly artifactBytes: 746_444_721;
     readonly integrityMethod: 'byte_count_and_sha256';
@@ -155,7 +155,7 @@ export const EMILIA_ROMAGNA_2023_BENCHMARK = {
   schemaVersion: 'emilia-benchmark-snapshot-v0.1.0',
   benchmarkId: 'emilia-romagna-2023-forli-retrospective-reconstruction',
   manifest: {
-    version: '1.15.0',
+    version: '1.16.0',
     artifactCount: 55,
     artifactBytes: 746_444_721,
     integrityMethod: 'byte_count_and_sha256',
