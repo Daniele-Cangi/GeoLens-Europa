@@ -53,7 +53,7 @@ test('Emilia-Romagna manifest passes the historical benchmark contract', () => {
     'retrospective_reconstruction',
   );
   assert.equal(manifest.benchmark.claimLevel, 'hydrologic_routing');
-  assert.equal(manifest.manifestVersion, '1.15.0');
+  assert.equal(manifest.manifestVersion, '1.16.0');
   assert.ok(manifest.benchmark.forbiddenClaims.includes('validated_water_depth'));
 });
 
@@ -179,6 +179,13 @@ test('publication-safe Emilia map manifest keeps restricted geometry withheld', 
   assert.equal(observedExtent.publicationState, 'restricted');
   assert.equal(observedExtent.renderState, 'withheld');
   assert.equal(observedExtent.data, null);
+  const eventRunoff = map.layers.find(
+    (layer) => layer.id === 'event_runoff_concentration',
+  );
+  assert.equal(eventRunoff.publicationState, 'allowed_with_attribution');
+  assert.equal(eventRunoff.renderState, 'renderable');
+  assert.ok(eventRunoff.data);
+  assert.match(eventRunoff.attribution, /10\.5067\/GPM\/IMERG\/3B-HH\/07/);
   assert.ok(map.claims.mapIsNot.includes('inundation_map'));
   assert.ok(map.claims.mapIsNot.includes('operational_forecast'));
 });
@@ -218,6 +225,9 @@ test('event-runoff baseline freezes real evidence and physical outputs', () => {
   ]);
   assert.equal(imerg.acquisitionStatus, 'downloaded_verified');
   assert.equal(imerg.localArtifacts.length, 3);
+  assert.equal(imerg.license.redistribution, 'allowed');
+  assert.equal(imerg.license.policyUrl, 'https://gpm.nasa.gov/data/policy');
+  assert.match(imerg.methodologyNote, /10\.5067\/GPM\/IMERG\/3B-HH\/07/);
   assert.match(baseline.methodologyNote, /not inundation/);
 });
 

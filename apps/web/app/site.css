@@ -1779,6 +1779,10 @@
   background: linear-gradient(90deg, #e6efe8, #8fad97, #8d6f46, #49362b);
 }
 
+.emilia-map-legend-continuous > div[data-layer='event_runoff_concentration'] {
+  background: linear-gradient(90deg, #f7efd6, #dba758, #b8513d, #5b212c);
+}
+
 .emilia-map-legend-continuous {
   display: grid;
   grid-template-columns: 1fr 1fr;

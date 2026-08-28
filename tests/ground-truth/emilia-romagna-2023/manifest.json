@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "1.15.0",
+  "manifestVersion": "1.16.0",
   "benchmark": {
     "id": "emilia-romagna-2023-forli-retrospective-reconstruction",
     "title": "Case 02 - Emilia-Romagna 2023 / Retrospective Flood Reconstruction",
@@ -978,17 +978,18 @@
       "sourceResolution": "0.1 degree, 30 minute",
       "acquisitionStatus": "downloaded_verified",
       "license": {
-        "name": "NASA EOSDIS data use policy",
+        "name": "NASA Earthdata data use guidance and GPM data policy",
         "access": "auth_required",
-        "redistribution": "unknown",
-        "note": "Earthdata authentication is required; derived evidence must retain product, run type, granules and actual coverage."
+        "redistribution": "allowed",
+        "policyUrl": "https://gpm.nasa.gov/data/policy",
+        "note": "NASA states that GPM data are freely available and asks users to acknowledge the dataset source. Earthdata authentication remains required for acquisition; GeoLens retains product, run type, DOI, granules and actual coverage."
       },
       "allowedUses": {
         "modelInput": true,
         "calibration": false,
         "evaluation": false
       },
-      "methodologyNote": "V07 is a post-event reprocessing of observations from the event window. The complete V07 Final Run retrospective reprocessing was verified complete on 2024-01-08. GeoLens uses it only in retrospective_reconstruction mode and never claims it was available by the event knowledge cutoff. The canonical earthaccess/xarray path acquired all 96 Final Run half-hour granules from 2023-05-16T00:00:00Z through 2023-05-18T00:00:00Z and froze the exact cache envelope, NetCDF and portable 3x3 source grid. The acquisition envelope was regenerated on 2026-08-27 after the external benchmark volume became unavailable; the NetCDF remained byte-identical to the prior freeze, while timestamp-bearing JSON receipts were re-pinned below. The native 0.1 degree source resolution remains distinct from the 30 m benchmark representation.",
+      "methodologyNote": "V07 is a post-event reprocessing of observations from the event window. The complete V07 Final Run retrospective reprocessing was verified complete on 2024-01-08. GeoLens uses it only in retrospective_reconstruction mode and never claims it was available by the event knowledge cutoff. The canonical earthaccess/xarray path acquired all 96 Final Run half-hour granules from 2023-05-16T00:00:00Z through 2023-05-18T00:00:00Z and froze the exact cache envelope, NetCDF and portable 3x3 source grid. The acquisition envelope was regenerated on 2026-08-27 after the external benchmark volume became unavailable; the NetCDF remained byte-identical to the prior freeze, while timestamp-bearing JSON receipts were re-pinned below. The native 0.1 degree source resolution remains distinct from the 30 m benchmark representation. On 2026-08-29 GeoLens reviewed the official NASA Earthdata use guidance and GPM data policy: GPM data are freely available, NASA requests source acknowledgement, and the GPM_3IMERGHH V07 dataset is identified by DOI 10.5067/GPM/IMERG/3B-HH/07. This review permits publication of the attribution-bearing derived display projection; it does not place source granules in Git.",
       "availableAt": "2024-01-08T00:00:00Z",
       "localArtifacts": [
         {

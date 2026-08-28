@@ -29,6 +29,12 @@ const CONTINUOUS_PALETTES = {
     [141, 111, 70],
     [73, 54, 43],
   ],
+  event_runoff_concentration: [
+    [247, 239, 214],
+    [219, 167, 88],
+    [184, 81, 61],
+    [91, 33, 44],
+  ],
 } as const;
 
 const LAND_COVER_COLOURS: Readonly<Record<number, string>> = {
@@ -82,6 +88,8 @@ function cellColour(layer: MapLayer, encodedValue: number): string | null {
   const palette =
     layer.id === 'elevation'
       ? CONTINUOUS_PALETTES.elevation
+      : layer.id === 'event_runoff_concentration'
+        ? CONTINUOUS_PALETTES.event_runoff_concentration
       : CONTINUOUS_PALETTES.terrain_contributing_area;
   return interpolateColour(palette, encodedValue / 254);
 }

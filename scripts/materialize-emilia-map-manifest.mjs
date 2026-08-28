@@ -29,8 +29,8 @@ if (!configuredDataRoot) {
 
 const dataRoot = path.resolve(configuredDataRoot);
 const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
-if (manifest.manifestVersion !== '1.15.0') {
-  throw new Error('The map projection is pinned to manifest v1.15.0');
+if (manifest.manifestVersion !== '1.16.0') {
+  throw new Error('The map projection is pinned to manifest v1.16.0');
 }
 
 const inputReceipt = JSON.parse(
@@ -50,18 +50,42 @@ const terrainReceipt = JSON.parse(
     'utf8',
   ),
 );
+const eventRunoffReceipt = JSON.parse(
+  await readFile(
+    path.join(
+      dataRoot,
+      'derived',
+      'event-runoff',
+      'event-runoff-routing-receipt.json',
+    ),
+    'utf8',
+  ),
+);
 
 const grid = inputReceipt.grid;
 assertJsonEqual(grid, manifest.benchmark.spatialProtocol.grid, 'source grid');
-if (terrainReceipt.grid.width !== grid.width || terrainReceipt.grid.height !== grid.height) {
+if (
+  terrainReceipt.grid.width !== grid.width ||
+  terrainReceipt.grid.height !== grid.height
+) {
   throw new Error('Terrain-routing receipt disagrees with the bounded grid');
 }
+assertJsonEqual(eventRunoffReceipt.grid, grid, 'event-runoff grid');
 if (
   terrainReceipt.evaluationReference?.accessDuringMaterialization !==
     'not_loaded' ||
   terrainReceipt.evaluationReference?.calibration !== false
 ) {
   throw new Error('Map generation requires the evaluation reference to remain withheld');
+}
+if (
+  eventRunoffReceipt.evaluationReference?.accessDuringMaterialization !==
+    'not_loaded' ||
+  eventRunoffReceipt.evaluationReference?.calibration !== false
+) {
+  throw new Error(
+    'Event-runoff map generation requires evaluation evidence to remain withheld',
+  );
 }
 
 const allArtifacts = new Map();
@@ -98,6 +122,10 @@ const artifactDefinitions = {
     terrainReceipt.artifacts,
     'derived/terrain-routing/terrain-d8-contributing-land-area-f64le.bin',
   ),
+  eventAccumulatedRunoff: findArtifact(
+    eventRunoffReceipt.artifacts,
+    'derived/event-runoff/event-accumulated-runoff-volume-f64le.bin',
+  ),
 };
 
 const loaded = {};
@@ -123,6 +151,11 @@ assertByteLength(
   cellCount * 8,
   'terrain concentration',
 );
+assertByteLength(
+  loaded.eventAccumulatedRunoff,
+  cellCount * 8,
+  'event accumulated runoff',
+);
 
 const source = {
   aoi: loaded.aoi,
@@ -130,6 +163,7 @@ const source = {
   landCover: decodeInt16Le(loaded.landCover),
   knownWater: loaded.knownWater,
   terrainConcentration: decodeFloat64Le(loaded.terrainConcentration),
+  eventAccumulatedRunoff: decodeFloat64Le(loaded.eventAccumulatedRunoff),
 };
 const blockSize = 10;
 const displayWidth = Math.ceil(grid.width / blockSize);
@@ -140,6 +174,7 @@ const elevationMeans = new Float64Array(displayCellCount).fill(Number.NaN);
 const landCoverGroups = new Uint8Array(displayCellCount);
 const knownWater = new Uint8Array(displayCellCount).fill(255);
 const terrainMaxima = new Float64Array(displayCellCount).fill(Number.NaN);
+const eventRunoffMaxima = new Float64Array(displayCellCount).fill(Number.NaN);
 
 for (let displayRow = 0; displayRow < displayHeight; displayRow += 1) {
   for (let displayColumn = 0; displayColumn < displayWidth; displayColumn += 1) {
@@ -153,6 +188,7 @@ for (let displayRow = 0; displayRow < displayHeight; displayRow += 1) {
     let elevationSum = 0;
     let elevationCount = 0;
     let blockTerrainMaximum = Number.NEGATIVE_INFINITY;
+    let blockEventRunoffMaximum = Number.NEGATIVE_INFINITY;
     let containsKnownWater = false;
     const groupCounts = new Uint16Array(6);
 
@@ -180,6 +216,13 @@ for (let displayRow = 0; displayRow < displayHeight; displayRow += 1) {
         if (Number.isFinite(concentration)) {
           blockTerrainMaximum = Math.max(blockTerrainMaximum, concentration);
         }
+        const eventRunoff = source.eventAccumulatedRunoff[sourceIndex];
+        if (Number.isFinite(eventRunoff)) {
+          blockEventRunoffMaximum = Math.max(
+            blockEventRunoffMaximum,
+            eventRunoff,
+          );
+        }
       }
     }
 
@@ -196,13 +239,22 @@ for (let displayRow = 0; displayRow < displayHeight; displayRow += 1) {
     if (Number.isFinite(blockTerrainMaximum)) {
       terrainMaxima[displayIndex] = blockTerrainMaximum;
     }
+    if (Number.isFinite(blockEventRunoffMaximum)) {
+      eventRunoffMaxima[displayIndex] = blockEventRunoffMaximum;
+    }
   }
 }
 
 const elevationDomain = finiteDomain(elevationMeans);
 const terrainDomain = finiteDomain(terrainMaxima);
+const eventRunoffDomain = finiteDomain(eventRunoffMaxima);
 const elevationQuantized = quantize(elevationMeans, elevationDomain, false);
 const terrainQuantized = quantize(terrainMaxima, terrainDomain, true);
+const eventRunoffQuantized = quantize(
+  eventRunoffMaxima,
+  eventRunoffDomain,
+  true,
+);
 const sourceArtifacts = Object.fromEntries(
   Object.entries(artifactDefinitions).map(([name, artifact]) => [
     name,
@@ -241,10 +293,12 @@ const generatedData = {
     dominantLandCover: encodeBase64(landCoverGroups),
     knownPermanentWater: encodeBase64(knownWater),
     terrainContributingAreaMaximum: encodeBase64(terrainQuantized),
+    eventAccumulatedRunoffMaximum: encodeBase64(eventRunoffQuantized),
   },
   domains: {
     elevationMeanM: elevationDomain,
     terrainContributingAreaMaximumM2: terrainDomain,
+    eventAccumulatedRunoffMaximumM3: eventRunoffDomain,
   },
 };
 
