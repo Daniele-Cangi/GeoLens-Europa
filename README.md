@@ -432,9 +432,9 @@ Important data-quality boundaries remain explicit:
 - published charts are not digitised into unavailable numerical hydrographs;
 - missing discharge, breach and boundary evidence keeps a conditioned replay blocked.
 
-External benchmark inputs remain outside Git under D:/GeoLens/data/emilia-romagna-2023.
+External benchmark inputs remain outside Git. While the D volume is unavailable, the verified working copy is under C:/Users/dacan/GeoLens/data/emilia-romagna-2023; the manifest uses portable relative paths so it can move back to D without changing dataset identity.
 
-Manifest v1.15.0 pins 55 benchmark artifacts totalling 746,130,293 bytes. This includes the canonical IMERG cache and portable source grid, DBTR source and metadata, derived masks, terrain routing, runoff arrays, evaluation receipts and audited official reports. Restricted observed geometry and source archives are not redistributed through Git.
+Manifest v1.15.0 pins 55 benchmark artifacts totaling 746,444,721 bytes. This includes the canonical IMERG cache and portable source grid, DBTR source and metadata, derived masks, terrain routing, runoff arrays, evaluation receipts and audited official reports. Restricted observed geometry and source archives are not redistributed through Git.
 
 For the complete audit trail, phase state and source-by-source limitations, read [REFOUNDATION_PLAN.md](REFOUNDATION_PLAN.md) and the [Emilia-Romagna manifest](tests/ground-truth/emilia-romagna-2023/manifest.json).
 

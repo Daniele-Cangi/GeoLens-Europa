@@ -528,12 +528,12 @@
             "maximumOneHourRiseM": 1.87
           }
         ],
-        "methodologyNote": "Materialized after the comparison protocol freeze from Dext3r request be86675d-a290-4208-8b38-0bb420396ca0. Hourly rain is summed over the exact half-open 48-hour window and compared with the nearest native 0.1 degree IMERG cell. Empty Dext3r value fields remain missing; numeric zero is preserved. Hydrometric values remain relative to each station's local datum and are used only for within-station timing and change. This run does not calibrate the routing model and is not an inundation or hydraulic validation.",
+        "methodologyNote": "Materialized after the comparison protocol freeze from Dext3r request be86675d-a290-4208-8b38-0bb420396ca0. Hourly rain is summed over the exact half-open 48-hour window and compared with the nearest native 0.1 degree IMERG cell. Empty Dext3r value fields remain missing; numeric zero is preserved. Hydrometric values remain relative to each station's local datum and are used only for within-station timing and change. The deterministic receipt was regenerated after the 2026-08-27 IMERG acquisition-envelope re-pin; its scientific station values are unchanged and its embedded IMERG source hash is updated. This run does not calibrate the routing model and is not an inundation or hydraulic validation.",
         "localArtifacts": [
           {
             "relativePath": "derived/arpae-comparison/forli-arpae-observation-comparison-v0.json",
             "bytes": 6823,
-            "sha256": "f29b80cac7c082fb12889cdd31a2bf5e1b7e228a3df1f44f21a3a3942a76c1c5"
+            "sha256": "d3b0636740a67b67044e3e3090317d992037d499c335c2ce0d4112dadd50a777"
           }
         ]
       }
@@ -988,13 +988,13 @@
         "calibration": false,
         "evaluation": false
       },
-      "methodologyNote": "V07 is a post-event reprocessing of observations from the event window. The complete V07 Final Run retrospective reprocessing was verified complete on 2024-01-08. GeoLens uses it only in retrospective_reconstruction mode and never claims it was available by the event knowledge cutoff. The canonical earthaccess/xarray path acquired all 96 Final Run half-hour granules from 2023-05-16T00:00:00Z through 2023-05-18T00:00:00Z and froze the exact cache envelope, NetCDF and portable 3x3 source grid. The native 0.1 degree source resolution remains distinct from the 30 m benchmark representation.",
+      "methodologyNote": "V07 is a post-event reprocessing of observations from the event window. The complete V07 Final Run retrospective reprocessing was verified complete on 2024-01-08. GeoLens uses it only in retrospective_reconstruction mode and never claims it was available by the event knowledge cutoff. The canonical earthaccess/xarray path acquired all 96 Final Run half-hour granules from 2023-05-16T00:00:00Z through 2023-05-18T00:00:00Z and froze the exact cache envelope, NetCDF and portable 3x3 source grid. The acquisition envelope was regenerated on 2026-08-27 after the external benchmark volume became unavailable; the NetCDF remained byte-identical to the prior freeze, while timestamp-bearing JSON receipts were re-pinned below. The native 0.1 degree source resolution remains distinct from the 30 m benchmark representation.",
       "availableAt": "2024-01-08T00:00:00Z",
       "localArtifacts": [
         {
           "relativePath": "source/imerg/v07-forli-20230516-18/cache-metadata.json",
           "bytes": 4842,
-          "sha256": "7aa44b11a0a85ff96f4dd45ba0108789744a662545c9d00bd3a5a676c9231cac"
+          "sha256": "f511a89874d245968392d2a1186698cbdd6e7d50ec4e899037bc961e8500c23d"
         },
         {
           "relativePath": "source/imerg/v07-forli-20230516-18/precipitation.nc",
@@ -1004,7 +1004,7 @@
         {
           "relativePath": "inputs/imerg-v07-final-48h-source-grid.json",
           "bytes": 6001,
-          "sha256": "b6904f14181521e71c887e97041875b5a147b7ab6140c882eb6a65b9f0b4dc7e"
+          "sha256": "d7c28960f2af8026164926c489f344ab45a06a016040a1a36a2d3ba7192e73aa"
         }
       ]
     },
@@ -1462,10 +1462,10 @@
       "availableAt": "2023-11-14T00:00:00Z",
       "publisher": "Regione Emilia-Romagna - Agenzia per la sicurezza territoriale e la protezione civile",
       "dataset": "Official account of May 2023 embankment damage and repair works in the Forli area",
-      "datasetVersion": "published 2023-11-14; HTML snapshot acquired 2026-08-25",
-      "acquiredAt": "2026-08-25T13:51:15Z",
+      "datasetVersion": "published 2023-11-14; Internet Archive capture 2025-08-12",
+      "acquiredAt": "2026-08-28T00:07:38Z",
       "sourceUrl": "https://protezionecivile.regione.emilia-romagna.it/novita/notizie/2023/novembre/alluvione-il-punto-sugli-interventi-nel-forlivese",
-      "accessMethod": "public official narrative record with byte-pinned HTML snapshot retained outside Git",
+      "accessMethod": "Internet Archive byte capture of the public official narrative record; the current publisher response denied public access at reacquisition time",
       "sourceResolution": "named breach and repair locations; no machine-readable coordinates, activation times, elevations or geometry",
       "acquisitionStatus": "downloaded_verified",
       "license": {
@@ -1478,12 +1478,12 @@
         "calibration": false,
         "evaluation": true
       },
-      "methodologyNote": "The byte-pinned page verifies that the 16-18 May event damaged Montone and Rabbi embankments and names repairs at Cavo Fontana 2/via Martiri delle Foibe, Villanova/via Zignola near rio San Lazzaro and via Isonzo. It is context only: named locations cannot be converted into breach coordinates, timings, widths or hydrographs and cannot be inferred from the observed flood extent. Redistribution remains unknown, so the snapshot stays outside Git.",
+      "methodologyNote": "The byte-pinned 2025-08-12 Internet Archive capture of the official page verifies that the 16-18 May event damaged Montone and Rabbi embankments and names repairs at Cavo Fontana 2/via Martiri delle Foibe, Villanova/via Zignola near rio San Lazzaro and via Isonzo. The archived content was selected because the publisher response no longer exposes the article publicly at reacquisition time. It is context only: named locations cannot be converted into breach coordinates, timings, widths or hydrographs and cannot be inferred from the observed flood extent. Redistribution remains unknown, so the snapshot stays outside Git.",
       "localArtifacts": [
         {
           "relativePath": "source/rer-forli-may-2023-breach-repair-record.html",
-          "bytes": 365414,
-          "sha256": "8855B27FCDF21CA0B74F687698B0BDBFF95B510B7AA9D40DDE57A952F406B26F"
+          "bytes": 679842,
+          "sha256": "1423B77C0B8403120AC48919F5823D70ABC5D28FC2726B2501ED65580A6CCBDD"
         }
       ]
     },
