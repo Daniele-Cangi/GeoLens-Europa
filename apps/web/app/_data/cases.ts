@@ -142,7 +142,7 @@ export const researchCases = {
       'Public numerical high-flow boundary conditions and accepted event-calibration deliverables remain incomplete.',
     ],
     nextSteps: [
-      'Resume external-artifact verification when the dedicated data volume is available.',
+      'Retain the versioned API checkpoint as the reproducible negative baseline.',
       'Require a high-flow-calibrated and independently validated hydraulic boundary before hydraulic interpretation.',
       'Assess depression conditioning, river stage, breaches and embankments as explicit model additions—not hidden calibration.',
     ],

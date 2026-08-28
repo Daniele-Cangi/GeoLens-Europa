@@ -1,4 +1,8 @@
+import type { EmiliaRomagnaBenchmarkSnapshot } from '@geo-lens/evidence';
+
 import { PROOF_ZERO_NETWORK } from './fixture';
+
+export type { EmiliaRomagnaBenchmarkSnapshot } from '@geo-lens/evidence';
 
 export type EvidenceStatus =
   | 'available'
@@ -936,4 +940,30 @@ export async function getObservedInfrastructure(
   }
 
   return body as ObservedInfrastructureResult;
+}
+
+export async function getEmiliaRomagnaBenchmark(
+  signal?: AbortSignal,
+): Promise<EmiliaRomagnaBenchmarkSnapshot> {
+  const response = await fetch(
+    `${API_URL}/api/benchmarks/emilia-romagna-2023`,
+    {
+      method: 'GET',
+      cache: 'no-store',
+      signal,
+    },
+  );
+  const body = (await response.json()) as
+    | EmiliaRomagnaBenchmarkSnapshot
+    | ApiError;
+
+  if (!response.ok) {
+    const error = body as ApiError;
+    throw new Error(
+      error.error ??
+        `GeoLens API returned HTTP ${response.status}`,
+    );
+  }
+
+  return body as EmiliaRomagnaBenchmarkSnapshot;
 }

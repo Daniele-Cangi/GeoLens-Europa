@@ -16,6 +16,7 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Historical tracked Copernicus private key: removed from the active tree; revocation/rotation remains an external security action because the secret is present in Git history
 - Retrospective reconstruction benchmark gate: the bounded Forli pilot now has a frozen 30 m metric grid, content-addressed IMERG/DEM/CLC evidence, physical DBTR known-presence masks, a reproducible terrain-flow baseline and a blind evaluation against V7 event 2; the near-random result rejects unconditioned D8 concentration as an inundation proxy, while the post-event DBTR extraction remains an incomplete historical window rather than a complete May 2023 snapshot
 - External benchmark recovery: after the D volume became temporarily unavailable, the complete pinned benchmark was rebuilt under `C:/Users/dacan/GeoLens/data/emilia-romagna-2023`; 55 artifacts totaling 746,444,721 bytes pass the streamed byte-count and SHA-256 verifier
+- Historical benchmark API gate: established through a compact `GET /api/benchmarks/emilia-romagna-2023` snapshot that is contract-tested against manifest v1.15.0; the Case 02 inspector exposes the negative evaluation, source resolution, artifact inventory and blocked hydraulic evidence gate without loading or redistributing the external archive
 
 Verified starting baseline (historical):
 
@@ -442,6 +443,7 @@ Progress:
 - ARPAE determination DET-2024-723 states that the available Montone/Castrocaro relation was calibrated only on direct low-flow measurements and commissioned a high-flow branch based on at least two historical floods with separate calibration and validation events; it also requires measured-versus-modelled hydrographs for Topkapi Montone-Rabbi and HEC-RAS Montone and explicit assessment of non-bijective h-Q or flood-loop behaviour;
 - the public determination sets a requested delivery date of 31 December 2025 but does not publish the resulting numerical relations, hydrographs or acceptance record; manifest v1.15.0 therefore records this as remote procurement context that tightens, but does not satisfy, the conditioned-replay gate;
 - the external-data verifier now passes on 55 benchmark artifacts totaling 746,444,721 bytes, including the WCS description, bounded PST audit, archived official Commission report, the 2025-08-12 Internet Archive capture of the now access-restricted official breach-repair page, special-plan monograph, PAI relation, three inspected DWG archives and the compressed EMSN154 geospatial package.
+- a compact API-safe benchmark projection is versioned in the evidence package and checked against the manifest for event identity, artifact inventory, model version, evaluation metrics, forbidden claims and every conditioned-replay gate state; the Fastify endpoint and institutional Case 02 inspector expose that record while keeping binary and redistribution-restricted evidence outside Git.
 
 Work:
 

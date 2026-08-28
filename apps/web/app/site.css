@@ -1458,6 +1458,442 @@
   font-size: 0.61rem;
 }
 
+/* Emilia-Romagna API inspector */
+
+.emilia-inspector {
+  padding: 112px max(24px, calc((100vw - 1320px) / 2));
+  border-top: 1px solid #c5d2dc;
+  background: var(--site-blue-pale);
+}
+
+.emilia-inspector-heading,
+.emilia-section-heading {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.9fr) minmax(280px, 0.5fr);
+  gap: clamp(50px, 9vw, 140px);
+  align-items: end;
+}
+
+.emilia-inspector-heading h2 {
+  max-width: 780px;
+  margin: 0;
+  color: var(--site-navy);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2.35rem, 4.2vw, 4.4rem);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 1.03;
+}
+
+.emilia-inspector-heading > p,
+.emilia-section-heading > p {
+  margin: 0;
+  color: var(--site-muted);
+  font-size: 0.78rem;
+  line-height: 1.72;
+}
+
+.emilia-inspector-message {
+  display: flex;
+  gap: 10px;
+  margin-top: 44px;
+  border-left: 3px solid var(--site-blue);
+  padding: 18px 20px;
+  background: var(--site-white);
+  color: var(--site-muted);
+  font-size: 0.76rem;
+}
+
+.emilia-inspector-message[data-tone='error'] {
+  border-left-color: #a94941;
+}
+
+.emilia-snapshot {
+  margin-top: 64px;
+}
+
+.emilia-snapshot-register {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 2px solid var(--site-navy);
+  border-left: 1px solid #c5d2dc;
+  background: var(--site-white);
+}
+
+.emilia-snapshot-register > div {
+  min-height: 118px;
+  border-right: 1px solid #c5d2dc;
+  border-bottom: 1px solid #c5d2dc;
+  padding: 20px;
+}
+
+.emilia-snapshot-register span,
+.emilia-snapshot-register strong {
+  display: block;
+}
+
+.emilia-snapshot-register span {
+  color: #71808b;
+  font-size: 0.61rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.emilia-snapshot-register strong {
+  margin-top: 30px;
+  color: var(--site-navy);
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+.emilia-snapshot-register strong[data-state='blocked_missing_required_evidence'] {
+  color: #8b493e;
+}
+
+.emilia-claim-notice {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.25fr) minmax(300px, 0.75fr);
+  gap: 22px 46px;
+  border-right: 1px solid #c5d2dc;
+  border-bottom: 1px solid #c5d2dc;
+  border-left: 4px solid var(--site-gold);
+  padding: 30px 32px;
+  background: #fffdf8;
+}
+
+.emilia-claim-notice > span {
+  color: #7b6845;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.emilia-claim-notice strong {
+  color: var(--site-navy);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.35rem;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+.emilia-claim-notice p {
+  grid-column: 2;
+  margin: 0;
+  color: var(--site-muted);
+  font-size: 0.72rem;
+  line-height: 1.6;
+}
+
+.emilia-metric-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin: 44px 0 0;
+  border-top: 2px solid var(--site-blue);
+  border-left: 1px solid #c5d2dc;
+}
+
+.emilia-metric-strip > div {
+  min-height: 172px;
+  border-right: 1px solid #c5d2dc;
+  border-bottom: 1px solid #c5d2dc;
+  padding: 22px;
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.emilia-metric-strip dt {
+  color: #647783;
+  font-size: 0.63rem;
+}
+
+.emilia-metric-strip dd {
+  margin: 36px 0 0;
+  color: var(--site-navy);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.65rem;
+}
+
+.emilia-metric-strip span {
+  display: block;
+  margin-top: 8px;
+  color: #74828c;
+  font-size: 0.62rem;
+  line-height: 1.45;
+}
+
+.emilia-evidence-flow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr) 30px) minmax(140px, 1fr);
+  align-items: center;
+  margin-top: 50px;
+  border-top: 1px solid #bfcbd4;
+  border-bottom: 1px solid #bfcbd4;
+  padding: 20px 0;
+}
+
+.emilia-evidence-flow > div {
+  min-height: 122px;
+  border-left: 3px solid #7899af;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.emilia-evidence-flow > div[data-state='available'] {
+  border-left-color: #3d8068;
+}
+
+.emilia-evidence-flow > div[data-state='incomplete_window'] {
+  border-left-color: var(--site-gold);
+}
+
+.emilia-evidence-flow > div[data-state='blocked_missing_required_evidence'] {
+  border-left-color: #a94941;
+}
+
+.emilia-evidence-flow span {
+  color: #718693;
+  font-size: 0.61rem;
+  font-weight: 800;
+}
+
+.emilia-evidence-flow strong {
+  display: block;
+  margin-top: 20px;
+  color: var(--site-navy);
+  font-size: 0.76rem;
+}
+
+.emilia-evidence-flow p {
+  margin: 8px 0 0;
+  color: var(--site-muted);
+  font-size: 0.65rem;
+  line-height: 1.45;
+}
+
+.emilia-evidence-flow i {
+  height: 1px;
+  background: #8fa5b4;
+}
+
+.emilia-evidence-section {
+  margin-top: 100px;
+}
+
+.emilia-section-heading h3,
+.emilia-inspector-grid h3 {
+  margin: 0;
+  color: var(--site-navy);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.8rem, 3vw, 3rem);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+}
+
+.emilia-evidence-table {
+  margin-top: 48px;
+  overflow-x: auto;
+  border-top: 2px solid var(--site-navy);
+}
+
+.emilia-evidence-table:focus-visible {
+  outline: 3px solid #e5b33f;
+  outline-offset: 3px;
+}
+
+.emilia-evidence-table table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+  background: var(--site-white);
+}
+
+.emilia-evidence-table th,
+.emilia-evidence-table td {
+  border-right: 1px solid var(--site-line);
+  border-bottom: 1px solid var(--site-line);
+  padding: 18px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.emilia-evidence-table thead th {
+  background: #dce8f1;
+  color: #60727f;
+  font-size: 0.61rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.emilia-evidence-table tbody th {
+  width: 28%;
+  color: var(--site-navy);
+  font-size: 0.72rem;
+}
+
+.emilia-evidence-table tbody th span,
+.emilia-evidence-table td span {
+  display: block;
+  margin-top: 7px;
+  color: var(--site-muted);
+  font-size: 0.65rem;
+  font-weight: 400;
+  line-height: 1.52;
+}
+
+.emilia-evidence-table td {
+  color: #4f626f;
+  font-size: 0.69rem;
+  line-height: 1.52;
+}
+
+.emilia-evidence-table td strong {
+  color: var(--site-navy);
+  font-size: 0.68rem;
+}
+
+.emilia-state {
+  display: inline-flex;
+  border-left: 3px solid #8197a6;
+  padding: 4px 0 4px 8px;
+  color: #556875;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.emilia-state[data-state='available'] {
+  border-left-color: #3d8068;
+  color: #326a57;
+}
+
+.emilia-state[data-state='incomplete_window'],
+.emilia-state[data-state='metadata_only'] {
+  border-left-color: var(--site-gold);
+  color: #735f38;
+}
+
+.emilia-state[data-state='missing'] {
+  border-left-color: #a94941;
+  color: #8d4038;
+}
+
+.emilia-inspector-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.62fr) minmax(420px, 1fr);
+  gap: clamp(60px, 9vw, 130px);
+  margin-top: 106px;
+}
+
+.emilia-station-list {
+  margin-top: 42px;
+  border-top: 2px solid var(--site-navy);
+}
+
+.emilia-station-list article {
+  border-right: 1px solid var(--site-line);
+  border-bottom: 1px solid var(--site-line);
+  border-left: 1px solid var(--site-line);
+  padding: 20px;
+  background: var(--site-white);
+}
+
+.emilia-station-list article > strong {
+  color: var(--site-navy);
+  font-size: 0.78rem;
+}
+
+.emilia-station-list dl {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 24px 0 0;
+}
+
+.emilia-station-list dt {
+  color: #74828c;
+  font-size: 0.6rem;
+}
+
+.emilia-station-list dd {
+  margin: 7px 0 0;
+  color: var(--site-navy);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.emilia-method-note {
+  margin: 22px 0 0;
+  border-left: 3px solid var(--site-gold);
+  padding-left: 14px;
+  color: var(--site-muted);
+  font-size: 0.69rem;
+  line-height: 1.6;
+}
+
+.emilia-gate-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.emilia-gate-heading > span {
+  color: #8d4038;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.emilia-gate-list {
+  margin: 42px 0 0;
+  padding: 0;
+  border-top: 2px solid var(--site-navy);
+  list-style: none;
+}
+
+.emilia-gate-list li {
+  border-right: 1px solid var(--site-line);
+  border-bottom: 1px solid var(--site-line);
+  border-left: 1px solid var(--site-line);
+  padding: 17px 19px;
+  background: var(--site-white);
+}
+
+.emilia-gate-list li > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.emilia-gate-list li > div > strong {
+  color: var(--site-navy);
+  font-size: 0.7rem;
+  text-transform: capitalize;
+}
+
+.emilia-gate-list p {
+  max-width: 720px;
+  margin: 10px 0 0;
+  color: var(--site-muted);
+  font-size: 0.66rem;
+  line-height: 1.55;
+}
+
+.emilia-inspector-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+  margin-top: 80px;
+  border-top: 1px solid #bfcbd4;
+  padding-top: 22px;
+  color: #61737f;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.61rem;
+}
+
 .case-boundaries {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1678,6 +2114,17 @@
     border-left: 0;
     padding-left: max(24px, calc((100vw - 1320px) / 2));
   }
+
+  .emilia-inspector-heading,
+  .emilia-section-heading,
+  .emilia-inspector-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .emilia-snapshot-register,
+  .emilia-metric-strip {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 @media (max-width: 680px) {
@@ -1764,6 +2211,42 @@
   .about-scope-band > div:first-child,
   .about-scope-band > div:last-child {
     padding: 72px 18px;
+  }
+
+  .emilia-inspector {
+    padding: 78px 18px;
+  }
+
+  .emilia-snapshot-register,
+  .emilia-metric-strip,
+  .emilia-claim-notice,
+  .emilia-evidence-flow {
+    grid-template-columns: 1fr;
+  }
+
+  .emilia-claim-notice p {
+    grid-column: auto;
+  }
+
+  .emilia-evidence-flow {
+    gap: 10px;
+    border: 0;
+    padding: 0;
+  }
+
+  .emilia-evidence-flow i {
+    display: none;
+  }
+
+  .emilia-gate-heading,
+  .emilia-gate-list li > div,
+  .emilia-inspector-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .emilia-station-list dl {
+    grid-template-columns: 1fr;
   }
 }
 

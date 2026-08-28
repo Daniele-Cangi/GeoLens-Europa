@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import CaseDetail from '../../../_components/CaseDetail';
+import EmiliaBenchmarkInspector from '../../../_components/EmiliaBenchmarkInspector';
 import { researchCases } from '../../../_data/cases';
 
 export const metadata: Metadata = {
@@ -9,5 +10,9 @@ export const metadata: Metadata = {
 };
 
 export default function EmiliaRomagnaCasePage() {
-  return <CaseDetail researchCase={researchCases.emilia} />;
+  return (
+    <CaseDetail researchCase={researchCases.emilia}>
+      <EmiliaBenchmarkInspector />
+    </CaseDetail>
+  );
 }

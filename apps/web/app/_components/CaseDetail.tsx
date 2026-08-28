@@ -1,12 +1,15 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 
 import type { ResearchCase } from '../_data/cases';
 import PageIntro from './PageIntro';
 
 export default function CaseDetail({
   researchCase,
+  children,
 }: {
   readonly researchCase: ResearchCase;
+  readonly children?: ReactNode;
 }) {
   return (
     <main>
@@ -71,6 +74,8 @@ export default function CaseDetail({
           ))}
         </dl>
       </section>
+
+      {children}
 
       <section className="page-section case-boundaries">
         <div>

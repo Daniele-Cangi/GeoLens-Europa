@@ -347,6 +347,7 @@ Default local endpoints:
 - API health: http://localhost:3003/health
 - IMERG service: http://localhost:8001
 - Amsterdam observed proof: http://localhost:3003/api/infrastructure/amsterdam-waternet
+- Emilia-Romagna benchmark: http://localhost:3003/api/benchmarks/emilia-romagna-2023
 
 The root launcher starts services in dependency order and waits for their health gates. The first uncached IMERG acquisition can take several minutes.
 
@@ -377,6 +378,24 @@ The response keeps these layers separate:
 - the reason network propagation was or was not attempted.
 
 The GWSW polygon containing the selected outfall is context only. Point containment does not prove that a surface drains to an outfall.
+
+### Emilia-Romagna historical benchmark
+
+GET /api/benchmarks/emilia-romagna-2023 returns a compact, versioned projection of the verified external checkpoint. It does not load or redistribute the 746 MB source archive.
+
+The response exposes:
+
+- the manifest version, artifact count and integrity method;
+- event window, bounded area, metric grid and H3 representation choice;
+- provider, dataset version, native resolution, role and state for each major source;
+- complete IMERG granule coverage and deterministic runoff quantities;
+- mass balance, model version and the incomplete DBTR window;
+- the post-freeze blind evaluation and retained near-random negative result;
+- the independent ARPAE station comparison;
+- every conditioned-replay evidence gate, including missing and metadata-only states;
+- permitted and forbidden scientific claims.
+
+The institutional Case 02 page reads this endpoint through its evidence inspector. API unavailability is shown as an error; it cannot silently become a valid-looking benchmark result.
 
 ### Generic Proof 0
 
