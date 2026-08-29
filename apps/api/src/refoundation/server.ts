@@ -21,6 +21,7 @@ import {
   PdokBgtSurfaceClient,
 } from '@geo-lens/providers';
 import {
+  AMSTERDAM_SURFACE_NETWORK_ATTACHMENT_INTAKE,
   AmsterdamWaternetAcquisition,
   AmsterdamWaternetBbox,
   analyzeOutfallConnectivity,
@@ -155,6 +156,8 @@ export function buildGeoLensApi(
       health: '/health',
       observedInfrastructure:
         'GET /api/infrastructure/amsterdam-waternet',
+      amsterdamAttachmentIntake:
+        'GET /api/infrastructure/amsterdam-waternet/attachment-intake',
       emiliaHistoricalBenchmark:
         'GET /api/benchmarks/emilia-romagna-2023',
       emiliaHistoricalBenchmarkMap:
@@ -199,6 +202,18 @@ export function buildGeoLensApi(
         )
         .code(200)
         .send(EMILIA_ARPAE_HYDRAULIC_EVIDENCE_INTAKE),
+  );
+
+  server.get(
+    '/api/infrastructure/amsterdam-waternet/attachment-intake',
+    async (_request, reply) =>
+      reply
+        .header(
+          'cache-control',
+          'public, max-age=300, stale-while-revalidate=86400',
+        )
+        .code(200)
+        .send(AMSTERDAM_SURFACE_NETWORK_ATTACHMENT_INTAKE),
   );
 
   server.get(

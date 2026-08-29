@@ -372,11 +372,15 @@ Progress:
 - official STOWA/RIONED guidance identifies a BGT Inlooptabel as the appropriate first-public-system destination relation; its 2025 schema retains the BGT identifier, 99–101% allocation total and optional exact sewer asset codes;
 - `bgt-inflow-table-network-attachment-v0.1.0` now validates that boundary, keeps destination evidence separate from exact observed-pipe attachment, and prevents synthetic fixtures from becoming propagation-eligible;
 - the API and inspector expose the authoritative attachment as explicitly `missing`, with the standard, intended authority, exact-match rule and blocker separate from the conditioned BGT/AHN proxy;
-- no public Amsterdam BGT Inlooptabel or equivalent owner-published exact Waternet asset crosswalk has been located.
+- no public Amsterdam BGT Inlooptabel or equivalent owner-published exact Waternet asset crosswalk has been located;
+- `amsterdam-surface-network-attachment-package-v0.1.0` now defines the external-delivery boundary: content-addressed artifacts, bounded source selection, STOWA 2025 records, owner/delegate authority and fail-closed policies are validated before review;
+- receipt, artifact/authority/license review, exact observed-topology matching and propagation eligibility are separate states; a verified external package becomes only `ready_for_exact_observed_topology_match`, while synthetic fixtures, proximity inference and conditioned-proxy promotion remain structurally ineligible;
+- `GET /api/infrastructure/amsterdam-waternet/attachment-intake` publishes the truthful current state: no package has been received, record and artifact counts are zero and propagation remains blocked.
 
 Work:
 
 - acquire an Amsterdam owner-published BGT Inlooptabel, hydraulic-model surface relation, or equivalent source-backed inlet/outfall attachment;
+- when a delivery arrives, register byte count and SHA-256 outside Git, review authority/license/relation semantics, then run the existing exact-identifier assessment against the observed Waternet topology;
 - keep the conditioned BGT/AHN outlet proxy `observed: false` until such a relation is available;
 - attach runoff to a typed observed inlet or outfall only through that authoritative relation;
 - propagate the resulting source term only through the validated known-direction subgraph and retain unresolved upstream boundaries.

@@ -504,6 +504,10 @@ test('API identity exposes health, Proof 0 and observed infrastructure', async (
     'GET /api/infrastructure/amsterdam-waternet',
   );
   assert.equal(
+    root.endpoints.amsterdamAttachmentIntake,
+    'GET /api/infrastructure/amsterdam-waternet/attachment-intake',
+  );
+  assert.equal(
     root.endpoints.emiliaHistoricalBenchmark,
     'GET /api/benchmarks/emilia-romagna-2023',
   );
@@ -519,6 +523,37 @@ test('API identity exposes health, Proof 0 and observed infrastructure', async (
   assert.equal(JSON.stringify(root).includes('mineral'), false);
   assert.equal(health.coreRequiresAi, false);
   assert.equal(health.coreRequiresMineralModel, false);
+});
+
+test('API exposes the Amsterdam attachment delivery as explicitly missing', async (context) => {
+  const server = buildTestServer();
+  context.after(() => server.close());
+
+  const response = await server.inject({
+    method: 'GET',
+    url: '/api/infrastructure/amsterdam-waternet/attachment-intake',
+  });
+  const body = response.json();
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(
+    response.headers['cache-control'],
+    'public, max-age=300, stale-while-revalidate=86400',
+  );
+  assert.equal(
+    body.schemaVersion,
+    'amsterdam-surface-network-attachment-intake-status-v0.1.0',
+  );
+  assert.equal(body.status, 'missing');
+  assert.equal(body.packageId, null);
+  assert.equal(body.recordCount, 0);
+  assert.equal(body.attachmentAssessmentEligibility, 'blocked');
+  assert.equal(body.propagationEligibility, 'blocked');
+  assert.equal(body.policy.identifierMatch, 'exact_only');
+  assert.equal(body.policy.proximityInference, 'forbidden');
+  assert.equal(body.policy.conditionedProxyCanBecomeObserved, false);
+  assert.equal(body.policy.syntheticFixturesCanBecomeObserved, false);
+  assert.equal(body.policy.originalFilesStayOutsideGit, true);
 });
 
 test('API exposes the verified Emilia negative benchmark without promoting blocked hydraulics', async (context) => {
