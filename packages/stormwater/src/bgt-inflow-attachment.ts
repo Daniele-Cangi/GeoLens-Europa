@@ -185,7 +185,7 @@ export function assessBgtInflowTableAttachments(
   const descriptor = assessmentDescriptor(records, options.acquiredAt);
 
   try {
-    validateRecords(records);
+    validateBgtInflowTableRecords(records);
     const observations = destinationObservations(records);
     const aliases = pipeAliases(topology);
     const synthetic = records[0].source.origin === 'synthetic_fixture';
@@ -389,7 +389,9 @@ function buildAttachmentEvidence(
   });
 }
 
-function validateRecords(records: readonly BgtInflowTableRecord[]): void {
+export function validateBgtInflowTableRecords(
+  records: readonly BgtInflowTableRecord[],
+): void {
   const ids = new Set<string>();
   const totals = new Map<string, number>();
   const firstSource = records[0].source;

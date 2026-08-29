@@ -355,6 +355,7 @@ Default local endpoints:
 - API health: http://localhost:3003/health
 - IMERG service: http://localhost:8001
 - Amsterdam observed proof: http://localhost:3003/api/infrastructure/amsterdam-waternet
+- Amsterdam attachment intake: http://localhost:3003/api/infrastructure/amsterdam-waternet/attachment-intake
 - Emilia-Romagna benchmark: http://localhost:3003/api/benchmarks/emilia-romagna-2023
 - Emilia-Romagna map manifest: http://localhost:3003/api/benchmarks/emilia-romagna-2023/map-manifest
 - ARPAE hydraulic evidence intake: http://localhost:3003/api/benchmarks/emilia-romagna-2023/hydraulic-evidence-intake
@@ -388,6 +389,8 @@ The response keeps these layers separate:
 - the reason network propagation was or was not attempted.
 
 The GWSW polygon containing the selected outfall is context only. Point containment does not prove that a surface drains to an outfall.
+
+The companion GET /api/infrastructure/amsterdam-waternet/attachment-intake exposes the delivery gate for the owner-published BGT Inlooptabel requested from Amsterdam/Waternet. Its current state is `missing`; both attachment assessment and propagation remain `blocked`. A future package must retain the STOWA 2025 relation semantics, publisher authority, bounded selection, source records and content-addressed original artifacts. Receipt, integrity review and exact topology matching are separate operations. A reviewed package becomes only `ready_for_exact_observed_topology_match`: propagation remains blocked until its published asset code matches one observed Waternet pipe uniquely. Proximity, polygon containment and the conditioned BGT/AHN outlet cannot be promoted into observed attachment evidence.
 
 ### Emilia-Romagna historical benchmark
 
@@ -454,6 +457,8 @@ Waternet endpoint invert levels are retained without rounding. The orientation m
 Direction can be known, unknown or ambiguous. The numeric tolerance handles serialisation noise; it is not a claim about survey accuracy.
 
 The authoritative attachment boundary is modelled as STOWA 2025 BGT Inlooptabel or equivalent owner-published evidence. No such bounded Amsterdam relation has yet been located in the public catalogues.
+
+The executable intake contract records five package states: `missing`, `received`, `under_review`, `verified` and `rejected`. Even `verified` means only that an external delivery may enter the existing exact-identifier assessment; it does not mean that a network attachment or propagated flow has been established. Synthetic fixtures can validate the contract but can never become observed infrastructure evidence.
 
 ### Emilia-Romagna reproducibility boundary
 
