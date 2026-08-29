@@ -423,6 +423,20 @@ npm run materialize:emilia-map -- --data-root C:\Users\dacan\GeoLens\data\emilia
 npm run verify:emilia-map -- --data-root C:\Users\dacan\GeoLens\data\emilia-romagna-2023
 ```
 
+## External evidence intake
+
+GeoLens includes one local intake command for future ARPAE and Amsterdam/Waternet deliveries. It reads originals from a data directory outside Git, computes their byte counts and SHA-256 identities, validates the appropriate scientific contract and writes a new package receipt. It does not copy the originals and refuses to overwrite an existing receipt.
+
+```powershell
+npm run intake:external-evidence -- --kind arpae --draft C:\path\to\arpae-draft.json --data-root C:\path\to\arpae-delivery --output C:\path\to\receipts\arpae-package.json
+
+npm run intake:external-evidence -- --kind amsterdam --draft C:\path\to\amsterdam-draft.json --data-root C:\path\to\amsterdam-delivery --output C:\path\to\receipts\amsterdam-package.json
+```
+
+The draft is the corresponding package JSON with artifact entries containing `id`, `role`, portable `relativePath` and `mediaType`. Any draft `bytes`, `sha256` or local source-path fields are discarded and recomputed from `data-root`. Artifact paths and resolved symlinks must remain inside that root.
+
+A successful command means only `structurally_valid`. It does not complete scientific review, prove an Amsterdam topology match or make the Emilia-Romagna replay eligible. Those remain separate fail-closed decisions.
+
 ### Generic Proof 0
 
 POST /api/proof-zero/run accepts a bounded typed GeoJSON network and an explicit reference time. A complete example is available in apps/web/app/lib/fixture.ts.
