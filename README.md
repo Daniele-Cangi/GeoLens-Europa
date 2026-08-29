@@ -357,6 +357,7 @@ Default local endpoints:
 - Amsterdam observed proof: http://localhost:3003/api/infrastructure/amsterdam-waternet
 - Emilia-Romagna benchmark: http://localhost:3003/api/benchmarks/emilia-romagna-2023
 - Emilia-Romagna map manifest: http://localhost:3003/api/benchmarks/emilia-romagna-2023/map-manifest
+- ARPAE hydraulic evidence intake: http://localhost:3003/api/benchmarks/emilia-romagna-2023/hydraulic-evidence-intake
 
 The root launcher starts services in dependency order and waits for their health gates. The first uncached IMERG acquisition can take several minutes.
 
@@ -405,6 +406,8 @@ The response exposes:
 - permitted and forbidden scientific claims.
 
 The institutional Case 02 page reads this endpoint through its evidence inspector. API unavailability is shown as an error; it cannot silently become a valid-looking benchmark result.
+
+The companion GET /api/benchmarks/emilia-romagna-2023/hydraulic-evidence-intake exposes the external-delivery gate for the evidence requested from ARPAE. The current state is `missing` and replay eligibility is `blocked`. A future delivery must identify content-addressed artifacts and explicitly cover antecedent state, Montone and Rabbi inflows, downstream boundary, breach behaviour, embankment crests, bare-earth terrain, and channel geometry/roughness. Receipt, structural verification, scientific review and replay eligibility are separate states: receiving a file cannot promote it automatically. Missing components remain missing, chart digitisation and observed-extent leakage are rejected, and synthetic fixtures can test the contract but can never become real replay evidence. Original delivered files remain outside Git.
 
 The companion GET /api/benchmarks/emilia-romagna-2023/map-manifest serves a deterministic publication-safe spatial projection. Five inspectable layers are aggregated from the pinned 30 m grid onto a nominal 300 m display grid: terrain-only D8 contributing area, mean GLO-30 elevation, dominant CORINE land-cover group, known DBTR permanent-water presence and event runoff concentration. Every layer retains native resolution, aggregation, evidence state, transformation version and attribution.
 
@@ -470,6 +473,8 @@ Important data-quality boundaries remain explicit:
 - no PST gap is silently filled from GLO-30;
 - published charts are not digitised into unavailable numerical hydrographs;
 - missing discharge, breach and boundary evidence keeps a conditioned replay blocked.
+
+The ARPAE delivery contract makes that boundary executable: a package may be `received`, `under_review`, `verified` or `rejected`, while replay eligibility remains independently `blocked` until every required component is accepted as external evidence. Invalid or incomplete deliveries cannot become zero-filled model input.
 
 External benchmark inputs remain outside Git. While the D volume is unavailable, the verified working copy is under C:/Users/dacan/GeoLens/data/emilia-romagna-2023; the manifest uses portable relative paths so it can move back to D without changing dataset identity.
 

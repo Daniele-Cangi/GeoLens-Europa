@@ -1,4 +1,5 @@
 export * from './benchmark';
+export * from './arpaeHydraulicIntake';
 export * from './emiliaBenchmark';
 export * from './emiliaMap';
 
