@@ -1,5 +1,6 @@
 import compress from '@fastify/compress';
 import {
+  EMILIA_ARPAE_HYDRAULIC_EVIDENCE_INTAKE,
   EMILIA_ROMAGNA_2023_BENCHMARK,
   EMILIA_ROMAGNA_2023_MAP_MANIFEST,
   EvidenceStatus,
@@ -158,6 +159,8 @@ export function buildGeoLensApi(
         'GET /api/benchmarks/emilia-romagna-2023',
       emiliaHistoricalBenchmarkMap:
         'GET /api/benchmarks/emilia-romagna-2023/map-manifest',
+      emiliaHydraulicEvidenceIntake:
+        'GET /api/benchmarks/emilia-romagna-2023/hydraulic-evidence-intake',
       proofZero: 'POST /api/proof-zero/run',
     },
   }));
@@ -184,6 +187,18 @@ export function buildGeoLensApi(
         )
         .code(200)
         .send(EMILIA_ROMAGNA_2023_MAP_MANIFEST),
+  );
+
+  server.get(
+    '/api/benchmarks/emilia-romagna-2023/hydraulic-evidence-intake',
+    async (_request, reply) =>
+      reply
+        .header(
+          'cache-control',
+          'public, max-age=300, stale-while-revalidate=86400',
+        )
+        .code(200)
+        .send(EMILIA_ARPAE_HYDRAULIC_EVIDENCE_INTAKE),
   );
 
   server.get(
