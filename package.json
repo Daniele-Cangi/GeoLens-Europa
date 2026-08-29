@@ -16,7 +16,8 @@
     "dev:api-web": "concurrently \"npm run dev --workspace=@geo-lens/api\" \"npm run dev --workspace=@geo-lens/web\"",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test:ts && npm run test:python",
-    "test:ts": "npm run test --workspaces --if-present",
+    "test:ts": "npm run test --workspaces --if-present && npm run test:scripts",
+    "test:scripts": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/stormwater && node --test scripts/test/external-evidence-intake.test.mjs",
     "test:python": "npm run test:python:nasa && npm run test:python:benchmark",
     "test:python:nasa": "cd nasa-precip-engine && python -m unittest discover -s tests -v",
     "test:python:benchmark": "python -m unittest discover -s tests/python -v",
@@ -34,7 +35,8 @@
     "verify:emilia-event-runoff": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/stormwater && node scripts/verify-emilia-event-runoff.mjs",
     "evaluate:emilia-concentration": "python scripts/evaluate_emilia_concentration.py",
     "materialize:emilia-map": "node scripts/materialize-emilia-map-manifest.mjs",
-    "verify:emilia-map": "node scripts/materialize-emilia-map-manifest.mjs --check"
+    "verify:emilia-map": "node scripts/materialize-emilia-map-manifest.mjs --check",
+    "intake:external-evidence": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/stormwater && node scripts/intake-external-evidence.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
