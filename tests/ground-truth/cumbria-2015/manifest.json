@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.3.0",
+  "manifestVersion": "0.4.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -27,6 +27,7 @@
     "missingIsNotZero": true,
     "evaluationReferencesExcludedFromInputs": true,
     "postEventEvidenceExcludedFromCalibration": true,
+    "currentAssetStateExcludedFromEventInputs": true,
     "largeArtifactsStayOutsideGit": true
   },
   "datasets": [
@@ -390,6 +391,237 @@
       }
     },
     {
+      "id": "ea-hydrology-great-corby-flow",
+      "publisher": "Environment Agency",
+      "dataset": "Hydrology API qualified instantaneous flow",
+      "role": "model_input_candidate",
+      "temporalRelation": "event_window",
+      "sourceResolution": "15 minute station series",
+      "license": "Open Government Licence",
+      "permittedUses": {
+        "modelInput": true,
+        "calibration": false,
+        "observationComparison": false,
+        "evaluation": false
+      },
+      "access": {
+        "state": "remote_verified",
+        "checkedOn": "2026-08-30",
+        "url": "https://environment.data.gov.uk/hydrology/id/measures/244c170e-922f-4e33-8b7d-d02dd50888d3-flow-i-900-m3s-qualified/readings?mineq-date=2015-12-04&maxeq-date=2015-12-07&_limit=10000",
+        "note": "The complete Eden flow series is a candidate upstream hydrograph for a future Carlisle hydraulic domain. Great Corby lies just outside the metadata AOI, so this series cannot define or silently expand the modelling domain by itself."
+      },
+      "seriesAudit": {
+        "station": "Great Corby",
+        "stationReference": "762505",
+        "measureNotation": "244c170e-922f-4e33-8b7d-d02dd50888d3-flow-i-900-m3s-qualified",
+        "intervalSeconds": 900,
+        "windowStart": "2015-12-04T00:00:00Z",
+        "windowEndExclusive": "2015-12-07T00:00:00Z",
+        "expectedReadings": 288,
+        "readings": 288,
+        "missingReadings": 0,
+        "firstObservedAt": "2015-12-04T00:00:00Z",
+        "lastObservedAt": "2015-12-06T23:45:00Z",
+        "unit": "m3/s",
+        "minimum": 122.559,
+        "maximum": 1486.39
+      }
+    },
+    {
+      "id": "ea-hydrology-cummersdale-flow",
+      "publisher": "Environment Agency",
+      "dataset": "Hydrology API qualified instantaneous flow",
+      "role": "model_input_candidate",
+      "temporalRelation": "event_window",
+      "sourceResolution": "15 minute station series",
+      "license": "Open Government Licence",
+      "permittedUses": {
+        "modelInput": true,
+        "calibration": false,
+        "observationComparison": false,
+        "evaluation": false
+      },
+      "access": {
+        "state": "remote_verified",
+        "checkedOn": "2026-08-30",
+        "url": "https://environment.data.gov.uk/hydrology/id/measures/8d4e3c14-3eb9-473b-a98c-51a7e88f0a7f-flow-i-900-m3s-qualified/readings?mineq-date=2015-12-04&maxeq-date=2015-12-07&_limit=10000",
+        "note": "The complete Caldew flow series is a candidate upstream hydrograph only. It cannot become a boundary condition until the station-to-domain relation, timing and units are frozen."
+      },
+      "seriesAudit": {
+        "station": "Cummersdale",
+        "stationReference": "765013",
+        "measureNotation": "8d4e3c14-3eb9-473b-a98c-51a7e88f0a7f-flow-i-900-m3s-qualified",
+        "intervalSeconds": 900,
+        "windowStart": "2015-12-04T00:00:00Z",
+        "windowEndExclusive": "2015-12-07T00:00:00Z",
+        "expectedReadings": 288,
+        "readings": 288,
+        "missingReadings": 0,
+        "firstObservedAt": "2015-12-04T00:00:00Z",
+        "lastObservedAt": "2015-12-06T23:45:00Z",
+        "unit": "m3/s",
+        "minimum": 19.723,
+        "maximum": 279.159
+      }
+    },
+    {
+      "id": "ea-hydrology-newbiggin-bridge-flow",
+      "publisher": "Environment Agency",
+      "dataset": "Hydrology API qualified instantaneous flow",
+      "role": "model_input_candidate",
+      "temporalRelation": "event_window",
+      "sourceResolution": "15 minute station series",
+      "license": "Open Government Licence",
+      "permittedUses": {
+        "modelInput": true,
+        "calibration": false,
+        "observationComparison": false,
+        "evaluation": false
+      },
+      "access": {
+        "state": "remote_verified",
+        "checkedOn": "2026-08-30",
+        "url": "https://environment.data.gov.uk/hydrology/id/measures/3982df4e-f922-4bd7-9fc1-cb01d240d0a8-flow-i-900-m3s-qualified/readings?mineq-date=2015-12-04&maxeq-date=2015-12-07&_limit=10000",
+        "note": "The complete Petteril flow series is a candidate upstream hydrograph only. It is not a calibrated or inferred hydraulic boundary."
+      },
+      "seriesAudit": {
+        "station": "Newbiggin Bridge",
+        "stationReference": "764050",
+        "measureNotation": "3982df4e-f922-4bd7-9fc1-cb01d240d0a8-flow-i-900-m3s-qualified",
+        "intervalSeconds": 900,
+        "windowStart": "2015-12-04T00:00:00Z",
+        "windowEndExclusive": "2015-12-07T00:00:00Z",
+        "expectedReadings": 288,
+        "readings": 288,
+        "missingReadings": 0,
+        "firstObservedAt": "2015-12-04T00:00:00Z",
+        "lastObservedAt": "2015-12-06T23:45:00Z",
+        "unit": "m3/s",
+        "minimum": 8.755,
+        "maximum": 97.426
+      }
+    },
+    {
+      "id": "ea-aims-current-spatial-flood-defences",
+      "publisher": "Environment Agency",
+      "dataset": "AIMS Spatial Flood Defences including standardised attributes",
+      "role": "context_only",
+      "temporalRelation": "current_context",
+      "sourceResolution": "current defence line geometry and asset-level attributes",
+      "license": "Open Government Licence",
+      "permittedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "observationComparison": false,
+        "evaluation": false
+      },
+      "access": {
+        "state": "remote_verified",
+        "checkedOn": "2026-08-30",
+        "url": "https://www.data.gov.uk/dataset/cc76738e-fc17-49f9-a216-977c61858dda/aims-spatial-flood-defences-inc-standardised-attributes",
+        "additionalUrls": [
+          "https://environment.data.gov.uk/spatialdata/spatial-flood-defences-including-standardised-attributes/ogc/features/v1",
+          "https://environment.data.gov.uk/api/file/download?fileDataSetId=3aa34e3d-1d6d-4345-a655-64a683e06b6b&fileName=AIMS%20Spatial%20Flood%20Defences%20Product%20Description.pdf"
+        ],
+        "note": "The bounded OGC query is reproducible, but the source is a daily current inventory. Asset start dates do not make current geometry, crest levels, condition or standards an as-of-2015 defence state."
+      },
+      "defenceContextAudit": {
+        "queryUrl": "https://environment.data.gov.uk/geoservices/datasets/8e5be50f-d465-11e4-ba9a-f0def148f590/ogc/features/v1/collections/Spatial_Flood_Defences_Including_Standardised_Attributes/items?bbox=-3.05%2C54.82%2C-2.85%2C55&limit=1000&f=json",
+        "sourceBbox": [-3.05, 54.82, -2.85, 55.0],
+        "sourceCrs": "OGC:CRS84",
+        "numberMatched": 291,
+        "numberReturned": 291,
+        "returnedGeometryBounds": [-3.019671, 54.816815, -2.836077, 55.007329],
+        "sourceUpdateSemantics": "daily_current_inventory",
+        "withAssetStartDate": 177,
+        "operationalBeforeEventByStartDateOnly": 121,
+        "assetStartDateOnOrAfterEvent": 56,
+        "missingAssetStartDate": 114,
+        "withYearLastRefurbished": 54,
+        "lastRefurbishedAfter2015": 4,
+        "withCurrentActualCrest": 214,
+        "withDesignCrest": 83,
+        "withDesignStandardOfProtection": 261,
+        "assetSubtypeCounts": {
+          "Embankment": 82,
+          "Engineered High Ground": 4,
+          "Flood Gate": 31,
+          "Natural High Ground": 68,
+          "Spillway": 1,
+          "Wall": 105
+        },
+        "selectionSha256": "79d2cc31c6212c7300bc23cc9171bfde3b500a4c59e60880cc362fca072eb564",
+        "responseByteLimit": 4194304,
+        "classification": "current_context_only",
+        "blocker": "The source is current, daily-updated and incomplete for event dating; current geometry, crest and condition attributes cannot reconstruct the defence state on 4 December 2015."
+      }
+    },
+    {
+      "id": "cumberland-carlisle-sfra-2011-appendix-d",
+      "publisher": "Cumberland Council",
+      "dataset": "Carlisle SFRA Appendix D - Breach Analysis Methodology",
+      "datasetVersion": "Version 3.0, 22 November 2011",
+      "role": "context_only",
+      "temporalRelation": "pre_event",
+      "sourceResolution": "four-page methodology appendix; no machine-readable model package",
+      "license": "Public authority publication; redistribution not assessed",
+      "permittedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "observationComparison": false,
+        "evaluation": false
+      },
+      "access": {
+        "state": "remote_verified",
+        "checkedOn": "2026-08-30",
+        "url": "https://www.cumberland.gov.uk/sites/default/files/2025-08/eb_016_carlisle_sfra_appendix_d_final_november_2011.pdf",
+        "note": "The pre-event appendix proves that an ISIS 1D and TUFLOW 2D model incorporating the Carlisle defence schemes existed. It describes model lineage and scenarios, not a runnable artifact or event boundary package."
+      },
+      "hydraulicModelLineageAudit": {
+        "documentDate": "2011-11-22",
+        "modelComponents": ["ISIS 1D", "TUFLOW 2D"],
+        "defenceSchemesRepresented": true,
+        "reportedFloodgates": 23,
+        "machineReadableModelFilesAttached": false,
+        "machineReadableBoundaryConditionsAttached": false,
+        "machineReadableChannelGeometryAttached": false,
+        "classification": "pre_event_model_lineage_only",
+        "blocker": "The cited 2008 modelling report, 2010 flood-warning study and ISIS/TUFLOW files are not attached, so the document cannot be executed or converted into inferred geometry."
+      }
+    },
+    {
+      "id": "ea-flood-model-locations",
+      "publisher": "Environment Agency",
+      "dataset": "Flood Model Locations",
+      "role": "context_only",
+      "temporalRelation": "current_context",
+      "sourceResolution": "model-footprint polygons and descriptive metadata; no model files or outputs",
+      "license": "Open Government Licence",
+      "permittedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "observationComparison": false,
+        "evaluation": false
+      },
+      "access": {
+        "state": "metadata_verified",
+        "checkedOn": "2026-08-30",
+        "url": "https://www.data.gov.uk/dataset/52a66091-13c4-437f-918a-18b79295babe/flood-model-locations",
+        "additionalUrls": [
+          "https://environment.data.gov.uk/spatialdata/flood-model-locations/ogc/features/v1"
+        ],
+        "note": "The official catalogue states that flood model files and outputs are not included. A bounded Carlisle WFS/OGC request returned no bytes before a 20-second timeout, so no local model identity is asserted from this catalogue."
+      },
+      "facts": {
+        "metadataCreationDate": "2024-01-09",
+        "updateFrequency": "quarterly",
+        "modelFilesIncluded": false,
+        "modelOutputsIncluded": false,
+        "boundedQueryState": "upstream_timeout",
+        "boundedCarlisleSelectionVerified": false
+      }
+    },
+    {
       "id": "ea-recorded-flood-outlines",
       "publisher": "Environment Agency",
       "dataset": "Recorded Flood Outlines",
@@ -468,6 +700,13 @@
         "checkedOn": "2026-08-30",
         "url": "https://www.cumberland.gov.uk/sites/default/files/2024-08/section_19_flood_investigation_report_carlisle_-_2015_0.pdf",
         "note": "The report supports event timing and identifies defence overtopping without proving that the current metadata audit has a runnable hydraulic model. It is context-only."
+      },
+      "facts": {
+        "reportedMechanism": "defence overtopping and bypass",
+        "reportedDefenceBreaches": false,
+        "machineReadableBoundaryConditionsAttached": false,
+        "machineReadableDefenceGeometryAttached": false,
+        "machineReadableHydraulicModelAttached": false
       }
     }
   ],
@@ -493,6 +732,11 @@
       "reason": "Sheepmount flow and level plus Willow Holme rainfall each return all 288 expected 15-minute values."
     },
     {
+      "id": "upstream_boundary_series",
+      "state": "passed",
+      "reason": "Great Corby, Cummersdale and Newbiggin Bridge each return all 288 qualified 15-minute flow values for the frozen window; they remain candidate Eden, Caldew and Petteril hydrographs until a domain and boundary protocol are frozen."
+    },
+    {
       "id": "land_cover_lineage",
       "state": "passed",
       "reason": "CLC 2012 gives an explicit pre-event reference year while retaining its post-event corrected release identity."
@@ -513,9 +757,19 @@
       "reason": "WFD River Water Bodies Cycle 1 provides 16 event-valid river-context features, but it is a 1:50,000 WFD subset rather than a complete channel or hydraulic network; current OS Open Rivers remains context-only."
     },
     {
+      "id": "pre_event_hydraulic_model_lineage",
+      "state": "passed",
+      "reason": "The 2011 Carlisle SFRA records an ISIS 1D/TUFLOW 2D model updated with the defence schemes and 23 floodgates, but only as document lineage rather than executable evidence."
+    },
+    {
+      "id": "as_of_event_defence_state",
+      "state": "blocked",
+      "reason": "The bounded AIMS query returns 291 current defences, but 114 lack a start date, 56 start on or after the event and four report post-2015 refurbishment; daily current geometry and crest attributes cannot be represented as the December 2015 state."
+    },
+    {
       "id": "hydraulic_context",
       "state": "blocked",
-      "reason": "No event-valid hydraulic geometry, roughness, defence crest model or boundary-condition protocol has yet been accepted."
+      "reason": "Three complete upstream hydrographs and pre-event model lineage now exist, but no runnable ISIS/TUFLOW package, event-valid channel geometry/roughness, downstream condition or as-of-2015 defence state has been accepted."
     },
     {
       "id": "evaluation_geometry_identity",
@@ -531,6 +785,6 @@
   "acquisition": {
     "state": "metadata_only",
     "largeDownloadsAllowed": false,
-    "nextAction": "Resolve the official 5 km GeoTIFF identities corresponding to the 231 selected pre-event catalogue rows, retain the ten terrain gaps as missing, and freeze the modelling grid before opening evaluation geometry."
+    "nextAction": "Freeze a local Carlisle hydraulic domain and boundary protocol around the three complete upstream hydrographs, obtain or explicitly rule out the cited ISIS/TUFLOW model package and as-of-2015 defence/channel evidence, and resolve the official pre-event DTM archives before opening evaluation geometry."
   }
 }

@@ -1,4 +1,4 @@
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.3.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.4.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -87,6 +87,44 @@ export interface CumbriaDatasetAudit {
   readonly seriesAudit?: CumbriaSeriesAudit;
   readonly lidarCatalogAudit?: CumbriaLidarCatalogAudit;
   readonly hydrographyAudit?: CumbriaHydrographyAudit;
+  readonly defenceContextAudit?: CumbriaDefenceContextAudit;
+  readonly hydraulicModelLineageAudit?: CumbriaHydraulicModelLineageAudit;
+}
+
+export interface CumbriaDefenceContextAudit {
+  readonly queryUrl: string;
+  readonly sourceBbox: readonly [number, number, number, number];
+  readonly sourceCrs: 'OGC:CRS84';
+  readonly numberMatched: number;
+  readonly numberReturned: number;
+  readonly returnedGeometryBounds: readonly [number, number, number, number];
+  readonly sourceUpdateSemantics: 'daily_current_inventory';
+  readonly withAssetStartDate: number;
+  readonly operationalBeforeEventByStartDateOnly: number;
+  readonly assetStartDateOnOrAfterEvent: number;
+  readonly missingAssetStartDate: number;
+  readonly withYearLastRefurbished: number;
+  readonly lastRefurbishedAfter2015: number;
+  readonly withCurrentActualCrest: number;
+  readonly withDesignCrest: number;
+  readonly withDesignStandardOfProtection: number;
+  readonly assetSubtypeCounts: Readonly<Record<string, number>>;
+  readonly selectionSha256: string;
+  readonly responseByteLimit: 4194304;
+  readonly classification: 'current_context_only';
+  readonly blocker: string;
+}
+
+export interface CumbriaHydraulicModelLineageAudit {
+  readonly documentDate: '2011-11-22';
+  readonly modelComponents: readonly ['ISIS 1D', 'TUFLOW 2D'];
+  readonly defenceSchemesRepresented: true;
+  readonly reportedFloodgates: 23;
+  readonly machineReadableModelFilesAttached: false;
+  readonly machineReadableBoundaryConditionsAttached: false;
+  readonly machineReadableChannelGeometryAttached: false;
+  readonly classification: 'pre_event_model_lineage_only';
+  readonly blocker: string;
 }
 
 export interface CumbriaHydrographyAudit {
@@ -180,6 +218,7 @@ export interface CumbriaAccessManifest {
     readonly missingIsNotZero: true;
     readonly evaluationReferencesExcludedFromInputs: true;
     readonly postEventEvidenceExcludedFromCalibration: true;
+    readonly currentAssetStateExcludedFromEventInputs: true;
     readonly largeArtifactsStayOutsideGit: true;
   };
   readonly datasets: readonly CumbriaDatasetAudit[];
@@ -257,6 +296,11 @@ export function assertCumbriaAccessManifest(
     'policy.postEventEvidenceExcludedFromCalibration',
   );
   equal(
+    policy.currentAssetStateExcludedFromEventInputs,
+    true,
+    'policy.currentAssetStateExcludedFromEventInputs',
+  );
+  equal(
     policy.largeArtifactsStayOutsideGit,
     true,
     'policy.largeArtifactsStayOutsideGit',
@@ -308,6 +352,15 @@ export function assertCumbriaAccessManifest(
     ) {
       throw new Error(`${id} post-event evidence cannot enter input or calibration`);
     }
+    if (
+      role === 'context_only' &&
+      (uses.modelInput ||
+        uses.calibration ||
+        uses.observationComparison ||
+        uses.evaluation)
+    ) {
+      throw new Error(`${id} context-only evidence cannot enter computation`);
+    }
 
     const access = record(dataset.access, `${id}.access`);
     member(access.state, accessSet, `${id}.access.state`);
@@ -331,6 +384,13 @@ export function assertCumbriaAccessManifest(
     'ea-hydrology-sheepmount-flow',
     'ea-hydrology-sheepmount-level',
     'ea-hydrology-willow-holme-rainfall',
+    'ea-hydrology-great-corby-flow',
+    'ea-hydrology-cummersdale-flow',
+    'ea-hydrology-newbiggin-bridge-flow',
+    'ea-aims-current-spatial-flood-defences',
+    'cumberland-carlisle-sfra-2011-appendix-d',
+    'cumberland-carlisle-section-19-report',
+    'ea-flood-model-locations',
     'ea-recorded-flood-outlines',
     'copernicus-emsr147-carlisle',
   ]) {
@@ -358,6 +418,9 @@ export function assertCumbriaAccessManifest(
     'ea-hydrology-sheepmount-flow',
     'ea-hydrology-sheepmount-level',
     'ea-hydrology-willow-holme-rainfall',
+    'ea-hydrology-great-corby-flow',
+    'ea-hydrology-cummersdale-flow',
+    'ea-hydrology-newbiggin-bridge-flow',
   ]) {
     const series = record(
       datasetRecords.get(seriesId)?.seriesAudit,
@@ -565,6 +628,191 @@ export function assertCumbriaAccessManifest(
   );
   nonEmpty(hydrography.blocker, 'WFD Cycle 1 blocker');
 
+  const defenceDataset = datasetRecords.get(
+    'ea-aims-current-spatial-flood-defences',
+  );
+  equal(defenceDataset?.role, 'context_only', 'AIMS defence role');
+  equal(
+    defenceDataset?.temporalRelation,
+    'current_context',
+    'AIMS defence temporal relation',
+  );
+  const defenceAudit = record(
+    defenceDataset?.defenceContextAudit,
+    'ea-aims-current-spatial-flood-defences.defenceContextAudit',
+  );
+  httpsUrl(defenceAudit.queryUrl, 'AIMS defence query URL');
+  const defenceSourceBbox = numericArray(
+    defenceAudit.sourceBbox,
+    4,
+    'AIMS defence source bbox',
+  );
+  if (JSON.stringify(defenceSourceBbox) !== JSON.stringify(bounds)) {
+    throw new Error('AIMS defence source bbox must equal the audit AOI');
+  }
+  equal(defenceAudit.sourceCrs, 'OGC:CRS84', 'AIMS defence source CRS');
+  equal(defenceAudit.numberMatched, 291, 'AIMS matched defences');
+  equal(defenceAudit.numberReturned, 291, 'AIMS returned defences');
+  const defenceReturnedBounds = numericArray(
+    defenceAudit.returnedGeometryBounds,
+    4,
+    'AIMS returned geometry bounds',
+  );
+  if (
+    JSON.stringify(defenceReturnedBounds) !==
+    JSON.stringify([-3.019671, 54.816815, -2.836077, 55.007329])
+  ) {
+    throw new Error('AIMS returned geometry bounds drifted');
+  }
+  equal(
+    defenceAudit.sourceUpdateSemantics,
+    'daily_current_inventory',
+    'AIMS update semantics',
+  );
+  equal(defenceAudit.withAssetStartDate, 177, 'AIMS dated assets');
+  equal(
+    defenceAudit.operationalBeforeEventByStartDateOnly,
+    121,
+    'AIMS nominally pre-event assets',
+  );
+  equal(
+    defenceAudit.assetStartDateOnOrAfterEvent,
+    56,
+    'AIMS post-event asset starts',
+  );
+  equal(defenceAudit.missingAssetStartDate, 114, 'AIMS missing start dates');
+  equal(
+    defenceAudit.withYearLastRefurbished,
+    54,
+    'AIMS assets with refurbishment year',
+  );
+  equal(
+    defenceAudit.lastRefurbishedAfter2015,
+    4,
+    'AIMS post-event refurbishments',
+  );
+  equal(
+    defenceAudit.withCurrentActualCrest,
+    214,
+    'AIMS current actual crest coverage',
+  );
+  equal(defenceAudit.withDesignCrest, 83, 'AIMS design crest coverage');
+  equal(
+    defenceAudit.withDesignStandardOfProtection,
+    261,
+    'AIMS design standard coverage',
+  );
+  const defenceSubtypeCounts = record(
+    defenceAudit.assetSubtypeCounts,
+    'AIMS asset subtype counts',
+  );
+  const expectedSubtypeCounts = {
+    Embankment: 82,
+    'Engineered High Ground': 4,
+    'Flood Gate': 31,
+    'Natural High Ground': 68,
+    Spillway: 1,
+    Wall: 105,
+  };
+  if (JSON.stringify(defenceSubtypeCounts) !== JSON.stringify(expectedSubtypeCounts)) {
+    throw new Error('AIMS asset subtype counts drifted');
+  }
+  if (
+    typeof defenceAudit.selectionSha256 !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(defenceAudit.selectionSha256)
+  ) {
+    throw new Error('AIMS defence selection requires a SHA-256 identity');
+  }
+  equal(
+    defenceAudit.selectionSha256,
+    '79d2cc31c6212c7300bc23cc9171bfde3b500a4c59e60880cc362fca072eb564',
+    'AIMS defence selection SHA-256',
+  );
+  equal(defenceAudit.responseByteLimit, 4194304, 'AIMS response byte limit');
+  equal(
+    defenceAudit.classification,
+    'current_context_only',
+    'AIMS defence classification',
+  );
+  nonEmpty(defenceAudit.blocker, 'AIMS defence blocker');
+
+  const lineageDataset = datasetRecords.get(
+    'cumberland-carlisle-sfra-2011-appendix-d',
+  );
+  equal(lineageDataset?.role, 'context_only', 'SFRA lineage role');
+  equal(lineageDataset?.temporalRelation, 'pre_event', 'SFRA lineage timing');
+  const lineage = record(
+    lineageDataset?.hydraulicModelLineageAudit,
+    'cumberland-carlisle-sfra-2011-appendix-d.hydraulicModelLineageAudit',
+  );
+  equal(lineage.documentDate, '2011-11-22', 'SFRA document date');
+  const modelComponents = stringArray(lineage.modelComponents, 'SFRA model components');
+  if (JSON.stringify(modelComponents) !== JSON.stringify(['ISIS 1D', 'TUFLOW 2D'])) {
+    throw new Error('SFRA hydraulic model components drifted');
+  }
+  equal(lineage.defenceSchemesRepresented, true, 'SFRA defence representation');
+  equal(lineage.reportedFloodgates, 23, 'SFRA reported floodgates');
+  equal(
+    lineage.machineReadableModelFilesAttached,
+    false,
+    'SFRA model-file attachment state',
+  );
+  equal(
+    lineage.machineReadableBoundaryConditionsAttached,
+    false,
+    'SFRA boundary attachment state',
+  );
+  equal(
+    lineage.machineReadableChannelGeometryAttached,
+    false,
+    'SFRA channel attachment state',
+  );
+  equal(
+    lineage.classification,
+    'pre_event_model_lineage_only',
+    'SFRA lineage classification',
+  );
+  nonEmpty(lineage.blocker, 'SFRA lineage blocker');
+
+  const modelLocationsDataset = datasetRecords.get('ea-flood-model-locations');
+  equal(modelLocationsDataset?.role, 'context_only', 'model-location role');
+  equal(
+    modelLocationsDataset?.temporalRelation,
+    'current_context',
+    'model-location temporal relation',
+  );
+  const modelLocationsFacts = record(
+    modelLocationsDataset?.facts,
+    'ea-flood-model-locations.facts',
+  );
+  equal(modelLocationsFacts.modelFilesIncluded, false, 'model-location files');
+  equal(modelLocationsFacts.modelOutputsIncluded, false, 'model-location outputs');
+  equal(
+    modelLocationsFacts.boundedCarlisleSelectionVerified,
+    false,
+    'model-location bounded selection',
+  );
+
+  const section19Facts = record(
+    datasetRecords.get('cumberland-carlisle-section-19-report')?.facts,
+    'cumberland-carlisle-section-19-report.facts',
+  );
+  equal(
+    section19Facts.reportedMechanism,
+    'defence overtopping and bypass',
+    'Section 19 reported mechanism',
+  );
+  equal(
+    section19Facts.reportedDefenceBreaches,
+    false,
+    'Section 19 reported defence breaches',
+  );
+  equal(
+    section19Facts.machineReadableHydraulicModelAttached,
+    false,
+    'Section 19 model attachment state',
+  );
+
   const gates = array(manifest.gates, 'gates');
   const gateStates = new Map<string, string>();
   for (const value of gates) {
@@ -580,7 +828,10 @@ export function assertCumbriaAccessManifest(
     gateStates.set(id, gate.state);
   }
   equal(gateStates.get('evaluation_withholding'), 'passed', 'evaluation_withholding');
+  equal(gateStates.get('upstream_boundary_series'), 'passed', 'upstream_boundary_series');
   equal(gateStates.get('pre_event_lidar_tiles'), 'blocked', 'pre_event_lidar_tiles');
+  equal(gateStates.get('as_of_event_defence_state'), 'blocked', 'as_of_event_defence_state');
+  equal(gateStates.get('hydraulic_context'), 'blocked', 'hydraulic_context');
   equal(gateStates.get('large_artifact_downloads'), 'blocked', 'large_artifact_downloads');
 
   const acquisition = record(manifest.acquisition, 'acquisition');
