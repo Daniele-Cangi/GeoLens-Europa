@@ -58,15 +58,15 @@ export const programmeRecords: readonly ProgrammeRecord[] = [
   {
     code: 'Case 03',
     title: 'Event-specific public-data replay',
-    place: 'Carlisle / Cumbria, United Kingdom · candidate',
-    status: 'Technical screening',
+    place: 'Carlisle / Cumbria, United Kingdom',
+    status: 'Metadata access verified',
     statusTone: 'screening',
     established:
-      'Official services expose event-window rainfall and river-level series, recorded flood outlines and time-stamped LiDAR without a new institutional request.',
+      'The 72-hour event window has complete direct Carlisle flow, level and rainfall series, 144/144 IMERG granules and two accessible independent flood-extent sources.',
     openGate:
-      'A bounded area, pre-event terrain tiles, hydraulic context and the exact independent evaluation geometry must still be frozen in an acquisition manifest.',
+      'Exact pre-event LiDAR tiles, event-valid hydrography and a defensible hydraulic protocol remain unresolved; observed flood geometry stays sealed from model inputs.',
     nextDecision:
-      'Complete a metadata-only access audit before downloading large terrain or event products.',
+      'Resolve tile survey dates and freeze the modelling grid before any bulk acquisition or evaluation download.',
   },
 ] as const;
 

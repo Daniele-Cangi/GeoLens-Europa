@@ -1,0 +1,405 @@
+{
+  "manifestVersion": "0.1.0",
+  "audit": {
+    "id": "cumbria-2015-carlisle-data-access-audit",
+    "state": "metadata_verified",
+    "verifiedOn": "2026-08-30"
+  },
+  "event": {
+    "name": "Storm Desmond",
+    "windowStart": "2015-12-04T00:00:00Z",
+    "windowEndExclusive": "2015-12-07T00:00:00Z",
+    "timezone": "UTC",
+    "basisUrls": [
+      "https://weather.metoffice.gov.uk/warnings-and-advice/uk-storm-centre/uk-storm-season-2015-16",
+      "https://www.metoffice.gov.uk/binaries/content/assets/metofficegovuk/pdf/weather/learn-about/uk-past-events/state-of-uk-climate/mo-state-of-uk-climate-2015-v3.pdf",
+      "https://www.cumberland.gov.uk/sites/default/files/2024-08/section_19_flood_investigation_report_carlisle_-_2015_0.pdf"
+    ]
+  },
+  "aoi": {
+    "id": "carlisle-bounded-pilot-v0",
+    "state": "frozen_for_metadata_audit",
+    "crs": "EPSG:4326",
+    "bounds": [-3.05, 54.82, -2.85, 55.0],
+    "note": "Bounded Carlisle screening envelope. It is frozen for source discovery only; a modelling grid and hydraulic domain have not yet been asserted."
+  },
+  "policy": {
+    "missingIsNotZero": true,
+    "evaluationReferencesExcludedFromInputs": true,
+    "postEventEvidenceExcludedFromCalibration": true,
+    "largeArtifactsStayOutsideGit": true
+  },
+  "datasets": [
+    {
+      "id": "nasa-imerg-v07-final",
+      "publisher": "NASA Goddard Earth Sciences Data and Information Services Center",
+      "dataset": "GPM IMERG Final Precipitation L3 Half Hourly 0.1 degree x 0.1 degree V07",
+      "datasetVersion": "07",
+      "role": "model_input_candidate",
+      "temporalRelation": "retrospective_reprocessing",
+      "sourceResolution": "approximately 0.1 degree; 30 minutes",
+      "license": "NASA GPM data policy; source acknowledgement requested",
+      "permittedUses": {
+        "modelInput": true,
+        "calibration": false,
+        "observationComparison": false,
+        "evaluation": false
+      },
+      "access": {
+        "state": "catalog_verified",
+        "checkedOn": "2026-08-30",
+        "url": "https://doi.org/10.5067/GPM/IMERG/3B-HH/07",
+        "note": "The canonical Python earthaccess path found every expected V07 Final Run granule without opening or downloading the rasters. V07 is retrospective reprocessing and was not available during the 2015 event."
+      },
+      "facts": {
+        "product": "GPM_3IMERGHH",
+        "runType": "final",
+        "expectedGranules": 144,
+        "discoveredGranules": 144,
+        "firstGranuleAt": "2015-12-04T00:00:00Z",
+        "lastGranuleAt": "2015-12-06T23:30:00Z",
+        "authenticationRequired": true
+      }
+    },
+    {
+      "id": "ea-lidar-dtm-time-stamped",
+      "publisher": "Environment Agency",
+      "dataset": "LIDAR DTM Time Stamped Tiles",
+      "role": "model_input_candidate",
+      "temporalRelation": "pre_event_required",
+      "sourceResolution": "25 cm, 50 cm, 1 m or 2 m depending on survey",
+      "license": "Open Government Licence",
+      "permittedUses": {
+        "modelInput": true,
+        "calibration": false,
+        "observationComparison": false,
+        "evaluation": false
+      },
+      "access": {
+        "state": "metadata_verified",
+        "checkedOn": "2026-08-30",
+        "url": "https://dsp.environment.data.gov.uk/dataset/dbadf364-0192-4bcf-a223-f3d403f08682",
+        "note": "The official archive exposes 5 km GeoTIFF tiles with survey date and resolution. Exact Carlisle tiles must prove survey dates before 2015-12-04 before any terrain value is admitted."
+      },
+      "facts": {
+        "horizontalCrs": "British National Grid",
+        "verticalDatum": "Ordnance Datum Newlyn",
+        "tileSize": "5 km",
+        "verticalAccuracy": "+/- 15 cm RMSE",
+        "exactPreEventTilesVerified": false
+      }
+    },
+    {
+      "id": "copernicus-clc2012",
+      "publisher": "Copernicus Land Monitoring Service",
+      "dataset": "CORINE Land Cover 2012 raster",
+      "datasetVersion": "V2020_20u1",
+      "role": "model_input_candidate",
+      "temporalRelation": "retrospective_reprocessing",
+      "sourceResolution": "100 m raster; 25 ha minimum mapping unit",
+      "license": "Copernicus Land Monitoring Service data policy",
+      "permittedUses": {
+        "modelInput": true,
+        "calibration": false,
+        "observationComparison": false,
+        "evaluation": false
+      },
+      "access": {
+        "state": "metadata_verified",
+        "checkedOn": "2026-08-30",
+        "url": "https://land.copernicus.eu/en/products/corine-land-cover/clc-2012",
+        "note": "Reference imagery is 2011-2012, before Storm Desmond. The currently published corrected release is post-event retrospective processing and is disclosed as such."
+      },
+      "facts": {
+        "referenceYears": "2011-2012",
+        "crs": "EPSG:3035",
+        "rasterResolutionMetres": 100,
+        "doi": "10.2909/a84ae124-c5c5-4577-8e10-511bfe55cc0d"
+      }
+    },
+    {
+      "id": "os-open-rivers-current",
+      "publisher": "Ordnance Survey",
+      "dataset": "OS Open Rivers",
+      "role": "context_only",
+      "temporalRelation": "current_context",
+      "sourceResolution": "generalised connected river links and nodes",
+      "license": "Open Government Licence v3.0 with Ordnance Survey attribution",
+      "permittedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "observationComparison": false,
+        "evaluation": false
+      },
+      "access": {
+        "state": "metadata_verified",
+        "checkedOn": "2026-08-30",
+        "url": "https://www.data.gov.uk/dataset/dc29160b-b163-4c6e-8817-f313229bcc23/os-open-rivers1",
+        "note": "The current product confirms open hydrography access but is not yet an as-of-December-2015 network edition. It remains context-only until historical lineage is frozen."
+      },
+      "facts": {
+        "crs": "EPSG:27700",
+        "currentRevisionIsEventValid": false
+      }
+    },
+    {
+      "id": "ea-hydrology-sheepmount-flow",
+      "publisher": "Environment Agency",
+      "dataset": "Hydrology API qualified instantaneous flow",
+      "role": "observation_comparison",
+      "temporalRelation": "event_window",
+      "sourceResolution": "15 minute station series",
+      "license": "Open Government Licence",
+      "permittedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "observationComparison": true,
+        "evaluation": false
+      },
+      "access": {
+        "state": "remote_verified",
+        "checkedOn": "2026-08-30",
+        "url": "https://environment.data.gov.uk/hydrology/id/measures/078cbfd9-31ae-46f4-bbcc-0dbdaa191cd3-flow-i-900-m3s-qualified/readings?mineq-date=2015-12-04&maxeq-date=2015-12-07&_limit=10000",
+        "note": "The public API returned a complete 72-hour qualified series directly on the River Eden at Carlisle. It is frozen as observation comparison, not calibration or a silent model boundary."
+      },
+      "seriesAudit": {
+        "station": "Sheepmount",
+        "stationReference": "765512",
+        "measureNotation": "078cbfd9-31ae-46f4-bbcc-0dbdaa191cd3-flow-i-900-m3s-qualified",
+        "intervalSeconds": 900,
+        "windowStart": "2015-12-04T00:00:00Z",
+        "windowEndExclusive": "2015-12-07T00:00:00Z",
+        "expectedReadings": 288,
+        "readings": 288,
+        "missingReadings": 0,
+        "firstObservedAt": "2015-12-04T00:00:00Z",
+        "lastObservedAt": "2015-12-06T23:45:00Z",
+        "unit": "m3/s",
+        "minimum": 189.575,
+        "maximum": 1676.632
+      }
+    },
+    {
+      "id": "ea-hydrology-sheepmount-level",
+      "publisher": "Environment Agency",
+      "dataset": "Hydrology API qualified instantaneous water level",
+      "role": "observation_comparison",
+      "temporalRelation": "event_window",
+      "sourceResolution": "15 minute station series",
+      "license": "Open Government Licence",
+      "permittedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "observationComparison": true,
+        "evaluation": false
+      },
+      "access": {
+        "state": "remote_verified",
+        "checkedOn": "2026-08-30",
+        "url": "https://environment.data.gov.uk/hydrology/id/measures/078cbfd9-31ae-46f4-bbcc-0dbdaa191cd3-level-i-900-m-qualified/readings?mineq-date=2015-12-04&maxeq-date=2015-12-07&_limit=10000",
+        "note": "The public API returned a complete 72-hour qualified series at Sheepmount. Gauge level is retained in station-local semantics and is not interpreted as water depth."
+      },
+      "seriesAudit": {
+        "station": "Sheepmount",
+        "stationReference": "765512",
+        "measureNotation": "078cbfd9-31ae-46f4-bbcc-0dbdaa191cd3-level-i-900-m-qualified",
+        "intervalSeconds": 900,
+        "windowStart": "2015-12-04T00:00:00Z",
+        "windowEndExclusive": "2015-12-07T00:00:00Z",
+        "expectedReadings": 288,
+        "readings": 288,
+        "missingReadings": 0,
+        "firstObservedAt": "2015-12-04T00:00:00Z",
+        "lastObservedAt": "2015-12-06T23:45:00Z",
+        "unit": "m",
+        "minimum": 2.335,
+        "maximum": 7.648
+      }
+    },
+    {
+      "id": "ea-hydrology-willow-holme-rainfall",
+      "publisher": "Environment Agency",
+      "dataset": "Hydrology API qualified tipping-bucket rainfall",
+      "role": "observation_comparison",
+      "temporalRelation": "event_window",
+      "sourceResolution": "15 minute station series",
+      "license": "Open Government Licence",
+      "permittedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "observationComparison": true,
+        "evaluation": false
+      },
+      "access": {
+        "state": "remote_verified",
+        "checkedOn": "2026-08-30",
+        "url": "https://environment.data.gov.uk/hydrology/id/measures/026196fb-dc64-4e06-bc2b-ce360bd65a0a-rainfall-t-900-mm-qualified/readings?mineq-date=2015-12-04&maxeq-date=2015-12-07&_limit=10000",
+        "note": "The complete local Carlisle gauge series is observation comparison only. Its 49 mm total must not be represented as catchment-wide or high-fell rainfall."
+      },
+      "seriesAudit": {
+        "station": "Willow Holme",
+        "stationReference": "026196fb-dc64-4e06-bc2b-ce360bd65a0a",
+        "measureNotation": "026196fb-dc64-4e06-bc2b-ce360bd65a0a-rainfall-t-900-mm-qualified",
+        "intervalSeconds": 900,
+        "windowStart": "2015-12-04T00:00:00Z",
+        "windowEndExclusive": "2015-12-07T00:00:00Z",
+        "expectedReadings": 288,
+        "readings": 288,
+        "missingReadings": 0,
+        "firstObservedAt": "2015-12-04T00:00:00Z",
+        "lastObservedAt": "2015-12-06T23:45:00Z",
+        "unit": "mm per 15 minutes",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "aggregate": {
+          "name": "window total",
+          "value": 49.0,
+          "unit": "mm"
+        }
+      }
+    },
+    {
+      "id": "ea-recorded-flood-outlines",
+      "publisher": "Environment Agency",
+      "dataset": "Recorded Flood Outlines",
+      "role": "evaluation_reference",
+      "temporalRelation": "post_event",
+      "sourceResolution": "event-record polygon geometry",
+      "license": "Open Government Licence",
+      "permittedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "observationComparison": false,
+        "evaluation": true
+      },
+      "access": {
+        "state": "remote_verified_intermittent",
+        "checkedOn": "2026-08-30",
+        "url": "https://environment.data.gov.uk/geoservices/datasets/8c75e700-d465-11e4-8b5b-f0def148f590/ogc/features/v1/collections/Recorded_Flood_Outlines/items?bbox=-3.05,54.82,-2.85,55.00&datetime=2015-12-01T00:00:00Z/2015-12-15T00:00:00Z&limit=100&f=json",
+        "additionalUrls": [
+          "https://www.data.gov.uk/dataset/16e32c53-35a6-4d54-a111-ca09031eaaaf/recorded-flood-outlines1"
+        ],
+        "note": "The official OGC Features endpoint returned Carlisle geometry during the audit but was intermittently unavailable on a repeated request. Exact feature identifiers and hashes remain deliberately unfrozen until the input protocol is sealed."
+      },
+      "facts": {
+        "publicAccessConstraints": false,
+        "exactEvaluationFeaturesFrozen": false
+      }
+    },
+    {
+      "id": "copernicus-emsr147-carlisle",
+      "publisher": "Copernicus Emergency Management Service",
+      "dataset": "EMSR147 Carlisle flood delineation and monitoring",
+      "datasetVersion": "v1",
+      "role": "evaluation_reference",
+      "temporalRelation": "post_event",
+      "sourceResolution": "event product vector geometry",
+      "license": "Copernicus Emergency Management Service reuse terms",
+      "permittedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "observationComparison": false,
+        "evaluation": true
+      },
+      "access": {
+        "state": "remote_verified",
+        "checkedOn": "2026-08-30",
+        "url": "https://mapping.emergency.copernicus.eu/activations/EMSR147/",
+        "additionalUrls": [
+          "https://cems-mapping-website.s3.eu-west-1.amazonaws.com/static/activations/EMSR147/EMSR147_01CARLISLE_DELINEATION_OVERVIEW_v1_vector.zip",
+          "https://cems-mapping-website.s3.eu-west-1.amazonaws.com/static/activations/EMSR147/EMSR147_01CARLISLE_DELINEATION_OVERVIEW-MONIT01_v1_vector.zip"
+        ],
+        "note": "Both official Carlisle vector archives returned HTTP 200. They remain sealed evaluation references and have not been downloaded into the repository."
+      },
+      "facts": {
+        "activationDate": "2015-12-05",
+        "initialVectorBytes": 2040503,
+        "monitoringVectorBytes": 3621649,
+        "archivesDownloaded": false
+      }
+    },
+    {
+      "id": "cumberland-carlisle-section-19-report",
+      "publisher": "Cumberland Council",
+      "dataset": "Section 19 Flood Investigation Report: Carlisle, December 2015",
+      "role": "context_only",
+      "temporalRelation": "post_event",
+      "sourceResolution": "event investigation report",
+      "license": "Public authority publication; redistribution not assessed",
+      "permittedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "observationComparison": false,
+        "evaluation": false
+      },
+      "access": {
+        "state": "remote_verified",
+        "checkedOn": "2026-08-30",
+        "url": "https://www.cumberland.gov.uk/sites/default/files/2024-08/section_19_flood_investigation_report_carlisle_-_2015_0.pdf",
+        "note": "The report supports event timing and identifies defence overtopping without proving that the current metadata audit has a runnable hydraulic model. It is context-only."
+      }
+    }
+  ],
+  "gates": [
+    {
+      "id": "event_window",
+      "state": "passed",
+      "reason": "Official Met Office and local investigation sources support a 72-hour UTC audit window covering rainfall onset, peak event and immediate response."
+    },
+    {
+      "id": "metadata_aoi",
+      "state": "passed",
+      "reason": "The bounded Carlisle envelope is frozen for source discovery and contains the direct Sheepmount reference station."
+    },
+    {
+      "id": "imerg_catalog",
+      "state": "passed",
+      "reason": "The canonical NASA path found 144 of 144 V07 Final Run half-hour granules for the exact window."
+    },
+    {
+      "id": "direct_hydrology_series",
+      "state": "passed",
+      "reason": "Sheepmount flow and level plus Willow Holme rainfall each return all 288 expected 15-minute values."
+    },
+    {
+      "id": "land_cover_lineage",
+      "state": "passed",
+      "reason": "CLC 2012 gives an explicit pre-event reference year while retaining its post-event corrected release identity."
+    },
+    {
+      "id": "evaluation_withholding",
+      "state": "passed",
+      "reason": "Recorded Flood Outlines and EMSR147 are structurally evaluation-only and cannot enter model input or calibration."
+    },
+    {
+      "id": "pre_event_lidar_tiles",
+      "state": "blocked",
+      "reason": "The official archive is accessible, but exact 5 km Carlisle tile identifiers, survey dates and selected native resolution are not yet frozen."
+    },
+    {
+      "id": "as_of_event_hydrography",
+      "state": "blocked",
+      "reason": "Current OS Open Rivers is accessible but has not yet been proven to be the network edition valid on 2015-12-04."
+    },
+    {
+      "id": "hydraulic_context",
+      "state": "blocked",
+      "reason": "No event-valid hydraulic geometry, roughness, defence crest model or boundary-condition protocol has yet been accepted."
+    },
+    {
+      "id": "evaluation_geometry_identity",
+      "state": "blocked",
+      "reason": "Evaluation services are accessible, but exact feature selections and hashes will be frozen only after the input protocol is sealed."
+    },
+    {
+      "id": "large_artifact_downloads",
+      "state": "blocked",
+      "reason": "Metadata proves feasibility, but terrain selection and evaluation isolation must be completed before bulk acquisition."
+    }
+  ],
+  "acquisition": {
+    "state": "metadata_only",
+    "largeDownloadsAllowed": false,
+    "nextAction": "Resolve the time-stamped LiDAR catalogue for the bounded AOI and accept only tiles surveyed before 2015-12-04; then freeze the modelling grid before opening evaluation geometry."
+  }
+}

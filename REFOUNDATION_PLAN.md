@@ -484,3 +484,38 @@ Checkpoints:
 - `test: freeze blind concentration evaluation protocol`
 - `test: evaluate frozen concentration against V7 event 2`
 - `test: audit official hydraulic sources`
+
+## Phase 11 - Qualify the Cumbria 2015 public-data replay
+
+State: metadata access verified; acquisition gated
+
+Progress:
+
+- manifest v0.1.0 freezes a bounded Carlisle source-discovery envelope and the half-open 72-hour Storm Desmond window from 4 December 2015 00:00 UTC to 7 December 2015 00:00 UTC;
+- the canonical Python Earthaccess path found all 144 expected GPM_3IMERGHH V07 Final Run half-hour granules without opening or downloading raster data; V07 remains explicitly retrospective reprocessing;
+- the Environment Agency Hydrology API returned all 288 expected qualified 15-minute flow values and all 288 level values at Sheepmount on the River Eden, with observed maxima of 1,676.632 m3/s and 7.648 m respectively;
+- Willow Holme returned all 288 expected local rainfall values and a 49 mm window total; this is station comparison only and is not represented as high-fell or catchment-wide rainfall;
+- CLC 2012 is the land-cover candidate because its 2011-2012 reference imagery predates the event, while its currently published corrected release remains disclosed as retrospective processing;
+- the official Environment Agency time-stamped DTM archive exposes dated 5 km GeoTIFF tiles, but no elevation enters the model until every selected Carlisle tile proves a survey date before 4 December 2015;
+- the current OS Open Rivers product is accessible but remains context-only until an event-valid edition or defensible historical lineage is frozen;
+- Environment Agency Recorded Flood Outlines and both Copernicus EMSR147 Carlisle vector products are accessible and structurally evaluation-only; exact observed geometries remain sealed until the input protocol is frozen;
+- `npm run audit:cumbria-access` rechecks the three direct station series, the two Copernicus archive identities and the public flood-outline service without downloading the large inputs;
+- no local raster or observed-extent artifact is registered by the metadata-only manifest, and large acquisition remains blocked.
+
+Work:
+
+- resolve the time-stamped LiDAR catalogue for the bounded AOI and accept only tiles surveyed before the event;
+- determine a modelling grid that preserves native terrain and land-cover resolution claims while keeping H3 as an explicit representation choice;
+- identify event-valid hydrography, defence and channel/boundary evidence or keep those components explicitly unavailable;
+- freeze input identities and transformation versions before downloading or opening either independent flood-extent reference;
+- only after those gates pass, materialize bounded IMERG, terrain and land-cover evidence outside Git and define a prediction/evaluation protocol.
+
+Gate:
+
+- every selected terrain tile has an explicit pre-event survey date and native resolution;
+- current hydrography is not silently represented as an as-of-2015 network;
+- post-event reports and observed flood geometry cannot enter model input or calibration;
+- missing hydraulic context remains missing rather than becoming zero or inferred geometry;
+- bulk acquisition begins only after the input domain and evaluation isolation are reproducible.
+
+Checkpoint: `test: qualify Cumbria public-data access`
