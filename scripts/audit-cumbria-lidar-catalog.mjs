@@ -133,6 +133,26 @@ const selectedFilenameKinds = {
   ).length,
   zip: archiveNames.filter((name) => name.endsWith('.zip')).length,
 };
+const downloadEndpoint =
+  'https://environment.data.gov.uk/api/survey/download';
+const candidateUrl = new URL(downloadEndpoint);
+candidateUrl.searchParams.set('product', 'DTM');
+candidateUrl.searchParams.set('year', '2009');
+candidateUrl.searchParams.set('resolution', '1M');
+candidateUrl.searchParams.set('tile', 'NY3957');
+const [liveMissingParameterProbe, liveCandidateProbe] = await Promise.all([
+  probeBoundedResponse(downloadEndpoint),
+  probeBoundedResponse(candidateUrl, { Range: 'bytes=0-0' }),
+]);
+const liveArchiveCandidate = [
+  liveMissingParameterProbe,
+  liveCandidateProbe,
+].find((probe) => probe.state === 'archive_candidate_available');
+if (liveArchiveCandidate) {
+  throw new Error(
+    `EA LiDAR download endpoint changed to HTTP ${liveArchiveCandidate.httpStatus}; review the artifact identity before acquisition`,
+  );
+}
 const acquisitionState =
   gridRefsWithoutPreEvent.length === 0 &&
   (selectedFilenameKinds.tif > 0 || selectedFilenameKinds.zip > 0)
@@ -141,6 +161,7 @@ const acquisitionState =
 const lidarManifest = manifest.datasets.find(
   (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
 ).lidarCatalogAudit;
+const { downloadProbe: pinnedDownloadProbe, ...catalogManifest } = lidarManifest;
 const pinnedValues = {
   queryUrl: serviceUrl.toString(),
   selectionRule:
@@ -154,11 +175,22 @@ const pinnedValues = {
   selectedFilenameKinds,
   acquisitionState,
   reason:
-    'Pre-event coverage is incomplete and the DTM catalogue currently exposes LAZ-named source records rather than downloadable raster artifact identities.',
+    'Pre-event coverage is incomplete, the DTM catalogue exposes LAZ-named source records rather than downloadable raster artifact identities, and the public survey selector currently reports an upstream service problem.',
 };
-if (JSON.stringify(pinnedValues) !== JSON.stringify(lidarManifest)) {
-  throw new Error('Live EA LiDAR catalogue selection drifted from manifest v0.2.0');
+if (JSON.stringify(pinnedValues) !== JSON.stringify(catalogManifest)) {
+  throw new Error('Live EA LiDAR catalogue selection drifted from manifest v0.3.0');
 }
+const downloadProbeMatch =
+  liveMissingParameterProbe.state === 'json_response' &&
+  liveMissingParameterProbe.httpStatus ===
+    pinnedDownloadProbe.missingParameterResponse.httpStatus &&
+  liveMissingParameterProbe.body.message ===
+    pinnedDownloadProbe.missingParameterResponse.message &&
+  liveCandidateProbe.state === 'json_response' &&
+  liveCandidateProbe.httpStatus ===
+    pinnedDownloadProbe.candidateRequest.httpStatus &&
+  liveCandidateProbe.body.message ===
+    pinnedDownloadProbe.candidateRequest.message;
 
 console.log(
   JSON.stringify(
@@ -175,6 +207,13 @@ console.log(
       selectedBySurvey,
       selectionSha256,
       selectedFilenameKinds,
+      pinnedDownloadProbe,
+      liveDownloadProbe: {
+        missingParameters: liveMissingParameterProbe,
+        boundedCandidate: liveCandidateProbe,
+        historicalResponseMatch: downloadProbeMatch,
+        archiveBytesDownloaded: 0,
+      },
       acquisitionState,
       reason: pinnedValues.reason,
       manifestMatch: true,
@@ -189,4 +228,59 @@ function isoDate(milliseconds) {
     throw new Error('EA LiDAR catalogue contains an invalid survey date');
   }
   return new Date(milliseconds).toISOString().slice(0, 10);
+}
+
+async function probeBoundedResponse(url, headers = {}) {
+  try {
+    const response = await fetch(url, {
+      headers,
+      redirect: 'manual',
+      signal: AbortSignal.timeout(10_000),
+    });
+    const contentLengthHeader = response.headers.get('content-length');
+    const contentLength = Number(contentLengthHeader);
+    if (
+      response.status === 200 ||
+      response.status === 206 ||
+      (response.status >= 300 && response.status < 400) ||
+      (Number.isFinite(contentLength) && contentLength > 1024)
+    ) {
+      await response.body?.cancel();
+      return {
+        state: 'archive_candidate_available',
+        httpStatus: response.status,
+        contentLength: Number.isFinite(contentLength) ? contentLength : null,
+        contentType: response.headers.get('content-type'),
+        contentDisposition: response.headers.get('content-disposition'),
+        location: response.headers.get('location'),
+      };
+    }
+    const text = await response.text();
+    if (Buffer.byteLength(text) > 1024) {
+      return {
+        state: 'upstream_error',
+        httpStatus: response.status,
+        reason: 'bounded response exceeded 1 KB',
+      };
+    }
+    try {
+      return {
+        state: 'json_response',
+        httpStatus: response.status,
+        body: JSON.parse(text),
+      };
+    } catch {
+      return {
+        state: 'upstream_error',
+        httpStatus: response.status,
+        reason: 'bounded response was not JSON',
+      };
+    }
+  } catch (error) {
+    return {
+      state: 'upstream_error',
+      httpStatus: null,
+      reason: error instanceof Error ? error.name : 'UnknownError',
+    };
+  }
 }

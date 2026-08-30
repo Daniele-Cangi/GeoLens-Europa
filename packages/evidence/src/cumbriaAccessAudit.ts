@@ -1,4 +1,4 @@
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.2.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.3.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -86,6 +86,27 @@ export interface CumbriaDatasetAudit {
   readonly facts?: Readonly<Record<string, string | number | boolean | null>>;
   readonly seriesAudit?: CumbriaSeriesAudit;
   readonly lidarCatalogAudit?: CumbriaLidarCatalogAudit;
+  readonly hydrographyAudit?: CumbriaHydrographyAudit;
+}
+
+export interface CumbriaHydrographyAudit {
+  readonly hitsUrl: string;
+  readonly featuresUrl: string;
+  readonly sourceBbox: readonly [number, number, number, number];
+  readonly sourceCrs: 'OGC:CRS84';
+  readonly geometryClippedToAoi: false;
+  readonly numberMatched: 16;
+  readonly numberReturned: 16;
+  readonly returnedGeometryBounds: readonly [number, number, number, number];
+  readonly stableIdentities: readonly {
+    readonly id: string;
+    readonly eaWbId: string;
+    readonly name: string;
+  }[];
+  readonly selectionSha256: string;
+  readonly responseByteLimit: 1048576;
+  readonly classification: 'event_valid_context_only';
+  readonly blocker: string;
 }
 
 export interface CumbriaLidarCatalogAudit {
@@ -102,8 +123,30 @@ export interface CumbriaLidarCatalogAudit {
     readonly tif: number;
     readonly zip: number;
   };
+  readonly downloadProbe: CumbriaLidarDownloadProbe;
   readonly acquisitionState: 'blocked';
   readonly reason: string;
+}
+
+export interface CumbriaLidarDownloadProbe {
+  readonly endpoint: string;
+  readonly requiredQueryParameters: readonly string[];
+  readonly missingParameterResponse: {
+    readonly httpStatus: 400;
+    readonly message: string;
+  };
+  readonly candidateRequest: {
+    readonly product: 'DTM';
+    readonly year: '2009';
+    readonly resolution: '1M';
+    readonly tile: 'NY3957';
+    readonly relation: 'unverified_candidate_only';
+    readonly httpStatus: 403;
+    readonly message: 'Forbidden';
+    readonly archiveBytesDownloaded: 0;
+  };
+  readonly selectorState: 'upstream_error';
+  readonly selectorMessage: string;
 }
 
 export interface CumbriaAccessGate {
@@ -284,6 +327,7 @@ export function assertCumbriaAccessManifest(
     'nasa-imerg-v07-final',
     'ea-lidar-dtm-time-stamped',
     'copernicus-clc2012',
+    'ea-wfd-river-water-bodies-cycle-1',
     'ea-hydrology-sheepmount-flow',
     'ea-hydrology-sheepmount-level',
     'ea-hydrology-willow-holme-rainfall',
@@ -369,8 +413,157 @@ export function assertCumbriaAccessManifest(
   equal(filenameKinds.laz, 231, 'LiDAR LAZ-named selections');
   equal(filenameKinds.tif, 0, 'LiDAR TIFF-named selections');
   equal(filenameKinds.zip, 0, 'LiDAR ZIP-named selections');
+  const downloadProbe = record(lidar.downloadProbe, 'LiDAR download probe');
+  equal(
+    downloadProbe.endpoint,
+    'https://environment.data.gov.uk/api/survey/download',
+    'LiDAR download endpoint',
+  );
+  const requiredQueryParameters = stringArray(
+    downloadProbe.requiredQueryParameters,
+    'LiDAR download query parameters',
+  );
+  if (
+    JSON.stringify(requiredQueryParameters) !==
+    JSON.stringify(['product', 'year', 'resolution', 'tile'])
+  ) {
+    throw new Error('LiDAR download query parameters drifted');
+  }
+  const missingParameterResponse = record(
+    downloadProbe.missingParameterResponse,
+    'LiDAR missing-parameter response',
+  );
+  equal(
+    missingParameterResponse.httpStatus,
+    400,
+    'LiDAR missing-parameter HTTP status',
+  );
+  nonEmpty(
+    missingParameterResponse.message,
+    'LiDAR missing-parameter message',
+  );
+  const candidateRequest = record(
+    downloadProbe.candidateRequest,
+    'LiDAR bounded candidate request',
+  );
+  equal(candidateRequest.product, 'DTM', 'LiDAR candidate product');
+  equal(candidateRequest.year, '2009', 'LiDAR candidate year');
+  equal(candidateRequest.resolution, '1M', 'LiDAR candidate resolution');
+  equal(candidateRequest.tile, 'NY3957', 'LiDAR candidate grid reference');
+  equal(
+    candidateRequest.relation,
+    'unverified_candidate_only',
+    'LiDAR candidate relation',
+  );
+  equal(candidateRequest.httpStatus, 403, 'LiDAR candidate HTTP status');
+  equal(candidateRequest.message, 'Forbidden', 'LiDAR candidate response');
+  equal(
+    candidateRequest.archiveBytesDownloaded,
+    0,
+    'LiDAR candidate archive bytes downloaded',
+  );
+  equal(downloadProbe.selectorState, 'upstream_error', 'LiDAR selector state');
+  nonEmpty(downloadProbe.selectorMessage, 'LiDAR selector message');
   equal(lidar.acquisitionState, 'blocked', 'LiDAR acquisition state');
   nonEmpty(lidar.reason, 'LiDAR acquisition blocker');
+
+  const hydrography = record(
+    datasetRecords.get('ea-wfd-river-water-bodies-cycle-1')
+      ?.hydrographyAudit,
+    'ea-wfd-river-water-bodies-cycle-1.hydrographyAudit',
+  );
+  const hydrographyFacts = record(
+    datasetRecords.get('ea-wfd-river-water-bodies-cycle-1')?.facts,
+    'ea-wfd-river-water-bodies-cycle-1.facts',
+  );
+  equal(hydrographyFacts.createdOn, '2008-01-01', 'WFD Cycle 1 creation date');
+  equal(hydrographyFacts.revisedOn, '2012-04-03', 'WFD Cycle 1 revision date');
+  equal(hydrographyFacts.eventValid, true, 'WFD Cycle 1 event-valid state');
+  equal(
+    hydrographyFacts.completeRiverNetwork,
+    false,
+    'WFD Cycle 1 completeRiverNetwork',
+  );
+  httpsUrl(hydrography.hitsUrl, 'WFD Cycle 1 hits URL');
+  httpsUrl(hydrography.featuresUrl, 'WFD Cycle 1 features URL');
+  const hydrographySourceBbox = numericArray(
+    hydrography.sourceBbox,
+    4,
+    'WFD Cycle 1 source bbox',
+  );
+  if (JSON.stringify(hydrographySourceBbox) !== JSON.stringify(bounds)) {
+    throw new Error('WFD Cycle 1 source bbox must equal the audit AOI');
+  }
+  equal(hydrography.sourceCrs, 'OGC:CRS84', 'WFD Cycle 1 source CRS');
+  equal(
+    hydrography.geometryClippedToAoi,
+    false,
+    'WFD Cycle 1 geometry clipping state',
+  );
+  equal(hydrography.numberMatched, 16, 'WFD Cycle 1 matched features');
+  equal(hydrography.numberReturned, 16, 'WFD Cycle 1 returned features');
+  const returnedGeometryBounds = numericArray(
+    hydrography.returnedGeometryBounds,
+    4,
+    'WFD Cycle 1 returned geometry bounds',
+  );
+  if (
+    JSON.stringify(returnedGeometryBounds) !==
+    JSON.stringify([-3.076089, 54.673167, -2.641659, 55.049455])
+  ) {
+    throw new Error('WFD Cycle 1 returned geometry bounds drifted');
+  }
+  const hydrographyIdentities = array(
+    hydrography.stableIdentities,
+    'WFD Cycle 1 stable identities',
+  );
+  const expectedHydrographyIds = [
+    'GB102076073780',
+    'GB102077074150',
+    'GB102077074170',
+    'GB102076073970',
+    'GB102077074140',
+    'GB102076073940',
+    'GB102076074120',
+    'GB102077074160',
+    'GB102075073380',
+    'GB102076074030',
+    'GB102077074190',
+    'GB102076073960',
+    'GB102076073950',
+    'GB102076073910',
+    'GB102075073450',
+    'GB102076073880',
+  ];
+  const actualHydrographyIds = hydrographyIdentities.map((value) => {
+    const identity = record(value, 'WFD Cycle 1 identity');
+    nonEmpty(identity.id, 'WFD Cycle 1 feature id');
+    nonEmpty(identity.name, 'WFD Cycle 1 feature name');
+    return nonEmpty(identity.eaWbId, 'WFD Cycle 1 water body id');
+  });
+  if (
+    JSON.stringify(actualHydrographyIds) !==
+    JSON.stringify(expectedHydrographyIds)
+  ) {
+    throw new Error('WFD Cycle 1 water body identities drifted');
+  }
+  if (
+    typeof hydrography.selectionSha256 !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(hydrography.selectionSha256)
+  ) {
+    throw new Error('WFD Cycle 1 selection requires a SHA-256 identity');
+  }
+  equal(
+    hydrography.responseByteLimit,
+    1048576,
+    'WFD Cycle 1 response byte limit',
+  );
+  equal(
+    hydrography.classification,
+    'event_valid_context_only',
+    'WFD Cycle 1 classification',
+  );
+  nonEmpty(hydrography.blocker, 'WFD Cycle 1 blocker');
 
   const gates = array(manifest.gates, 'gates');
   const gateStates = new Map<string, string>();

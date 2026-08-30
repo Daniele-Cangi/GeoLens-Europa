@@ -144,15 +144,17 @@ The audit verifies:
 - accessible Environment Agency Recorded Flood Outlines and both Copernicus EMSR147 Carlisle vector products, structurally restricted to evaluation;
 - official time-stamped Environment Agency LiDAR metadata: 550 source records over 241 intersecting OS grid references, with a deterministic selection of 231 pre-event records;
 - ten explicitly missing pre-event terrain grid references: `NY3256`, `NY3446`, `NY3448`, `NY3646`, `NY3652`, `NY3846`, `NY3848`, `NY3959`, `NY4062` and `NY4162`;
+- 16 event-valid WFD Cycle 1 river-context features intersecting the audit AOI, pinned independently from current OS Open Rivers;
 - pre-event-reference CLC 2012 land cover.
 
-This proves data access, not a flood reconstruction. The selected LiDAR catalogue rows are pinned by SHA-256, but their exposed filenames are LAZ-named source records rather than verified identities for the downloadable DTM GeoTIFF archives. Bulk downloads therefore remain blocked until that mapping and the ten terrain gaps are resolved, the modelling grid is frozen and suitable hydrography/hydraulic context is accepted. The two observed flood extents remain unavailable to model input and calibration.
+This proves data access, not a flood reconstruction. The WFD layer is historically valid but contains only designated 1:50,000 river stretches, so it cannot masquerade as a complete channel or hydraulic network. The selected LiDAR catalogue rows are pinned by SHA-256, but their exposed filenames are LAZ-named source records rather than verified identities for the downloadable DTM GeoTIFF archives. The public DEFRA survey selector currently reports a service problem, and its download endpoint rejects the bounded Sheepmount archive candidate without transferring the archive. Bulk downloads therefore remain blocked until the official service recovers, that mapping and the ten terrain gaps are resolved, the modelling grid is frozen and suitable hydraulic context is accepted. The two observed flood extents remain unavailable to model input and calibration.
 
 The deterministic manifest is [tests/ground-truth/cumbria-2015/manifest.json](tests/ground-truth/cumbria-2015/manifest.json). Re-run the open-service checks with:
 
 ~~~powershell
 npm run audit:cumbria-access
 npm run audit:cumbria-lidar-catalog
+npm run audit:cumbria-hydrography
 ~~~
 
 ## For Amsterdam data owners and collaborators

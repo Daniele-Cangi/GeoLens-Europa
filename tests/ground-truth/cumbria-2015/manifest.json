@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.2.0",
+  "manifestVersion": "0.3.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -117,8 +117,33 @@
           "tif": 0,
           "zip": 0
         },
+        "downloadProbe": {
+          "endpoint": "https://environment.data.gov.uk/api/survey/download",
+          "requiredQueryParameters": [
+            "product",
+            "year",
+            "resolution",
+            "tile"
+          ],
+          "missingParameterResponse": {
+            "httpStatus": 400,
+            "message": "product, year, resolution and tile must be included as query params"
+          },
+          "candidateRequest": {
+            "product": "DTM",
+            "year": "2009",
+            "resolution": "1M",
+            "tile": "NY3957",
+            "relation": "unverified_candidate_only",
+            "httpStatus": 403,
+            "message": "Forbidden",
+            "archiveBytesDownloaded": 0
+          },
+          "selectorState": "upstream_error",
+          "selectorMessage": "Sorry, there is a problem with the service"
+        },
         "acquisitionState": "blocked",
-        "reason": "Pre-event coverage is incomplete and the DTM catalogue currently exposes LAZ-named source records rather than downloadable raster artifact identities."
+        "reason": "Pre-event coverage is incomplete, the DTM catalogue exposes LAZ-named source records rather than downloadable raster artifact identities, and the public survey selector currently reports an upstream service problem."
       }
     },
     {
@@ -172,6 +197,80 @@
       "facts": {
         "crs": "EPSG:27700",
         "currentRevisionIsEventValid": false
+      }
+    },
+    {
+      "id": "ea-wfd-river-water-bodies-cycle-1",
+      "publisher": "Environment Agency",
+      "dataset": "WFD River Water Bodies Cycle 1",
+      "datasetVersion": "Cycle 1, revised 2012-04-03",
+      "role": "model_input_candidate",
+      "temporalRelation": "pre_event",
+      "sourceResolution": "WFD-designated subset of the CEH 1:50,000 river network",
+      "license": "Open Government Licence with Environment Agency, CEH and Ordnance Survey attribution",
+      "permittedUses": {
+        "modelInput": true,
+        "calibration": false,
+        "observationComparison": false,
+        "evaluation": false
+      },
+      "access": {
+        "state": "remote_verified",
+        "checkedOn": "2026-08-30",
+        "url": "https://environment.data.gov.uk/dataset/77e306b0-d465-11e4-9182-f0def148f590",
+        "additionalUrls": [
+          "https://environment.data.gov.uk/spatialdata/wfd-river-waterbodies/ogc/features/v1",
+          "https://environment.data.gov.uk/spatialdata/wfd-river-waterbodies/wfs"
+        ],
+        "note": "The bounded WFS query returns 16 event-valid WFD water bodies. Intersecting source geometries are returned whole rather than clipped to the AOI. This is a historically valid river context layer, not a complete channel, defence or hydraulic network."
+      },
+      "facts": {
+        "createdOn": "2008-01-01",
+        "revisedOn": "2012-04-03",
+        "eventValid": true,
+        "completeRiverNetwork": false
+      },
+      "hydrographyAudit": {
+        "hitsUrl": "https://environment.data.gov.uk/spatialdata/wfd-river-waterbodies/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=WFD_River_Water_Bodies_Cycle_1&bbox=-3.05%2C54.82%2C-2.85%2C55%2Curn%3Aogc%3Adef%3Acrs%3AOGC%3A1.3%3ACRS84&resultType=hits",
+        "featuresUrl": "https://environment.data.gov.uk/spatialdata/wfd-river-waterbodies/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=WFD_River_Water_Bodies_Cycle_1&bbox=-3.05%2C54.82%2C-2.85%2C55%2Curn%3Aogc%3Adef%3Acrs%3AOGC%3A1.3%3ACRS84&count=16&outputFormat=application%2Fjson&srsName=urn%3Aogc%3Adef%3Acrs%3AOGC%3A1.3%3ACRS84",
+        "sourceBbox": [
+          -3.05,
+          54.82,
+          -2.85,
+          55.0
+        ],
+        "sourceCrs": "OGC:CRS84",
+        "geometryClippedToAoi": false,
+        "numberMatched": 16,
+        "numberReturned": 16,
+        "returnedGeometryBounds": [
+          -3.076089,
+          54.673167,
+          -2.641659,
+          55.049455
+        ],
+        "stableIdentities": [
+          { "id": "WFD_River_Water_Bodies_Cycle_1.1168", "eaWbId": "GB102076073780", "name": "Pow Beck" },
+          { "id": "WFD_River_Water_Bodies_Cycle_1.1169", "eaWbId": "GB102077074150", "name": "Hether Burn" },
+          { "id": "WFD_River_Water_Bodies_Cycle_1.122", "eaWbId": "GB102077074170", "name": "River Lyne" },
+          { "id": "WFD_River_Water_Bodies_Cycle_1.1231", "eaWbId": "GB102076073970", "name": "Brunstock Beck" },
+          { "id": "WFD_River_Water_Bodies_Cycle_1.1858", "eaWbId": "GB102077074140", "name": "Esk and Lyne (Scot B.Lower)" },
+          { "id": "WFD_River_Water_Bodies_Cycle_1.2094", "eaWbId": "GB102076073940", "name": "River Eden (lower)" },
+          { "id": "WFD_River_Water_Bodies_Cycle_1.2731", "eaWbId": "GB102076074120", "name": "Rockcliffe Beck (River Eden)" },
+          { "id": "WFD_River_Water_Bodies_Cycle_1.3161", "eaWbId": "GB102077074160", "name": "Dry Beck (Hall Burn)" },
+          { "id": "WFD_River_Water_Bodies_Cycle_1.3220", "eaWbId": "GB102075073380", "name": "River Wampool" },
+          { "id": "WFD_River_Water_Bodies_Cycle_1.3501", "eaWbId": "GB102076074030", "name": "River Petteril d/s Blackrack Beck" },
+          { "id": "WFD_River_Water_Bodies_Cycle_1.3834", "eaWbId": "GB102077074190", "name": "River Esk" },
+          { "id": "WFD_River_Water_Bodies_Cycle_1.4165", "eaWbId": "GB102076073960", "name": "Eden (Cumb.Lower)" },
+          { "id": "WFD_River_Water_Bodies_Cycle_1.4557", "eaWbId": "GB102076073950", "name": "Powburgh Beck" },
+          { "id": "WFD_River_Water_Bodies_Cycle_1.709", "eaWbId": "GB102076073910", "name": "Pow Maughan Beck" },
+          { "id": "WFD_River_Water_Bodies_Cycle_1.863", "eaWbId": "GB102075073450", "name": "Gill Beck" },
+          { "id": "WFD_River_Water_Bodies_Cycle_1.872", "eaWbId": "GB102076073880", "name": "River Caldew d/s Caldbeck" }
+        ],
+        "selectionSha256": "29cb9324f4ecb25324e893e3bbe07324c6df877f475de922476c9eba19a21a13",
+        "responseByteLimit": 1048576,
+        "classification": "event_valid_context_only",
+        "blocker": "The dataset includes only WFD-designated 1:50,000 river stretches and is not a complete channel or hydraulic network."
       }
     },
     {
@@ -411,7 +510,7 @@
     {
       "id": "as_of_event_hydrography",
       "state": "blocked",
-      "reason": "Current OS Open Rivers is accessible but has not yet been proven to be the network edition valid on 2015-12-04."
+      "reason": "WFD River Water Bodies Cycle 1 provides 16 event-valid river-context features, but it is a 1:50,000 WFD subset rather than a complete channel or hydraulic network; current OS Open Rivers remains context-only."
     },
     {
       "id": "hydraulic_context",

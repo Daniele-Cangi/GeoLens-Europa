@@ -62,9 +62,9 @@ export const programmeRecords: readonly ProgrammeRecord[] = [
     status: 'Metadata access verified',
     statusTone: 'screening',
     established:
-      'The 72-hour event window has complete direct Carlisle flow, level and rainfall series, 144/144 IMERG granules, two independent flood-extent sources and 231 reproducibly selected pre-event terrain-catalogue records.',
+      'The 72-hour event window has complete direct Carlisle flow, level and rainfall series, 144/144 IMERG granules, two independent flood-extent sources, 231 selected terrain records and 16 event-valid WFD river-context features.',
     openGate:
-      'Ten of 241 intersecting terrain grid references lack a pre-event record, and official raster archive identities, event-valid hydrography and a defensible hydraulic protocol remain unresolved.',
+      'Ten of 241 intersecting terrain grid references lack a pre-event record, while the official raster selector currently reports an upstream service error; event-valid hydrography and a defensible hydraulic protocol also remain unresolved.',
     nextDecision:
       'Map the selected catalogue records to official DTM GeoTIFF artifacts, preserve the ten gaps as missing and then freeze the modelling grid.',
   },

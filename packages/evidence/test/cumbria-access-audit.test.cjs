@@ -130,7 +130,7 @@ test('pre-event terrain catalogue selection is reproducible and incomplete', () 
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.2.0');
+  assert.equal(manifest.manifestVersion, '0.3.0');
   assert.equal(lidar.access.state, 'catalog_verified');
   assert.deepEqual(
     {
@@ -168,12 +168,62 @@ test('pre-event terrain catalogue selection is reproducible and incomplete', () 
     tif: 0,
     zip: 0,
   });
+  assert.deepEqual(lidar.lidarCatalogAudit.downloadProbe, {
+    endpoint: 'https://environment.data.gov.uk/api/survey/download',
+    requiredQueryParameters: ['product', 'year', 'resolution', 'tile'],
+    missingParameterResponse: {
+      httpStatus: 400,
+      message:
+        'product, year, resolution and tile must be included as query params',
+    },
+    candidateRequest: {
+      product: 'DTM',
+      year: '2009',
+      resolution: '1M',
+      tile: 'NY3957',
+      relation: 'unverified_candidate_only',
+      httpStatus: 403,
+      message: 'Forbidden',
+      archiveBytesDownloaded: 0,
+    },
+    selectorState: 'upstream_error',
+    selectorMessage: 'Sorry, there is a problem with the service',
+  });
   assert.equal(lidar.lidarCatalogAudit.acquisitionState, 'blocked');
 
   lidar.lidarCatalogAudit.selectedPreEventGridRefs = 241;
   assert.throws(
     () => assertCumbriaAccessManifest(manifest),
     /LiDAR selected pre-event grid references must equal 231/,
+  );
+});
+
+test('event-valid river context remains distinct from a hydraulic network', () => {
+  const manifest = manifestFixture();
+  const hydrography = manifest.datasets.find(
+    (dataset) => dataset.id === 'ea-wfd-river-water-bodies-cycle-1',
+  );
+
+  assert.equal(hydrography.temporalRelation, 'pre_event');
+  assert.equal(hydrography.access.state, 'remote_verified');
+  assert.equal(hydrography.facts.eventValid, true);
+  assert.equal(hydrography.facts.completeRiverNetwork, false);
+  assert.equal(hydrography.hydrographyAudit.numberMatched, 16);
+  assert.equal(hydrography.hydrographyAudit.numberReturned, 16);
+  assert.equal(hydrography.hydrographyAudit.geometryClippedToAoi, false);
+  assert.equal(
+    hydrography.hydrographyAudit.selectionSha256,
+    '29cb9324f4ecb25324e893e3bbe07324c6df877f475de922476c9eba19a21a13',
+  );
+  assert.equal(
+    hydrography.hydrographyAudit.classification,
+    'event_valid_context_only',
+  );
+
+  hydrography.facts.completeRiverNetwork = true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(manifest),
+    /completeRiverNetwork/,
   );
 });
 
