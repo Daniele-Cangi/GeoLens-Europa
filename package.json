@@ -27,6 +27,7 @@
     "audit:cumbria-access": "npm run build --workspace=@geo-lens/evidence && node scripts/audit-cumbria-access.mjs",
     "audit:cumbria-lidar-catalog": "node scripts/audit-cumbria-lidar-catalog.mjs",
     "audit:cumbria-hydrography": "node scripts/audit-cumbria-hydrography.mjs",
+    "audit:cumbria-hydraulic-context": "npm run build --workspace=@geo-lens/evidence && node scripts/audit-cumbria-hydraulic-context.mjs",
     "materialize:emilia-inputs": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/providers && node scripts/materialize-emilia-bounded-inputs.mjs",
     "materialize:emilia-xdbtr": "python scripts/materialize_emilia_xdbtr_masks.py",
     "materialize:emilia-imerg-cache": "python scripts/materialize_emilia_imerg_cache.py",

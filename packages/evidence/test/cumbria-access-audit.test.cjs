@@ -64,7 +64,9 @@ test('canonical IMERG discovery covers all 144 expected half-hour granules', () 
 
 test('direct Carlisle comparison series close the 72-hour reading account', () => {
   const manifest = manifestFixture();
-  const series = manifest.datasets.filter((dataset) => dataset.seriesAudit);
+  const series = manifest.datasets.filter(
+    (dataset) => dataset.role === 'observation_comparison' && dataset.seriesAudit,
+  );
 
   assert.deepEqual(
     series.map((dataset) => dataset.id),
@@ -130,7 +132,7 @@ test('pre-event terrain catalogue selection is reproducible and incomplete', () 
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.3.0');
+  assert.equal(manifest.manifestVersion, '0.4.0');
   assert.equal(lidar.access.state, 'catalog_verified');
   assert.deepEqual(
     {
@@ -227,6 +229,103 @@ test('event-valid river context remains distinct from a hydraulic network', () =
   );
 });
 
+test('three complete upstream hydrographs remain candidate boundaries', () => {
+  const manifest = manifestFixture();
+  const boundarySeries = manifest.datasets.filter((dataset) =>
+    [
+      'ea-hydrology-great-corby-flow',
+      'ea-hydrology-cummersdale-flow',
+      'ea-hydrology-newbiggin-bridge-flow',
+    ].includes(dataset.id),
+  );
+
+  assert.deepEqual(
+    boundarySeries.map((dataset) => dataset.seriesAudit.station),
+    ['Great Corby', 'Cummersdale', 'Newbiggin Bridge'],
+  );
+  assert.deepEqual(
+    boundarySeries.map((dataset) => dataset.seriesAudit.maximum),
+    [1486.39, 279.159, 97.426],
+  );
+  for (const dataset of boundarySeries) {
+    assert.equal(dataset.role, 'model_input_candidate');
+    assert.equal(dataset.temporalRelation, 'event_window');
+    assert.equal(dataset.permittedUses.modelInput, true);
+    assert.equal(dataset.permittedUses.calibration, false);
+    assert.equal(dataset.seriesAudit.readings, 288);
+    assert.equal(dataset.seriesAudit.missingReadings, 0);
+  }
+});
+
+test('current AIMS defences cannot masquerade as the 2015 defence state', () => {
+  const manifest = manifestFixture();
+  const defences = manifest.datasets.find(
+    (dataset) => dataset.id === 'ea-aims-current-spatial-flood-defences',
+  );
+
+  assert.equal(defences.role, 'context_only');
+  assert.equal(defences.temporalRelation, 'current_context');
+  assert.deepEqual(defences.permittedUses, {
+    modelInput: false,
+    calibration: false,
+    observationComparison: false,
+    evaluation: false,
+  });
+  assert.deepEqual(
+    {
+      returned: defences.defenceContextAudit.numberReturned,
+      dated: defences.defenceContextAudit.withAssetStartDate,
+      nominallyPreEvent:
+        defences.defenceContextAudit.operationalBeforeEventByStartDateOnly,
+      missingStartDate: defences.defenceContextAudit.missingAssetStartDate,
+      postEventStarts:
+        defences.defenceContextAudit.assetStartDateOnOrAfterEvent,
+      postEventRefurbishments:
+        defences.defenceContextAudit.lastRefurbishedAfter2015,
+    },
+    {
+      returned: 291,
+      dated: 177,
+      nominallyPreEvent: 121,
+      missingStartDate: 114,
+      postEventStarts: 56,
+      postEventRefurbishments: 4,
+    },
+  );
+  assert.equal(
+    defences.defenceContextAudit.classification,
+    'current_context_only',
+  );
+
+  defences.permittedUses.modelInput = true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(manifest),
+    /context-only evidence cannot enter computation/,
+  );
+});
+
+test('pre-event hydraulic model lineage does not become a runnable model', () => {
+  const manifest = manifestFixture();
+  const lineage = manifest.datasets.find(
+    (dataset) => dataset.id === 'cumberland-carlisle-sfra-2011-appendix-d',
+  );
+
+  assert.equal(lineage.temporalRelation, 'pre_event');
+  assert.deepEqual(lineage.hydraulicModelLineageAudit.modelComponents, [
+    'ISIS 1D',
+    'TUFLOW 2D',
+  ]);
+  assert.equal(lineage.hydraulicModelLineageAudit.reportedFloodgates, 23);
+  assert.equal(
+    lineage.hydraulicModelLineageAudit.machineReadableModelFilesAttached,
+    false,
+  );
+  assert.equal(
+    lineage.hydraulicModelLineageAudit.classification,
+    'pre_event_model_lineage_only',
+  );
+});
+
 test('bulk acquisition remains blocked until pre-event terrain is identified', () => {
   const manifest = manifestFixture();
   const gates = new Map(
@@ -234,6 +333,9 @@ test('bulk acquisition remains blocked until pre-event terrain is identified', (
   );
 
   assert.equal(gates.get('pre_event_lidar_tiles'), 'blocked');
+  assert.equal(gates.get('upstream_boundary_series'), 'passed');
+  assert.equal(gates.get('as_of_event_defence_state'), 'blocked');
+  assert.equal(gates.get('hydraulic_context'), 'blocked');
   assert.equal(gates.get('evaluation_geometry_identity'), 'blocked');
   assert.equal(gates.get('large_artifact_downloads'), 'blocked');
   assert.equal(gates.get('evaluation_withholding'), 'passed');
