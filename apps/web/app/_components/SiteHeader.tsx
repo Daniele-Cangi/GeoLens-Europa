@@ -1,9 +1,10 @@
 import Link from 'next/link';
 
 const navigation = [
+  { href: '/programme', label: 'Programme' },
   { href: '/platform', label: 'Platform' },
   { href: '/method', label: 'Method' },
-  { href: '/cases', label: 'Research cases' },
+  { href: '/cases', label: 'Cases' },
   { href: '/about', label: 'About' },
 ] as const;
 
