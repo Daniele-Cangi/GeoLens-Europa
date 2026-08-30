@@ -71,7 +71,7 @@ GeoLens has two complementary proofs and one historical benchmark in progress.
 | Trento Proof 0 | The complete software chain works from real environmental inputs to a downstream result | Evidence composition, deterministic runoff, catchment aggregation, network propagation, provenance and mass balance | The small drainage network is a deterministic fixture, not surveyed municipal infrastructure |
 | Amsterdam observed proof | GeoLens can read real Waternet pipes and nodes and derive a real, non-zero surface runoff source | Observed topology, elevation-based direction states, real rainfall/terrain/land cover and an inspectable surface contribution | No owner-published surface-to-pipe attachment has yet been found, so sewer propagation is deliberately blocked |
 | Emilia-Romagna 2023 | A simple terrain-only concentration hypothesis was tested against an independent observed flood extent and did not perform better than chance | A reproducible historical benchmark, withheld evaluation data and honest negative evidence | A conditioned replay requires discharge, boundary, breach and terrain/channel evidence that is not currently available |
-| Cumbria 2015 | Public-data access was tested before committing disk space or claiming a runnable replay | A fixed Storm Desmond window, complete direct Carlisle observations, complete IMERG catalogue coverage and two independent evaluation sources | Pre-event LiDAR tiles, event-valid hydrography and hydraulic context must be accepted before model acquisition begins |
+| Cumbria 2015 | Public-data access was tested before committing disk space or claiming a runnable replay | A fixed Storm Desmond window, complete direct Carlisle observations, complete IMERG catalogue coverage, two independent evaluation sources and a deterministic pre-event terrain-catalogue selection | Ten intersecting terrain grid references lack a pre-event record; downloadable raster identities, event-valid hydrography and hydraulic context remain unresolved |
 
 ![GeoLens Case 02 spatial inspector showing the Emilia-Romagna event runoff layer and explicit withheld evidence](docs/screenshots/emilia-event-runoff.png)
 
@@ -142,14 +142,17 @@ The audit verifies:
 - all 288 expected 15-minute qualified flow observations and all 288 level observations at Sheepmount on the River Eden;
 - all 288 local rainfall observations at Willow Holme, retained as station comparison rather than basin-wide rainfall;
 - accessible Environment Agency Recorded Flood Outlines and both Copernicus EMSR147 Carlisle vector products, structurally restricted to evaluation;
-- official time-stamped Environment Agency LiDAR metadata and pre-event-reference CLC 2012 land cover.
+- official time-stamped Environment Agency LiDAR metadata: 550 source records over 241 intersecting OS grid references, with a deterministic selection of 231 pre-event records;
+- ten explicitly missing pre-event terrain grid references: `NY3256`, `NY3446`, `NY3448`, `NY3646`, `NY3652`, `NY3846`, `NY3848`, `NY3959`, `NY4062` and `NY4162`;
+- pre-event-reference CLC 2012 land cover.
 
-This proves data access, not a flood reconstruction. Bulk downloads remain blocked until exact LiDAR tiles are shown to have been surveyed before the event, the modelling grid is frozen and suitable hydrography/hydraulic context is accepted. The two observed flood extents remain unavailable to model input and calibration.
+This proves data access, not a flood reconstruction. The selected LiDAR catalogue rows are pinned by SHA-256, but their exposed filenames are LAZ-named source records rather than verified identities for the downloadable DTM GeoTIFF archives. Bulk downloads therefore remain blocked until that mapping and the ten terrain gaps are resolved, the modelling grid is frozen and suitable hydrography/hydraulic context is accepted. The two observed flood extents remain unavailable to model input and calibration.
 
 The deterministic manifest is [tests/ground-truth/cumbria-2015/manifest.json](tests/ground-truth/cumbria-2015/manifest.json). Re-run the open-service checks with:
 
 ~~~powershell
 npm run audit:cumbria-access
+npm run audit:cumbria-lidar-catalog
 ~~~
 
 ## For Amsterdam data owners and collaborators

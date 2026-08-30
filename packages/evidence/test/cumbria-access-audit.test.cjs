@@ -124,6 +124,59 @@ test('post-event flood geometry cannot leak into input or calibration', () => {
   );
 });
 
+test('pre-event terrain catalogue selection is reproducible and incomplete', () => {
+  const manifest = manifestFixture();
+  const lidar = manifest.datasets.find(
+    (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
+  );
+
+  assert.equal(manifest.manifestVersion, '0.2.0');
+  assert.equal(lidar.access.state, 'catalog_verified');
+  assert.deepEqual(
+    {
+      sourceRows: lidar.lidarCatalogAudit.sourceRows,
+      intersectingGridRefs: lidar.lidarCatalogAudit.intersectingGridRefs,
+      preEventRows: lidar.lidarCatalogAudit.preEventRows,
+      selectedPreEventGridRefs:
+        lidar.lidarCatalogAudit.selectedPreEventGridRefs,
+    },
+    {
+      sourceRows: 550,
+      intersectingGridRefs: 241,
+      preEventRows: 432,
+      selectedPreEventGridRefs: 231,
+    },
+  );
+  assert.deepEqual(lidar.lidarCatalogAudit.gridRefsWithoutPreEvent, [
+    'NY3256',
+    'NY3446',
+    'NY3448',
+    'NY3646',
+    'NY3652',
+    'NY3846',
+    'NY3848',
+    'NY3959',
+    'NY4062',
+    'NY4162',
+  ]);
+  assert.equal(
+    lidar.lidarCatalogAudit.selectionSha256,
+    'b69a687cd42719c200de1e6e51e3a08b96045fc3ffdccf6b7ed2473494e22788',
+  );
+  assert.deepEqual(lidar.lidarCatalogAudit.selectedFilenameKinds, {
+    laz: 231,
+    tif: 0,
+    zip: 0,
+  });
+  assert.equal(lidar.lidarCatalogAudit.acquisitionState, 'blocked');
+
+  lidar.lidarCatalogAudit.selectedPreEventGridRefs = 241;
+  assert.throws(
+    () => assertCumbriaAccessManifest(manifest),
+    /LiDAR selected pre-event grid references must equal 231/,
+  );
+});
+
 test('bulk acquisition remains blocked until pre-event terrain is identified', () => {
   const manifest = manifestFixture();
   const gates = new Map(

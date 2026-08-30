@@ -1,4 +1,4 @@
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.1.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.2.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -85,6 +85,25 @@ export interface CumbriaDatasetAudit {
   readonly access: CumbriaAccessRecord;
   readonly facts?: Readonly<Record<string, string | number | boolean | null>>;
   readonly seriesAudit?: CumbriaSeriesAudit;
+  readonly lidarCatalogAudit?: CumbriaLidarCatalogAudit;
+}
+
+export interface CumbriaLidarCatalogAudit {
+  readonly queryUrl: string;
+  readonly selectionRule: string;
+  readonly sourceRows: number;
+  readonly intersectingGridRefs: number;
+  readonly preEventRows: number;
+  readonly selectedPreEventGridRefs: number;
+  readonly gridRefsWithoutPreEvent: readonly string[];
+  readonly selectionSha256: string;
+  readonly selectedFilenameKinds: {
+    readonly laz: number;
+    readonly tif: number;
+    readonly zip: number;
+  };
+  readonly acquisitionState: 'blocked';
+  readonly reason: string;
 }
 
 export interface CumbriaAccessGate {
@@ -304,6 +323,55 @@ export function assertCumbriaAccessManifest(
     equal(series.missingReadings, 0, `${seriesId} missing readings`);
   }
 
+  const lidar = record(
+    datasetRecords.get('ea-lidar-dtm-time-stamped')?.lidarCatalogAudit,
+    'ea-lidar-dtm-time-stamped.lidarCatalogAudit',
+  );
+  httpsUrl(lidar.queryUrl, 'LiDAR catalogue query URL');
+  nonEmpty(lidar.selectionRule, 'LiDAR catalogue selection rule');
+  equal(lidar.sourceRows, 550, 'LiDAR catalogue source rows');
+  equal(lidar.intersectingGridRefs, 241, 'LiDAR intersecting grid references');
+  equal(lidar.preEventRows, 432, 'LiDAR pre-event rows');
+  equal(
+    lidar.selectedPreEventGridRefs,
+    231,
+    'LiDAR selected pre-event grid references',
+  );
+  const missingGridRefs = stringArray(
+    lidar.gridRefsWithoutPreEvent,
+    'LiDAR grid references without pre-event coverage',
+  );
+  const expectedMissingGridRefs = [
+    'NY3256',
+    'NY3446',
+    'NY3448',
+    'NY3646',
+    'NY3652',
+    'NY3846',
+    'NY3848',
+    'NY3959',
+    'NY4062',
+    'NY4162',
+  ];
+  if (JSON.stringify(missingGridRefs) !== JSON.stringify(expectedMissingGridRefs)) {
+    throw new Error('LiDAR pre-event coverage gaps drifted from the frozen audit');
+  }
+  if (
+    typeof lidar.selectionSha256 !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(lidar.selectionSha256)
+  ) {
+    throw new Error('LiDAR catalogue selection requires a SHA-256 identity');
+  }
+  const filenameKinds = record(
+    lidar.selectedFilenameKinds,
+    'LiDAR selected filename kinds',
+  );
+  equal(filenameKinds.laz, 231, 'LiDAR LAZ-named selections');
+  equal(filenameKinds.tif, 0, 'LiDAR TIFF-named selections');
+  equal(filenameKinds.zip, 0, 'LiDAR ZIP-named selections');
+  equal(lidar.acquisitionState, 'blocked', 'LiDAR acquisition state');
+  nonEmpty(lidar.reason, 'LiDAR acquisition blocker');
+
   const gates = array(manifest.gates, 'gates');
   const gateStates = new Map<string, string>();
   for (const value of gates) {
@@ -412,6 +480,16 @@ function numericArray(value: unknown, length: number, label: string): number[] {
     !value.every((entry) => typeof entry === 'number' && Number.isFinite(entry))
   ) {
     throw new Error(`${label} must contain ${length} finite numbers`);
+  }
+  return value;
+}
+
+function stringArray(value: unknown, label: string): string[] {
+  if (
+    !Array.isArray(value) ||
+    !value.every((entry) => typeof entry === 'string' && entry.length > 0)
+  ) {
+    throw new Error(`${label} must be an array of non-empty strings`);
   }
   return value;
 }

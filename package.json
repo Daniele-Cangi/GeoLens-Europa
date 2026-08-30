@@ -25,6 +25,7 @@
     "test:live:proof-zero": "node --test apps/api/test/live-proof-zero-runtime.test.cjs",
     "verify:ground-truth": "npm run build --workspace=@geo-lens/evidence && node scripts/verify-ground-truth-artifacts.mjs",
     "audit:cumbria-access": "npm run build --workspace=@geo-lens/evidence && node scripts/audit-cumbria-access.mjs",
+    "audit:cumbria-lidar-catalog": "node scripts/audit-cumbria-lidar-catalog.mjs",
     "materialize:emilia-inputs": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/providers && node scripts/materialize-emilia-bounded-inputs.mjs",
     "materialize:emilia-xdbtr": "python scripts/materialize_emilia_xdbtr_masks.py",
     "materialize:emilia-imerg-cache": "python scripts/materialize_emilia_imerg_cache.py",

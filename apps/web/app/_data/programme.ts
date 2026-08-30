@@ -62,11 +62,11 @@ export const programmeRecords: readonly ProgrammeRecord[] = [
     status: 'Metadata access verified',
     statusTone: 'screening',
     established:
-      'The 72-hour event window has complete direct Carlisle flow, level and rainfall series, 144/144 IMERG granules and two accessible independent flood-extent sources.',
+      'The 72-hour event window has complete direct Carlisle flow, level and rainfall series, 144/144 IMERG granules, two independent flood-extent sources and 231 reproducibly selected pre-event terrain-catalogue records.',
     openGate:
-      'Exact pre-event LiDAR tiles, event-valid hydrography and a defensible hydraulic protocol remain unresolved; observed flood geometry stays sealed from model inputs.',
+      'Ten of 241 intersecting terrain grid references lack a pre-event record, and official raster archive identities, event-valid hydrography and a defensible hydraulic protocol remain unresolved.',
     nextDecision:
-      'Resolve tile survey dates and freeze the modelling grid before any bulk acquisition or evaluation download.',
+      'Map the selected catalogue records to official DTM GeoTIFF artifacts, preserve the ten gaps as missing and then freeze the modelling grid.',
   },
 ] as const;
 

@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.1.0",
+  "manifestVersion": "0.2.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -76,17 +76,49 @@
         "evaluation": false
       },
       "access": {
-        "state": "metadata_verified",
+        "state": "catalog_verified",
         "checkedOn": "2026-08-30",
         "url": "https://dsp.environment.data.gov.uk/dataset/dbadf364-0192-4bcf-a223-f3d403f08682",
-        "note": "The official archive exposes 5 km GeoTIFF tiles with survey date and resolution. Exact Carlisle tiles must prove survey dates before 2015-12-04 before any terrain value is admitted."
+        "additionalUrls": [
+          "https://environment.data.gov.uk/KB6uNVj5ZcJr7jUP/ArcGIS/rest/services/LIDAR_Tiles_Catalogues/FeatureServer/0"
+        ],
+        "note": "The official catalogue proves dates for most bounded grid references, but ten have no pre-event record. Its current DTM layer exposes LAZ-named source rows rather than the promised downloadable 5 km GeoTIFF artifact identities, so acquisition remains blocked."
       },
       "facts": {
         "horizontalCrs": "British National Grid",
         "verticalDatum": "Ordnance Datum Newlyn",
         "tileSize": "5 km",
         "verticalAccuracy": "+/- 15 cm RMSE",
-        "exactPreEventTilesVerified": false
+        "completePreEventCoverage": false,
+        "downloadableRasterIdentitiesVerified": false
+      },
+      "lidarCatalogAudit": {
+        "queryUrl": "https://environment.data.gov.uk/KB6uNVj5ZcJr7jUP/ArcGIS/rest/services/LIDAR_Tiles_Catalogues/FeatureServer/0/query?where=1%3D1&geometry=-3.05%2C54.82%2C-2.85%2C55&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=objectid%2Cfilename%2Cos_ref%2Csd_flown%2Ced_flown%2Cpt_spacing%2Ctransform%2Cgeoid%2Cfilepath%2Cpolygon_id&returnGeometry=false&resultRecordCount=2000&f=json",
+        "selectionRule": "per OS grid reference: latest surveyEnd before event window; then smallest point spacing; then smallest objectId",
+        "sourceRows": 550,
+        "intersectingGridRefs": 241,
+        "preEventRows": 432,
+        "selectedPreEventGridRefs": 231,
+        "gridRefsWithoutPreEvent": [
+          "NY3256",
+          "NY3446",
+          "NY3448",
+          "NY3646",
+          "NY3652",
+          "NY3846",
+          "NY3848",
+          "NY3959",
+          "NY4062",
+          "NY4162"
+        ],
+        "selectionSha256": "b69a687cd42719c200de1e6e51e3a08b96045fc3ffdccf6b7ed2473494e22788",
+        "selectedFilenameKinds": {
+          "laz": 231,
+          "tif": 0,
+          "zip": 0
+        },
+        "acquisitionState": "blocked",
+        "reason": "Pre-event coverage is incomplete and the DTM catalogue currently exposes LAZ-named source records rather than downloadable raster artifact identities."
       }
     },
     {
@@ -374,7 +406,7 @@
     {
       "id": "pre_event_lidar_tiles",
       "state": "blocked",
-      "reason": "The official archive is accessible, but exact 5 km Carlisle tile identifiers, survey dates and selected native resolution are not yet frozen."
+      "reason": "The official catalogue selects 231 dated pre-event grid references but leaves ten AOI references uncovered and exposes no matching downloadable GeoTIFF identities."
     },
     {
       "id": "as_of_event_hydrography",
@@ -400,6 +432,6 @@
   "acquisition": {
     "state": "metadata_only",
     "largeDownloadsAllowed": false,
-    "nextAction": "Resolve the time-stamped LiDAR catalogue for the bounded AOI and accept only tiles surveyed before 2015-12-04; then freeze the modelling grid before opening evaluation geometry."
+    "nextAction": "Resolve the official 5 km GeoTIFF identities corresponding to the 231 selected pre-event catalogue rows, retain the ten terrain gaps as missing, and freeze the modelling grid before opening evaluation geometry."
   }
 }
