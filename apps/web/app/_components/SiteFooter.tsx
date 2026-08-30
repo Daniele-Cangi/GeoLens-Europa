@@ -19,6 +19,7 @@ export default function SiteFooter() {
       <div className="site-footer-links">
         <div>
           <h2>Programme</h2>
+          <Link href="/programme">Public status</Link>
           <Link href="/platform">Platform</Link>
           <Link href="/method">Method</Link>
           <Link href="/cases">Research cases</Link>

@@ -484,3 +484,44 @@ Checkpoints:
 - `test: freeze blind concentration evaluation protocol`
 - `test: evaluate frozen concentration against V7 event 2`
 - `test: audit official hydraulic sources`
+
+## Phase 11 - Qualify the Cumbria 2015 public-data replay
+
+State: metadata and pre-event terrain catalogue verified; acquisition gated
+
+Progress:
+
+- manifest v0.3.0 freezes a bounded Carlisle source-discovery envelope and the half-open 72-hour Storm Desmond window from 4 December 2015 00:00 UTC to 7 December 2015 00:00 UTC;
+- the canonical Python Earthaccess path found all 144 expected GPM_3IMERGHH V07 Final Run half-hour granules without opening or downloading raster data; V07 remains explicitly retrospective reprocessing;
+- the Environment Agency Hydrology API returned all 288 expected qualified 15-minute flow values and all 288 level values at Sheepmount on the River Eden, with observed maxima of 1,676.632 m3/s and 7.648 m respectively;
+- Willow Holme returned all 288 expected local rainfall values and a 49 mm window total; this is station comparison only and is not represented as high-fell or catchment-wide rainfall;
+- CLC 2012 is the land-cover candidate because its 2011-2012 reference imagery predates the event, while its currently published corrected release remains disclosed as retrospective processing;
+- the official Environment Agency time-stamped DTM catalogue returned 550 source rows over 241 intersecting OS grid references; a deterministic latest-pre-event selection covers 231 references and is frozen as SHA-256 `b69a687cd42719c200de1e6e51e3a08b96045fc3ffdccf6b7ed2473494e22788`;
+- ten grid references have no pre-event catalogue record (`NY3256`, `NY3446`, `NY3448`, `NY3646`, `NY3652`, `NY3846`, `NY3848`, `NY3959`, `NY4062`, `NY4162`) and remain explicitly missing;
+- the 231 selected catalogue records expose LAZ-named source filenames rather than verified downloadable DTM GeoTIFF archive identities, so catalogue qualification does not authorize acquisition;
+- the public survey endpoint declares the required `product`, `year`, `resolution` and `tile` parameters, but the selector currently reports a service problem and a bounded `DTM` / `2009` / `1M` / `NY3957` candidate returns HTTP 403 without transferring an archive; the candidate is not promoted to an artifact identity;
+- the current OS Open Rivers product is accessible but remains context-only until an event-valid edition or defensible historical lineage is frozen;
+- Environment Agency WFD River Water Bodies Cycle 1 is event-valid (created 2008, revised 2012); the bounded WFS query returns 16 stable water-body identities with SHA-256 `29cb9324f4ecb25324e893e3bbe07324c6df877f475de922476c9eba19a21a13`, but the 1:50,000 WFD subset remains river context rather than a complete hydraulic network;
+- Environment Agency Recorded Flood Outlines and both Copernicus EMSR147 Carlisle vector products are accessible and structurally evaluation-only; exact observed geometries remain sealed until the input protocol is frozen;
+- `npm run audit:cumbria-access` rechecks the three direct station series, the two Copernicus archive identities and the public flood-outline service without downloading the large inputs;
+- `npm run audit:cumbria-lidar-catalog` replays the official bounded catalogue query, selection rule, coverage gaps and SHA-256 identity, and fails on upstream drift;
+- `npm run audit:cumbria-hydrography` replays the bounded Cycle 1 WFS count and 16-feature selection, preserves whole-geometry bounds outside the intersecting AOI and fails on identity drift;
+- no local raster or observed-extent artifact is registered by the metadata-only manifest, and large acquisition remains blocked.
+
+Work:
+
+- map the 231 selected pre-event catalogue records to official downloadable DTM GeoTIFF identities and retain the ten uncovered grid references as missing unless an independently authoritative pre-event source resolves them;
+- determine a modelling grid that preserves native terrain and land-cover resolution claims while keeping H3 as an explicit representation choice;
+- identify event-valid hydrography, defence and channel/boundary evidence or keep those components explicitly unavailable;
+- freeze input identities and transformation versions before downloading or opening either independent flood-extent reference;
+- only after those gates pass, materialize bounded IMERG, terrain and land-cover evidence outside Git and define a prediction/evaluation protocol.
+
+Gate:
+
+- every acquired terrain raster maps to a selected pre-event catalogue record with an explicit survey date and native raster resolution, while uncovered cells remain missing;
+- current hydrography is not silently represented as an as-of-2015 network;
+- post-event reports and observed flood geometry cannot enter model input or calibration;
+- missing hydraulic context remains missing rather than becoming zero or inferred geometry;
+- bulk acquisition begins only after the input domain and evaluation isolation are reproducible.
+
+Checkpoints: `test: qualify Cumbria public-data access`; `test: freeze Cumbria pre-event terrain catalogue`

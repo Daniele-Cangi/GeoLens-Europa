@@ -4,6 +4,7 @@ import Link from 'next/link';
 
 import CaseCard from '../_components/CaseCard';
 import { researchCaseList } from '../_data/cases';
+import { programmeRecords, programmeUpdatedAt } from '../_data/programme';
 
 export const metadata: Metadata = {
   title: 'GeoLens — Environmental Evidence Infrastructure',
@@ -12,9 +13,9 @@ export const metadata: Metadata = {
 };
 
 const programmeStatus = [
-  ['Programme phase', 'Refoundation'],
-  ['Current proof', 'Stormwater evidence chain'],
-  ['Validation mode', 'Bounded and reproducible'],
+  ['Verified baseline', 'Case 00 · complete chain'],
+  ['Open evidence gates', '2 · externally dependent'],
+  ['Next expansion', 'Public-data territory'],
   ['Core dependency', 'No AI service required'],
 ] as const;
 
@@ -33,15 +34,16 @@ export default function HomePage() {
         </div>
         <div className="institutional-hero-copy">
           <p className="site-overline">Environmental evidence infrastructure</p>
-          <h1>Traceable physical state from real environmental evidence.</h1>
+          <h1>Environmental evidence that can be traced, tested and challenged.</h1>
           <p className="institutional-hero-lede">
-            GeoLens brings observations, terrain and infrastructure into one
-            accountable spatial system. Every result retains its origin,
-            transformation, resolution, time and missing-data state.
+            GeoLens is an open research programme connecting rainfall, terrain,
+            land cover and infrastructure. It derives inspectable physical
+            quantities while preserving where every value came from—and where
+            evidence is still missing.
           </p>
           <div className="site-actions">
-            <Link className="site-primary-action" href="/platform">
-              Explore the platform
+            <Link className="site-primary-action" href="/programme">
+              View programme status
             </Link>
             <Link className="site-secondary-action" href="/proof-zero">
               Open Proof 0 inspector
@@ -56,7 +58,7 @@ export default function HomePage() {
         <aside className="institutional-status" aria-labelledby="status-title">
           <div className="institutional-status-heading">
             <p id="status-title">Programme status</p>
-            <span>Public overview</span>
+            <span>Updated {programmeUpdatedAt}</span>
           </div>
           <dl>
             {programmeStatus.map(([label, value]) => (
@@ -74,6 +76,38 @@ export default function HomePage() {
             </p>
           </div>
         </aside>
+      </section>
+
+      <section className="home-plain-language page-section">
+        <div className="section-heading-row">
+          <div>
+            <p className="site-overline">GeoLens in plain language</p>
+            <h2>It shows not only the result, but why the result exists.</h2>
+          </div>
+          <p>
+            A map can look authoritative while hiding weak inputs. GeoLens keeps
+            the observation, physical transformation and evidence limit together
+            so that specialists can audit the chain and non-specialists can
+            understand the claim.
+          </p>
+        </div>
+        <div className="home-question-grid">
+          <article>
+            <span>Input</span>
+            <h3>What was actually observed?</h3>
+            <p>Dataset, provider, time, resolution and acquisition state remain attached to the value.</p>
+          </article>
+          <article>
+            <span>Transformation</span>
+            <h3>How did it become a physical quantity?</h3>
+            <p>Model inputs, intermediate quantities and versions remain directly inspectable.</p>
+          </article>
+          <article>
+            <span>Boundary</span>
+            <h3>What can the evidence not prove?</h3>
+            <p>Missing data, uncertain direction and blocked inference are shown instead of silently repaired.</p>
+          </article>
+        </div>
       </section>
 
       <section className="institutional-chain" aria-label="GeoLens evidence chain">
@@ -168,6 +202,38 @@ export default function HomePage() {
         <div className="section-action-row">
           <Link className="site-primary-action" href="/cases">Review all case records</Link>
           <Link className="site-secondary-action" href="/method">Read the verification method</Link>
+        </div>
+      </section>
+
+      <section className="home-programme-status">
+        <div className="home-programme-heading">
+          <div>
+            <p className="site-overline">Live research boundary</p>
+            <h2>A public record of progress and constraint.</h2>
+          </div>
+          <div>
+            <p>Updated {programmeUpdatedAt}</p>
+            <Link href="/programme">Open full programme register</Link>
+          </div>
+        </div>
+        <div className="home-programme-records">
+          {programmeRecords.map((record) => (
+            <article key={record.code}>
+              <span>{record.code}</span>
+              <div>
+                <p>{record.place}</p>
+                <h3>{record.title}</h3>
+              </div>
+              <strong data-tone={record.statusTone}>{record.status}</strong>
+              {record.href ? (
+                <Link href={record.href} aria-label={`Open ${record.code}`}>
+                  View
+                </Link>
+              ) : (
+                <span>Pending selection</span>
+              )}
+            </article>
+          ))}
         </div>
       </section>
 
