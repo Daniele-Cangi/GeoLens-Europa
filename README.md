@@ -71,7 +71,7 @@ GeoLens has two complementary operational proofs and two historical benchmark pr
 | Trento Proof 0 | The complete software chain works from real environmental inputs to a downstream result | Evidence composition, deterministic runoff, catchment aggregation, network propagation, provenance and mass balance | The small drainage network is a deterministic fixture, not surveyed municipal infrastructure |
 | Amsterdam observed proof | GeoLens can read real Waternet pipes and nodes and derive a real, non-zero surface runoff source | Observed topology, elevation-based direction states, real rainfall/terrain/land cover and an inspectable surface contribution | No owner-published surface-to-pipe attachment has yet been found, so sewer propagation is deliberately blocked |
 | Emilia-Romagna 2023 | A simple terrain-only concentration hypothesis was tested against an independent observed flood extent and did not perform better than chance | A reproducible historical benchmark, withheld evaluation data and honest negative evidence | A conditioned replay requires discharge, boundary, breach and terrain/channel evidence that is not currently available |
-| Cumbria 2015 | Public-data access and the local hydraulic evidence boundary were tested before claiming a runnable replay | A fixed Storm Desmond window, complete direct and upstream river observations, complete IMERG catalogue coverage, pre-event model lineage, current-defence qualification, two independent evaluation sources and a deterministic pre-event terrain-catalogue selection | Ten terrain grid references and the downloadable raster mapping remain unresolved; the public material does not include a runnable 2015 hydraulic model or an as-of-event defence state |
+| Cumbria 2015 | Public-data access and the local hydraulic input protocol were frozen before claiming a runnable replay | A fixed Storm Desmond window, three typed upstream discharge series, complete direct observations, complete IMERG catalogue coverage, pre-event model lineage, current-defence qualification, evaluation isolation and a deterministic pre-event terrain-catalogue selection | Boundary placement, downstream and initial conditions, ten terrain grid references, downloadable raster mapping and an as-of-event defence/channel model remain unresolved |
 
 ![GeoLens Case 02 spatial inspector showing the Emilia-Romagna event runoff layer and explicit withheld evidence](docs/screenshots/emilia-event-runoff.png)
 
@@ -132,9 +132,9 @@ That is near-random discrimination. The result is retained as useful negative ev
 
 GeoLens makes no inundation-depth, probability or operational-forecast claim from this result.
 
-### Case 03 — Cumbria 2015 access-qualified replay
+### Case 03 — Cumbria 2015 protocol-qualified replay
 
-The Carlisle candidate is no longer just a list of promising portals. GeoLens has frozen a metadata-only acquisition audit for Storm Desmond from `2015-12-04T00:00:00Z` to `2015-12-07T00:00:00Z`.
+The Carlisle candidate is no longer just a list of promising portals. GeoLens has frozen a metadata-only acquisition audit and a fail-closed hydraulic input protocol for Storm Desmond from `2015-12-04T00:00:00Z` to `2015-12-07T00:00:00Z`.
 
 The audit verifies:
 
@@ -142,6 +142,9 @@ The audit verifies:
 - all 288 expected 15-minute qualified flow observations and all 288 level observations at Sheepmount on the River Eden;
 - all 288 local rainfall observations at Willow Holme, retained as station comparison rather than basin-wide rainfall;
 - three complete candidate upstream hydrographs: 288 qualified flow values each at Great Corby on the Eden, Cummersdale on the Caldew and Newbiggin Bridge on the Petteril;
+- a local protocol envelope containing those three stations, with British National Grid required for future solver geometry and Ordnance Datum Newlyn required for vertical evidence;
+- native 15-minute samples only: interpolation, extrapolation, gap filling and missing-to-zero substitution are not authorized before a solver timestep and transformation are frozen;
+- rainfall/runoff forcing restricted to the future local domain downstream of those inflows, so upstream catchments already represented by the hydrographs cannot be counted twice;
 - accessible Environment Agency Recorded Flood Outlines and both Copernicus EMSR147 Carlisle vector products, structurally restricted to evaluation;
 - official time-stamped Environment Agency LiDAR metadata: 550 source records over 241 intersecting OS grid references, with a deterministic selection of 231 pre-event records;
 - ten explicitly missing pre-event terrain grid references: `NY3256`, `NY3446`, `NY3448`, `NY3646`, `NY3652`, `NY3846`, `NY3848`, `NY3959`, `NY4062` and `NY4162`;
@@ -150,9 +153,11 @@ The audit verifies:
 - 291 current AIMS defence records in the bounded query, pinned as current context only: 114 have no asset start date, 56 start on or after the event and four report refurbishment after 2015;
 - pre-event-reference CLC 2012 land cover.
 
-This proves data access and narrows the missing physics; it is not yet a flood reconstruction. The three upstream flow series are candidate boundary inputs, not automatically accepted boundary conditions. The WFD layer contains only designated 1:50,000 river stretches. The current AIMS layer is updated daily, so its present geometry, crest and condition values cannot masquerade as the December 2015 defence state even when an asset has a pre-event start date. The official 2011 appendix proves model lineage but does not provide the cited ISIS/TUFLOW package, cross-sections, roughness or boundary files. The 2015 investigation report is post-event context: it reports overtopping and bypass, with no defence breach, but no narrative location becomes model geometry.
+This proves data access and narrows the missing physics; it is not yet a flood reconstruction. The three upstream series now have fixed identities, units, windows and sampling semantics, but their placement remains blocked until event-valid channel geometry exists. Sheepmount level remains an observation for comparison, not a downstream boundary. A separately screened station named Rockcliffe publishes a qualified groundwater-dip measure rather than a surface-water boundary, so it was explicitly rejected. The first discharge samples do not invent channel stage, floodplain wetness or a distributed initial state.
 
-The selected LiDAR catalogue rows are pinned by SHA-256, but their exposed filenames are LAZ-named source records rather than verified identities for the downloadable DTM GeoTIFF archives. The public DEFRA survey selector currently reports a service problem, and its download endpoint rejects the bounded Sheepmount archive candidate without transferring the archive. Bulk downloads remain blocked until that mapping and the ten terrain gaps are resolved, a local hydraulic domain and boundary protocol are frozen, and an event-valid defence/channel package is obtained or explicitly ruled out. The two observed flood extents remain unavailable to model input and calibration.
+The WFD layer contains only designated 1:50,000 river stretches. The current AIMS layer is updated daily, so its present geometry, crest and condition values cannot masquerade as the December 2015 defence state even when an asset has a pre-event start date. The official 2011 appendix proves model lineage but does not provide the cited ISIS/TUFLOW package, cross-sections, roughness or boundary files. The 2015 investigation report is post-event context: it reports overtopping and bypass, with no defence breach, but no narrative location becomes model geometry.
+
+The selected LiDAR catalogue rows are pinned by SHA-256, but their exposed filenames are LAZ-named source records rather than verified identities for the downloadable DTM GeoTIFF archives. The public DEFRA survey selector currently reports a service problem, and its download endpoint rejects the bounded Sheepmount archive candidate without transferring the archive. Bulk downloads remain blocked until that mapping and the ten terrain gaps are resolved, an event-valid defence/channel package is obtained or explicitly ruled out, and a downstream condition, initial state and runnable mesh can be defined. The two observed flood extents remain unavailable to model input and calibration.
 
 The deterministic manifest is [tests/ground-truth/cumbria-2015/manifest.json](tests/ground-truth/cumbria-2015/manifest.json). Re-run the open-service checks with:
 
@@ -161,6 +166,7 @@ npm run audit:cumbria-access
 npm run audit:cumbria-lidar-catalog
 npm run audit:cumbria-hydrography
 npm run audit:cumbria-hydraulic-context
+npm run audit:cumbria-boundary-protocol
 ~~~
 
 ## For Amsterdam data owners and collaborators

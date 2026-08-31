@@ -1,4 +1,4 @@
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.4.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.5.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -187,6 +187,96 @@ export interface CumbriaLidarDownloadProbe {
   readonly selectorMessage: string;
 }
 
+export interface CumbriaHydraulicBoundaryProtocol {
+  readonly id: 'carlisle-local-hydraulic-protocol-v0';
+  readonly state: 'frozen_inputs_blocked_execution';
+  readonly domainEnvelope: {
+    readonly id: 'carlisle-boundary-protocol-envelope-v0';
+    readonly role: 'boundary_protocol_envelope_not_final_mesh';
+    readonly crs: 'EPSG:4326';
+    readonly bounds: readonly [number, number, number, number];
+    readonly projectedCrsRequired: 'EPSG:27700';
+    readonly verticalDatumRequired: 'Ordnance Datum Newlyn';
+    readonly finalMeshFrozen: false;
+    readonly note: string;
+  };
+  readonly upstreamBoundaries: readonly CumbriaUpstreamBoundary[];
+  readonly downstreamBoundary: {
+    readonly state: 'missing';
+    readonly requiredEvidence: string;
+    readonly verticalDatumRequired: 'Ordnance Datum Newlyn';
+    readonly sheepmountDatasetId: 'ea-hydrology-sheepmount-level';
+    readonly sheepmountUse: 'observation_comparison_only_not_boundary';
+    readonly screenedCandidate: {
+      readonly station: 'Rockcliffe';
+      readonly stationId: '215f4242-cd9c-477e-96a6-0e2de7a3aef5';
+      readonly coordinate: CumbriaProtocolCoordinate;
+      readonly measureNotation: '215f4242-cd9c-477e-96a6-0e2de7a3aef5-gw-dipped-i-mAOD-qualified';
+      readonly classification: 'rejected_groundwater_measure_not_surface_water_boundary';
+    };
+  };
+  readonly initialState: {
+    readonly state: 'missing';
+    readonly warmupRequired: true;
+    readonly firstUpstreamSamplesDefineDistributedState: false;
+    readonly note: string;
+  };
+  readonly localForcing: {
+    readonly precipitationDatasetId: 'nasa-imerg-v07-final';
+    readonly spatialScope: 'inside_final_local_domain_downstream_of_upstream_boundaries_only';
+    readonly upstreamCatchmentsRepresentedByHydrographsExcluded: true;
+    readonly doubleCountingForbidden: true;
+    readonly h3Role: 'evidence_index_only_not_hydraulic_mesh';
+  };
+  readonly evaluationIsolation: {
+    readonly datasetIds: readonly [
+      'ea-recorded-flood-outlines',
+      'copernicus-emsr147-carlisle',
+    ];
+    readonly geometryLoaded: false;
+    readonly inputUse: false;
+    readonly calibrationUse: false;
+  };
+  readonly execution: {
+    readonly state: 'blocked';
+    readonly blockers: readonly string[];
+  };
+}
+
+export interface CumbriaProtocolCoordinate {
+  readonly crs: 'EPSG:4326';
+  readonly lon: number;
+  readonly lat: number;
+}
+
+export interface CumbriaUpstreamBoundary {
+  readonly id:
+    | 'eden-great-corby'
+    | 'caldew-cummersdale'
+    | 'petteril-newbiggin-bridge';
+  readonly watercourse: string;
+  readonly datasetId: string;
+  readonly stationId: string;
+  readonly stationReference: string;
+  readonly coordinate: CumbriaProtocolCoordinate;
+  readonly quantity: 'discharge';
+  readonly unit: 'm3/s';
+  readonly nativeIntervalSeconds: 900;
+  readonly windowStart: string;
+  readonly windowEndExclusive: string;
+  readonly samplePolicy: {
+    readonly interpretation: 'qualified_instantaneous_observations';
+    readonly resampling: 'native_samples_only';
+    readonly gapFill: false;
+    readonly extrapolation: false;
+    readonly missingValueSubstitution: false;
+  };
+  readonly placement: {
+    readonly state: 'blocked_missing_channel_geometry';
+    readonly coordinateUse: 'station_location_only';
+  };
+}
+
 export interface CumbriaAccessGate {
   readonly id: string;
   readonly state: 'passed' | 'blocked';
@@ -221,6 +311,7 @@ export interface CumbriaAccessManifest {
     readonly currentAssetStateExcludedFromEventInputs: true;
     readonly largeArtifactsStayOutsideGit: true;
   };
+  readonly hydraulicProtocol: CumbriaHydraulicBoundaryProtocol;
   readonly datasets: readonly CumbriaDatasetAudit[];
   readonly gates: readonly CumbriaAccessGate[];
   readonly acquisition: {
@@ -429,6 +520,14 @@ export function assertCumbriaAccessManifest(
     equal(series.readings, 288, `${seriesId} verified readings`);
     equal(series.missingReadings, 0, `${seriesId} missing readings`);
   }
+
+  const willowSeries = record(
+    datasetRecords.get('ea-hydrology-willow-holme-rainfall')?.seriesAudit,
+    'ea-hydrology-willow-holme-rainfall.seriesAudit',
+  );
+  equal(willowSeries.stationReference, '606299', 'Willow Holme station reference');
+
+  hydraulicBoundaryProtocol(manifest.hydraulicProtocol, datasetRecords);
 
   const lidar = record(
     datasetRecords.get('ea-lidar-dtm-time-stamped')?.lidarCatalogAudit,
@@ -829,6 +928,11 @@ export function assertCumbriaAccessManifest(
   }
   equal(gateStates.get('evaluation_withholding'), 'passed', 'evaluation_withholding');
   equal(gateStates.get('upstream_boundary_series'), 'passed', 'upstream_boundary_series');
+  equal(
+    gateStates.get('hydraulic_boundary_protocol'),
+    'passed',
+    'hydraulic_boundary_protocol',
+  );
   equal(gateStates.get('pre_event_lidar_tiles'), 'blocked', 'pre_event_lidar_tiles');
   equal(gateStates.get('as_of_event_defence_state'), 'blocked', 'as_of_event_defence_state');
   equal(gateStates.get('hydraulic_context'), 'blocked', 'hydraulic_context');
@@ -842,6 +946,313 @@ export function assertCumbriaAccessManifest(
     'acquisition.largeDownloadsAllowed',
   );
   nonEmpty(acquisition.nextAction, 'acquisition.nextAction');
+}
+
+function hydraulicBoundaryProtocol(
+  value: unknown,
+  datasetRecords: ReadonlyMap<string, Record<string, unknown>>,
+): void {
+  const protocol = record(value, 'hydraulicProtocol');
+  equal(protocol.id, 'carlisle-local-hydraulic-protocol-v0', 'hydraulicProtocol.id');
+  equal(
+    protocol.state,
+    'frozen_inputs_blocked_execution',
+    'hydraulicProtocol.state',
+  );
+
+  const envelope = record(
+    protocol.domainEnvelope,
+    'hydraulicProtocol.domainEnvelope',
+  );
+  equal(
+    envelope.id,
+    'carlisle-boundary-protocol-envelope-v0',
+    'hydraulicProtocol.domainEnvelope.id',
+  );
+  equal(
+    envelope.role,
+    'boundary_protocol_envelope_not_final_mesh',
+    'hydraulicProtocol.domainEnvelope.role',
+  );
+  equal(envelope.crs, 'EPSG:4326', 'hydraulicProtocol.domainEnvelope.crs');
+  const envelopeBounds = numericArray(
+    envelope.bounds,
+    4,
+    'hydraulicProtocol.domainEnvelope.bounds',
+  );
+  if (JSON.stringify(envelopeBounds) !== JSON.stringify([-3.05, 54.82, -2.8, 55])) {
+    throw new Error('Hydraulic protocol envelope drifted');
+  }
+  equal(
+    envelope.projectedCrsRequired,
+    'EPSG:27700',
+    'hydraulicProtocol.domainEnvelope.projectedCrsRequired',
+  );
+  equal(
+    envelope.verticalDatumRequired,
+    'Ordnance Datum Newlyn',
+    'hydraulicProtocol.domainEnvelope.verticalDatumRequired',
+  );
+  equal(
+    envelope.finalMeshFrozen,
+    false,
+    'hydraulicProtocol.domainEnvelope.finalMeshFrozen',
+  );
+  nonEmpty(envelope.note, 'hydraulicProtocol.domainEnvelope.note');
+
+  const expectedBoundaries = [
+    {
+      id: 'eden-great-corby',
+      watercourse: 'River Eden',
+      datasetId: 'ea-hydrology-great-corby-flow',
+      stationId: '244c170e-922f-4e33-8b7d-d02dd50888d3',
+      stationReference: '762505',
+      lon: -2.830506,
+      lat: 54.889932,
+    },
+    {
+      id: 'caldew-cummersdale',
+      watercourse: 'River Caldew',
+      datasetId: 'ea-hydrology-cummersdale-flow',
+      stationId: '8d4e3c14-3eb9-473b-a98c-51a7e88f0a7f',
+      stationReference: '765013',
+      lon: -2.944309,
+      lat: 54.865699,
+    },
+    {
+      id: 'petteril-newbiggin-bridge',
+      watercourse: 'River Petteril',
+      datasetId: 'ea-hydrology-newbiggin-bridge-flow',
+      stationId: '3982df4e-f922-4bd7-9fc1-cb01d240d0a8',
+      stationReference: '764050',
+      lon: -2.880585,
+      lat: 54.852914,
+    },
+  ] as const;
+  const upstreamBoundaries = array(
+    protocol.upstreamBoundaries,
+    'hydraulicProtocol.upstreamBoundaries',
+  );
+  if (upstreamBoundaries.length !== expectedBoundaries.length) {
+    throw new Error('Hydraulic protocol must contain exactly three upstream boundaries');
+  }
+  for (const [index, expected] of expectedBoundaries.entries()) {
+    const boundary = record(
+      upstreamBoundaries[index],
+      `hydraulicProtocol.upstreamBoundaries[${index}]`,
+    );
+    equal(boundary.id, expected.id, `${expected.id}.id`);
+    equal(boundary.watercourse, expected.watercourse, `${expected.id}.watercourse`);
+    equal(boundary.datasetId, expected.datasetId, `${expected.id}.datasetId`);
+    equal(boundary.stationId, expected.stationId, `${expected.id}.stationId`);
+    equal(
+      boundary.stationReference,
+      expected.stationReference,
+      `${expected.id}.stationReference`,
+    );
+    equal(boundary.quantity, 'discharge', `${expected.id}.quantity`);
+    equal(boundary.unit, 'm3/s', `${expected.id}.unit`);
+    equal(boundary.nativeIntervalSeconds, 900, `${expected.id}.nativeIntervalSeconds`);
+    equal(boundary.windowStart, CUMBRIA_EVENT_WINDOW.start, `${expected.id}.windowStart`);
+    equal(
+      boundary.windowEndExclusive,
+      CUMBRIA_EVENT_WINDOW.endExclusive,
+      `${expected.id}.windowEndExclusive`,
+    );
+
+    const coordinate = record(boundary.coordinate, `${expected.id}.coordinate`);
+    equal(coordinate.crs, 'EPSG:4326', `${expected.id}.coordinate.crs`);
+    equal(coordinate.lon, expected.lon, `${expected.id}.coordinate.lon`);
+    equal(coordinate.lat, expected.lat, `${expected.id}.coordinate.lat`);
+    if (
+      expected.lon < envelopeBounds[0] ||
+      expected.lon > envelopeBounds[2] ||
+      expected.lat < envelopeBounds[1] ||
+      expected.lat > envelopeBounds[3]
+    ) {
+      throw new Error(`${expected.id} station coordinate must remain inside the protocol envelope`);
+    }
+
+    const samplePolicy = record(boundary.samplePolicy, `${expected.id}.samplePolicy`);
+    equal(
+      samplePolicy.interpretation,
+      'qualified_instantaneous_observations',
+      `${expected.id}.samplePolicy.interpretation`,
+    );
+    equal(
+      samplePolicy.resampling,
+      'native_samples_only',
+      `${expected.id}.samplePolicy.resampling`,
+    );
+    equal(samplePolicy.gapFill, false, `${expected.id}.samplePolicy.gapFill`);
+    equal(
+      samplePolicy.extrapolation,
+      false,
+      `${expected.id}.samplePolicy.extrapolation`,
+    );
+    equal(
+      samplePolicy.missingValueSubstitution,
+      false,
+      `${expected.id}.samplePolicy.missingValueSubstitution`,
+    );
+    const placement = record(boundary.placement, `${expected.id}.placement`);
+    equal(
+      placement.state,
+      'blocked_missing_channel_geometry',
+      `${expected.id}.placement.state`,
+    );
+    equal(
+      placement.coordinateUse,
+      'station_location_only',
+      `${expected.id}.placement.coordinateUse`,
+    );
+
+    const dataset = datasetRecords.get(expected.datasetId);
+    equal(dataset?.role, 'model_input_candidate', `${expected.id} dataset role`);
+    const series = record(dataset?.seriesAudit, `${expected.datasetId}.seriesAudit`);
+    equal(series.stationReference, expected.stationReference, `${expected.id} series reference`);
+    equal(
+      series.measureNotation,
+      `${expected.stationId}-flow-i-900-m3s-qualified`,
+      `${expected.id} series measure`,
+    );
+    equal(series.intervalSeconds, 900, `${expected.id} series interval`);
+    equal(series.readings, 288, `${expected.id} series readings`);
+    equal(series.missingReadings, 0, `${expected.id} series missing readings`);
+    equal(series.unit, 'm3/s', `${expected.id} series unit`);
+  }
+
+  const downstream = record(
+    protocol.downstreamBoundary,
+    'hydraulicProtocol.downstreamBoundary',
+  );
+  equal(downstream.state, 'missing', 'hydraulicProtocol.downstreamBoundary.state');
+  nonEmpty(
+    downstream.requiredEvidence,
+    'hydraulicProtocol.downstreamBoundary.requiredEvidence',
+  );
+  equal(
+    downstream.verticalDatumRequired,
+    'Ordnance Datum Newlyn',
+    'hydraulicProtocol.downstreamBoundary.verticalDatumRequired',
+  );
+  equal(
+    downstream.sheepmountDatasetId,
+    'ea-hydrology-sheepmount-level',
+    'hydraulicProtocol.downstreamBoundary.sheepmountDatasetId',
+  );
+  equal(
+    downstream.sheepmountUse,
+    'observation_comparison_only_not_boundary',
+    'hydraulicProtocol.downstreamBoundary.sheepmountUse',
+  );
+  equal(
+    datasetRecords.get('ea-hydrology-sheepmount-level')?.role,
+    'observation_comparison',
+    'Sheepmount protocol role',
+  );
+  const screened = record(
+    downstream.screenedCandidate,
+    'hydraulicProtocol.downstreamBoundary.screenedCandidate',
+  );
+  equal(screened.station, 'Rockcliffe', 'Rockcliffe station');
+  equal(
+    screened.stationId,
+    '215f4242-cd9c-477e-96a6-0e2de7a3aef5',
+    'Rockcliffe station id',
+  );
+  equal(
+    screened.measureNotation,
+    '215f4242-cd9c-477e-96a6-0e2de7a3aef5-gw-dipped-i-mAOD-qualified',
+    'Rockcliffe measure notation',
+  );
+  equal(
+    screened.classification,
+    'rejected_groundwater_measure_not_surface_water_boundary',
+    'Rockcliffe classification',
+  );
+  const rockcliffeCoordinate = record(screened.coordinate, 'Rockcliffe coordinate');
+  equal(rockcliffeCoordinate.crs, 'EPSG:4326', 'Rockcliffe coordinate CRS');
+  equal(rockcliffeCoordinate.lon, -2.985661, 'Rockcliffe longitude');
+  equal(rockcliffeCoordinate.lat, 54.955058, 'Rockcliffe latitude');
+
+  const initialState = record(protocol.initialState, 'hydraulicProtocol.initialState');
+  equal(initialState.state, 'missing', 'hydraulicProtocol.initialState.state');
+  equal(
+    initialState.warmupRequired,
+    true,
+    'hydraulicProtocol.initialState.warmupRequired',
+  );
+  equal(
+    initialState.firstUpstreamSamplesDefineDistributedState,
+    false,
+    'hydraulicProtocol.initialState.firstUpstreamSamplesDefineDistributedState',
+  );
+  nonEmpty(initialState.note, 'hydraulicProtocol.initialState.note');
+
+  const forcing = record(protocol.localForcing, 'hydraulicProtocol.localForcing');
+  equal(
+    forcing.precipitationDatasetId,
+    'nasa-imerg-v07-final',
+    'hydraulicProtocol.localForcing.precipitationDatasetId',
+  );
+  equal(
+    forcing.spatialScope,
+    'inside_final_local_domain_downstream_of_upstream_boundaries_only',
+    'hydraulicProtocol.localForcing.spatialScope',
+  );
+  equal(
+    forcing.upstreamCatchmentsRepresentedByHydrographsExcluded,
+    true,
+    'hydraulicProtocol.localForcing.upstreamCatchmentsRepresentedByHydrographsExcluded',
+  );
+  equal(
+    forcing.doubleCountingForbidden,
+    true,
+    'hydraulicProtocol.localForcing.doubleCountingForbidden',
+  );
+  equal(
+    forcing.h3Role,
+    'evidence_index_only_not_hydraulic_mesh',
+    'hydraulicProtocol.localForcing.h3Role',
+  );
+
+  const isolation = record(
+    protocol.evaluationIsolation,
+    'hydraulicProtocol.evaluationIsolation',
+  );
+  const evaluationDatasetIds = stringArray(
+    isolation.datasetIds,
+    'hydraulicProtocol.evaluationIsolation.datasetIds',
+  );
+  if (
+    JSON.stringify(evaluationDatasetIds) !==
+    JSON.stringify(['ea-recorded-flood-outlines', 'copernicus-emsr147-carlisle'])
+  ) {
+    throw new Error('Hydraulic protocol evaluation references drifted');
+  }
+  equal(isolation.geometryLoaded, false, 'hydraulicProtocol.evaluationIsolation.geometryLoaded');
+  equal(isolation.inputUse, false, 'hydraulicProtocol.evaluationIsolation.inputUse');
+  equal(
+    isolation.calibrationUse,
+    false,
+    'hydraulicProtocol.evaluationIsolation.calibrationUse',
+  );
+
+  const execution = record(protocol.execution, 'hydraulicProtocol.execution');
+  equal(execution.state, 'blocked', 'hydraulicProtocol.execution.state');
+  const blockers = stringArray(execution.blockers, 'hydraulicProtocol.execution.blockers');
+  const expectedBlockers = [
+    'event_valid_channel_and_defence_geometry_missing',
+    'upstream_boundary_placement_missing',
+    'downstream_boundary_missing',
+    'distributed_initial_state_missing',
+    'final_mesh_and_timestep_missing',
+    'pre_event_terrain_incomplete',
+  ];
+  if (JSON.stringify(blockers) !== JSON.stringify(expectedBlockers)) {
+    throw new Error('Hydraulic protocol execution blockers drifted');
+  }
 }
 
 function seriesAudit(value: unknown, datasetId: string): void {

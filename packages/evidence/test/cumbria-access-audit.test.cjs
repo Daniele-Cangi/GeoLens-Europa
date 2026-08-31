@@ -132,7 +132,7 @@ test('pre-event terrain catalogue selection is reproducible and incomplete', () 
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.4.0');
+  assert.equal(manifest.manifestVersion, '0.5.0');
   assert.equal(lidar.access.state, 'catalog_verified');
   assert.deepEqual(
     {
@@ -255,6 +255,137 @@ test('three complete upstream hydrographs remain candidate boundaries', () => {
     assert.equal(dataset.seriesAudit.readings, 288);
     assert.equal(dataset.seriesAudit.missingReadings, 0);
   }
+});
+
+test('local hydraulic protocol freezes upstream inputs without inventing missing physics', () => {
+  const manifest = manifestFixture();
+  const protocol = manifest.hydraulicProtocol;
+
+  assert.equal(protocol.state, 'frozen_inputs_blocked_execution');
+  assert.deepEqual(protocol.domainEnvelope.bounds, [-3.05, 54.82, -2.8, 55]);
+  assert.equal(
+    protocol.domainEnvelope.role,
+    'boundary_protocol_envelope_not_final_mesh',
+  );
+  assert.equal(protocol.domainEnvelope.finalMeshFrozen, false);
+  assert.deepEqual(
+    protocol.upstreamBoundaries.map((boundary) => ({
+      id: boundary.id,
+      stationReference: boundary.stationReference,
+      quantity: boundary.quantity,
+      unit: boundary.unit,
+      resampling: boundary.samplePolicy.resampling,
+      placement: boundary.placement.state,
+    })),
+    [
+      {
+        id: 'eden-great-corby',
+        stationReference: '762505',
+        quantity: 'discharge',
+        unit: 'm3/s',
+        resampling: 'native_samples_only',
+        placement: 'blocked_missing_channel_geometry',
+      },
+      {
+        id: 'caldew-cummersdale',
+        stationReference: '765013',
+        quantity: 'discharge',
+        unit: 'm3/s',
+        resampling: 'native_samples_only',
+        placement: 'blocked_missing_channel_geometry',
+      },
+      {
+        id: 'petteril-newbiggin-bridge',
+        stationReference: '764050',
+        quantity: 'discharge',
+        unit: 'm3/s',
+        resampling: 'native_samples_only',
+        placement: 'blocked_missing_channel_geometry',
+      },
+    ],
+  );
+  assert.equal(protocol.downstreamBoundary.state, 'missing');
+  assert.equal(
+    protocol.downstreamBoundary.sheepmountUse,
+    'observation_comparison_only_not_boundary',
+  );
+  assert.equal(
+    protocol.downstreamBoundary.screenedCandidate.classification,
+    'rejected_groundwater_measure_not_surface_water_boundary',
+  );
+  assert.equal(protocol.initialState.state, 'missing');
+  assert.equal(
+    protocol.initialState.firstUpstreamSamplesDefineDistributedState,
+    false,
+  );
+  assert.equal(protocol.localForcing.doubleCountingForbidden, true);
+  assert.equal(
+    protocol.localForcing.upstreamCatchmentsRepresentedByHydrographsExcluded,
+    true,
+  );
+  assert.equal(protocol.evaluationIsolation.geometryLoaded, false);
+  assert.equal(protocol.execution.state, 'blocked');
+  assert.deepEqual(protocol.execution.blockers, [
+    'event_valid_channel_and_defence_geometry_missing',
+    'upstream_boundary_placement_missing',
+    'downstream_boundary_missing',
+    'distributed_initial_state_missing',
+    'final_mesh_and_timestep_missing',
+    'pre_event_terrain_incomplete',
+  ]);
+});
+
+test('hydraulic protocol rejects interpolation, double counting and invented boundaries', () => {
+  const resampled = manifestFixture();
+  resampled.hydraulicProtocol.upstreamBoundaries[0].samplePolicy.resampling =
+    'linear_interpolation';
+  assert.throws(
+    () => assertCumbriaAccessManifest(resampled),
+    /samplePolicy.resampling/,
+  );
+
+  const doubleCounted = manifestFixture();
+  doubleCounted.hydraulicProtocol.localForcing
+    .upstreamCatchmentsRepresentedByHydrographsExcluded = false;
+  assert.throws(
+    () => assertCumbriaAccessManifest(doubleCounted),
+    /upstreamCatchmentsRepresentedByHydrographsExcluded/,
+  );
+
+  const inventedDownstream = manifestFixture();
+  inventedDownstream.hydraulicProtocol.downstreamBoundary.state = 'available';
+  assert.throws(
+    () => assertCumbriaAccessManifest(inventedDownstream),
+    /downstreamBoundary.state/,
+  );
+
+  const inventedInitialState = manifestFixture();
+  inventedInitialState.hydraulicProtocol.initialState
+    .firstUpstreamSamplesDefineDistributedState = true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(inventedInitialState),
+    /firstUpstreamSamplesDefineDistributedState/,
+  );
+});
+
+test('Willow Holme keeps its official station reference distinct from its UUID', () => {
+  const manifest = manifestFixture();
+  const rainfall = manifest.datasets.find(
+    (dataset) => dataset.id === 'ea-hydrology-willow-holme-rainfall',
+  );
+
+  assert.equal(rainfall.seriesAudit.stationReference, '606299');
+  assert.match(
+    rainfall.seriesAudit.measureNotation,
+    /^026196fb-dc64-4e06-bc2b-ce360bd65a0a-/,
+  );
+
+  rainfall.seriesAudit.stationReference =
+    '026196fb-dc64-4e06-bc2b-ce360bd65a0a';
+  assert.throws(
+    () => assertCumbriaAccessManifest(manifest),
+    /Willow Holme station reference/,
+  );
 });
 
 test('current AIMS defences cannot masquerade as the 2015 defence state', () => {
