@@ -1,9 +1,9 @@
 {
-  "manifestVersion": "0.4.0",
+  "manifestVersion": "0.5.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
-    "verifiedOn": "2026-08-30"
+    "verifiedOn": "2026-08-31"
   },
   "event": {
     "name": "Storm Desmond",
@@ -29,6 +29,157 @@
     "postEventEvidenceExcludedFromCalibration": true,
     "currentAssetStateExcludedFromEventInputs": true,
     "largeArtifactsStayOutsideGit": true
+  },
+  "hydraulicProtocol": {
+    "id": "carlisle-local-hydraulic-protocol-v0",
+    "state": "frozen_inputs_blocked_execution",
+    "domainEnvelope": {
+      "id": "carlisle-boundary-protocol-envelope-v0",
+      "role": "boundary_protocol_envelope_not_final_mesh",
+      "crs": "EPSG:4326",
+      "bounds": [-3.05, 54.82, -2.8, 55.0],
+      "projectedCrsRequired": "EPSG:27700",
+      "verticalDatumRequired": "Ordnance Datum Newlyn",
+      "finalMeshFrozen": false,
+      "note": "The envelope extends the source-discovery AOI east only far enough to contain Great Corby. It freezes the input protocol footprint, not channel placement, cell size or a runnable hydraulic mesh."
+    },
+    "upstreamBoundaries": [
+      {
+        "id": "eden-great-corby",
+        "watercourse": "River Eden",
+        "datasetId": "ea-hydrology-great-corby-flow",
+        "stationId": "244c170e-922f-4e33-8b7d-d02dd50888d3",
+        "stationReference": "762505",
+        "coordinate": {
+          "crs": "EPSG:4326",
+          "lon": -2.830506,
+          "lat": 54.889932
+        },
+        "quantity": "discharge",
+        "unit": "m3/s",
+        "nativeIntervalSeconds": 900,
+        "windowStart": "2015-12-04T00:00:00Z",
+        "windowEndExclusive": "2015-12-07T00:00:00Z",
+        "samplePolicy": {
+          "interpretation": "qualified_instantaneous_observations",
+          "resampling": "native_samples_only",
+          "gapFill": false,
+          "extrapolation": false,
+          "missingValueSubstitution": false
+        },
+        "placement": {
+          "state": "blocked_missing_channel_geometry",
+          "coordinateUse": "station_location_only"
+        }
+      },
+      {
+        "id": "caldew-cummersdale",
+        "watercourse": "River Caldew",
+        "datasetId": "ea-hydrology-cummersdale-flow",
+        "stationId": "8d4e3c14-3eb9-473b-a98c-51a7e88f0a7f",
+        "stationReference": "765013",
+        "coordinate": {
+          "crs": "EPSG:4326",
+          "lon": -2.944309,
+          "lat": 54.865699
+        },
+        "quantity": "discharge",
+        "unit": "m3/s",
+        "nativeIntervalSeconds": 900,
+        "windowStart": "2015-12-04T00:00:00Z",
+        "windowEndExclusive": "2015-12-07T00:00:00Z",
+        "samplePolicy": {
+          "interpretation": "qualified_instantaneous_observations",
+          "resampling": "native_samples_only",
+          "gapFill": false,
+          "extrapolation": false,
+          "missingValueSubstitution": false
+        },
+        "placement": {
+          "state": "blocked_missing_channel_geometry",
+          "coordinateUse": "station_location_only"
+        }
+      },
+      {
+        "id": "petteril-newbiggin-bridge",
+        "watercourse": "River Petteril",
+        "datasetId": "ea-hydrology-newbiggin-bridge-flow",
+        "stationId": "3982df4e-f922-4bd7-9fc1-cb01d240d0a8",
+        "stationReference": "764050",
+        "coordinate": {
+          "crs": "EPSG:4326",
+          "lon": -2.880585,
+          "lat": 54.852914
+        },
+        "quantity": "discharge",
+        "unit": "m3/s",
+        "nativeIntervalSeconds": 900,
+        "windowStart": "2015-12-04T00:00:00Z",
+        "windowEndExclusive": "2015-12-07T00:00:00Z",
+        "samplePolicy": {
+          "interpretation": "qualified_instantaneous_observations",
+          "resampling": "native_samples_only",
+          "gapFill": false,
+          "extrapolation": false,
+          "missingValueSubstitution": false
+        },
+        "placement": {
+          "state": "blocked_missing_channel_geometry",
+          "coordinateUse": "station_location_only"
+        }
+      }
+    ],
+    "downstreamBoundary": {
+      "state": "missing",
+      "requiredEvidence": "event-valid stage, discharge, rating relation or normal-depth condition in a declared vertical datum",
+      "verticalDatumRequired": "Ordnance Datum Newlyn",
+      "sheepmountDatasetId": "ea-hydrology-sheepmount-level",
+      "sheepmountUse": "observation_comparison_only_not_boundary",
+      "screenedCandidate": {
+        "station": "Rockcliffe",
+        "stationId": "215f4242-cd9c-477e-96a6-0e2de7a3aef5",
+        "coordinate": {
+          "crs": "EPSG:4326",
+          "lon": -2.985661,
+          "lat": 54.955058
+        },
+        "measureNotation": "215f4242-cd9c-477e-96a6-0e2de7a3aef5-gw-dipped-i-mAOD-qualified",
+        "classification": "rejected_groundwater_measure_not_surface_water_boundary"
+      }
+    },
+    "initialState": {
+      "state": "missing",
+      "warmupRequired": true,
+      "firstUpstreamSamplesDefineDistributedState": false,
+      "note": "The first three discharge samples do not define channel stage, floodplain wetness or a distributed initial condition."
+    },
+    "localForcing": {
+      "precipitationDatasetId": "nasa-imerg-v07-final",
+      "spatialScope": "inside_final_local_domain_downstream_of_upstream_boundaries_only",
+      "upstreamCatchmentsRepresentedByHydrographsExcluded": true,
+      "doubleCountingForbidden": true,
+      "h3Role": "evidence_index_only_not_hydraulic_mesh"
+    },
+    "evaluationIsolation": {
+      "datasetIds": [
+        "ea-recorded-flood-outlines",
+        "copernicus-emsr147-carlisle"
+      ],
+      "geometryLoaded": false,
+      "inputUse": false,
+      "calibrationUse": false
+    },
+    "execution": {
+      "state": "blocked",
+      "blockers": [
+        "event_valid_channel_and_defence_geometry_missing",
+        "upstream_boundary_placement_missing",
+        "downstream_boundary_missing",
+        "distributed_initial_state_missing",
+        "final_mesh_and_timestep_missing",
+        "pre_event_terrain_incomplete"
+      ]
+    }
   },
   "datasets": [
     {
@@ -370,7 +521,7 @@
       },
       "seriesAudit": {
         "station": "Willow Holme",
-        "stationReference": "026196fb-dc64-4e06-bc2b-ce360bd65a0a",
+        "stationReference": "606299",
         "measureNotation": "026196fb-dc64-4e06-bc2b-ce360bd65a0a-rainfall-t-900-mm-qualified",
         "intervalSeconds": 900,
         "windowStart": "2015-12-04T00:00:00Z",
@@ -734,7 +885,12 @@
     {
       "id": "upstream_boundary_series",
       "state": "passed",
-      "reason": "Great Corby, Cummersdale and Newbiggin Bridge each return all 288 qualified 15-minute flow values for the frozen window; they remain candidate Eden, Caldew and Petteril hydrographs until a domain and boundary protocol are frozen."
+      "reason": "Great Corby, Cummersdale and Newbiggin Bridge each return all 288 qualified 15-minute flow values for the frozen window. Their identities, units, native sampling and fail-closed treatment are frozen by the local boundary protocol."
+    },
+    {
+      "id": "hydraulic_boundary_protocol",
+      "state": "passed",
+      "reason": "The logical local envelope and three upstream discharge identities are frozen without inventing channel placement, interpolation, a downstream condition, an initial state or a hydraulic mesh."
     },
     {
       "id": "land_cover_lineage",
@@ -769,7 +925,7 @@
     {
       "id": "hydraulic_context",
       "state": "blocked",
-      "reason": "Three complete upstream hydrographs and pre-event model lineage now exist, but no runnable ISIS/TUFLOW package, event-valid channel geometry/roughness, downstream condition or as-of-2015 defence state has been accepted."
+      "reason": "The upstream protocol is frozen, but no runnable ISIS/TUFLOW package, event-valid channel geometry/roughness, downstream condition, distributed initial state or as-of-2015 defence state has been accepted."
     },
     {
       "id": "evaluation_geometry_identity",
@@ -785,6 +941,6 @@
   "acquisition": {
     "state": "metadata_only",
     "largeDownloadsAllowed": false,
-    "nextAction": "Freeze a local Carlisle hydraulic domain and boundary protocol around the three complete upstream hydrographs, obtain or explicitly rule out the cited ISIS/TUFLOW model package and as-of-2015 defence/channel evidence, and resolve the official pre-event DTM archives before opening evaluation geometry."
+    "nextAction": "Obtain or explicitly rule out the cited ISIS/TUFLOW model package and event-valid defence/channel evidence, identify a downstream condition and distributed initial state, and resolve the official pre-event DTM archives before freezing a runnable mesh or opening evaluation geometry."
   }
 }

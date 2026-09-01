@@ -487,15 +487,21 @@ Checkpoints:
 
 ## Phase 11 - Qualify the Cumbria 2015 public-data replay
 
-State: boundary and defence context qualified; acquisition gated
+State: upstream boundary protocol frozen; hydraulic execution gated
 
 Progress:
 
-- manifest v0.4.0 freezes a bounded Carlisle source-discovery envelope and the half-open 72-hour Storm Desmond window from 4 December 2015 00:00 UTC to 7 December 2015 00:00 UTC;
+- manifest v0.5.0 freezes a bounded Carlisle source-discovery envelope, a separate local hydraulic-protocol envelope and the half-open 72-hour Storm Desmond window from 4 December 2015 00:00 UTC to 7 December 2015 00:00 UTC;
 - the canonical Python Earthaccess path found all 144 expected GPM_3IMERGHH V07 Final Run half-hour granules without opening or downloading raster data; V07 remains explicitly retrospective reprocessing;
 - the Environment Agency Hydrology API returned all 288 expected qualified 15-minute flow values and all 288 level values at Sheepmount on the River Eden, with observed maxima of 1,676.632 m3/s and 7.648 m respectively;
 - Willow Holme returned all 288 expected local rainfall values and a 49 mm window total; this is station comparison only and is not represented as high-fell or catchment-wide rainfall;
-- the three upstream stations named by the official Carlisle investigation return complete qualified 15-minute flow series: Great Corby on the Eden, Cummersdale on the Caldew and Newbiggin Bridge on the Petteril each supply 288/288 event-window values and remain candidate hydrographs until the local domain and boundary protocol are frozen;
+- the three upstream stations named by the official Carlisle investigation return complete qualified 15-minute flow series: Great Corby on the Eden, Cummersdale on the Caldew and Newbiggin Bridge on the Petteril each supply 288/288 event-window values;
+- the local boundary protocol pins the three station UUIDs, station references, coordinates, watercourses, units, exact UTC window and native 900-second samples; it forbids interpolation, extrapolation, gap filling and missing-value substitution until an explicit solver transformation is versioned;
+- the protocol envelope expands the source-discovery AOI east only far enough to contain Great Corby; it requires EPSG:27700 for future solver geometry and Ordnance Datum Newlyn for vertical evidence, but explicitly does not claim a final mesh or channel placement;
+- local IMERG/runoff forcing is restricted to the future domain downstream of the three inflows and excludes upstream catchments already represented by the hydrographs, preventing double counting;
+- Sheepmount remains observation comparison only; Rockcliffe was screened through the official Hydrology API and exposes a groundwater-dip measure rather than a surface-water series, so no downstream boundary is inferred;
+- the distributed initial state remains missing: the first three discharge samples do not define channel stage, floodplain wetness or warm-up state;
+- Willow Holme now retains official station reference `606299` separately from its UUID and measure identity;
 - CLC 2012 is the land-cover candidate because its 2011-2012 reference imagery predates the event, while its currently published corrected release remains disclosed as retrospective processing;
 - the official Environment Agency time-stamped DTM catalogue returned 550 source rows over 241 intersecting OS grid references; a deterministic latest-pre-event selection covers 231 references and is frozen as SHA-256 `b69a687cd42719c200de1e6e51e3a08b96045fc3ffdccf6b7ed2473494e22788`;
 - ten grid references have no pre-event catalogue record (`NY3256`, `NY3446`, `NY3448`, `NY3646`, `NY3652`, `NY3846`, `NY3848`, `NY3959`, `NY4062`, `NY4162`) and remain explicitly missing;
@@ -512,14 +518,16 @@ Progress:
 - `npm run audit:cumbria-lidar-catalog` replays the official bounded catalogue query, selection rule, coverage gaps and SHA-256 identity, and fails on upstream drift;
 - `npm run audit:cumbria-hydrography` replays the bounded Cycle 1 WFS count and 16-feature selection, preserves whole-geometry bounds outside the intersecting AOI and fails on identity drift;
 - `npm run audit:cumbria-hydraulic-context` rechecks the bounded current AIMS selection, event-date completeness diagnostics, SHA-256 identity and the availability of the two official model-context records without promoting current or narrative evidence;
+- `npm run audit:cumbria-boundary-protocol` rechecks the three official upstream station identities and advertised flow measures, confirms Rockcliffe is a rejected groundwater measure, verifies Willow Holme station reference `606299`, and reports the still-missing downstream, initial-state and mesh gates without loading evaluation geometry;
 - no local raster or observed-extent artifact is registered by the metadata-only manifest, and large acquisition remains blocked.
 
 Work:
 
 - map the 231 selected pre-event catalogue records to official downloadable DTM GeoTIFF identities and retain the ten uncovered grid references as missing unless an independently authoritative pre-event source resolves them;
 - determine a modelling grid that preserves native terrain and land-cover resolution claims while keeping H3 as an explicit representation choice;
-- freeze a local hydraulic domain and a typed boundary protocol around the three complete candidate upstream hydrographs;
+- obtain event-valid channel geometry so the three frozen upstream station coordinates can be placed on a hydraulic network rather than merely enclosed by the protocol envelope;
 - obtain or explicitly rule out the cited ISIS/TUFLOW model package, event-valid channel geometry/roughness, downstream condition and December 2015 defence state;
+- define a distributed initial state or reproducible warm-up procedure and a solver timestep before any resampling of the native hydrographs;
 - freeze input identities and transformation versions before downloading or opening either independent flood-extent reference;
 - only after those gates pass, materialize bounded IMERG, terrain and land-cover evidence outside Git and define a prediction/evaluation protocol.
 
@@ -529,6 +537,6 @@ Gate:
 - current hydrography is not silently represented as an as-of-2015 network;
 - post-event reports and observed flood geometry cannot enter model input or calibration;
 - missing hydraulic context remains missing rather than becoming zero or inferred geometry;
-- bulk acquisition begins only after the input domain and evaluation isolation are reproducible.
+- the protocol envelope cannot be represented as a final hydraulic mesh; bulk acquisition begins only after terrain identities and the remaining physical gates are reproducible.
 
-Checkpoints: `test: qualify Cumbria public-data access`; `test: freeze Cumbria pre-event terrain catalogue`; `test: qualify Cumbria hydraulic context`
+Checkpoints: `test: qualify Cumbria public-data access`; `test: freeze Cumbria pre-event terrain catalogue`; `test: qualify Cumbria hydraulic context`; `test: freeze Cumbria hydraulic boundary protocol`
