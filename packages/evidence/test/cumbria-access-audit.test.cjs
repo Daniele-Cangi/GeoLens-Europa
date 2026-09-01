@@ -132,7 +132,7 @@ test('pre-event terrain catalogue selection is reproducible and incomplete', () 
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.5.0');
+  assert.equal(manifest.manifestVersion, '0.6.0');
   assert.equal(lidar.access.state, 'catalog_verified');
   assert.deepEqual(
     {
@@ -229,11 +229,12 @@ test('event-valid river context remains distinct from a hydraulic network', () =
   );
 });
 
-test('three complete upstream hydrographs remain candidate boundaries', () => {
+test('four complete upstream hydrographs remain candidate boundaries', () => {
   const manifest = manifestFixture();
   const boundarySeries = manifest.datasets.filter((dataset) =>
     [
       'ea-hydrology-great-corby-flow',
+      'ea-hydrology-greenholme-flow',
       'ea-hydrology-cummersdale-flow',
       'ea-hydrology-newbiggin-bridge-flow',
     ].includes(dataset.id),
@@ -241,11 +242,11 @@ test('three complete upstream hydrographs remain candidate boundaries', () => {
 
   assert.deepEqual(
     boundarySeries.map((dataset) => dataset.seriesAudit.station),
-    ['Great Corby', 'Cummersdale', 'Newbiggin Bridge'],
+    ['Great Corby', 'Greenholme', 'Cummersdale', 'Newbiggin Bridge'],
   );
   assert.deepEqual(
     boundarySeries.map((dataset) => dataset.seriesAudit.maximum),
-    [1486.39, 279.159, 97.426],
+    [1486.39, 228.795, 279.159, 97.426],
   );
   for (const dataset of boundarySeries) {
     assert.equal(dataset.role, 'model_input_candidate');
@@ -255,6 +256,15 @@ test('three complete upstream hydrographs remain candidate boundaries', () => {
     assert.equal(dataset.seriesAudit.readings, 288);
     assert.equal(dataset.seriesAudit.missingReadings, 0);
   }
+
+  const missingIrthing = manifestFixture();
+  missingIrthing.datasets = missingIrthing.datasets.filter(
+    (dataset) => dataset.id !== 'ea-hydrology-greenholme-flow',
+  );
+  assert.throws(
+    () => assertCumbriaAccessManifest(missingIrthing),
+    /Missing required Cumbria dataset "ea-hydrology-greenholme-flow"/,
+  );
 });
 
 test('local hydraulic protocol freezes upstream inputs without inventing missing physics', () => {
@@ -287,6 +297,14 @@ test('local hydraulic protocol freezes upstream inputs without inventing missing
         placement: 'blocked_missing_channel_geometry',
       },
       {
+        id: 'irthing-greenholme',
+        stationReference: '763308',
+        quantity: 'discharge',
+        unit: 'm3/s',
+        resampling: 'native_samples_only',
+        placement: 'blocked_missing_channel_geometry',
+      },
+      {
         id: 'caldew-cummersdale',
         stationReference: '765013',
         quantity: 'discharge',
@@ -312,6 +330,28 @@ test('local hydraulic protocol freezes upstream inputs without inventing missing
   assert.equal(
     protocol.downstreamBoundary.screenedCandidate.classification,
     'rejected_groundwater_measure_not_surface_water_boundary',
+  );
+  assert.deepEqual(protocol.downstreamBoundary.historicalModelLimit, {
+    sourceDatasetId: 'cumberland-carlisle-sfra-2011-main-and-appendix-c',
+    location: 'Old Sandsfield',
+    sourceGridReference: 'NY332617',
+    coordinate: {
+      crs: 'EPSG:27700',
+      easting: 333200,
+      northing: 561700,
+    },
+    derivedWgs84: {
+      crs: 'EPSG:4326',
+      lon: -3.044369,
+      lat: 54.945463,
+      transformation: 'proj4-bng-to-wgs84-v0',
+    },
+    sourceTidalRelation: 'upstream_of_tidal_limits',
+    relation: 'historical_model_limit_without_boundary_values',
+  });
+  assert.equal(
+    protocol.downstreamBoundary.stationSearch.stationAtHistoricalLimit,
+    false,
   );
   assert.equal(protocol.initialState.state, 'missing');
   assert.equal(
@@ -432,6 +472,101 @@ test('current AIMS defences cannot masquerade as the 2015 defence state', () => 
   assert.throws(
     () => assertCumbriaAccessManifest(manifest),
     /context-only evidence cannot enter computation/,
+  );
+});
+
+test('current AIMS channels remain context rather than solver geometry', () => {
+  const manifest = manifestFixture();
+  const channels = manifest.datasets.find(
+    (dataset) => dataset.id === 'ea-aims-channel-current',
+  );
+
+  assert.equal(channels.role, 'context_only');
+  assert.equal(channels.temporalRelation, 'current_context');
+  assert.deepEqual(channels.channelContextAudit.assetSubtypeCounts, {
+    'Complex Culvert': 29,
+    'Open Channel': 91,
+    'Simple Culvert': 229,
+  });
+  assert.equal(channels.channelContextAudit.numberReturned, 349);
+  assert.equal(channels.channelContextAudit.missingAssetStartDate, 272);
+  assert.equal(channels.channelContextAudit.crossSectionsIncluded, false);
+  assert.equal(channels.channelContextAudit.bedElevationIncluded, false);
+  assert.equal(channels.channelContextAudit.roughnessIncluded, false);
+
+  channels.permittedUses.modelInput = true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(manifest),
+    /context-only evidence cannot enter computation/,
+  );
+});
+
+test('historical Carlisle domain lineage is explicit without asserting boundary placement', () => {
+  const manifest = manifestFixture();
+  const domain = manifest.datasets.find(
+    (dataset) =>
+      dataset.id === 'cumberland-carlisle-sfra-2011-main-and-appendix-c',
+  );
+
+  assert.deepEqual(
+    domain.hydraulicDomainLineageAudit.upstreamLimits.map((limit) => [
+      limit.watercourse,
+      limit.location,
+      limit.placementVerified,
+    ]),
+    [
+      ['River Eden', 'Wetheral Railway Bridge', false],
+      ['River Irthing', 'Greenholme Weir', false],
+      ['River Petteril', 'Scalesceugh', false],
+      ['River Caldew', 'Cummersdale Railway Bridge', false],
+    ],
+  );
+  assert.equal(
+    domain.hydraulicDomainLineageAudit.downstreamLimit.location,
+    'Old Sandsfield',
+  );
+  assert.equal(
+    domain.hydraulicDomainLineageAudit.downstreamLimit.boundaryValuesAttached,
+    false,
+  );
+
+  domain.hydraulicDomainLineageAudit.upstreamLimits[1].placementVerified = true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(manifest),
+    /SFRA upstream placement state/,
+  );
+});
+
+test('flood-model catalogue freezes request identities but excludes post-event models', () => {
+  const manifest = manifestFixture();
+  const catalogue = manifest.datasets.find(
+    (dataset) => dataset.id === 'ea-flood-model-locations',
+  );
+
+  assert.equal(catalogue.access.state, 'remote_verified');
+  assert.equal(catalogue.floodModelCatalogAudit.numberReturned, 19);
+  assert.deepEqual(
+    catalogue.floodModelCatalogAudit.coreModels.map((model) => [
+      model.id,
+      model.temporalUse,
+    ]),
+    [
+      [1313, 'pre_event_lineage_only'],
+      [1314, 'pre_event_lineage_only'],
+      [1797, 'pre_event_lineage_only'],
+      [2039, 'post_event_excluded'],
+      [8323, 'pre_event_lineage_only'],
+      [9458, 'post_event_excluded'],
+    ],
+  );
+  assert.equal(catalogue.floodModelCatalogAudit.modelFilesIncluded, false);
+  assert.equal(catalogue.floodModelCatalogAudit.modelOutputsIncluded, false);
+
+  catalogue.floodModelCatalogAudit.coreModels[3].temporalUse =
+    'pre_event_lineage_only';
+  assert.throws(
+    () => assertCumbriaAccessManifest(manifest),
+    /Flood-model core identities drifted/,
   );
 });
 

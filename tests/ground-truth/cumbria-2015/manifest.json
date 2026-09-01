@@ -1,9 +1,9 @@
 {
-  "manifestVersion": "0.5.0",
+  "manifestVersion": "0.6.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
-    "verifiedOn": "2026-08-31"
+    "verifiedOn": "2026-09-01"
   },
   "event": {
     "name": "Storm Desmond",
@@ -54,6 +54,34 @@
           "crs": "EPSG:4326",
           "lon": -2.830506,
           "lat": 54.889932
+        },
+        "quantity": "discharge",
+        "unit": "m3/s",
+        "nativeIntervalSeconds": 900,
+        "windowStart": "2015-12-04T00:00:00Z",
+        "windowEndExclusive": "2015-12-07T00:00:00Z",
+        "samplePolicy": {
+          "interpretation": "qualified_instantaneous_observations",
+          "resampling": "native_samples_only",
+          "gapFill": false,
+          "extrapolation": false,
+          "missingValueSubstitution": false
+        },
+        "placement": {
+          "state": "blocked_missing_channel_geometry",
+          "coordinateUse": "station_location_only"
+        }
+      },
+      {
+        "id": "irthing-greenholme",
+        "watercourse": "River Irthing",
+        "datasetId": "ea-hydrology-greenholme-flow",
+        "stationId": "4d9c9969-529b-4990-850c-3a3cb03eb110",
+        "stationReference": "763308",
+        "coordinate": {
+          "crs": "EPSG:4326",
+          "lon": -2.803045,
+          "lat": 54.914677
         },
         "quantity": "discharge",
         "unit": "m3/s",
@@ -145,13 +173,44 @@
         },
         "measureNotation": "215f4242-cd9c-477e-96a6-0e2de7a3aef5-gw-dipped-i-mAOD-qualified",
         "classification": "rejected_groundwater_measure_not_surface_water_boundary"
+      },
+      "historicalModelLimit": {
+        "sourceDatasetId": "cumberland-carlisle-sfra-2011-main-and-appendix-c",
+        "location": "Old Sandsfield",
+        "sourceGridReference": "NY332617",
+        "coordinate": {
+          "crs": "EPSG:27700",
+          "easting": 333200,
+          "northing": 561700
+        },
+        "derivedWgs84": {
+          "crs": "EPSG:4326",
+          "lon": -3.044369,
+          "lat": 54.945463,
+          "transformation": "proj4-bng-to-wgs84-v0"
+        },
+        "sourceTidalRelation": "upstream_of_tidal_limits",
+        "relation": "historical_model_limit_without_boundary_values"
+      },
+      "stationSearch": {
+        "queryUrl": "https://environment.data.gov.uk/hydrology/id/stations.json?lat=54.9454633&long=-3.0443686&dist=8&_limit=1000",
+        "radiusParameter": 8,
+        "surfaceWaterStationCount": 15,
+        "riverEdenStationIds": [
+          "078cbfd9-31ae-46f4-bbcc-0dbdaa191cd3",
+          "3b25dafd-e152-4dab-880a-d5aa4bae26a5",
+          "a8358fc5-337b-4a5b-b13f-bb9874c5188f"
+        ],
+        "stationAtHistoricalLimit": false,
+        "selectionSha256": "81df21c39b7f896d1d718fdb1262a8c4d42b9be9fb8e1b466054ba9029a15107",
+        "classification": "no_downstream_boundary_observation"
       }
     },
     "initialState": {
       "state": "missing",
       "warmupRequired": true,
       "firstUpstreamSamplesDefineDistributedState": false,
-      "note": "The first three discharge samples do not define channel stage, floodplain wetness or a distributed initial condition."
+      "note": "The first four discharge samples do not define channel stage, floodplain wetness or a distributed initial condition."
     },
     "localForcing": {
       "precipitationDatasetId": "nasa-imerg-v07-final",
@@ -579,6 +638,46 @@
       }
     },
     {
+      "id": "ea-hydrology-greenholme-flow",
+      "publisher": "Environment Agency",
+      "dataset": "Hydrology API qualified instantaneous flow",
+      "role": "model_input_candidate",
+      "temporalRelation": "event_window",
+      "sourceResolution": "15 minute station series",
+      "license": "Open Government Licence",
+      "permittedUses": {
+        "modelInput": true,
+        "calibration": false,
+        "observationComparison": false,
+        "evaluation": false
+      },
+      "access": {
+        "state": "remote_verified",
+        "checkedOn": "2026-09-01",
+        "url": "https://environment.data.gov.uk/hydrology/id/measures/4d9c9969-529b-4990-850c-3a3cb03eb110-flow-i-900-m3s-qualified/readings?mineq-date=2015-12-04&maxeq-date=2015-12-07&_limit=10000",
+        "additionalUrls": [
+          "https://environment.data.gov.uk/hydrology/id/stations/4d9c9969-529b-4990-850c-3a3cb03eb110"
+        ],
+        "note": "The complete Irthing flow series is a candidate upstream hydrograph because the official 2011 Carlisle model domain names Greenholme Weir as a separate upstream limit. Station coordinates remain observation locations, not verified model cross-sections."
+      },
+      "seriesAudit": {
+        "station": "Greenholme",
+        "stationReference": "763308",
+        "measureNotation": "4d9c9969-529b-4990-850c-3a3cb03eb110-flow-i-900-m3s-qualified",
+        "intervalSeconds": 900,
+        "windowStart": "2015-12-04T00:00:00Z",
+        "windowEndExclusive": "2015-12-07T00:00:00Z",
+        "expectedReadings": 288,
+        "readings": 288,
+        "missingReadings": 0,
+        "firstObservedAt": "2015-12-04T00:00:00Z",
+        "lastObservedAt": "2015-12-06T23:45:00Z",
+        "unit": "m3/s",
+        "minimum": 20.126,
+        "maximum": 228.795
+      }
+    },
+    {
       "id": "ea-hydrology-cummersdale-flow",
       "publisher": "Environment Agency",
       "dataset": "Hydrology API qualified instantaneous flow",
@@ -708,6 +807,136 @@
       }
     },
     {
+      "id": "ea-aims-channel-current",
+      "publisher": "Environment Agency",
+      "dataset": "AIMS Channel",
+      "role": "context_only",
+      "temporalRelation": "current_context",
+      "sourceResolution": "current channel and culvert line inventory",
+      "license": "Open Government Licence",
+      "permittedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "observationComparison": false,
+        "evaluation": false
+      },
+      "access": {
+        "state": "remote_verified",
+        "checkedOn": "2026-09-01",
+        "url": "https://www.data.gov.uk/dataset/b9d1e95e-0e83-4e30-baf7-1942598f9cea/aims-channel",
+        "additionalUrls": [
+          "https://environment.data.gov.uk/spatialdata/aims-channel/ogc/features/v1"
+        ],
+        "note": "The bounded OGC inventory is reproducible but current and mostly lacks asset start dates. It contains channel and culvert line context, not cross-sections, bed levels or hydraulic roughness, so it cannot be promoted to the 2015 solver geometry."
+      },
+      "channelContextAudit": {
+        "queryUrl": "https://environment.data.gov.uk/spatialdata/aims-channel/ogc/features/v1/collections/AIMS_Channel/items?bbox=-3.05%2C54.82%2C-2.8%2C55&limit=1000&f=json",
+        "sourceBbox": [-3.05, 54.82, -2.8, 55.0],
+        "sourceCrs": "OGC:CRS84",
+        "numberMatched": 349,
+        "numberReturned": 349,
+        "returnedGeometryBounds": [-3.053261, 54.830081, -2.795745, 55.007977],
+        "sourceUpdateSemantics": "daily_current_inventory",
+        "withAssetStartDate": 77,
+        "operationalBeforeEventByStartDateOnly": 60,
+        "assetStartDateOnOrAfterEvent": 17,
+        "missingAssetStartDate": 272,
+        "lastRefurbishedAfter2015": 0,
+        "withWatercourseName": 237,
+        "assetSubtypeCounts": {
+          "Complex Culvert": 29,
+          "Open Channel": 91,
+          "Simple Culvert": 229
+        },
+        "selectionSha256": "2521ff81a5e2c5b308d3ac69005ab8b7ebeb8338fe51afc93ec92ac57ba75c0c",
+        "crossSectionsIncluded": false,
+        "bedElevationIncluded": false,
+        "roughnessIncluded": false,
+        "classification": "current_context_only",
+        "blocker": "The source is a current asset inventory, 272 of 349 records have no start date and 17 dated records start on or after the event; the schema contains no cross-section, bed-elevation or roughness fields required for an event-valid hydraulic model."
+      }
+    },
+    {
+      "id": "cumberland-carlisle-sfra-2011-main-and-appendix-c",
+      "publisher": "Cumberland Council",
+      "dataset": "Carlisle SFRA main report and Appendix C",
+      "datasetVersion": "Version 3.0, 22 November 2011",
+      "role": "context_only",
+      "temporalRelation": "pre_event",
+      "sourceResolution": "public reports describing the historical model domain; no machine-readable model package",
+      "license": "Public authority publication; redistribution not assessed",
+      "permittedUses": {
+        "modelInput": false,
+        "calibration": false,
+        "observationComparison": false,
+        "evaluation": false
+      },
+      "access": {
+        "state": "remote_verified",
+        "checkedOn": "2026-09-01",
+        "url": "https://www.cumberland.gov.uk/sites/default/files/2025-08/eb_016_carlisle_sfra_main_report.pdf",
+        "additionalUrls": [
+          "https://www.cumberland.gov.uk/sites/default/files/2025-08/eb_016_carlisle_sfra_appendix_c_final_november_2011.pdf"
+        ],
+        "note": "The reports identify four upstream watercourse limits and Old Sandsfield as the downstream model limit. They establish historical domain lineage only; the named gauging stations are not asserted to equal model cross-sections and no boundary values are attached."
+      },
+      "hydraulicDomainLineageAudit": {
+        "documentDate": "2011-11-22",
+        "originalModelCompletedYear": 1999,
+        "crossSectionSurveyCompleted": "2003-10",
+        "calibrationEvent": "January 2005 flood",
+        "modelComponents": ["ISIS 1D", "TUFLOW 2D"],
+        "upstreamLimits": [
+          {
+            "watercourse": "River Eden",
+            "location": "Wetheral Railway Bridge",
+            "candidateSeriesDatasetId": "ea-hydrology-great-corby-flow",
+            "placementVerified": false
+          },
+          {
+            "watercourse": "River Irthing",
+            "location": "Greenholme Weir",
+            "candidateSeriesDatasetId": "ea-hydrology-greenholme-flow",
+            "placementVerified": false
+          },
+          {
+            "watercourse": "River Petteril",
+            "location": "Scalesceugh",
+            "candidateSeriesDatasetId": "ea-hydrology-newbiggin-bridge-flow",
+            "placementVerified": false
+          },
+          {
+            "watercourse": "River Caldew",
+            "location": "Cummersdale Railway Bridge",
+            "candidateSeriesDatasetId": "ea-hydrology-cummersdale-flow",
+            "placementVerified": false
+          }
+        ],
+        "downstreamLimit": {
+          "location": "Old Sandsfield",
+          "sourceGridReference": "NY332617",
+          "coordinate": {
+            "crs": "EPSG:27700",
+            "easting": 333200,
+            "northing": 561700
+          },
+          "derivedWgs84": {
+            "crs": "EPSG:4326",
+            "lon": -3.044369,
+            "lat": 54.945463,
+            "transformation": "proj4-bng-to-wgs84-v0"
+          },
+          "sourceTidalRelation": "upstream_of_tidal_limits",
+          "boundaryValuesAttached": false
+        },
+        "machineReadableCrossSectionsAttached": false,
+        "machineReadableBoundaryConditionsAttached": false,
+        "machineReadableModelFilesAttached": false,
+        "classification": "pre_event_domain_lineage_only",
+        "blocker": "The reports name the model limits and lineage but do not attach the historical cross-sections, boundary time series, downstream relation, roughness, mesh or executable ISIS/TUFLOW files."
+      }
+    },
+    {
       "id": "cumberland-carlisle-sfra-2011-appendix-d",
       "publisher": "Cumberland Council",
       "dataset": "Carlisle SFRA Appendix D - Breach Analysis Methodology",
@@ -755,21 +984,80 @@
         "evaluation": false
       },
       "access": {
-        "state": "metadata_verified",
-        "checkedOn": "2026-08-30",
+        "state": "remote_verified",
+        "checkedOn": "2026-09-01",
         "url": "https://www.data.gov.uk/dataset/52a66091-13c4-437f-918a-18b79295babe/flood-model-locations",
         "additionalUrls": [
           "https://environment.data.gov.uk/spatialdata/flood-model-locations/ogc/features/v1"
         ],
-        "note": "The official catalogue states that flood model files and outputs are not included. A bounded Carlisle WFS/OGC request returned no bytes before a 20-second timeout, so no local model identity is asserted from this catalogue."
+        "note": "The official bounded OGC catalogue returned 19 Carlisle-area model records and now provides exact group identities for a future Environment Agency request. The catalogue still excludes model files and outputs; post-event Carlisle 2015 and 2016 records cannot enter replay input or calibration."
       },
       "facts": {
         "metadataCreationDate": "2024-01-09",
         "updateFrequency": "quarterly",
         "modelFilesIncluded": false,
         "modelOutputsIncluded": false,
-        "boundedQueryState": "upstream_timeout",
-        "boundedCarlisleSelectionVerified": false
+        "boundedQueryState": "verified",
+        "boundedCarlisleSelectionVerified": true
+      },
+      "floodModelCatalogAudit": {
+        "queryUrl": "https://environment.data.gov.uk/spatialdata/flood-model-locations/ogc/features/v1/collections/Flood_Model_Locations/items?bbox=-3.05%2C54.82%2C-2.8%2C55&limit=100&f=json",
+        "sourceBbox": [-3.05, 54.82, -2.8, 55.0],
+        "sourceCrs": "OGC:CRS84",
+        "numberMatched": 19,
+        "numberReturned": 19,
+        "returnedGeometryBounds": [-3.057794, 54.77456, -2.794327, 54.996921],
+        "preEventRecords": 13,
+        "eventOrPostEventRecords": 6,
+        "coreModels": [
+          {
+            "id": 1313,
+            "name": "EA01103 SFRM Eden ABDs (Carlisle)",
+            "completionDate": "2007-06-30",
+            "softwareAndVersion": null,
+            "temporalUse": "pre_event_lineage_only"
+          },
+          {
+            "id": 1314,
+            "name": "EA01103 SFRM Eden ABDs (Carlisle) - defended",
+            "completionDate": "2007-06-30",
+            "softwareAndVersion": null,
+            "temporalUse": "pre_event_lineage_only"
+          },
+          {
+            "id": 1797,
+            "name": "EA01103 Carlisle FAS - defended (gates closed)",
+            "completionDate": "2010-01-01",
+            "softwareAndVersion": null,
+            "temporalUse": "pre_event_lineage_only"
+          },
+          {
+            "id": 2039,
+            "name": "Carlisle 2015",
+            "completionDate": "2016-01-19",
+            "softwareAndVersion": "FMP-TUFLOW (v4.1, 2013-12-AD-iDP-w64)",
+            "temporalUse": "post_event_excluded"
+          },
+          {
+            "id": 8323,
+            "name": "Carlisle_Tidal 2012",
+            "completionDate": "2013-07-01",
+            "softwareAndVersion": "TUFLOW (2012-05-AC-w64)",
+            "temporalUse": "pre_event_lineage_only"
+          },
+          {
+            "id": 9458,
+            "name": "Carlisle 2016",
+            "completionDate": "2016-11-24",
+            "softwareAndVersion": "FMP-TUFLOW",
+            "temporalUse": "post_event_excluded"
+          }
+        ],
+        "selectionSha256": "0b721138c212753c7b54739846fa451fbaf964a8ce72ac5e45adc8a7fda45cd1",
+        "modelFilesIncluded": false,
+        "modelOutputsIncluded": false,
+        "classification": "catalog_identity_only",
+        "blocker": "The catalogue exposes model-group identities and footprints only. The runnable files, outputs, historical cross-sections and event-valid boundary package must still be obtained separately."
       }
     },
     {
@@ -885,12 +1173,12 @@
     {
       "id": "upstream_boundary_series",
       "state": "passed",
-      "reason": "Great Corby, Cummersdale and Newbiggin Bridge each return all 288 qualified 15-minute flow values for the frozen window. Their identities, units, native sampling and fail-closed treatment are frozen by the local boundary protocol."
+      "reason": "Great Corby, Greenholme, Cummersdale and Newbiggin Bridge each return all 288 qualified 15-minute flow values for the frozen window. Their identities, units, native sampling and fail-closed treatment are frozen by the local boundary protocol."
     },
     {
       "id": "hydraulic_boundary_protocol",
       "state": "passed",
-      "reason": "The logical local envelope and three upstream discharge identities are frozen without inventing channel placement, interpolation, a downstream condition, an initial state or a hydraulic mesh."
+      "reason": "The logical local envelope and four upstream discharge identities are frozen without inventing channel placement, interpolation, a downstream condition, an initial state or a hydraulic mesh. Old Sandsfield is retained only as the documented historical model limit because its boundary values remain unavailable."
     },
     {
       "id": "land_cover_lineage",
@@ -915,7 +1203,7 @@
     {
       "id": "pre_event_hydraulic_model_lineage",
       "state": "passed",
-      "reason": "The 2011 Carlisle SFRA records an ISIS 1D/TUFLOW 2D model updated with the defence schemes and 23 floodgates, but only as document lineage rather than executable evidence."
+      "reason": "The 2011 Carlisle SFRA records an ISIS 1D/TUFLOW 2D model, four upstream watercourse limits, Old Sandsfield downstream, defence schemes and 23 floodgates, but only as document lineage rather than executable evidence."
     },
     {
       "id": "as_of_event_defence_state",
@@ -925,7 +1213,7 @@
     {
       "id": "hydraulic_context",
       "state": "blocked",
-      "reason": "The upstream protocol is frozen, but no runnable ISIS/TUFLOW package, event-valid channel geometry/roughness, downstream condition, distributed initial state or as-of-2015 defence state has been accepted."
+      "reason": "The four-series upstream protocol and historical domain lineage are frozen, and six Carlisle model-group identities are known. No runnable ISIS/TUFLOW package, event-valid channel geometry/roughness, downstream condition, distributed initial state or as-of-2015 defence state has been accepted."
     },
     {
       "id": "evaluation_geometry_identity",
@@ -941,6 +1229,6 @@
   "acquisition": {
     "state": "metadata_only",
     "largeDownloadsAllowed": false,
-    "nextAction": "Obtain or explicitly rule out the cited ISIS/TUFLOW model package and event-valid defence/channel evidence, identify a downstream condition and distributed initial state, and resolve the official pre-event DTM archives before freezing a runnable mesh or opening evaluation geometry."
+    "nextAction": "Request or explicitly rule out runnable pre-event packages for Flood Model Locations groups 1313, 1314, 1797 and 8323, including event-valid cross-sections, roughness, boundary definitions and defence state; identify the Old Sandsfield downstream condition and distributed initial state, and resolve the official pre-event DTM archives before freezing a mesh or opening evaluation geometry."
   }
 }
