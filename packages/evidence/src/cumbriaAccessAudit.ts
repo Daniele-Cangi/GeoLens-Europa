@@ -1,4 +1,4 @@
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.5.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.6.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -89,6 +89,9 @@ export interface CumbriaDatasetAudit {
   readonly hydrographyAudit?: CumbriaHydrographyAudit;
   readonly defenceContextAudit?: CumbriaDefenceContextAudit;
   readonly hydraulicModelLineageAudit?: CumbriaHydraulicModelLineageAudit;
+  readonly hydraulicDomainLineageAudit?: CumbriaHydraulicDomainLineageAudit;
+  readonly floodModelCatalogAudit?: CumbriaFloodModelCatalogAudit;
+  readonly channelContextAudit?: CumbriaChannelContextAudit;
 }
 
 export interface CumbriaDefenceContextAudit {
@@ -124,6 +127,85 @@ export interface CumbriaHydraulicModelLineageAudit {
   readonly machineReadableBoundaryConditionsAttached: false;
   readonly machineReadableChannelGeometryAttached: false;
   readonly classification: 'pre_event_model_lineage_only';
+  readonly blocker: string;
+}
+
+export interface CumbriaHydraulicDomainLineageAudit {
+  readonly documentDate: '2011-11-22';
+  readonly originalModelCompletedYear: 1999;
+  readonly crossSectionSurveyCompleted: '2003-10';
+  readonly calibrationEvent: 'January 2005 flood';
+  readonly modelComponents: readonly ['ISIS 1D', 'TUFLOW 2D'];
+  readonly upstreamLimits: readonly {
+    readonly watercourse: string;
+    readonly location: string;
+    readonly candidateSeriesDatasetId: string;
+    readonly placementVerified: false;
+  }[];
+  readonly downstreamLimit: {
+    readonly location: 'Old Sandsfield';
+    readonly sourceGridReference: 'NY332617';
+    readonly coordinate: {
+      readonly crs: 'EPSG:27700';
+      readonly easting: 333200;
+      readonly northing: 561700;
+    };
+    readonly derivedWgs84: CumbriaProtocolCoordinate & {
+      readonly transformation: 'proj4-bng-to-wgs84-v0';
+    };
+    readonly sourceTidalRelation: 'upstream_of_tidal_limits';
+    readonly boundaryValuesAttached: false;
+  };
+  readonly machineReadableCrossSectionsAttached: false;
+  readonly machineReadableBoundaryConditionsAttached: false;
+  readonly machineReadableModelFilesAttached: false;
+  readonly classification: 'pre_event_domain_lineage_only';
+  readonly blocker: string;
+}
+
+export interface CumbriaFloodModelCatalogAudit {
+  readonly queryUrl: string;
+  readonly sourceBbox: readonly [number, number, number, number];
+  readonly sourceCrs: 'OGC:CRS84';
+  readonly numberMatched: 19;
+  readonly numberReturned: 19;
+  readonly returnedGeometryBounds: readonly [number, number, number, number];
+  readonly preEventRecords: 13;
+  readonly eventOrPostEventRecords: 6;
+  readonly coreModels: readonly {
+    readonly id: number;
+    readonly name: string;
+    readonly completionDate: string;
+    readonly softwareAndVersion: string | null;
+    readonly temporalUse: 'pre_event_lineage_only' | 'post_event_excluded';
+  }[];
+  readonly selectionSha256: string;
+  readonly modelFilesIncluded: false;
+  readonly modelOutputsIncluded: false;
+  readonly classification: 'catalog_identity_only';
+  readonly blocker: string;
+}
+
+export interface CumbriaChannelContextAudit {
+  readonly queryUrl: string;
+  readonly sourceBbox: readonly [number, number, number, number];
+  readonly sourceCrs: 'OGC:CRS84';
+  readonly numberMatched: 349;
+  readonly numberReturned: 349;
+  readonly returnedGeometryBounds: readonly [number, number, number, number];
+  readonly sourceUpdateSemantics: 'daily_current_inventory';
+  readonly withAssetStartDate: 77;
+  readonly operationalBeforeEventByStartDateOnly: 60;
+  readonly assetStartDateOnOrAfterEvent: 17;
+  readonly missingAssetStartDate: 272;
+  readonly lastRefurbishedAfter2015: 0;
+  readonly withWatercourseName: 237;
+  readonly assetSubtypeCounts: Readonly<Record<string, number>>;
+  readonly selectionSha256: string;
+  readonly crossSectionsIncluded: false;
+  readonly bedElevationIncluded: false;
+  readonly roughnessIncluded: false;
+  readonly classification: 'current_context_only';
   readonly blocker: string;
 }
 
@@ -214,6 +296,30 @@ export interface CumbriaHydraulicBoundaryProtocol {
       readonly measureNotation: '215f4242-cd9c-477e-96a6-0e2de7a3aef5-gw-dipped-i-mAOD-qualified';
       readonly classification: 'rejected_groundwater_measure_not_surface_water_boundary';
     };
+    readonly historicalModelLimit: {
+      readonly sourceDatasetId: 'cumberland-carlisle-sfra-2011-main-and-appendix-c';
+      readonly location: 'Old Sandsfield';
+      readonly sourceGridReference: 'NY332617';
+      readonly coordinate: {
+        readonly crs: 'EPSG:27700';
+        readonly easting: 333200;
+        readonly northing: 561700;
+      };
+      readonly derivedWgs84: CumbriaProtocolCoordinate & {
+        readonly transformation: 'proj4-bng-to-wgs84-v0';
+      };
+      readonly sourceTidalRelation: 'upstream_of_tidal_limits';
+      readonly relation: 'historical_model_limit_without_boundary_values';
+    };
+    readonly stationSearch: {
+      readonly queryUrl: string;
+      readonly radiusParameter: 8;
+      readonly surfaceWaterStationCount: 15;
+      readonly riverEdenStationIds: readonly string[];
+      readonly stationAtHistoricalLimit: false;
+      readonly selectionSha256: string;
+      readonly classification: 'no_downstream_boundary_observation';
+    };
   };
   readonly initialState: {
     readonly state: 'missing';
@@ -252,6 +358,7 @@ export interface CumbriaProtocolCoordinate {
 export interface CumbriaUpstreamBoundary {
   readonly id:
     | 'eden-great-corby'
+    | 'irthing-greenholme'
     | 'caldew-cummersdale'
     | 'petteril-newbiggin-bridge';
   readonly watercourse: string;
@@ -476,9 +583,12 @@ export function assertCumbriaAccessManifest(
     'ea-hydrology-sheepmount-level',
     'ea-hydrology-willow-holme-rainfall',
     'ea-hydrology-great-corby-flow',
+    'ea-hydrology-greenholme-flow',
     'ea-hydrology-cummersdale-flow',
     'ea-hydrology-newbiggin-bridge-flow',
     'ea-aims-current-spatial-flood-defences',
+    'ea-aims-channel-current',
+    'cumberland-carlisle-sfra-2011-main-and-appendix-c',
     'cumberland-carlisle-sfra-2011-appendix-d',
     'cumberland-carlisle-section-19-report',
     'ea-flood-model-locations',
@@ -510,6 +620,7 @@ export function assertCumbriaAccessManifest(
     'ea-hydrology-sheepmount-level',
     'ea-hydrology-willow-holme-rainfall',
     'ea-hydrology-great-corby-flow',
+    'ea-hydrology-greenholme-flow',
     'ea-hydrology-cummersdale-flow',
     'ea-hydrology-newbiggin-bridge-flow',
   ]) {
@@ -835,6 +946,92 @@ export function assertCumbriaAccessManifest(
   );
   nonEmpty(defenceAudit.blocker, 'AIMS defence blocker');
 
+  const channelDataset = datasetRecords.get('ea-aims-channel-current');
+  equal(channelDataset?.role, 'context_only', 'AIMS channel role');
+  equal(
+    channelDataset?.temporalRelation,
+    'current_context',
+    'AIMS channel temporal relation',
+  );
+  const channelAudit = record(
+    channelDataset?.channelContextAudit,
+    'ea-aims-channel-current.channelContextAudit',
+  );
+  httpsUrl(channelAudit.queryUrl, 'AIMS channel query URL');
+  const channelSourceBbox = numericArray(
+    channelAudit.sourceBbox,
+    4,
+    'AIMS channel source bbox',
+  );
+  const protocolForChannel = record(manifest.hydraulicProtocol, 'hydraulicProtocol');
+  const protocolDomainForChannel = record(
+    protocolForChannel.domainEnvelope,
+    'hydraulicProtocol.domainEnvelope',
+  );
+  const protocolBounds = numericArray(
+    protocolDomainForChannel.bounds,
+    4,
+    'hydraulic protocol bounds for channel audit',
+  );
+  if (JSON.stringify(channelSourceBbox) !== JSON.stringify(protocolBounds)) {
+    throw new Error('AIMS channel source bbox must equal the protocol envelope');
+  }
+  equal(channelAudit.sourceCrs, 'OGC:CRS84', 'AIMS channel source CRS');
+  equal(channelAudit.numberMatched, 349, 'AIMS matched channels');
+  equal(channelAudit.numberReturned, 349, 'AIMS returned channels');
+  const channelReturnedBounds = numericArray(
+    channelAudit.returnedGeometryBounds,
+    4,
+    'AIMS channel returned geometry bounds',
+  );
+  if (
+    JSON.stringify(channelReturnedBounds) !==
+    JSON.stringify([-3.053261, 54.830081, -2.795745, 55.007977])
+  ) {
+    throw new Error('AIMS channel returned geometry bounds drifted');
+  }
+  equal(
+    channelAudit.sourceUpdateSemantics,
+    'daily_current_inventory',
+    'AIMS channel update semantics',
+  );
+  equal(channelAudit.withAssetStartDate, 77, 'AIMS dated channels');
+  equal(
+    channelAudit.operationalBeforeEventByStartDateOnly,
+    60,
+    'AIMS nominally pre-event channels',
+  );
+  equal(channelAudit.assetStartDateOnOrAfterEvent, 17, 'AIMS post-event channel starts');
+  equal(channelAudit.missingAssetStartDate, 272, 'AIMS missing channel start dates');
+  equal(channelAudit.lastRefurbishedAfter2015, 0, 'AIMS channel refurbishments');
+  equal(channelAudit.withWatercourseName, 237, 'AIMS named watercourses');
+  const channelSubtypeCounts = record(
+    channelAudit.assetSubtypeCounts,
+    'AIMS channel subtype counts',
+  );
+  const expectedChannelSubtypeCounts = {
+    'Complex Culvert': 29,
+    'Open Channel': 91,
+    'Simple Culvert': 229,
+  };
+  if (JSON.stringify(channelSubtypeCounts) !== JSON.stringify(expectedChannelSubtypeCounts)) {
+    throw new Error('AIMS channel subtype counts drifted');
+  }
+  equal(
+    channelAudit.selectionSha256,
+    '2521ff81a5e2c5b308d3ac69005ab8b7ebeb8338fe51afc93ec92ac57ba75c0c',
+    'AIMS channel selection SHA-256',
+  );
+  equal(channelAudit.crossSectionsIncluded, false, 'AIMS channel cross sections');
+  equal(channelAudit.bedElevationIncluded, false, 'AIMS channel bed elevation');
+  equal(channelAudit.roughnessIncluded, false, 'AIMS channel roughness');
+  equal(
+    channelAudit.classification,
+    'current_context_only',
+    'AIMS channel classification',
+  );
+  nonEmpty(channelAudit.blocker, 'AIMS channel blocker');
+
   const lineageDataset = datasetRecords.get(
     'cumberland-carlisle-sfra-2011-appendix-d',
   );
@@ -873,6 +1070,109 @@ export function assertCumbriaAccessManifest(
   );
   nonEmpty(lineage.blocker, 'SFRA lineage blocker');
 
+  const domainDataset = datasetRecords.get(
+    'cumberland-carlisle-sfra-2011-main-and-appendix-c',
+  );
+  equal(domainDataset?.role, 'context_only', 'SFRA domain-lineage role');
+  equal(domainDataset?.temporalRelation, 'pre_event', 'SFRA domain-lineage timing');
+  const domainLineage = record(
+    domainDataset?.hydraulicDomainLineageAudit,
+    'cumberland-carlisle-sfra-2011-main-and-appendix-c.hydraulicDomainLineageAudit',
+  );
+  equal(domainLineage.documentDate, '2011-11-22', 'SFRA domain document date');
+  equal(domainLineage.originalModelCompletedYear, 1999, 'SFRA original model year');
+  equal(
+    domainLineage.crossSectionSurveyCompleted,
+    '2003-10',
+    'SFRA cross-section survey date',
+  );
+  equal(
+    domainLineage.calibrationEvent,
+    'January 2005 flood',
+    'SFRA calibration event',
+  );
+  const domainComponents = stringArray(
+    domainLineage.modelComponents,
+    'SFRA domain model components',
+  );
+  if (JSON.stringify(domainComponents) !== JSON.stringify(['ISIS 1D', 'TUFLOW 2D'])) {
+    throw new Error('SFRA domain model components drifted');
+  }
+  const domainUpstreamLimits = array(
+    domainLineage.upstreamLimits,
+    'SFRA upstream model limits',
+  );
+  const expectedDomainLimits = [
+    ['River Eden', 'Wetheral Railway Bridge', 'ea-hydrology-great-corby-flow'],
+    ['River Irthing', 'Greenholme Weir', 'ea-hydrology-greenholme-flow'],
+    ['River Petteril', 'Scalesceugh', 'ea-hydrology-newbiggin-bridge-flow'],
+    ['River Caldew', 'Cummersdale Railway Bridge', 'ea-hydrology-cummersdale-flow'],
+  ];
+  const actualDomainLimits = domainUpstreamLimits.map((value) => {
+    const limit = record(value, 'SFRA upstream model limit');
+    equal(limit.placementVerified, false, 'SFRA upstream placement state');
+    return [
+      nonEmpty(limit.watercourse, 'SFRA upstream watercourse'),
+      nonEmpty(limit.location, 'SFRA upstream location'),
+      nonEmpty(limit.candidateSeriesDatasetId, 'SFRA upstream candidate series'),
+    ];
+  });
+  if (JSON.stringify(actualDomainLimits) !== JSON.stringify(expectedDomainLimits)) {
+    throw new Error('SFRA upstream model limits drifted');
+  }
+  const domainDownstream = record(
+    domainLineage.downstreamLimit,
+    'SFRA downstream model limit',
+  );
+  equal(domainDownstream.location, 'Old Sandsfield', 'SFRA downstream location');
+  equal(domainDownstream.sourceGridReference, 'NY332617', 'SFRA downstream grid reference');
+  const domainDownstreamCoordinate = record(
+    domainDownstream.coordinate,
+    'SFRA downstream coordinate',
+  );
+  equal(domainDownstreamCoordinate.crs, 'EPSG:27700', 'SFRA downstream coordinate CRS');
+  equal(domainDownstreamCoordinate.easting, 333200, 'SFRA downstream easting');
+  equal(domainDownstreamCoordinate.northing, 561700, 'SFRA downstream northing');
+  const domainDownstreamWgs84 = record(
+    domainDownstream.derivedWgs84,
+    'SFRA downstream WGS84 coordinate',
+  );
+  equal(domainDownstreamWgs84.crs, 'EPSG:4326', 'SFRA downstream WGS84 CRS');
+  equal(domainDownstreamWgs84.lon, -3.044369, 'SFRA downstream longitude');
+  equal(domainDownstreamWgs84.lat, 54.945463, 'SFRA downstream latitude');
+  equal(
+    domainDownstreamWgs84.transformation,
+    'proj4-bng-to-wgs84-v0',
+    'SFRA downstream transformation',
+  );
+  equal(
+    domainDownstream.sourceTidalRelation,
+    'upstream_of_tidal_limits',
+    'SFRA downstream tidal relation',
+  );
+  equal(domainDownstream.boundaryValuesAttached, false, 'SFRA downstream boundary values');
+  equal(
+    domainLineage.machineReadableCrossSectionsAttached,
+    false,
+    'SFRA cross-section attachments',
+  );
+  equal(
+    domainLineage.machineReadableBoundaryConditionsAttached,
+    false,
+    'SFRA domain boundary attachments',
+  );
+  equal(
+    domainLineage.machineReadableModelFilesAttached,
+    false,
+    'SFRA domain model attachments',
+  );
+  equal(
+    domainLineage.classification,
+    'pre_event_domain_lineage_only',
+    'SFRA domain classification',
+  );
+  nonEmpty(domainLineage.blocker, 'SFRA domain blocker');
+
   const modelLocationsDataset = datasetRecords.get('ea-flood-model-locations');
   equal(modelLocationsDataset?.role, 'context_only', 'model-location role');
   equal(
@@ -887,10 +1187,81 @@ export function assertCumbriaAccessManifest(
   equal(modelLocationsFacts.modelFilesIncluded, false, 'model-location files');
   equal(modelLocationsFacts.modelOutputsIncluded, false, 'model-location outputs');
   equal(
+    modelLocationsFacts.boundedQueryState,
+    'verified',
+    'model-location bounded query state',
+  );
+  equal(
     modelLocationsFacts.boundedCarlisleSelectionVerified,
-    false,
+    true,
     'model-location bounded selection',
   );
+  const modelCatalog = record(
+    modelLocationsDataset?.floodModelCatalogAudit,
+    'ea-flood-model-locations.floodModelCatalogAudit',
+  );
+  httpsUrl(modelCatalog.queryUrl, 'flood-model catalogue query URL');
+  const modelCatalogBbox = numericArray(
+    modelCatalog.sourceBbox,
+    4,
+    'flood-model catalogue source bbox',
+  );
+  if (JSON.stringify(modelCatalogBbox) !== JSON.stringify(protocolBounds)) {
+    throw new Error('Flood-model catalogue bbox must equal the protocol envelope');
+  }
+  equal(modelCatalog.sourceCrs, 'OGC:CRS84', 'flood-model catalogue CRS');
+  equal(modelCatalog.numberMatched, 19, 'flood-model catalogue matched records');
+  equal(modelCatalog.numberReturned, 19, 'flood-model catalogue returned records');
+  const modelCatalogBounds = numericArray(
+    modelCatalog.returnedGeometryBounds,
+    4,
+    'flood-model catalogue returned bounds',
+  );
+  if (
+    JSON.stringify(modelCatalogBounds) !==
+    JSON.stringify([-3.057794, 54.77456, -2.794327, 54.996921])
+  ) {
+    throw new Error('Flood-model catalogue returned bounds drifted');
+  }
+  equal(modelCatalog.preEventRecords, 13, 'pre-event flood-model records');
+  equal(modelCatalog.eventOrPostEventRecords, 6, 'event/post-event flood-model records');
+  const coreModels = array(modelCatalog.coreModels, 'flood-model core records');
+  const expectedCoreModels = [
+    [1313, 'EA01103 SFRM Eden ABDs (Carlisle)', '2007-06-30', null, 'pre_event_lineage_only'],
+    [1314, 'EA01103 SFRM Eden ABDs (Carlisle) - defended', '2007-06-30', null, 'pre_event_lineage_only'],
+    [1797, 'EA01103 Carlisle FAS - defended (gates closed)', '2010-01-01', null, 'pre_event_lineage_only'],
+    [2039, 'Carlisle 2015', '2016-01-19', 'FMP-TUFLOW (v4.1, 2013-12-AD-iDP-w64)', 'post_event_excluded'],
+    [8323, 'Carlisle_Tidal 2012', '2013-07-01', 'TUFLOW (2012-05-AC-w64)', 'pre_event_lineage_only'],
+    [9458, 'Carlisle 2016', '2016-11-24', 'FMP-TUFLOW', 'post_event_excluded'],
+  ];
+  const actualCoreModels = coreModels.map((value) => {
+    const model = record(value, 'flood-model core record');
+    return [
+      integer(model.id, 'flood-model id'),
+      nonEmpty(model.name, 'flood-model name'),
+      nonEmpty(model.completionDate, 'flood-model completion date'),
+      model.softwareAndVersion === null
+        ? null
+        : nonEmpty(model.softwareAndVersion, 'flood-model software'),
+      nonEmpty(model.temporalUse, 'flood-model temporal use'),
+    ];
+  });
+  if (JSON.stringify(actualCoreModels) !== JSON.stringify(expectedCoreModels)) {
+    throw new Error('Flood-model core identities drifted');
+  }
+  equal(
+    modelCatalog.selectionSha256,
+    '0b721138c212753c7b54739846fa451fbaf964a8ce72ac5e45adc8a7fda45cd1',
+    'flood-model catalogue selection SHA-256',
+  );
+  equal(modelCatalog.modelFilesIncluded, false, 'flood-model catalogue files');
+  equal(modelCatalog.modelOutputsIncluded, false, 'flood-model catalogue outputs');
+  equal(
+    modelCatalog.classification,
+    'catalog_identity_only',
+    'flood-model catalogue classification',
+  );
+  nonEmpty(modelCatalog.blocker, 'flood-model catalogue blocker');
 
   const section19Facts = record(
     datasetRecords.get('cumberland-carlisle-section-19-report')?.facts,
@@ -1011,6 +1382,15 @@ function hydraulicBoundaryProtocol(
       lat: 54.889932,
     },
     {
+      id: 'irthing-greenholme',
+      watercourse: 'River Irthing',
+      datasetId: 'ea-hydrology-greenholme-flow',
+      stationId: '4d9c9969-529b-4990-850c-3a3cb03eb110',
+      stationReference: '763308',
+      lon: -2.803045,
+      lat: 54.914677,
+    },
+    {
       id: 'caldew-cummersdale',
       watercourse: 'River Caldew',
       datasetId: 'ea-hydrology-cummersdale-flow',
@@ -1034,7 +1414,7 @@ function hydraulicBoundaryProtocol(
     'hydraulicProtocol.upstreamBoundaries',
   );
   if (upstreamBoundaries.length !== expectedBoundaries.length) {
-    throw new Error('Hydraulic protocol must contain exactly three upstream boundaries');
+    throw new Error('Hydraulic protocol must contain exactly four upstream boundaries');
   }
   for (const [index, expected] of expectedBoundaries.entries()) {
     const boundary = record(
@@ -1175,6 +1555,90 @@ function hydraulicBoundaryProtocol(
   equal(rockcliffeCoordinate.crs, 'EPSG:4326', 'Rockcliffe coordinate CRS');
   equal(rockcliffeCoordinate.lon, -2.985661, 'Rockcliffe longitude');
   equal(rockcliffeCoordinate.lat, 54.955058, 'Rockcliffe latitude');
+
+  const historicalLimit = record(
+    downstream.historicalModelLimit,
+    'hydraulicProtocol.downstreamBoundary.historicalModelLimit',
+  );
+  equal(
+    historicalLimit.sourceDatasetId,
+    'cumberland-carlisle-sfra-2011-main-and-appendix-c',
+    'Old Sandsfield source dataset',
+  );
+  equal(historicalLimit.location, 'Old Sandsfield', 'historical downstream location');
+  equal(
+    historicalLimit.sourceGridReference,
+    'NY332617',
+    'historical downstream grid reference',
+  );
+  const historicalCoordinate = record(
+    historicalLimit.coordinate,
+    'historical downstream BNG coordinate',
+  );
+  equal(historicalCoordinate.crs, 'EPSG:27700', 'historical downstream CRS');
+  equal(historicalCoordinate.easting, 333200, 'historical downstream easting');
+  equal(historicalCoordinate.northing, 561700, 'historical downstream northing');
+  const historicalWgs84 = record(
+    historicalLimit.derivedWgs84,
+    'historical downstream WGS84 coordinate',
+  );
+  equal(historicalWgs84.crs, 'EPSG:4326', 'historical downstream WGS84 CRS');
+  equal(historicalWgs84.lon, -3.044369, 'historical downstream longitude');
+  equal(historicalWgs84.lat, 54.945463, 'historical downstream latitude');
+  equal(
+    historicalWgs84.transformation,
+    'proj4-bng-to-wgs84-v0',
+    'historical downstream coordinate transformation',
+  );
+  equal(
+    historicalLimit.sourceTidalRelation,
+    'upstream_of_tidal_limits',
+    'historical downstream tidal relation',
+  );
+  equal(
+    historicalLimit.relation,
+    'historical_model_limit_without_boundary_values',
+    'historical downstream evidence relation',
+  );
+
+  const stationSearch = record(
+    downstream.stationSearch,
+    'hydraulicProtocol.downstreamBoundary.stationSearch',
+  );
+  httpsUrl(stationSearch.queryUrl, 'downstream station search URL');
+  equal(stationSearch.radiusParameter, 8, 'downstream station search radius');
+  equal(
+    stationSearch.surfaceWaterStationCount,
+    15,
+    'downstream surface-water station count',
+  );
+  const riverEdenStationIds = stringArray(
+    stationSearch.riverEdenStationIds,
+    'downstream River Eden station identities',
+  );
+  const expectedRiverEdenStationIds = [
+    '078cbfd9-31ae-46f4-bbcc-0dbdaa191cd3',
+    '3b25dafd-e152-4dab-880a-d5aa4bae26a5',
+    'a8358fc5-337b-4a5b-b13f-bb9874c5188f',
+  ];
+  if (JSON.stringify(riverEdenStationIds) !== JSON.stringify(expectedRiverEdenStationIds)) {
+    throw new Error('Downstream River Eden station identities drifted');
+  }
+  equal(
+    stationSearch.stationAtHistoricalLimit,
+    false,
+    'station at historical downstream limit',
+  );
+  equal(
+    stationSearch.selectionSha256,
+    '81df21c39b7f896d1d718fdb1262a8c4d42b9be9fb8e1b466054ba9029a15107',
+    'downstream station selection SHA-256',
+  );
+  equal(
+    stationSearch.classification,
+    'no_downstream_boundary_observation',
+    'downstream station search classification',
+  );
 
   const initialState = record(protocol.initialState, 'hydraulicProtocol.initialState');
   equal(initialState.state, 'missing', 'hydraulicProtocol.initialState.state');
