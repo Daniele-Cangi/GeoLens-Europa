@@ -132,7 +132,7 @@ test('pre-event terrain catalogue selection is reproducible and incomplete', () 
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.6.0');
+  assert.equal(manifest.manifestVersion, '0.7.0');
   assert.equal(lidar.access.state, 'catalog_verified');
   assert.deepEqual(
     {
@@ -592,6 +592,51 @@ test('pre-event hydraulic model lineage does not become a runnable model', () =>
   );
 });
 
+test('model access request asks for Products 5, 6 and 7 without evaluation leakage', () => {
+  const manifest = manifestFixture();
+  const request = manifest.modelAccessRequest;
+
+  assert.equal(request.state, 'prepared_not_sent');
+  assert.equal(request.recipient, 'enquiries@environment-agency.gov.uk');
+  assert.deepEqual(
+    request.products.map((product) => [product.number, product.scope]),
+    [
+      [5, 'model_and_hydrology_reports'],
+      [6, 'model_outputs_and_product_5_reports'],
+      [7, 'model_input_data_and_product_5_reports'],
+    ],
+  );
+  assert.deepEqual(request.modelGroupIds, [1313, 1314, 1797, 8323]);
+  assert.deepEqual(request.explicitlyExcludedModelGroupIds, [2039, 9458]);
+  assert.equal(request.product4Requested, false);
+  assert.equal(request.observedEventGeometryRequested, false);
+  assert.equal(request.acceptPostEventModelAsReplayInput, false);
+  assert.equal(request.requestNativeArchivedVersions, true);
+  assert.equal(request.intakePolicy.incompleteDeliveryRemainsMissing, true);
+
+  request.modelGroupIds[0] = 2039;
+  assert.throws(
+    () => assertCumbriaAccessManifest(manifest),
+    /pre-event group identities drifted/,
+  );
+});
+
+test('model access request rejects Product 4 and post-event replay input', () => {
+  const product4 = manifestFixture();
+  product4.modelAccessRequest.product4Requested = true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(product4),
+    /modelAccessRequest.product4Requested/,
+  );
+
+  const postEventInput = manifestFixture();
+  postEventInput.modelAccessRequest.acceptPostEventModelAsReplayInput = true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(postEventInput),
+    /acceptPostEventModelAsReplayInput/,
+  );
+});
+
 test('bulk acquisition remains blocked until pre-event terrain is identified', () => {
   const manifest = manifestFixture();
   const gates = new Map(
@@ -600,6 +645,7 @@ test('bulk acquisition remains blocked until pre-event terrain is identified', (
 
   assert.equal(gates.get('pre_event_lidar_tiles'), 'blocked');
   assert.equal(gates.get('upstream_boundary_series'), 'passed');
+  assert.equal(gates.get('hydraulic_model_access_request'), 'passed');
   assert.equal(gates.get('as_of_event_defence_state'), 'blocked');
   assert.equal(gates.get('hydraulic_context'), 'blocked');
   assert.equal(gates.get('evaluation_geometry_identity'), 'blocked');

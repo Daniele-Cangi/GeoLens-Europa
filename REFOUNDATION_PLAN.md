@@ -487,11 +487,11 @@ Checkpoints:
 
 ## Phase 11 - Qualify the Cumbria 2015 public-data replay
 
-State: historical hydraulic domain qualified; execution gated
+State: pre-event model access request frozen; execution gated
 
 Progress:
 
-- manifest v0.6.0 freezes a bounded Carlisle source-discovery envelope, a separate local hydraulic-protocol envelope and the half-open 72-hour Storm Desmond window from 4 December 2015 00:00 UTC to 7 December 2015 00:00 UTC;
+- manifest v0.7.0 freezes a bounded Carlisle source-discovery envelope, a separate local hydraulic-protocol envelope and the half-open 72-hour Storm Desmond window from 4 December 2015 00:00 UTC to 7 December 2015 00:00 UTC;
 - the canonical Python Earthaccess path found all 144 expected GPM_3IMERGHH V07 Final Run half-hour granules without opening or downloading raster data; V07 remains explicitly retrospective reprocessing;
 - the Environment Agency Hydrology API returned all 288 expected qualified 15-minute flow values and all 288 level values at Sheepmount on the River Eden, with observed maxima of 1,676.632 m3/s and 7.648 m respectively;
 - Willow Holme returned all 288 expected local rainfall values and a 49 mm window total; this is station comparison only and is not represented as high-fell or catchment-wide rainfall;
@@ -513,6 +513,8 @@ Progress:
 - the official 2011 Carlisle SFRA main report and appendices establish a model completed in 1999, expanded with October 2003 cross-section survey, calibrated against the January 2005 flood, converted to linked ISIS 1D/TUFLOW 2D, bounded by four named upstream watercourse limits and Old Sandsfield downstream, and incorporating defence schemes and 23 floodgates; no runnable model, cross-section or boundary artifacts are attached;
 - the bounded current AIMS defence query returns 291 records with selection SHA-256 `79d2cc31c6212c7300bc23cc9171bfde3b500a4c59e60880cc362fca072eb564`; 114 lack an asset start date, 56 start on or after the event and four report post-2015 refurbishment, so current geometry, crest and condition attributes remain context-only rather than an as-of-event defence state;
 - the bounded Flood Model Locations OGC query returns 19 records with deterministic SHA-256 `0b721138c212753c7b54739846fa451fbaf964a8ce72ac5e45adc8a7fda45cd1`; pre-event Carlisle model-group IDs `1313`, `1314`, `1797` and `8323` are frozen as request lineage only, while post-event groups `2039` and `9458` are excluded from input and calibration, and the catalogue still contains no model files or outputs;
+- current GOV.UK guidance defines Product 5 as model/hydrology reports, Product 6 as model outputs with Product 5 reports and Product 7 as model inputs with Product 5 reports, routed through the local Environment Agency team at `enquiries@environment-agency.gov.uk`;
+- the Products 5, 6 and 7 request is frozen for the four pre-event group IDs and explicitly asks for native archived model files, survey sections, boundary sources, roughness, defence/floodgate representation, development logs, software, datum, units and reuse conditions; Product 4, observed-event geometry and post-event model groups `2039` and `9458` are excluded;
 - the bounded current AIMS Channel query returns 349 records with deterministic SHA-256 `2521ff81a5e2c5b308d3ac69005ab8b7ebeb8338fe51afc93ec92ac57ba75c0c`; 272 lack start dates, 17 dated assets start on or after the event, and the source contains no cross-sections, bed levels or roughness, so it remains current context rather than solver geometry;
 - the post-event Section 19 report records overtopping and bypass with no defence breach, but remains narrative context and cannot provide geometry, calibration or boundary values;
 - Environment Agency Recorded Flood Outlines and both Copernicus EMSR147 Carlisle vector products are accessible and structurally evaluation-only; exact observed geometries remain sealed until the input protocol is frozen;
@@ -522,13 +524,14 @@ Progress:
 - `npm run audit:cumbria-hydraulic-context` rechecks the bounded current AIMS selection, event-date completeness diagnostics, SHA-256 identity and the availability of the two official model-context records without promoting current or narrative evidence;
 - `npm run audit:cumbria-boundary-protocol` rechecks the four official upstream station identities and advertised flow measures, confirms Rockcliffe is a rejected groundwater measure, verifies Willow Holme station reference `606299`, and reports the still-missing downstream, initial-state and mesh gates without loading evaluation geometry;
 - `npm run audit:cumbria-hydraulic-domain` replays the 19-record model catalogue, 349-record current channel context, Old Sandsfield coordinate transformation and bounded downstream station screen, checks both official SFRA documents, and fails on identity drift without loading evaluation geometry;
+- `npm run prepare:cumbria-model-request` validates the frozen access contract against the model catalogue and renders the ready-to-send email without writing credentials or external state;
 - no local raster or observed-extent artifact is registered by the metadata-only manifest, and large acquisition remains blocked.
 
 Work:
 
 - map the 231 selected pre-event catalogue records to official downloadable DTM GeoTIFF identities and retain the ten uncovered grid references as missing unless an independently authoritative pre-event source resolves them;
 - determine a modelling grid that preserves native terrain and land-cover resolution claims while keeping H3 as an explicit representation choice;
-- request or explicitly rule out runnable pre-event packages for Flood Model Locations groups `1313`, `1314`, `1797` and `8323`, including the historical ISIS/TUFLOW geometry, roughness and boundary definitions;
+- send the frozen Products 5, 6 and 7 request for Flood Model Locations groups `1313`, `1314`, `1797` and `8323`, then content-address and qualify any delivery component by component;
 - obtain event-valid channel geometry so the four frozen station series can be mapped through declared transformations to actual model sections rather than merely enclosed by the protocol envelope;
 - obtain or explicitly rule out the downstream condition at Old Sandsfield and the December 2015 defence state;
 - define a distributed initial state or reproducible warm-up procedure and a solver timestep before any resampling of the native hydrographs;
@@ -543,4 +546,4 @@ Gate:
 - missing hydraulic context remains missing rather than becoming zero or inferred geometry;
 - the protocol envelope cannot be represented as a final hydraulic mesh; bulk acquisition begins only after terrain identities and the remaining physical gates are reproducible.
 
-Checkpoints: `test: qualify Cumbria public-data access`; `test: freeze Cumbria pre-event terrain catalogue`; `test: qualify Cumbria hydraulic context`; `test: freeze Cumbria hydraulic boundary protocol`; `test: qualify Cumbria hydraulic domain lineage`
+Checkpoints: `test: qualify Cumbria public-data access`; `test: freeze Cumbria pre-event terrain catalogue`; `test: qualify Cumbria hydraulic context`; `test: freeze Cumbria hydraulic boundary protocol`; `test: qualify Cumbria hydraulic domain lineage`; `test: freeze Cumbria hydraulic model request`

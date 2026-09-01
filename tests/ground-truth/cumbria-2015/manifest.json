@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.6.0",
+  "manifestVersion": "0.7.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -238,6 +238,59 @@
         "final_mesh_and_timestep_missing",
         "pre_event_terrain_incomplete"
       ]
+    }
+  },
+  "modelAccessRequest": {
+    "id": "cumbria-carlisle-pre-event-model-products-5-6-7-v0",
+    "state": "prepared_not_sent",
+    "recipient": "enquiries@environment-agency.gov.uk",
+    "routing": "local_environment_agency_team",
+    "subject": "Request for Carlisle pre-event hydraulic model Products 5, 6 and 7 — model groups 1313, 1314, 1797 and 8323",
+    "area": "Carlisle, Cumbria",
+    "purpose": "non_commercial_experimental_historical_replay",
+    "officialBasisUrls": [
+      "https://www.gov.uk/guidance/flood-risk-assessments-applying-for-planning-permission",
+      "https://www.gov.uk/guidance/using-modelling-for-flood-risk-assessments"
+    ],
+    "products": [
+      {
+        "number": 5,
+        "scope": "model_and_hydrology_reports"
+      },
+      {
+        "number": 6,
+        "scope": "model_outputs_and_product_5_reports"
+      },
+      {
+        "number": 7,
+        "scope": "model_input_data_and_product_5_reports"
+      }
+    ],
+    "modelGroupIds": [1313, 1314, 1797, 8323],
+    "explicitlyExcludedModelGroupIds": [2039, 9458],
+    "requestedContents": [
+      "native_archived_hydraulic_model_files",
+      "hydrology_and_hydraulic_reports",
+      "model_outputs_for_supplied_pre_event_scenarios",
+      "cross_section_and_topographic_survey_files",
+      "boundary_condition_definitions_and_source_records",
+      "roughness_parameters",
+      "defence_and_floodgate_representation",
+      "model_development_and_calibration_logs",
+      "software_and_version_requirements",
+      "horizontal_crs_vertical_datum_and_units",
+      "licence_and_reuse_conditions"
+    ],
+    "product4Requested": false,
+    "observedEventGeometryRequested": false,
+    "acceptPostEventModelAsReplayInput": false,
+    "requestNativeArchivedVersions": true,
+    "intakePolicy": {
+      "contentAddressBeforeUse": true,
+      "verifyTemporalLineageBeforeUse": true,
+      "verifyCrsDatumUnitsBeforeUse": true,
+      "postEventMaterialContextOnly": true,
+      "incompleteDeliveryRemainsMissing": true
     }
   },
   "datasets": [
@@ -1181,6 +1234,11 @@
       "reason": "The logical local envelope and four upstream discharge identities are frozen without inventing channel placement, interpolation, a downstream condition, an initial state or a hydraulic mesh. Old Sandsfield is retained only as the documented historical model limit because its boundary values remain unavailable."
     },
     {
+      "id": "hydraulic_model_access_request",
+      "state": "passed",
+      "reason": "The official Products 5, 6 and 7 request is frozen for pre-event model groups 1313, 1314, 1797 and 8323. Product 4 and post-event groups 2039 and 9458 are excluded so observed or hindsight material cannot silently enter replay input."
+    },
+    {
       "id": "land_cover_lineage",
       "state": "passed",
       "reason": "CLC 2012 gives an explicit pre-event reference year while retaining its post-event corrected release identity."
@@ -1229,6 +1287,6 @@
   "acquisition": {
     "state": "metadata_only",
     "largeDownloadsAllowed": false,
-    "nextAction": "Request or explicitly rule out runnable pre-event packages for Flood Model Locations groups 1313, 1314, 1797 and 8323, including event-valid cross-sections, roughness, boundary definitions and defence state; identify the Old Sandsfield downstream condition and distributed initial state, and resolve the official pre-event DTM archives before freezing a mesh or opening evaluation geometry."
+    "nextAction": "Send the frozen Products 5, 6 and 7 request to the local Environment Agency team for model groups 1313, 1314, 1797 and 8323. While awaiting a response, continue resolving the official pre-event DTM archive identities and retain all missing hydraulic components explicitly unavailable."
   }
 }
