@@ -151,6 +151,7 @@ The audit verifies:
 - 16 event-valid WFD Cycle 1 river-context features intersecting the audit AOI, pinned independently from current OS Open Rivers;
 - the 2011 official main report and appendices: the historical model began in 1999, was expanded with surveyed sections in 2003, calibrated against January 2005, and ran from four named upstream watercourse limits to Old Sandsfield; the reports expose none of the runnable cross-section, model or boundary files;
 - 19 bounded Environment Agency Flood Model Locations records and six exact Carlisle model-group identities; pre-event groups `1313`, `1314`, `1797` and `8323` are request lineage only, while groups `2039` and `9458` are post-event and excluded from input and calibration;
+- a prepared Environment Agency Products 5, 6 and 7 request for the four pre-event groups, covering reports, outputs, native model inputs, survey sections, boundary definitions, roughness, defence state, software, datum and reuse conditions; Product 4 and the two post-event model groups remain deliberately excluded;
 - 291 current AIMS defence records in the bounded query, pinned as current context only: 114 have no asset start date, 56 start on or after the event and four report refurbishment after 2015;
 - 349 current AIMS Channel records, also context only: 272 have no start date, 17 dated records start on or after the event, and the schema contains no hydraulic cross-sections, bed levels or roughness;
 - pre-event-reference CLC 2012 land cover.
@@ -170,6 +171,7 @@ npm run audit:cumbria-hydrography
 npm run audit:cumbria-hydraulic-context
 npm run audit:cumbria-boundary-protocol
 npm run audit:cumbria-hydraulic-domain
+npm run prepare:cumbria-model-request
 ~~~
 
 ## For Amsterdam data owners and collaborators

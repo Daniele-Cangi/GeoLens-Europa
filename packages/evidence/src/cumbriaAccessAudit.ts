@@ -1,4 +1,4 @@
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.6.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.7.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -419,12 +419,52 @@ export interface CumbriaAccessManifest {
     readonly largeArtifactsStayOutsideGit: true;
   };
   readonly hydraulicProtocol: CumbriaHydraulicBoundaryProtocol;
+  readonly modelAccessRequest: CumbriaModelAccessRequest;
   readonly datasets: readonly CumbriaDatasetAudit[];
   readonly gates: readonly CumbriaAccessGate[];
   readonly acquisition: {
     readonly state: 'metadata_only';
     readonly largeDownloadsAllowed: false;
     readonly nextAction: string;
+  };
+}
+
+export interface CumbriaModelAccessRequest {
+  readonly id: 'cumbria-carlisle-pre-event-model-products-5-6-7-v0';
+  readonly state: 'prepared_not_sent';
+  readonly recipient: 'enquiries@environment-agency.gov.uk';
+  readonly routing: 'local_environment_agency_team';
+  readonly subject: string;
+  readonly area: 'Carlisle, Cumbria';
+  readonly purpose: 'non_commercial_experimental_historical_replay';
+  readonly officialBasisUrls: readonly [string, string];
+  readonly products: readonly [
+    {
+      readonly number: 5;
+      readonly scope: 'model_and_hydrology_reports';
+    },
+    {
+      readonly number: 6;
+      readonly scope: 'model_outputs_and_product_5_reports';
+    },
+    {
+      readonly number: 7;
+      readonly scope: 'model_input_data_and_product_5_reports';
+    },
+  ];
+  readonly modelGroupIds: readonly [1313, 1314, 1797, 8323];
+  readonly explicitlyExcludedModelGroupIds: readonly [2039, 9458];
+  readonly requestedContents: readonly string[];
+  readonly product4Requested: false;
+  readonly observedEventGeometryRequested: false;
+  readonly acceptPostEventModelAsReplayInput: false;
+  readonly requestNativeArchivedVersions: true;
+  readonly intakePolicy: {
+    readonly contentAddressBeforeUse: true;
+    readonly verifyTemporalLineageBeforeUse: true;
+    readonly verifyCrsDatumUnitsBeforeUse: true;
+    readonly postEventMaterialContextOnly: true;
+    readonly incompleteDeliveryRemainsMissing: true;
   };
 }
 
@@ -503,6 +543,8 @@ export function assertCumbriaAccessManifest(
     true,
     'policy.largeArtifactsStayOutsideGit',
   );
+
+  modelAccessRequest(manifest.modelAccessRequest);
 
   const datasets = array(manifest.datasets, 'datasets');
   const datasetIds = new Set<string>();
@@ -1304,6 +1346,11 @@ export function assertCumbriaAccessManifest(
     'passed',
     'hydraulic_boundary_protocol',
   );
+  equal(
+    gateStates.get('hydraulic_model_access_request'),
+    'passed',
+    'hydraulic_model_access_request',
+  );
   equal(gateStates.get('pre_event_lidar_tiles'), 'blocked', 'pre_event_lidar_tiles');
   equal(gateStates.get('as_of_event_defence_state'), 'blocked', 'as_of_event_defence_state');
   equal(gateStates.get('hydraulic_context'), 'blocked', 'hydraulic_context');
@@ -1317,6 +1364,127 @@ export function assertCumbriaAccessManifest(
     'acquisition.largeDownloadsAllowed',
   );
   nonEmpty(acquisition.nextAction, 'acquisition.nextAction');
+}
+
+function modelAccessRequest(value: unknown): void {
+  const request = record(value, 'modelAccessRequest');
+  equal(
+    request.id,
+    'cumbria-carlisle-pre-event-model-products-5-6-7-v0',
+    'modelAccessRequest.id',
+  );
+  equal(request.state, 'prepared_not_sent', 'modelAccessRequest.state');
+  equal(
+    request.recipient,
+    'enquiries@environment-agency.gov.uk',
+    'modelAccessRequest.recipient',
+  );
+  equal(
+    request.routing,
+    'local_environment_agency_team',
+    'modelAccessRequest.routing',
+  );
+  nonEmpty(request.subject, 'modelAccessRequest.subject');
+  equal(request.area, 'Carlisle, Cumbria', 'modelAccessRequest.area');
+  equal(
+    request.purpose,
+    'non_commercial_experimental_historical_replay',
+    'modelAccessRequest.purpose',
+  );
+  const basisUrls = stringArray(
+    request.officialBasisUrls,
+    'modelAccessRequest.officialBasisUrls',
+  );
+  const expectedBasisUrls = [
+    'https://www.gov.uk/guidance/flood-risk-assessments-applying-for-planning-permission',
+    'https://www.gov.uk/guidance/using-modelling-for-flood-risk-assessments',
+  ];
+  if (JSON.stringify(basisUrls) !== JSON.stringify(expectedBasisUrls)) {
+    throw new Error('Model access request official basis URLs drifted');
+  }
+  for (const [index, url] of basisUrls.entries()) {
+    httpsUrl(url, `modelAccessRequest.officialBasisUrls[${index}]`);
+  }
+
+  const products = array(request.products, 'modelAccessRequest.products');
+  const expectedProducts = [
+    [5, 'model_and_hydrology_reports'],
+    [6, 'model_outputs_and_product_5_reports'],
+    [7, 'model_input_data_and_product_5_reports'],
+  ];
+  const actualProducts = products.map((value, index) => {
+    const product = record(value, `modelAccessRequest.products[${index}]`);
+    return [
+      integer(product.number, `modelAccessRequest.products[${index}].number`),
+      nonEmpty(product.scope, `modelAccessRequest.products[${index}].scope`),
+    ];
+  });
+  if (JSON.stringify(actualProducts) !== JSON.stringify(expectedProducts)) {
+    throw new Error('Model access request must contain Products 5, 6 and 7');
+  }
+
+  const modelGroupIds = numericArray(
+    request.modelGroupIds,
+    4,
+    'modelAccessRequest.modelGroupIds',
+  );
+  if (JSON.stringify(modelGroupIds) !== JSON.stringify([1313, 1314, 1797, 8323])) {
+    throw new Error('Model access request pre-event group identities drifted');
+  }
+  const excludedIds = numericArray(
+    request.explicitlyExcludedModelGroupIds,
+    2,
+    'modelAccessRequest.explicitlyExcludedModelGroupIds',
+  );
+  if (JSON.stringify(excludedIds) !== JSON.stringify([2039, 9458])) {
+    throw new Error('Model access request post-event exclusions drifted');
+  }
+  if (modelGroupIds.some((id) => excludedIds.includes(id))) {
+    throw new Error('Model access request cannot request an excluded model group');
+  }
+
+  const requestedContents = stringArray(
+    request.requestedContents,
+    'modelAccessRequest.requestedContents',
+  );
+  const expectedContents = [
+    'native_archived_hydraulic_model_files',
+    'hydrology_and_hydraulic_reports',
+    'model_outputs_for_supplied_pre_event_scenarios',
+    'cross_section_and_topographic_survey_files',
+    'boundary_condition_definitions_and_source_records',
+    'roughness_parameters',
+    'defence_and_floodgate_representation',
+    'model_development_and_calibration_logs',
+    'software_and_version_requirements',
+    'horizontal_crs_vertical_datum_and_units',
+    'licence_and_reuse_conditions',
+  ];
+  if (JSON.stringify(requestedContents) !== JSON.stringify(expectedContents)) {
+    throw new Error('Model access request contents drifted');
+  }
+  equal(request.product4Requested, false, 'modelAccessRequest.product4Requested');
+  equal(
+    request.observedEventGeometryRequested,
+    false,
+    'modelAccessRequest.observedEventGeometryRequested',
+  );
+  equal(
+    request.acceptPostEventModelAsReplayInput,
+    false,
+    'modelAccessRequest.acceptPostEventModelAsReplayInput',
+  );
+  equal(
+    request.requestNativeArchivedVersions,
+    true,
+    'modelAccessRequest.requestNativeArchivedVersions',
+  );
+  const intake = record(request.intakePolicy, 'modelAccessRequest.intakePolicy');
+  equal(intake.contentAddressBeforeUse, true, 'model access content identity');
+  equal(intake.verifyTemporalLineageBeforeUse, true, 'model access temporal lineage');
+  equal(intake.verifyCrsDatumUnitsBeforeUse, true, 'model access CRS/datum/units');
+  equal(intake.postEventMaterialContextOnly, true, 'model access post-event policy');
+  equal(intake.incompleteDeliveryRemainsMissing, true, 'model access missing policy');
 }
 
 function hydraulicBoundaryProtocol(
