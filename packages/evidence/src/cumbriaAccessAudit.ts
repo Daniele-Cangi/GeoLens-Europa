@@ -1,4 +1,4 @@
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.7.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.8.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -243,30 +243,43 @@ export interface CumbriaLidarCatalogAudit {
     readonly tif: number;
     readonly zip: number;
   };
-  readonly downloadProbe: CumbriaLidarDownloadProbe;
-  readonly acquisitionState: 'blocked';
+  readonly downloadMapping: CumbriaLidarDownloadMapping;
+  readonly acquisitionState: 'ready_with_explicit_gaps';
   readonly reason: string;
 }
 
-export interface CumbriaLidarDownloadProbe {
-  readonly endpoint: string;
-  readonly requiredQueryParameters: readonly string[];
-  readonly missingParameterResponse: {
-    readonly httpStatus: 400;
-    readonly message: string;
+export interface CumbriaLidarArchiveIdentity {
+  readonly product: 'lidar_tiles_dtm';
+  readonly year: string;
+  readonly resolution: '0.5' | '1' | '2';
+  readonly tile: string;
+  readonly uri: string;
+  readonly mappedGridRefs: number;
+}
+
+export interface CumbriaLidarDownloadMapping {
+  readonly searchEndpoint: string;
+  readonly searchContentType: 'application/geo+json';
+  readonly requestBounds: readonly [number, number, number, number];
+  readonly searchResultCount: 590;
+  readonly productId: 'lidar_tiles_dtm';
+  readonly productResultCount: 123;
+  readonly mappingRule: string;
+  readonly materializationRule: string;
+  readonly mappedPreEventGridRefs: 231;
+  readonly unmappedSelectedGridRefs: readonly [];
+  readonly archiveIdentityCount: 30;
+  readonly archiveIdentities: readonly CumbriaLidarArchiveIdentity[];
+  readonly mappingSha256: string;
+  readonly archiveIdentitySha256: string;
+  readonly sampleArchiveProbe: {
+    readonly uri: string;
+    readonly httpStatus: 200;
+    readonly contentType: 'application/zip';
+    readonly contentDisposition: string;
+    readonly rangeHonored: false;
+    readonly archiveBytesRead: 0;
   };
-  readonly candidateRequest: {
-    readonly product: 'DTM';
-    readonly year: '2009';
-    readonly resolution: '1M';
-    readonly tile: 'NY3957';
-    readonly relation: 'unverified_candidate_only';
-    readonly httpStatus: 403;
-    readonly message: 'Forbidden';
-    readonly archiveBytesDownloaded: 0;
-  };
-  readonly selectorState: 'upstream_error';
-  readonly selectorMessage: string;
 }
 
 export interface CumbriaHydraulicBoundaryProtocol {
@@ -728,59 +741,171 @@ export function assertCumbriaAccessManifest(
   equal(filenameKinds.laz, 231, 'LiDAR LAZ-named selections');
   equal(filenameKinds.tif, 0, 'LiDAR TIFF-named selections');
   equal(filenameKinds.zip, 0, 'LiDAR ZIP-named selections');
-  const downloadProbe = record(lidar.downloadProbe, 'LiDAR download probe');
-  equal(
-    downloadProbe.endpoint,
-    'https://environment.data.gov.uk/api/survey/download',
-    'LiDAR download endpoint',
+  const downloadMapping = record(
+    lidar.downloadMapping,
+    'LiDAR download mapping',
   );
-  const requiredQueryParameters = stringArray(
-    downloadProbe.requiredQueryParameters,
-    'LiDAR download query parameters',
+  equal(
+    downloadMapping.searchEndpoint,
+    'https://environment.data.gov.uk/backend/catalog/api/tiles/collections/survey/search',
+    'LiDAR survey search endpoint',
+  );
+  equal(
+    downloadMapping.searchContentType,
+    'application/geo+json',
+    'LiDAR survey search content type',
+  );
+  const downloadBounds = numericArray(
+    downloadMapping.requestBounds,
+    4,
+    'LiDAR survey search bounds',
   );
   if (
-    JSON.stringify(requiredQueryParameters) !==
-    JSON.stringify(['product', 'year', 'resolution', 'tile'])
+    JSON.stringify(downloadBounds) !== JSON.stringify(bounds)
   ) {
-    throw new Error('LiDAR download query parameters drifted');
+    throw new Error('LiDAR survey search bounds must equal the audit AOI');
   }
-  const missingParameterResponse = record(
-    downloadProbe.missingParameterResponse,
-    'LiDAR missing-parameter response',
+  equal(downloadMapping.searchResultCount, 590, 'LiDAR survey search results');
+  equal(
+    downloadMapping.productId,
+    'lidar_tiles_dtm',
+    'LiDAR download product',
   );
   equal(
-    missingParameterResponse.httpStatus,
-    400,
-    'LiDAR missing-parameter HTTP status',
+    downloadMapping.productResultCount,
+    123,
+    'LiDAR time-stamped DTM search results',
   );
-  nonEmpty(
-    missingParameterResponse.message,
-    'LiDAR missing-parameter message',
-  );
-  const candidateRequest = record(
-    downloadProbe.candidateRequest,
-    'LiDAR bounded candidate request',
-  );
-  equal(candidateRequest.product, 'DTM', 'LiDAR candidate product');
-  equal(candidateRequest.year, '2009', 'LiDAR candidate year');
-  equal(candidateRequest.resolution, '1M', 'LiDAR candidate resolution');
-  equal(candidateRequest.tile, 'NY3957', 'LiDAR candidate grid reference');
   equal(
-    candidateRequest.relation,
-    'unverified_candidate_only',
-    'LiDAR candidate relation',
+    downloadMapping.mappingRule,
+    'map each selected 1 km OS grid reference to its containing 5 km tile; require the selected survey-end year; choose the smallest advertised DTM raster resolution; then URI',
+    'LiDAR archive mapping rule',
   );
-  equal(candidateRequest.httpStatus, 403, 'LiDAR candidate HTTP status');
-  equal(candidateRequest.message, 'Forbidden', 'LiDAR candidate response');
   equal(
-    candidateRequest.archiveBytesDownloaded,
+    downloadMapping.materializationRule,
+    'accept raster pixels only inside the selected 1 km grid references mapped to each archive; the containing 5 km archive does not make every pixel event-valid',
+    'LiDAR raster materialization rule',
+  );
+  equal(
+    downloadMapping.mappedPreEventGridRefs,
+    231,
+    'LiDAR mapped pre-event grid references',
+  );
+  const unmappedGridRefs = stringArray(
+    downloadMapping.unmappedSelectedGridRefs,
+    'LiDAR unmapped selected grid references',
+  );
+  if (unmappedGridRefs.length !== 0) {
+    throw new Error('LiDAR selected pre-event records must all map to archives');
+  }
+  equal(
+    downloadMapping.archiveIdentityCount,
+    30,
+    'LiDAR archive identity count',
+  );
+  if (!Array.isArray(downloadMapping.archiveIdentities)) {
+    throw new Error('LiDAR archive identities must be an array');
+  }
+  if (
+    downloadMapping.archiveIdentities.length !==
+    downloadMapping.archiveIdentityCount
+  ) {
+    throw new Error('LiDAR archive identity count drifted');
+  }
+  const archiveUris = new Set<string>();
+  let mappedArchiveGridRefs = 0;
+  for (const [index, value] of downloadMapping.archiveIdentities.entries()) {
+    const archive = record(value, `LiDAR archive identity ${index}`);
+    equal(archive.product, 'lidar_tiles_dtm', 'LiDAR archive product');
+    const archiveYear = nonEmpty(archive.year, 'LiDAR archive year');
+    if (!/^\d{4}$/.test(archiveYear)) {
+      throw new Error('LiDAR archive year must be a four-digit string');
+    }
+    const archiveResolution = nonEmpty(
+      archive.resolution,
+      'LiDAR archive resolution',
+    );
+    if (!['0.5', '1', '2'].includes(archiveResolution)) {
+      throw new Error('LiDAR archive resolution is unsupported');
+    }
+    const archiveTile = nonEmpty(archive.tile, 'LiDAR archive tile');
+    if (!/^NY\d{4}$/.test(archiveTile)) {
+      throw new Error('LiDAR archive tile must be a 5 km NY identity');
+    }
+    const archiveUri = nonEmpty(archive.uri, 'LiDAR archive URI');
+    httpsUrl(archiveUri, 'LiDAR archive URI');
+    const expectedUri =
+      `https://environment.data.gov.uk/tiles/collections/survey/` +
+      `lidar_tiles_dtm/${archiveYear}/${archiveResolution}/${archiveTile}`;
+    equal(archiveUri, expectedUri, 'LiDAR archive URI identity');
+    const mappedGridRefs = integer(
+      archive.mappedGridRefs,
+      'LiDAR archive mapped grid references',
+    );
+    if (mappedGridRefs <= 0) {
+      throw new Error('LiDAR archive mapped grid references must be positive');
+    }
+    mappedArchiveGridRefs += mappedGridRefs;
+    if (archiveUris.has(archiveUri)) {
+      throw new Error('LiDAR archive identities must be unique');
+    }
+    archiveUris.add(archiveUri);
+  }
+  equal(
+    mappedArchiveGridRefs,
+    231,
+    'LiDAR archive mapped grid-reference sum',
+  );
+  for (const [name, value] of [
+    ['mapping', downloadMapping.mappingSha256],
+    ['archive identity', downloadMapping.archiveIdentitySha256],
+  ] as const) {
+    if (typeof value !== 'string' || !/^[a-f0-9]{64}$/.test(value)) {
+      throw new Error(`LiDAR ${name} requires a SHA-256 identity`);
+    }
+  }
+  equal(
+    downloadMapping.mappingSha256,
+    '7a75da7dc1ff0c30d2ba20d59714658f7e3b8e853ca2b8c16ce9e01b27d1854c',
+    'LiDAR source-to-archive mapping identity',
+  );
+  equal(
+    downloadMapping.archiveIdentitySha256,
+    'a842c8ad0b1ce132eb3b61865c5739e9ca6e62eba17090bc52cbcb5fbd159bba',
+    'LiDAR archive inventory identity',
+  );
+  const archiveProbe = record(
+    downloadMapping.sampleArchiveProbe,
+    'LiDAR sample archive probe',
+  );
+  equal(
+    archiveProbe.uri,
+    'https://environment.data.gov.uk/tiles/collections/survey/lidar_tiles_dtm/2009/1/NY3555',
+    'LiDAR sample archive URI',
+  );
+  equal(archiveProbe.httpStatus, 200, 'LiDAR sample archive HTTP status');
+  equal(
+    archiveProbe.contentType,
+    'application/zip',
+    'LiDAR sample archive content type',
+  );
+  equal(
+    archiveProbe.contentDisposition,
+    'attachment; filename="lidar_tiles_dtm-2009-1-NY35ne.zip"',
+    'LiDAR sample archive content disposition',
+  );
+  equal(archiveProbe.rangeHonored, false, 'LiDAR sample Range response');
+  equal(
+    archiveProbe.archiveBytesRead,
     0,
-    'LiDAR candidate archive bytes downloaded',
+    'LiDAR sample archive bytes read',
   );
-  equal(downloadProbe.selectorState, 'upstream_error', 'LiDAR selector state');
-  nonEmpty(downloadProbe.selectorMessage, 'LiDAR selector message');
-  equal(lidar.acquisitionState, 'blocked', 'LiDAR acquisition state');
-  nonEmpty(lidar.reason, 'LiDAR acquisition blocker');
+  equal(
+    lidar.acquisitionState,
+    'ready_with_explicit_gaps',
+    'LiDAR acquisition state',
+  );
+  nonEmpty(lidar.reason, 'LiDAR acquisition qualification');
 
   const hydrography = record(
     datasetRecords.get('ea-wfd-river-water-bodies-cycle-1')
@@ -1351,7 +1476,7 @@ export function assertCumbriaAccessManifest(
     'passed',
     'hydraulic_model_access_request',
   );
-  equal(gateStates.get('pre_event_lidar_tiles'), 'blocked', 'pre_event_lidar_tiles');
+  equal(gateStates.get('pre_event_lidar_tiles'), 'passed', 'pre_event_lidar_tiles');
   equal(gateStates.get('as_of_event_defence_state'), 'blocked', 'as_of_event_defence_state');
   equal(gateStates.get('hydraulic_context'), 'blocked', 'hydraulic_context');
   equal(gateStates.get('large_artifact_downloads'), 'blocked', 'large_artifact_downloads');
