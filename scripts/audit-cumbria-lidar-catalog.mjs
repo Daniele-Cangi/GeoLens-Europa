@@ -234,6 +234,12 @@ if (!sampleArchive) {
 const sampleArchiveProbe = await probeArchiveHeaders(
   `${sampleArchive.uri}?subscription-key=dspui`,
 );
+const materializationProtocol = buildMaterializationProtocol(
+  archiveIdentities,
+  archiveIdentitySha256,
+  mappingSha256,
+  gridRefsWithoutPreEvent,
+);
 const downloadMapping = {
   searchEndpoint,
   searchContentType: 'application/geo+json',
@@ -250,6 +256,7 @@ const downloadMapping = {
   mappingSha256,
   archiveIdentitySha256,
   sampleArchiveProbe,
+  materializationProtocol,
 };
 const acquisitionState =
   mappedRows.length === selected.length &&
@@ -281,7 +288,7 @@ if (process.argv.includes('--print-computed')) {
   process.exit(0);
 }
 if (JSON.stringify(pinnedValues) !== JSON.stringify(lidarManifest)) {
-  throw new Error('Live EA LiDAR catalogue or download mapping drifted from manifest v0.8.0');
+  throw new Error('Live EA LiDAR catalogue or download mapping drifted from manifest v0.9.0');
 }
 
 console.log(
@@ -401,4 +408,105 @@ async function probeArchiveHeaders(url) {
     throw new Error('EA survey sample archive did not expose a ZIP response');
   }
   return result;
+}
+
+function buildMaterializationProtocol(
+  archiveIdentities,
+  archiveIdentitySha256,
+  mappingSha256,
+  gridRefsWithoutPreEvent,
+) {
+  const resolutionArchiveCounts = { '0.5': 0, '1': 0, '2': 0 };
+  const resolutionMappedGridRefCounts = { '0.5': 0, '1': 0, '2': 0 };
+  let fullArchiveRasterCells = 0;
+  let retainedMaskRasterCells = 0;
+  for (const archive of archiveIdentities) {
+    const resolutionMetres = Number(archive.resolution);
+    resolutionArchiveCounts[archive.resolution] += 1;
+    resolutionMappedGridRefCounts[archive.resolution] += archive.mappedGridRefs;
+    fullArchiveRasterCells += Math.round((5000 / resolutionMetres) ** 2);
+    retainedMaskRasterCells += Math.round(
+      archive.mappedGridRefs * (1000 / resolutionMetres) ** 2,
+    );
+  }
+
+  return {
+    id: 'cumbria-dtm-materialization-v0',
+    state: 'frozen_download_blocked_by_physical_gates',
+    sourceMapping: {
+      archiveIdentitySha256,
+      sourceToArchiveMappingSha256: mappingSha256,
+      archiveCount: archiveIdentities.length,
+      mappedGridRefCount: archiveIdentities.reduce(
+        (sum, archive) => sum + archive.mappedGridRefs,
+        0,
+      ),
+      mappingRecomputedBeforeDownload: true,
+      mappingHashMustMatch: true,
+    },
+    budget: {
+      estimateMethod: 'native-grid-cell-count-times-float32',
+      estimateExcludesArchiveAndFormatOverhead: true,
+      decodedBytesPerCell: 4,
+      resolutionArchiveCounts,
+      resolutionMappedGridRefCounts,
+      fullArchiveRasterCells,
+      retainedMaskRasterCells,
+      estimatedFullArchiveDecodedBytes: fullArchiveRasterCells * 4,
+      estimatedRetainedMaskDecodedBytes: retainedMaskRasterCells * 4,
+      maxArchiveDownloadBytes: 1_073_741_824,
+      maxTotalDownloadBytes: 8_589_934_592,
+      minimumFreeSpaceBytes: 17_179_869_184,
+    },
+    receipts: {
+      contentAddressAlgorithm: 'sha256',
+      archivePathTemplate: 'archives/sha256/{sha256}.zip',
+      receiptPathTemplate: 'receipts/sha256/{sha256}.receipt.json',
+      partialFileSuffix: '.part',
+      atomicRenameAfterVerification: true,
+      requiredFields: [
+        'sourceUri',
+        'archiveIdentity',
+        'downloadedAt',
+        'byteLength',
+        'sha256',
+        'contentType',
+        'contentDisposition',
+        'sourceToArchiveMappingSha256',
+        'mappedGridRefs',
+      ],
+    },
+    zipInspection: {
+      rejectEncryptedEntries: true,
+      rejectSymlinksAndReparsePoints: true,
+      rejectAbsolutePaths: true,
+      rejectParentTraversal: true,
+      rejectDuplicateNormalizedPaths: true,
+      maxEntriesPerArchive: 512,
+      maxExpandedBytesPerArchive: 4_294_967_296,
+      maxTotalExpandedBytes: 34_359_738_368,
+      rasterCandidateExtensions: ['.tif', '.tiff', '.asc'],
+    },
+    rasterMask: {
+      horizontalCrs: 'EPSG:27700',
+      verticalDatum: 'Ordnance Datum Newlyn',
+      maskUnit: 'selected_1km_os_grid_reference',
+      nativeResolutionPreserved: true,
+      resamplingAllowed: false,
+      pixelsOutsideMappedGridRefs: 'nodata',
+      sourceNodataPreserved: true,
+      uncoveredGridRefs: gridRefsWithoutPreEvent,
+      uncoveredGridRefsRemain: 'missing',
+      h3Role: 'evidence_index_after_materialization_not_source_grid',
+    },
+    execution: {
+      mode: 'dry_run_only',
+      archiveConcurrency: 1,
+      temporaryExpandedArchiveRetention: 'delete_after_mask_receipt',
+      largeDownloadsAllowed: false,
+      requiresHydraulicContextGatePassed: true,
+      archiveDownloadsAttempted: 0,
+      archiveBytesDownloaded: 0,
+    },
+  };
 }

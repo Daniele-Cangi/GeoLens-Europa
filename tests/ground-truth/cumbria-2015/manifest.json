@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.8.0",
+  "manifestVersion": "0.9.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -357,6 +357,7 @@
         "completePreEventCoverage": false,
         "downloadableRasterIdentitiesVerified": true,
         "downloadArchiveIdentities": 30,
+        "materializationProtocolFrozen": true,
         "archiveBytesDownloaded": 0
       },
       "lidarCatalogAudit": {
@@ -652,6 +653,105 @@
             "contentDisposition": "attachment; filename=\"lidar_tiles_dtm-2009-1-NY35ne.zip\"",
             "rangeHonored": false,
             "archiveBytesRead": 0
+          },
+          "materializationProtocol": {
+            "id": "cumbria-dtm-materialization-v0",
+            "state": "frozen_download_blocked_by_physical_gates",
+            "sourceMapping": {
+              "archiveIdentitySha256": "a842c8ad0b1ce132eb3b61865c5739e9ca6e62eba17090bc52cbcb5fbd159bba",
+              "sourceToArchiveMappingSha256": "7a75da7dc1ff0c30d2ba20d59714658f7e3b8e853ca2b8c16ce9e01b27d1854c",
+              "archiveCount": 30,
+              "mappedGridRefCount": 231,
+              "mappingRecomputedBeforeDownload": true,
+              "mappingHashMustMatch": true
+            },
+            "budget": {
+              "estimateMethod": "native-grid-cell-count-times-float32",
+              "estimateExcludesArchiveAndFormatOverhead": true,
+              "decodedBytesPerCell": 4,
+              "resolutionArchiveCounts": {
+                "0.5": 3,
+                "1": 23,
+                "2": 4
+              },
+              "resolutionMappedGridRefCounts": {
+                "0.5": 14,
+                "1": 205,
+                "2": 12
+              },
+              "fullArchiveRasterCells": 900000000,
+              "retainedMaskRasterCells": 264000000,
+              "estimatedFullArchiveDecodedBytes": 3600000000,
+              "estimatedRetainedMaskDecodedBytes": 1056000000,
+              "maxArchiveDownloadBytes": 1073741824,
+              "maxTotalDownloadBytes": 8589934592,
+              "minimumFreeSpaceBytes": 17179869184
+            },
+            "receipts": {
+              "contentAddressAlgorithm": "sha256",
+              "archivePathTemplate": "archives/sha256/{sha256}.zip",
+              "receiptPathTemplate": "receipts/sha256/{sha256}.receipt.json",
+              "partialFileSuffix": ".part",
+              "atomicRenameAfterVerification": true,
+              "requiredFields": [
+                "sourceUri",
+                "archiveIdentity",
+                "downloadedAt",
+                "byteLength",
+                "sha256",
+                "contentType",
+                "contentDisposition",
+                "sourceToArchiveMappingSha256",
+                "mappedGridRefs"
+              ]
+            },
+            "zipInspection": {
+              "rejectEncryptedEntries": true,
+              "rejectSymlinksAndReparsePoints": true,
+              "rejectAbsolutePaths": true,
+              "rejectParentTraversal": true,
+              "rejectDuplicateNormalizedPaths": true,
+              "maxEntriesPerArchive": 512,
+              "maxExpandedBytesPerArchive": 4294967296,
+              "maxTotalExpandedBytes": 34359738368,
+              "rasterCandidateExtensions": [
+                ".tif",
+                ".tiff",
+                ".asc"
+              ]
+            },
+            "rasterMask": {
+              "horizontalCrs": "EPSG:27700",
+              "verticalDatum": "Ordnance Datum Newlyn",
+              "maskUnit": "selected_1km_os_grid_reference",
+              "nativeResolutionPreserved": true,
+              "resamplingAllowed": false,
+              "pixelsOutsideMappedGridRefs": "nodata",
+              "sourceNodataPreserved": true,
+              "uncoveredGridRefs": [
+                "NY3256",
+                "NY3446",
+                "NY3448",
+                "NY3646",
+                "NY3652",
+                "NY3846",
+                "NY3848",
+                "NY3959",
+                "NY4062",
+                "NY4162"
+              ],
+              "uncoveredGridRefsRemain": "missing",
+              "h3Role": "evidence_index_after_materialization_not_source_grid"
+            },
+            "execution": {
+              "mode": "dry_run_only",
+              "archiveConcurrency": 1,
+              "temporaryExpandedArchiveRetention": "delete_after_mask_receipt",
+              "largeDownloadsAllowed": false,
+              "requiresHydraulicContextGatePassed": true,
+              "archiveDownloadsAttempted": 0,
+              "archiveBytesDownloaded": 0
+            }
           }
         },
         "acquisitionState": "ready_with_explicit_gaps",
@@ -1502,6 +1602,11 @@
       "reason": "The official catalogue selects 231 dated pre-event 1 km grid references and the current survey search maps all of them to 30 downloadable 5 km DTM ZIP identities. The ten uncovered references remain explicit missing terrain and whole-archive pixels outside the selected 1 km mapping are not event-valid by default."
     },
     {
+      "id": "dtm_materialization_protocol",
+      "state": "passed",
+      "reason": "A dry-run-only protocol freezes the 30-archive identity and mapping hashes, conservative byte limits, SHA-256 receipts, ZIP safety checks, native-resolution 1 km masks and explicit NoData for all ten uncovered references. It performs no network request or file write and cannot enable bulk acquisition while the physical gates remain blocked."
+    },
+    {
       "id": "as_of_event_hydrography",
       "state": "blocked",
       "reason": "WFD River Water Bodies Cycle 1 provides 16 event-valid river-context features, but it is a 1:50,000 WFD subset rather than a complete channel or hydraulic network; current OS Open Rivers remains context-only."
@@ -1529,12 +1634,12 @@
     {
       "id": "large_artifact_downloads",
       "state": "blocked",
-      "reason": "Terrain archive identities and evaluation isolation are now reproducible, but runnable model geometry, boundary placement and values, initial state, defence state and final mesh remain unresolved. No bulk terrain acquisition is needed until those physical gates advance."
+      "reason": "Terrain archive identities, evaluation isolation and the fail-closed materialization protocol are reproducible, but runnable model geometry, boundary placement and values, initial state, defence state and final mesh remain unresolved. No bulk terrain acquisition is needed until those physical gates advance."
     }
   ],
   "acquisition": {
     "state": "metadata_only",
     "largeDownloadsAllowed": false,
-    "nextAction": "Send the frozen Products 5, 6 and 7 request if it has not already been submitted. While awaiting the response, freeze the bounded 30-archive terrain materialization and content-addressing protocol without downloading rasters; retain ten terrain grid references and every unresolved hydraulic component explicitly missing."
+    "nextAction": "Send the frozen Products 5, 6 and 7 request if it has not already been submitted. While awaiting the response, determine the evidence grid and solver-grid boundary without resampling the native terrain or treating H3 as the hydraulic mesh; retain ten terrain grid references and every unresolved hydraulic component explicitly missing."
   }
 }

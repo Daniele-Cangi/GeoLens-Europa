@@ -487,11 +487,11 @@ Checkpoints:
 
 ## Phase 11 - Qualify the Cumbria 2015 public-data replay
 
-State: pre-event terrain delivery qualified; model and hydraulic-context execution gated
+State: terrain acquisition protocol frozen; model and hydraulic-context execution gated
 
 Progress:
 
-- manifest v0.8.0 freezes a bounded Carlisle source-discovery envelope, a separate local hydraulic-protocol envelope and the half-open 72-hour Storm Desmond window from 4 December 2015 00:00 UTC to 7 December 2015 00:00 UTC;
+- manifest v0.9.0 freezes a bounded Carlisle source-discovery envelope, a separate local hydraulic-protocol envelope and the half-open 72-hour Storm Desmond window from 4 December 2015 00:00 UTC to 7 December 2015 00:00 UTC;
 - the canonical Python Earthaccess path found all 144 expected GPM_3IMERGHH V07 Final Run half-hour granules without opening or downloading raster data; V07 remains explicitly retrospective reprocessing;
 - the Environment Agency Hydrology API returned all 288 expected qualified 15-minute flow values and all 288 level values at Sheepmount on the River Eden, with observed maxima of 1,676.632 m3/s and 7.648 m respectively;
 - Willow Holme returned all 288 expected local rainfall values and a 49 mm window total; this is station comparison only and is not represented as high-fell or catchment-wide rainfall;
@@ -509,6 +509,9 @@ Progress:
 - the current DEFRA survey search returns 590 bounded product identities, including 123 time-stamped DTM identities; deterministic 1 km-to-5 km containment, exact selected survey-end year and finest-advertised-resolution selection maps all 231 selected source rows to 30 official ZIP identities with source-to-archive SHA-256 `7a75da7dc1ff0c30d2ba20d59714658f7e3b8e853ca2b8c16ce9e01b27d1854c` and archive-inventory SHA-256 `a842c8ad0b1ce132eb3b61865c5739e9ca6e62eba17090bc52cbcb5fbd159bba`;
 - the previous `DTM` / `2009` / `1M` / `NY3957` probe used a legacy route and the wrong tile granularity; the current `lidar_tiles_dtm` / `2009` / `1` / `NY3555` identity returns HTTP 200, `application/zip` and `lidar_tiles_dtm-2009-1-NY35ne.zip` while the audit cancels the body after headers and reads zero archive bytes;
 - two mapped archives are labelled 2015, but the exact catalogue dates qualify only three selected 1 km references inside them; future materialization must mask every 5 km archive to its mapped selected 1 km references and cannot promote other pixels from the containing archive;
+- materialization protocol `cumbria-dtm-materialization-v0` recomputes and hash-checks the frozen archive mapping before any future download, preserves native EPSG:27700 resolution and Ordnance Datum Newlyn, keeps source NoData, writes pixels outside each mapped 1 km reference as NoData and retains all ten uncovered references as missing;
+- the protocol estimates 900,000,000 full-archive native cells (3,600,000,000 Float32 bytes) and 264,000,000 retained-mask cells (1,056,000,000 Float32 bytes); these estimates exclude ZIP and raster-format overhead, so execution additionally requires 16 GiB free space and enforces an 8 GiB total download ceiling;
+- future archives require SHA-256 content-addressed receipts and bounded ZIP inspection that rejects encryption, links/reparse points, absolute paths, parent traversal and duplicate normalized paths; `npm run plan:cumbria-dtm-materialization` verifies the manifest and emits the 30-archive dry-run with zero network requests and zero file writes, while `--execute` fails before acquisition because the physical gates remain blocked;
 - the current OS Open Rivers product is accessible but remains context-only until an event-valid edition or defensible historical lineage is frozen;
 - Environment Agency WFD River Water Bodies Cycle 1 is event-valid (created 2008, revised 2012); the bounded WFS query returns 16 stable water-body identities with SHA-256 `29cb9324f4ecb25324e893e3bbe07324c6df877f475de922476c9eba19a21a13`, but the 1:50,000 WFD subset remains river context rather than a complete hydraulic network;
 - the official 2011 Carlisle SFRA main report and appendices establish a model completed in 1999, expanded with October 2003 cross-section survey, calibrated against the January 2005 flood, converted to linked ISIS 1D/TUFLOW 2D, bounded by four named upstream watercourse limits and Old Sandsfield downstream, and incorporating defence schemes and 23 floodgates; no runnable model, cross-section or boundary artifacts are attached;
@@ -526,11 +529,10 @@ Progress:
 - `npm run audit:cumbria-boundary-protocol` rechecks the four official upstream station identities and advertised flow measures, confirms Rockcliffe is a rejected groundwater measure, verifies Willow Holme station reference `606299`, and reports the still-missing downstream, initial-state and mesh gates without loading evaluation geometry;
 - `npm run audit:cumbria-hydraulic-domain` replays the 19-record model catalogue, 349-record current channel context, Old Sandsfield coordinate transformation and bounded downstream station screen, checks both official SFRA documents, and fails on identity drift without loading evaluation geometry;
 - `npm run prepare:cumbria-model-request` validates the frozen access contract against the model catalogue and renders the ready-to-send email without writing credentials or external state;
-- no local raster or observed-extent artifact is registered by the metadata-only manifest; terrain identity is ready with ten explicit gaps, while large acquisition remains blocked by the still-missing runnable model and hydraulic context rather than by file discovery.
+- no local raster or observed-extent artifact is registered by the metadata-only manifest; terrain identity and its safe staging protocol are ready with ten explicit gaps, while large acquisition remains blocked by the still-missing runnable model and hydraulic context rather than by file discovery or storage planning.
 
 Work:
 
-- freeze a bounded materialization protocol for the 30 DTM archive identities, including byte-budget estimation, content-addressed receipts, safe ZIP inspection, per-archive 1 km masks and explicit NoData for the ten uncovered references, without starting bulk acquisition while the physical replay gates remain blocked;
 - determine a modelling grid that preserves native terrain and land-cover resolution claims while keeping H3 as an explicit representation choice;
 - send the frozen Products 5, 6 and 7 request for Flood Model Locations groups `1313`, `1314`, `1797` and `8323`, then content-address and qualify any delivery component by component;
 - obtain event-valid channel geometry so the four frozen station series can be mapped through declared transformations to actual model sections rather than merely enclosed by the protocol envelope;
@@ -545,6 +547,6 @@ Gate:
 - current hydrography is not silently represented as an as-of-2015 network;
 - post-event reports and observed flood geometry cannot enter model input or calibration;
 - missing hydraulic context remains missing rather than becoming zero or inferred geometry;
-- the protocol envelope cannot be represented as a final hydraulic mesh; bulk acquisition begins only after terrain identities and the remaining physical gates are reproducible.
+- the protocol envelope and native-resolution DTM staging grid cannot be represented as the final hydraulic mesh; bulk acquisition begins only after the remaining physical gates are reproducible.
 
-Checkpoints: `test: qualify Cumbria public-data access`; `test: freeze Cumbria pre-event terrain catalogue`; `test: qualify Cumbria hydraulic context`; `test: freeze Cumbria hydraulic boundary protocol`; `test: qualify Cumbria hydraulic domain lineage`; `test: freeze Cumbria hydraulic model request`; `test: qualify Cumbria DTM archive mapping`
+Checkpoints: `test: qualify Cumbria public-data access`; `test: freeze Cumbria pre-event terrain catalogue`; `test: qualify Cumbria hydraulic context`; `test: freeze Cumbria hydraulic boundary protocol`; `test: qualify Cumbria hydraulic domain lineage`; `test: freeze Cumbria hydraulic model request`; `test: qualify Cumbria DTM archive mapping`; `test: freeze Cumbria DTM materialization protocol`
