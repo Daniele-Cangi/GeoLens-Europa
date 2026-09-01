@@ -126,14 +126,14 @@ test('post-event flood geometry cannot leak into input or calibration', () => {
   );
 });
 
-test('pre-event terrain catalogue selection is reproducible and incomplete', () => {
+test('pre-event terrain selection maps to downloadable archives with explicit gaps', () => {
   const manifest = manifestFixture();
   const lidar = manifest.datasets.find(
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.7.0');
-  assert.equal(lidar.access.state, 'catalog_verified');
+  assert.equal(manifest.manifestVersion, '0.8.0');
+  assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
       sourceRows: lidar.lidarCatalogAudit.sourceRows,
@@ -170,33 +170,85 @@ test('pre-event terrain catalogue selection is reproducible and incomplete', () 
     tif: 0,
     zip: 0,
   });
-  assert.deepEqual(lidar.lidarCatalogAudit.downloadProbe, {
-    endpoint: 'https://environment.data.gov.uk/api/survey/download',
-    requiredQueryParameters: ['product', 'year', 'resolution', 'tile'],
-    missingParameterResponse: {
-      httpStatus: 400,
-      message:
-        'product, year, resolution and tile must be included as query params',
+  assert.equal(lidar.facts.downloadableRasterIdentitiesVerified, true);
+  assert.equal(lidar.facts.downloadArchiveIdentities, 30);
+  assert.equal(lidar.facts.archiveBytesDownloaded, 0);
+  assert.deepEqual(
+    {
+      searchResultCount:
+        lidar.lidarCatalogAudit.downloadMapping.searchResultCount,
+      productId: lidar.lidarCatalogAudit.downloadMapping.productId,
+      productResultCount:
+        lidar.lidarCatalogAudit.downloadMapping.productResultCount,
+      mappedPreEventGridRefs:
+        lidar.lidarCatalogAudit.downloadMapping.mappedPreEventGridRefs,
+      unmappedSelectedGridRefs:
+        lidar.lidarCatalogAudit.downloadMapping.unmappedSelectedGridRefs,
+      archiveIdentityCount:
+        lidar.lidarCatalogAudit.downloadMapping.archiveIdentityCount,
     },
-    candidateRequest: {
-      product: 'DTM',
-      year: '2009',
-      resolution: '1M',
-      tile: 'NY3957',
-      relation: 'unverified_candidate_only',
-      httpStatus: 403,
-      message: 'Forbidden',
-      archiveBytesDownloaded: 0,
+    {
+      searchResultCount: 590,
+      productId: 'lidar_tiles_dtm',
+      productResultCount: 123,
+      mappedPreEventGridRefs: 231,
+      unmappedSelectedGridRefs: [],
+      archiveIdentityCount: 30,
     },
-    selectorState: 'upstream_error',
-    selectorMessage: 'Sorry, there is a problem with the service',
+  );
+  assert.equal(
+    lidar.lidarCatalogAudit.downloadMapping.mappingSha256,
+    '7a75da7dc1ff0c30d2ba20d59714658f7e3b8e853ca2b8c16ce9e01b27d1854c',
+  );
+  assert.equal(
+    lidar.lidarCatalogAudit.downloadMapping.archiveIdentitySha256,
+    'a842c8ad0b1ce132eb3b61865c5739e9ca6e62eba17090bc52cbcb5fbd159bba',
+  );
+  assert.deepEqual(lidar.lidarCatalogAudit.downloadMapping.sampleArchiveProbe, {
+    uri: 'https://environment.data.gov.uk/tiles/collections/survey/lidar_tiles_dtm/2009/1/NY3555',
+    httpStatus: 200,
+    contentType: 'application/zip',
+    contentDisposition:
+      'attachment; filename="lidar_tiles_dtm-2009-1-NY35ne.zip"',
+    rangeHonored: false,
+    archiveBytesRead: 0,
   });
-  assert.equal(lidar.lidarCatalogAudit.acquisitionState, 'blocked');
+  assert.equal(
+    lidar.lidarCatalogAudit.downloadMapping.archiveIdentities.reduce(
+      (sum, archive) => sum + archive.mappedGridRefs,
+      0,
+    ),
+    231,
+  );
+  assert.equal(
+    lidar.lidarCatalogAudit.acquisitionState,
+    'ready_with_explicit_gaps',
+  );
 
   lidar.lidarCatalogAudit.selectedPreEventGridRefs = 241;
   assert.throws(
     () => assertCumbriaAccessManifest(manifest),
     /LiDAR selected pre-event grid references must equal 231/,
+  );
+
+  const wholeArchive = manifestFixture();
+  wholeArchive.datasets.find(
+    (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
+  ).lidarCatalogAudit.downloadMapping.materializationRule =
+    'accept every pixel in each 5 km archive';
+  assert.throws(
+    () => assertCumbriaAccessManifest(wholeArchive),
+    /LiDAR raster materialization rule/,
+  );
+
+  const wrongArchive = manifestFixture();
+  wrongArchive.datasets.find(
+    (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
+  ).lidarCatalogAudit.downloadMapping.archiveIdentities[0].uri =
+    'https://environment.data.gov.uk/tiles/collections/survey/lidar_tiles_dtm/2013/1/NY3051';
+  assert.throws(
+    () => assertCumbriaAccessManifest(wrongArchive),
+    /LiDAR archive URI identity/,
   );
 });
 
@@ -637,13 +689,13 @@ test('model access request rejects Product 4 and post-event replay input', () =>
   );
 });
 
-test('bulk acquisition remains blocked until pre-event terrain is identified', () => {
+test('terrain identity passes while bulk acquisition remains physically gated', () => {
   const manifest = manifestFixture();
   const gates = new Map(
     manifest.gates.map((gate) => [gate.id, gate.state]),
   );
 
-  assert.equal(gates.get('pre_event_lidar_tiles'), 'blocked');
+  assert.equal(gates.get('pre_event_lidar_tiles'), 'passed');
   assert.equal(gates.get('upstream_boundary_series'), 'passed');
   assert.equal(gates.get('hydraulic_model_access_request'), 'passed');
   assert.equal(gates.get('as_of_event_defence_state'), 'blocked');

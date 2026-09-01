@@ -133,35 +133,133 @@ const selectedFilenameKinds = {
   ).length,
   zip: archiveNames.filter((name) => name.endsWith('.zip')).length,
 };
-const downloadEndpoint =
-  'https://environment.data.gov.uk/api/survey/download';
-const candidateUrl = new URL(downloadEndpoint);
-candidateUrl.searchParams.set('product', 'DTM');
-candidateUrl.searchParams.set('year', '2009');
-candidateUrl.searchParams.set('resolution', '1M');
-candidateUrl.searchParams.set('tile', 'NY3957');
-const [liveMissingParameterProbe, liveCandidateProbe] = await Promise.all([
-  probeBoundedResponse(downloadEndpoint),
-  probeBoundedResponse(candidateUrl, { Range: 'bytes=0-0' }),
-]);
-const liveArchiveCandidate = [
-  liveMissingParameterProbe,
-  liveCandidateProbe,
-].find((probe) => probe.state === 'archive_candidate_available');
-if (liveArchiveCandidate) {
-  throw new Error(
-    `EA LiDAR download endpoint changed to HTTP ${liveArchiveCandidate.httpStatus}; review the artifact identity before acquisition`,
-  );
+
+const searchEndpoint =
+  'https://environment.data.gov.uk/backend/catalog/api/tiles/collections/survey/search';
+const searchGeometry = boundsPolygon(manifest.aoi.bounds);
+const searchResponse = await fetchJsonBounded(
+  searchEndpoint,
+  {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/geo+json' },
+    body: JSON.stringify(searchGeometry),
+    signal: AbortSignal.timeout(30_000),
+  },
+  1_048_576,
+);
+const searchResults = Array.isArray(searchResponse.results)
+  ? searchResponse.results
+  : [];
+if (searchResponse.count !== searchResults.length) {
+  throw new Error('EA survey search count does not match returned results');
 }
+const timeStampedDtmResults = searchResults.filter(
+  (result) => result.product?.id === 'lidar_tiles_dtm',
+);
+if (timeStampedDtmResults.length === 0) {
+  throw new Error('EA survey search returned no time-stamped DTM identities');
+}
+
+const mappingRule =
+  'map each selected 1 km OS grid reference to its containing 5 km tile; require the selected survey-end year; choose the smallest advertised DTM raster resolution; then URI';
+const materializationRule =
+  'accept raster pixels only inside the selected 1 km grid references mapped to each archive; the containing 5 km archive does not make every pixel event-valid';
+const mapped = selected.map((row) => {
+  const tile = fiveKilometreTile(row.gridRef);
+  const year = row.surveyEnd.slice(0, 4);
+  const candidates = timeStampedDtmResults
+    .filter(
+      (result) => result.tile?.id === tile && result.year?.id === year,
+    )
+    .sort(
+      (left, right) =>
+        Number(left.resolution?.id) - Number(right.resolution?.id) ||
+        String(left.uri).localeCompare(String(right.uri)),
+    );
+  if (candidates.length === 0) {
+    return {
+      gridRef: row.gridRef,
+      objectId: row.objectId,
+      surveyId: row.surveyId,
+      surveyEnd: row.surveyEnd,
+      pointSpacingMetres: row.pointSpacingMetres,
+      archive: null,
+    };
+  }
+  const candidate = candidates[0];
+  return {
+    gridRef: row.gridRef,
+    objectId: row.objectId,
+    surveyId: row.surveyId,
+    surveyEnd: row.surveyEnd,
+    pointSpacingMetres: row.pointSpacingMetres,
+    archive: {
+      product: candidate.product.id,
+      year: candidate.year.id,
+      resolution: candidate.resolution.id,
+      tile: candidate.tile.id,
+      uri: candidate.uri,
+    },
+  };
+});
+const unmappedSelectedGridRefs = mapped
+  .filter((row) => row.archive === null)
+  .map((row) => row.gridRef);
+const mappedRows = mapped.filter((row) => row.archive !== null);
+const archiveGroups = Map.groupBy(mappedRows, (row) => row.archive.uri);
+const archiveIdentities = [...archiveGroups.values()]
+  .map((rows) => ({
+    ...rows[0].archive,
+    mappedGridRefs: rows.length,
+  }))
+  .sort(
+    (left, right) =>
+      left.tile.localeCompare(right.tile) ||
+      left.year.localeCompare(right.year) ||
+      Number(left.resolution) - Number(right.resolution) ||
+      left.uri.localeCompare(right.uri),
+  );
+const mappingSha256 = sha256Json(mapped);
+const archiveIdentitySha256 = sha256Json(archiveIdentities);
+const sampleArchive = archiveIdentities.find(
+  (archive) =>
+    archive.product === 'lidar_tiles_dtm' &&
+    archive.year === '2009' &&
+    archive.resolution === '1' &&
+    archive.tile === 'NY3555',
+);
+if (!sampleArchive) {
+  throw new Error('EA survey search lost the frozen NY3555 sample archive');
+}
+const sampleArchiveProbe = await probeArchiveHeaders(
+  `${sampleArchive.uri}?subscription-key=dspui`,
+);
+const downloadMapping = {
+  searchEndpoint,
+  searchContentType: 'application/geo+json',
+  requestBounds: manifest.aoi.bounds,
+  searchResultCount: searchResults.length,
+  productId: 'lidar_tiles_dtm',
+  productResultCount: timeStampedDtmResults.length,
+  mappingRule,
+  materializationRule,
+  mappedPreEventGridRefs: mappedRows.length,
+  unmappedSelectedGridRefs,
+  archiveIdentityCount: archiveIdentities.length,
+  archiveIdentities,
+  mappingSha256,
+  archiveIdentitySha256,
+  sampleArchiveProbe,
+};
 const acquisitionState =
-  gridRefsWithoutPreEvent.length === 0 &&
-  (selectedFilenameKinds.tif > 0 || selectedFilenameKinds.zip > 0)
-    ? 'eligible'
+  mappedRows.length === selected.length &&
+  archiveIdentities.length > 0 &&
+  gridRefsWithoutPreEvent.length > 0
+    ? 'ready_with_explicit_gaps'
     : 'blocked';
 const lidarManifest = manifest.datasets.find(
   (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
 ).lidarCatalogAudit;
-const { downloadProbe: pinnedDownloadProbe, ...catalogManifest } = lidarManifest;
 const pinnedValues = {
   queryUrl: serviceUrl.toString(),
   selectionRule:
@@ -173,29 +271,23 @@ const pinnedValues = {
   gridRefsWithoutPreEvent,
   selectionSha256,
   selectedFilenameKinds,
+  downloadMapping,
   acquisitionState,
   reason:
-    'Pre-event coverage is incomplete, the DTM catalogue exposes LAZ-named source records rather than downloadable raster artifact identities, and the public survey selector currently reports an upstream service problem.',
+    'All 231 selected pre-event source rows map to 30 official 5 km DTM archive identities. Ten grid references still have no pre-event source record and must remain missing; no raster archive has been downloaded by this audit.',
 };
-if (JSON.stringify(pinnedValues) !== JSON.stringify(catalogManifest)) {
-  throw new Error('Live EA LiDAR catalogue selection drifted from manifest v0.3.0');
+if (process.argv.includes('--print-computed')) {
+  console.log(JSON.stringify(pinnedValues, null, 2));
+  process.exit(0);
 }
-const downloadProbeMatch =
-  liveMissingParameterProbe.state === 'json_response' &&
-  liveMissingParameterProbe.httpStatus ===
-    pinnedDownloadProbe.missingParameterResponse.httpStatus &&
-  liveMissingParameterProbe.body.message ===
-    pinnedDownloadProbe.missingParameterResponse.message &&
-  liveCandidateProbe.state === 'json_response' &&
-  liveCandidateProbe.httpStatus ===
-    pinnedDownloadProbe.candidateRequest.httpStatus &&
-  liveCandidateProbe.body.message ===
-    pinnedDownloadProbe.candidateRequest.message;
+if (JSON.stringify(pinnedValues) !== JSON.stringify(lidarManifest)) {
+  throw new Error('Live EA LiDAR catalogue or download mapping drifted from manifest v0.8.0');
+}
 
 console.log(
   JSON.stringify(
     {
-      auditId: 'cumbria-2015-pre-event-lidar-catalog-v0',
+      auditId: 'cumbria-2015-pre-event-lidar-download-mapping-v0',
       checkedAt: new Date().toISOString(),
       service: serviceUrl.toString(),
       selectionRule: pinnedValues.selectionRule,
@@ -207,13 +299,7 @@ console.log(
       selectedBySurvey,
       selectionSha256,
       selectedFilenameKinds,
-      pinnedDownloadProbe,
-      liveDownloadProbe: {
-        missingParameters: liveMissingParameterProbe,
-        boundedCandidate: liveCandidateProbe,
-        historicalResponseMatch: downloadProbeMatch,
-        archiveBytesDownloaded: 0,
-      },
+      downloadMapping,
       acquisitionState,
       reason: pinnedValues.reason,
       manifestMatch: true,
@@ -230,57 +316,89 @@ function isoDate(milliseconds) {
   return new Date(milliseconds).toISOString().slice(0, 10);
 }
 
-async function probeBoundedResponse(url, headers = {}) {
-  try {
-    const response = await fetch(url, {
-      headers,
-      redirect: 'manual',
-      signal: AbortSignal.timeout(10_000),
-    });
-    const contentLengthHeader = response.headers.get('content-length');
-    const contentLength = Number(contentLengthHeader);
-    if (
-      response.status === 200 ||
-      response.status === 206 ||
-      (response.status >= 300 && response.status < 400) ||
-      (Number.isFinite(contentLength) && contentLength > 1024)
-    ) {
-      await response.body?.cancel();
-      return {
-        state: 'archive_candidate_available',
-        httpStatus: response.status,
-        contentLength: Number.isFinite(contentLength) ? contentLength : null,
-        contentType: response.headers.get('content-type'),
-        contentDisposition: response.headers.get('content-disposition'),
-        location: response.headers.get('location'),
-      };
-    }
-    const text = await response.text();
-    if (Buffer.byteLength(text) > 1024) {
-      return {
-        state: 'upstream_error',
-        httpStatus: response.status,
-        reason: 'bounded response exceeded 1 KB',
-      };
-    }
-    try {
-      return {
-        state: 'json_response',
-        httpStatus: response.status,
-        body: JSON.parse(text),
-      };
-    } catch {
-      return {
-        state: 'upstream_error',
-        httpStatus: response.status,
-        reason: 'bounded response was not JSON',
-      };
-    }
-  } catch (error) {
-    return {
-      state: 'upstream_error',
-      httpStatus: null,
-      reason: error instanceof Error ? error.name : 'UnknownError',
-    };
+function boundsPolygon([west, south, east, north]) {
+  return {
+    type: 'Polygon',
+    coordinates: [
+      [
+        [west, south],
+        [east, south],
+        [east, north],
+        [west, north],
+        [west, south],
+      ],
+    ],
+  };
+}
+
+function fiveKilometreTile(gridRef) {
+  const match = /^([A-Z]{2})(\d{2})(\d{2})$/.exec(gridRef);
+  if (!match) {
+    throw new Error(`Unsupported OS grid reference ${gridRef}`);
   }
+  const easting = Math.floor(Number(match[2]) / 5) * 5;
+  const northing = Math.floor(Number(match[3]) / 5) * 5;
+  return `${match[1]}${String(easting).padStart(2, '0')}${String(northing).padStart(2, '0')}`;
+}
+
+function sha256Json(value) {
+  return createHash('sha256').update(JSON.stringify(value)).digest('hex');
+}
+
+async function fetchJsonBounded(url, init, byteLimit) {
+  const response = await fetch(url, init);
+  if (!response.ok) {
+    await response.body?.cancel();
+    throw new Error(`EA survey search returned HTTP ${response.status}`);
+  }
+  const declaredLength = Number(response.headers.get('content-length'));
+  if (Number.isFinite(declaredLength) && declaredLength > byteLimit) {
+    await response.body?.cancel();
+    throw new Error(`EA survey search declared more than ${byteLimit} bytes`);
+  }
+  if (!response.body) {
+    throw new Error('EA survey search returned no response body');
+  }
+  const reader = response.body.getReader();
+  const chunks = [];
+  let totalBytes = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    totalBytes += value.byteLength;
+    if (totalBytes > byteLimit) {
+      await reader.cancel();
+      throw new Error(`EA survey search exceeded ${byteLimit} bytes`);
+    }
+    chunks.push(Buffer.from(value));
+  }
+  const text = Buffer.concat(chunks).toString('utf8');
+  return JSON.parse(text);
+}
+
+async function probeArchiveHeaders(url) {
+  const response = await fetch(url, {
+    headers: { Range: 'bytes=0-0' },
+    redirect: 'manual',
+    signal: AbortSignal.timeout(90_000),
+  });
+  const result = {
+    uri: url.replace('?subscription-key=dspui', ''),
+    httpStatus: response.status,
+    contentType: response.headers.get('content-type'),
+    contentDisposition: response.headers.get('content-disposition'),
+    rangeHonored: response.status === 206,
+    archiveBytesRead: 0,
+  };
+  await response.body?.cancel();
+  if (
+    result.httpStatus !== 200 ||
+    result.contentType !== 'application/zip' ||
+    !result.contentDisposition?.includes('.zip')
+  ) {
+    throw new Error('EA survey sample archive did not expose a ZIP response');
+  }
+  return result;
 }
