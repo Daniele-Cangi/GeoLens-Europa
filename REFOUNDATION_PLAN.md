@@ -487,11 +487,11 @@ Checkpoints:
 
 ## Phase 11 - Qualify the Cumbria 2015 public-data replay
 
-State: terrain acquisition protocol frozen; model and hydraulic-context execution gated
+State: terrain acquisition and spatial-role protocols frozen; solver and hydraulic-context execution gated
 
 Progress:
 
-- manifest v0.9.0 freezes a bounded Carlisle source-discovery envelope, a separate local hydraulic-protocol envelope and the half-open 72-hour Storm Desmond window from 4 December 2015 00:00 UTC to 7 December 2015 00:00 UTC;
+- manifest v0.10.0 freezes a bounded Carlisle source-discovery envelope, a separate local hydraulic-protocol envelope and the half-open 72-hour Storm Desmond window from 4 December 2015 00:00 UTC to 7 December 2015 00:00 UTC;
 - the canonical Python Earthaccess path found all 144 expected GPM_3IMERGHH V07 Final Run half-hour granules without opening or downloading raster data; V07 remains explicitly retrospective reprocessing;
 - the Environment Agency Hydrology API returned all 288 expected qualified 15-minute flow values and all 288 level values at Sheepmount on the River Eden, with observed maxima of 1,676.632 m3/s and 7.648 m respectively;
 - Willow Holme returned all 288 expected local rainfall values and a 49 mm window total; this is station comparison only and is not represented as high-fell or catchment-wide rainfall;
@@ -512,6 +512,10 @@ Progress:
 - materialization protocol `cumbria-dtm-materialization-v0` recomputes and hash-checks the frozen archive mapping before any future download, preserves native EPSG:27700 resolution and Ordnance Datum Newlyn, keeps source NoData, writes pixels outside each mapped 1 km reference as NoData and retains all ten uncovered references as missing;
 - the protocol estimates 900,000,000 full-archive native cells (3,600,000,000 Float32 bytes) and 264,000,000 retained-mask cells (1,056,000,000 Float32 bytes); these estimates exclude ZIP and raster-format overhead, so execution additionally requires 16 GiB free space and enforces an 8 GiB total download ceiling;
 - future archives require SHA-256 content-addressed receipts and bounded ZIP inspection that rejects encryption, links/reparse points, absolute paths, parent traversal and duplicate normalized paths; `npm run plan:cumbria-dtm-materialization` verifies the manifest and emits the 30-archive dry-run with zero network requests and zero file writes, while `--execute` fails before acquisition because the physical gates remain blocked;
+- spatial protocol `cumbria-spatial-grid-boundary-v0` keeps the DTM at native 0.5/1/2 m in EPSG:27700 with Ordnance Datum Newlyn, CLC 2012 at native 100 m categorical resolution in EPSG:3035 and IMERG at approximately 0.1 degree and 30 minutes in EPSG:4326; no common raster grid or categorical interpolation is authorized;
+- H3 resolution 10 is frozen only as a catalogue, inspection and evidence-join index over the hydraulic-protocol envelope: 24,230 cells, deterministic cell-list SHA-256 `cee0f57bf78d1886f9e787402aa05eeed431bc36cfd0239f9370d725e2c947f9` and approximate mean area 13,199 m2; every summary retains its native source resolution and exact per-cell H3 area;
+- terrain is summarized with coverage, NoData, elevation statistics and contributing source-resolution counts; CLC uses native-footprint area fractions; IMERG uses native-cell overlap and window accumulation. H3 is explicitly forbidden for physical routing and hydraulic state and cannot imply sharper source observations;
+- EPSG:27700 is the exchange coordinate frame for overlap-only reprojection, not a solver grid. Final mesh extent, origin, cell size, width, height and timestep remain `null` and cannot be inferred from the metadata AOI, boundary envelope, H3 index, DTM grid or CLC grid; `npm run plan:cumbria-spatial-grid` recomputes the index identity in a zero-network, zero-write dry run;
 - the current OS Open Rivers product is accessible but remains context-only until an event-valid edition or defensible historical lineage is frozen;
 - Environment Agency WFD River Water Bodies Cycle 1 is event-valid (created 2008, revised 2012); the bounded WFS query returns 16 stable water-body identities with SHA-256 `29cb9324f4ecb25324e893e3bbe07324c6df877f475de922476c9eba19a21a13`, but the 1:50,000 WFD subset remains river context rather than a complete hydraulic network;
 - the official 2011 Carlisle SFRA main report and appendices establish a model completed in 1999, expanded with October 2003 cross-section survey, calibrated against the January 2005 flood, converted to linked ISIS 1D/TUFLOW 2D, bounded by four named upstream watercourse limits and Old Sandsfield downstream, and incorporating defence schemes and 23 floodgates; no runnable model, cross-section or boundary artifacts are attached;
@@ -533,7 +537,6 @@ Progress:
 
 Work:
 
-- determine a modelling grid that preserves native terrain and land-cover resolution claims while keeping H3 as an explicit representation choice;
 - send the frozen Products 5, 6 and 7 request for Flood Model Locations groups `1313`, `1314`, `1797` and `8323`, then content-address and qualify any delivery component by component;
 - obtain event-valid channel geometry so the four frozen station series can be mapped through declared transformations to actual model sections rather than merely enclosed by the protocol envelope;
 - obtain or explicitly rule out the downstream condition at Old Sandsfield and the December 2015 defence state;
@@ -547,6 +550,6 @@ Gate:
 - current hydrography is not silently represented as an as-of-2015 network;
 - post-event reports and observed flood geometry cannot enter model input or calibration;
 - missing hydraulic context remains missing rather than becoming zero or inferred geometry;
-- the protocol envelope and native-resolution DTM staging grid cannot be represented as the final hydraulic mesh; bulk acquisition begins only after the remaining physical gates are reproducible.
+- source grids, the H3 evidence index and the future solver mesh remain distinct: the protocol envelope, H3 cells and native DTM/CLC grids cannot be represented as the final hydraulic mesh; bulk acquisition begins only after the remaining physical gates are reproducible.
 
-Checkpoints: `test: qualify Cumbria public-data access`; `test: freeze Cumbria pre-event terrain catalogue`; `test: qualify Cumbria hydraulic context`; `test: freeze Cumbria hydraulic boundary protocol`; `test: qualify Cumbria hydraulic domain lineage`; `test: freeze Cumbria hydraulic model request`; `test: qualify Cumbria DTM archive mapping`; `test: freeze Cumbria DTM materialization protocol`
+Checkpoints: `test: qualify Cumbria public-data access`; `test: freeze Cumbria pre-event terrain catalogue`; `test: qualify Cumbria hydraulic context`; `test: freeze Cumbria hydraulic boundary protocol`; `test: qualify Cumbria hydraulic domain lineage`; `test: freeze Cumbria hydraulic model request`; `test: qualify Cumbria DTM archive mapping`; `test: freeze Cumbria DTM materialization protocol`; `test: freeze Cumbria spatial grid boundary`

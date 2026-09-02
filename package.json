@@ -32,6 +32,7 @@
     "audit:cumbria-hydraulic-domain": "npm run build --workspace=@geo-lens/evidence && node scripts/audit-cumbria-hydraulic-domain.mjs",
     "prepare:cumbria-model-request": "npm run build --workspace=@geo-lens/evidence && node scripts/prepare-cumbria-model-request.mjs",
     "plan:cumbria-dtm-materialization": "npm run build --workspace=@geo-lens/evidence && node scripts/plan-cumbria-dtm-materialization.mjs",
+    "plan:cumbria-spatial-grid": "npm run build --workspace=@geo-lens/evidence && node scripts/plan-cumbria-spatial-grid.mjs",
     "materialize:emilia-inputs": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/providers && node scripts/materialize-emilia-bounded-inputs.mjs",
     "materialize:emilia-xdbtr": "python scripts/materialize_emilia_xdbtr_masks.py",
     "materialize:emilia-imerg-cache": "python scripts/materialize_emilia_imerg_cache.py",
@@ -49,6 +50,7 @@
   "devDependencies": {
     "concurrently": "^9.2.1",
     "geotiff": "^2.1.4-beta.1",
+    "h3-js": "^4.3.0",
     "proj4": "^2.21.0"
   }
 }

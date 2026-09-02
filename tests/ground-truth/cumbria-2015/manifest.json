@@ -1,9 +1,9 @@
 {
-  "manifestVersion": "0.9.0",
+  "manifestVersion": "0.10.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
-    "verifiedOn": "2026-09-01"
+    "verifiedOn": "2026-09-02"
   },
   "event": {
     "name": "Storm Desmond",
@@ -21,7 +21,7 @@
     "state": "frozen_for_metadata_audit",
     "crs": "EPSG:4326",
     "bounds": [-3.05, 54.82, -2.85, 55.0],
-    "note": "Bounded Carlisle screening envelope. It is frozen for source discovery only; a modelling grid and hydraulic domain have not yet been asserted."
+    "note": "Bounded Carlisle screening envelope. It is frozen for source discovery only; the H3 evidence-index role is now explicit, but a final solver mesh and hydraulic domain have not been asserted."
   },
   "policy": {
     "missingIsNotZero": true,
@@ -29,6 +29,106 @@
     "postEventEvidenceExcludedFromCalibration": true,
     "currentAssetStateExcludedFromEventInputs": true,
     "largeArtifactsStayOutsideGit": true
+  },
+  "spatialGridProtocol": {
+    "id": "cumbria-spatial-grid-boundary-v0",
+    "state": "evidence_index_frozen_solver_mesh_blocked",
+    "sourceGrids": {
+      "terrain": {
+        "datasetId": "ea-lidar-dtm-time-stamped",
+        "horizontalCrs": "EPSG:27700",
+        "verticalDatum": "Ordnance Datum Newlyn",
+        "nativeResolutionMetres": [0.5, 1, 2],
+        "stagingUnit": "masked_native_1km_grid_clips",
+        "resampling": "none",
+        "sourceNodata": "preserve",
+        "commonResolutionClaim": false
+      },
+      "landCover": {
+        "datasetId": "copernicus-clc2012",
+        "horizontalCrs": "EPSG:3035",
+        "nativeResolutionMetres": 100,
+        "minimumMappingUnitHectares": 25,
+        "stagingUnit": "native_categorical_cells",
+        "categoricalInterpolation": "forbidden",
+        "commonResolutionClaim": false
+      },
+      "precipitation": {
+        "datasetId": "nasa-imerg-v07-final",
+        "horizontalCrs": "EPSG:4326",
+        "nativeResolution": "approximately_0.1_degree",
+        "nativeIntervalSeconds": 1800,
+        "stagingUnit": "native_cell_footprints",
+        "h3DoesNotSharpenSource": true
+      }
+    },
+    "evidenceIndex": {
+      "system": "H3",
+      "libraryVersion": "4.3.0",
+      "resolution": 10,
+      "envelopeSource": "hydraulicProtocol.domainEnvelope",
+      "envelopeBounds": [-3.05, 54.82, -2.8, 55.0],
+      "inclusion": "cell_centroid_inside_envelope",
+      "cellCount": 24230,
+      "selectionSha256": "cee0f57bf78d1886f9e787402aa05eeed431bc36cfd0239f9370d725e2c947f9",
+      "approximateMeanCellAreaM2": 13199,
+      "role": "catalog_inspection_and_evidence_join_only",
+      "terrainSummaries": [
+        "coverage_fraction",
+        "nodata_fraction",
+        "minimum_elevation_m",
+        "maximum_elevation_m",
+        "mean_elevation_m",
+        "source_resolution_counts"
+      ],
+      "landCoverSummaries": [
+        "area_fraction_by_clc_class",
+        "dominant_class_with_fraction"
+      ],
+      "precipitationSummaries": [
+        "native_cell_overlap_fraction",
+        "window_accumulation_mm"
+      ],
+      "sourceResolutionsRemainVisible": true,
+      "exactCellAreaUsed": true,
+      "physicalRoutingAllowed": false,
+      "hydraulicStateAllowed": false
+    },
+    "exchangeFrame": {
+      "horizontalCrs": "EPSG:27700",
+      "topology": "no_common_raster_grid_before_solver_contract",
+      "terrain": "native_grid_clips",
+      "landCover": "native_class_footprints_reprojected_for_overlap_only",
+      "precipitation": "native_cell_footprints_reprojected_for_overlap_only",
+      "categoricalInterpolationForbidden": true,
+      "missingInputPolicy": "missing_or_partial_remains_explicit"
+    },
+    "solverMesh": {
+      "state": "blocked_missing_runnable_model_and_geometry",
+      "horizontalCrsRequired": "EPSG:27700",
+      "verticalDatumRequired": "Ordnance Datum Newlyn",
+      "extent": null,
+      "cellSizeMetres": null,
+      "origin": null,
+      "width": null,
+      "height": null,
+      "timeStepSeconds": null,
+      "cannotBeDerivedFrom": [
+        "metadata_aoi",
+        "boundary_protocol_envelope",
+        "h3_evidence_index",
+        "dtm_native_grid",
+        "clc_native_grid"
+      ],
+      "requiredEvidence": [
+        "runnable_pre_event_model_or_versioned_replacement_solver",
+        "event_valid_channel_cross_sections_and_roughness",
+        "boundary_placement_and_values",
+        "distributed_initial_state_or_warmup",
+        "as_of_event_defence_and_floodgate_state",
+        "declared_mesh_extent_origin_cell_size_and_timestep"
+      ]
+    }
   },
   "hydraulicProtocol": {
     "id": "carlisle-local-hydraulic-protocol-v0",
@@ -1607,6 +1707,11 @@
       "reason": "A dry-run-only protocol freezes the 30-archive identity and mapping hashes, conservative byte limits, SHA-256 receipts, ZIP safety checks, native-resolution 1 km masks and explicit NoData for all ten uncovered references. It performs no network request or file write and cannot enable bulk acquisition while the physical gates remain blocked."
     },
     {
+      "id": "spatial_grid_roles",
+      "state": "passed",
+      "reason": "Native DTM, CLC and IMERG grids remain separate and retain their source resolution. H3 resolution 10 is frozen only for cataloguing, inspection and evidence joins over the hydraulic-protocol envelope; it cannot carry physical routing or hydraulic state, and the final solver extent, origin, cell size and timestep remain explicitly missing."
+    },
+    {
       "id": "as_of_event_hydrography",
       "state": "blocked",
       "reason": "WFD River Water Bodies Cycle 1 provides 16 event-valid river-context features, but it is a 1:50,000 WFD subset rather than a complete channel or hydraulic network; current OS Open Rivers remains context-only."
@@ -1640,6 +1745,6 @@
   "acquisition": {
     "state": "metadata_only",
     "largeDownloadsAllowed": false,
-    "nextAction": "Send the frozen Products 5, 6 and 7 request if it has not already been submitted. While awaiting the response, determine the evidence grid and solver-grid boundary without resampling the native terrain or treating H3 as the hydraulic mesh; retain ten terrain grid references and every unresolved hydraulic component explicitly missing."
+    "nextAction": "Send the frozen Products 5, 6 and 7 request if it has not already been submitted, then content-address and qualify any response component by component. Keep the H3 resolution 10 evidence index separate from the still-missing solver mesh and retain ten terrain grid references and every unresolved hydraulic component explicitly missing."
   }
 }
