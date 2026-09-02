@@ -9,7 +9,7 @@ import {
   type CumbriaPublicBaselineTerrainMaterialization,
 } from './cumbriaPublicBaseline';
 
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.16.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.17.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -40,6 +40,7 @@ export type CumbriaTemporalRelation =
 export const CUMBRIA_ACCESS_STATES = [
   'catalog_verified',
   'metadata_verified',
+  'materialized',
   'remote_verified',
   'remote_verified_intermittent',
 ] as const;
@@ -459,7 +460,7 @@ export interface CumbriaSpatialGridProtocol {
     readonly hydraulicStateAllowed: false;
     readonly composition: {
       readonly implementationVersion: 'spatial-evidence-index-v0.1.0';
-      readonly state: 'deterministic_fixture_verified_real_sources_not_materialized';
+      readonly state: 'deterministic_fixture_verified_real_sources_materialized_composition_pending';
       readonly geometryMethod: 'exact_native_footprint_overlap';
       readonly areaReferenceCrs: 'EPSG:27700';
       readonly areaMeasurementMethod: 'projected_h3_boundary_shoelace';
@@ -720,6 +721,71 @@ export interface CumbriaAccessGate {
   readonly reason: string;
 }
 
+export interface CumbriaPublicBaselineEnvironmentalMaterialization {
+  readonly schemaVersion: 'cumbria-public-baseline-environment-v0.1.0';
+  readonly state: 'land_cover_and_precipitation_materialized';
+  readonly recordedOn: string;
+  readonly protocolSha256: string;
+  readonly landCover: {
+    readonly datasetId: 'copernicus-clc2012';
+    readonly status: 'available';
+    readonly receipt: {
+      readonly fileName: 'cumbria-public-baseline-clc2012.receipt.json';
+      readonly schemaVersion: 'cumbria-clc2012-source-receipt-v0.1.0';
+      readonly sha256: string;
+    };
+    readonly sourceGrid: {
+      readonly crs: 'EPSG:3035';
+      readonly bounds: readonly [number, number, number, number];
+      readonly width: number;
+      readonly height: number;
+      readonly cellSizeMetres: 100;
+    };
+    readonly availableCellCount: number;
+    readonly missingCellCount: number;
+    readonly classCounts: Readonly<Record<string, number>>;
+    readonly classGridArtifactSha256: string;
+    readonly renderedSourceWindowSha256: string;
+  };
+  readonly precipitation: {
+    readonly datasetId: 'nasa-imerg-v07-final';
+    readonly status: 'available';
+    readonly receipt: {
+      readonly fileName: 'cumbria-public-baseline-imerg-v07.receipt.json';
+      readonly schemaVersion: 'cumbria-imerg-v07-source-receipt-v0.1.0';
+      readonly sha256: string;
+    };
+    readonly product: 'GPM_3IMERGHH';
+    readonly runType: 'final';
+    readonly datasetVersion: '07';
+    readonly windowStart: string;
+    readonly windowEndExclusive: string;
+    readonly expectedGranules: 144;
+    readonly acquiredGranules: 144;
+    readonly sourceGrid: {
+      readonly crs: 'EPSG:4326';
+      readonly shapeLatLon: readonly [number, number];
+      readonly loadedBounds: readonly [number, number, number, number];
+      readonly finiteCellCount: number;
+    };
+    readonly statisticsMm: {
+      readonly minimum: number;
+      readonly maximum: number;
+      readonly mean: number;
+    };
+    readonly nativeGridArtifactSha256: string;
+    readonly sourceGranulesCopied: false;
+    readonly canonicalAcquisitionPath: 'nasa-precip-engine/earthaccess+xarray';
+  };
+  readonly isolation: {
+    readonly observedFloodGeometryLoaded: false;
+    readonly observedFloodGeometryUsed: false;
+    readonly h3UsedAsSourceOrSolverGrid: false;
+    readonly missingValuesSubstitutedWithZero: false;
+    readonly solverExecutionAuthorized: false;
+  };
+}
+
 export interface CumbriaAccessManifest {
   readonly manifestVersion: typeof CUMBRIA_ACCESS_MANIFEST_VERSION;
   readonly audit: {
@@ -753,13 +819,15 @@ export interface CumbriaAccessManifest {
   readonly publicBaselineProtocol: CumbriaPublicBaselineProtocol;
   readonly publicBaselineTerrainMaterialization:
     CumbriaPublicBaselineTerrainMaterialization;
+  readonly publicBaselineEnvironmentalMaterialization:
+    CumbriaPublicBaselineEnvironmentalMaterialization;
   readonly evaluationProtocol: CumbriaBlindEvaluationProtocol;
   readonly modelAccessRequest: CumbriaModelAccessRequest;
   readonly modelDeliveryIntakeProtocol: CumbriaModelDeliveryIntakeProtocol;
   readonly datasets: readonly CumbriaDatasetAudit[];
   readonly gates: readonly CumbriaAccessGate[];
   readonly acquisition: {
-    readonly state: 'bounded_public_baseline_ready';
+    readonly state: 'bounded_environmental_inputs_materialized';
     readonly largeDownloadsAllowed: false;
     readonly boundedTerrainDownloadsAllowed: true;
     readonly nextAction: string;
@@ -990,6 +1058,10 @@ export function assertCumbriaAccessManifest(
     manifest.publicBaselineTerrainMaterialization,
     manifest.publicBaselineProtocol,
   );
+  publicBaselineEnvironmentalMaterialization(
+    manifest.publicBaselineEnvironmentalMaterialization,
+    manifest.publicBaselineProtocol,
+  );
   blindEvaluationProtocol(manifest.evaluationProtocol, datasetRecords);
 
   const imergFacts = record(
@@ -1000,6 +1072,7 @@ export function assertCumbriaAccessManifest(
   equal(imergFacts.runType, 'final', 'IMERG run type');
   equal(imergFacts.expectedGranules, 144, 'IMERG expected granules');
   equal(imergFacts.discoveredGranules, 144, 'IMERG discovered granules');
+  equal(imergFacts.acquiredGranules, 144, 'IMERG acquired granules');
   equal(
     imergFacts.firstGranuleAt,
     CUMBRIA_EVENT_WINDOW.start,
@@ -1867,6 +1940,11 @@ export function assertCumbriaAccessManifest(
     'passed',
     'spatial_evidence_composition',
   );
+  equal(
+    gateStates.get('bounded_environmental_inputs'),
+    'passed',
+    'bounded_environmental_inputs',
+  );
   equal(gateStates.get('as_of_event_defence_state'), 'blocked', 'as_of_event_defence_state');
   equal(gateStates.get('hydraulic_context'), 'blocked', 'hydraulic_context');
   equal(gateStates.get('large_artifact_downloads'), 'blocked', 'large_artifact_downloads');
@@ -1874,7 +1952,7 @@ export function assertCumbriaAccessManifest(
   const acquisition = record(manifest.acquisition, 'acquisition');
   equal(
     acquisition.state,
-    'bounded_public_baseline_ready',
+    'bounded_environmental_inputs_materialized',
     'acquisition.state',
   );
   equal(
@@ -1888,6 +1966,199 @@ export function assertCumbriaAccessManifest(
     'acquisition.boundedTerrainDownloadsAllowed',
   );
   nonEmpty(acquisition.nextAction, 'acquisition.nextAction');
+}
+
+function publicBaselineEnvironmentalMaterialization(
+  value: unknown,
+  protocolValue: unknown,
+): void {
+  const result = record(
+    value,
+    'publicBaselineEnvironmentalMaterialization',
+  );
+  equal(
+    result.schemaVersion,
+    'cumbria-public-baseline-environment-v0.1.0',
+    'environmental materialization schema version',
+  );
+  equal(
+    result.state,
+    'land_cover_and_precipitation_materialized',
+    'environmental materialization state',
+  );
+  dateOnly(result.recordedOn, 'environmental materialization recordedOn');
+  const protocol = record(protocolValue, 'publicBaselineProtocol');
+  equal(
+    result.protocolSha256,
+    protocol.protocolSha256,
+    'environmental materialization protocol identity',
+  );
+
+  const landCover = record(result.landCover, 'environmental land cover');
+  equal(landCover.datasetId, 'copernicus-clc2012', 'land-cover dataset');
+  equal(landCover.status, 'available', 'land-cover status');
+  const landCoverReceipt = record(landCover.receipt, 'land-cover receipt');
+  equal(
+    landCoverReceipt.fileName,
+    'cumbria-public-baseline-clc2012.receipt.json',
+    'land-cover receipt file',
+  );
+  equal(
+    landCoverReceipt.schemaVersion,
+    'cumbria-clc2012-source-receipt-v0.1.0',
+    'land-cover receipt schema',
+  );
+  equal(
+    sha256(landCoverReceipt.sha256, 'land-cover receipt identity'),
+    'dce61b2234329619ce1212ccc3a49650c1fec68eea7bc5d465f722e170ebc96d',
+    'land-cover receipt identity',
+  );
+  const clcGrid = record(landCover.sourceGrid, 'land-cover source grid');
+  equal(clcGrid.crs, 'EPSG:3035', 'land-cover source CRS');
+  const clcBounds = numericArray(clcGrid.bounds, 4, 'land-cover source bounds');
+  if (JSON.stringify(clcBounds) !== JSON.stringify([3487900, 3606400, 3497000, 3614700])) {
+    throw new Error('land-cover source bounds drifted');
+  }
+  equal(clcGrid.width, 91, 'land-cover grid width');
+  equal(clcGrid.height, 83, 'land-cover grid height');
+  equal(clcGrid.cellSizeMetres, 100, 'land-cover grid resolution');
+  equal(landCover.availableCellCount, 7553, 'land-cover available cells');
+  equal(landCover.missingCellCount, 0, 'land-cover missing cells');
+  const classCounts = record(landCover.classCounts, 'land-cover class counts');
+  equal(
+    JSON.stringify(classCounts),
+    JSON.stringify({
+      111: 10,
+      112: 563,
+      121: 315,
+      122: 110,
+      131: 51,
+      142: 166,
+      211: 1968,
+      231: 3542,
+      311: 133,
+      313: 79,
+      421: 434,
+      522: 182,
+    }),
+    'land-cover class counts',
+  );
+  equal(
+    sha256(landCover.classGridArtifactSha256, 'land-cover class-grid identity'),
+    '35214149c6bc51e703c766f6e06b5ddb28955e5aded709105acdf1aa3536d779',
+    'land-cover class-grid identity',
+  );
+  equal(
+    sha256(
+      landCover.renderedSourceWindowSha256,
+      'land-cover rendered-window identity',
+    ),
+    '5eaa326270f17f42cbe4bed7c75baa14a89f57f901d533ac0646ffcc0c84270a',
+    'land-cover rendered-window identity',
+  );
+
+  const precipitation = record(
+    result.precipitation,
+    'environmental precipitation',
+  );
+  equal(precipitation.datasetId, 'nasa-imerg-v07-final', 'precipitation dataset');
+  equal(precipitation.status, 'available', 'precipitation status');
+  const precipitationReceipt = record(
+    precipitation.receipt,
+    'precipitation receipt',
+  );
+  equal(
+    precipitationReceipt.fileName,
+    'cumbria-public-baseline-imerg-v07.receipt.json',
+    'precipitation receipt file',
+  );
+  equal(
+    precipitationReceipt.schemaVersion,
+    'cumbria-imerg-v07-source-receipt-v0.1.0',
+    'precipitation receipt schema',
+  );
+  equal(
+    sha256(precipitationReceipt.sha256, 'precipitation receipt identity'),
+    'fb768f0de5dd2e39df8c32e80655b28e9dfef02d1ed82605eb94012bb244ebf7',
+    'precipitation receipt identity',
+  );
+  equal(precipitation.product, 'GPM_3IMERGHH', 'precipitation product');
+  equal(precipitation.runType, 'final', 'precipitation run type');
+  equal(precipitation.datasetVersion, '07', 'precipitation dataset version');
+  equal(precipitation.windowStart, CUMBRIA_EVENT_WINDOW.start, 'precipitation window start');
+  equal(
+    precipitation.windowEndExclusive,
+    CUMBRIA_EVENT_WINDOW.endExclusive,
+    'precipitation window end',
+  );
+  equal(precipitation.expectedGranules, 144, 'precipitation expected granules');
+  equal(precipitation.acquiredGranules, 144, 'precipitation acquired granules');
+  const precipitationGrid = record(
+    precipitation.sourceGrid,
+    'precipitation source grid',
+  );
+  equal(precipitationGrid.crs, 'EPSG:4326', 'precipitation source CRS');
+  const gridShape = numericArray(
+    precipitationGrid.shapeLatLon,
+    2,
+    'precipitation grid shape',
+  );
+  if (JSON.stringify(gridShape) !== JSON.stringify([3, 4])) {
+    throw new Error('precipitation grid shape drifted');
+  }
+  const loadedBounds = numericArray(
+    precipitationGrid.loadedBounds,
+    4,
+    'precipitation loaded bounds',
+  );
+  if (
+    JSON.stringify(loadedBounds) !==
+    JSON.stringify([
+      -3.1999998569488524,
+      54.7999984741211,
+      -2.7999999046325685,
+      55.099999237060544,
+    ])
+  ) {
+    throw new Error('precipitation loaded bounds drifted');
+  }
+  equal(precipitationGrid.finiteCellCount, 12, 'precipitation finite cells');
+  const statistics = record(
+    precipitation.statisticsMm,
+    'precipitation statistics',
+  );
+  equal(statistics.minimum, 81.70501708984375, 'precipitation minimum');
+  equal(statistics.maximum, 115.9000015258789, 'precipitation maximum');
+  equal(statistics.mean, 102.97125244140625, 'precipitation mean');
+  equal(
+    sha256(
+      precipitation.nativeGridArtifactSha256,
+      'precipitation native-grid identity',
+    ),
+    '99bb25ba7ed8ae874eb44b711b47457948e29495f41c3c06c0f29b5f0158be94',
+    'precipitation native-grid identity',
+  );
+  equal(
+    precipitation.sourceGranulesCopied,
+    false,
+    'precipitation source-granule copy policy',
+  );
+  equal(
+    precipitation.canonicalAcquisitionPath,
+    'nasa-precip-engine/earthaccess+xarray',
+    'precipitation canonical acquisition path',
+  );
+
+  const isolation = record(result.isolation, 'environmental isolation');
+  equal(isolation.observedFloodGeometryLoaded, false, 'environmental geometry load');
+  equal(isolation.observedFloodGeometryUsed, false, 'environmental geometry use');
+  equal(isolation.h3UsedAsSourceOrSolverGrid, false, 'environmental H3 role');
+  equal(
+    isolation.missingValuesSubstitutedWithZero,
+    false,
+    'environmental missing-value policy',
+  );
+  equal(isolation.solverExecutionAuthorized, false, 'environmental solver gate');
 }
 
 export function createCumbriaDtmMaterializationPlan(
@@ -2482,7 +2753,7 @@ function spatialGridProtocol(
   );
   equal(
     composition.state,
-    'deterministic_fixture_verified_real_sources_not_materialized',
+    'deterministic_fixture_verified_real_sources_materialized_composition_pending',
     'evidence composition state',
   );
   equal(
@@ -3569,6 +3840,14 @@ function nonEmpty(value: unknown, label: string): string {
     throw new Error(`${label} must be a non-empty string`);
   }
   return value;
+}
+
+function sha256(value: unknown, label: string): string {
+  const text = nonEmpty(value, label);
+  if (!/^[a-f0-9]{64}$/.test(text)) {
+    throw new Error(`${label} must be a lowercase SHA-256 identity`);
+  }
+  return text;
 }
 
 function timestamp(value: unknown, label: string): void {

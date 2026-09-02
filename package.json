@@ -17,7 +17,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test:ts && npm run test:python",
     "test:ts": "npm run test --workspaces --if-present && npm run test:scripts",
-    "test:scripts": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/stormwater && node --test scripts/test/external-evidence-intake.test.mjs scripts/test/cumbria-dtm-masks.test.mjs",
+    "test:scripts": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/stormwater && node --test scripts/test/external-evidence-intake.test.mjs scripts/test/cumbria-dtm-masks.test.mjs scripts/test/cumbria-clc2012.test.mjs",
     "test:python": "npm run test:python:nasa && npm run test:python:benchmark",
     "test:python:nasa": "cd nasa-precip-engine && python -m unittest discover -s tests -v",
     "test:python:benchmark": "python -m unittest discover -s tests/python -v",
@@ -33,6 +33,8 @@
     "audit:cumbria-public-baseline": "npm run build --workspace=@geo-lens/evidence && node scripts/audit-cumbria-public-baseline.mjs",
     "materialize:cumbria-dtm": "python scripts/materialize_cumbria_dtm.py",
     "materialize:cumbria-dtm-masks": "npm run build --workspace=@geo-lens/evidence && node scripts/materialize-cumbria-dtm-masks.mjs",
+    "materialize:cumbria-clc2012": "npm run build --workspace=@geo-lens/evidence && node scripts/materialize-cumbria-clc2012.mjs",
+    "materialize:cumbria-imerg": "python scripts/materialize_cumbria_imerg_cache.py",
     "prepare:cumbria-model-request": "npm run build --workspace=@geo-lens/evidence && node scripts/prepare-cumbria-model-request.mjs",
     "plan:cumbria-dtm-materialization": "npm run build --workspace=@geo-lens/evidence && node scripts/plan-cumbria-dtm-materialization.mjs",
     "plan:cumbria-spatial-grid": "npm run build --workspace=@geo-lens/evidence && node scripts/plan-cumbria-spatial-grid.mjs",
@@ -56,6 +58,7 @@
     "concurrently": "^9.2.1",
     "geotiff": "^2.1.4-beta.1",
     "h3-js": "^4.3.0",
-    "proj4": "^2.21.0"
+    "proj4": "^2.21.0",
+    "sharp": "^0.35.3"
   }
 }

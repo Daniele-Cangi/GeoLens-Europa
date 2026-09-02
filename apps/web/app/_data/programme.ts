@@ -59,15 +59,15 @@ export const programmeRecords: readonly ProgrammeRecord[] = [
     code: 'Case 03',
     title: 'Event-specific public-data replay',
     place: 'Carlisle / Cumbria, United Kingdom',
-    status: 'Terrain evidence materialized',
+    status: 'Environmental evidence materialized',
     statusTone: 'evidence-gate',
     established:
-      'A 56 km² Sheepmount–Old Sandsfield reach is fixed without observed flood geometry; six official pre-event DTM archives yield 46 usable one-kilometre terrain windows with content-addressed provenance.',
+      'A 56 km² Sheepmount–Old Sandsfield reach is fixed without observed flood geometry; real pre-event terrain, CLC 2012 land cover and the complete 72-hour IMERG window are content-addressed outside Git.',
     openGate:
-      'Ten one-kilometre grids remain explicitly unavailable after archive and pixel inspection; channel placement, downstream and initial conditions, roughness, computation grid and timestep are not yet frozen.',
+      'Ten terrain grids remain explicitly unavailable; channel placement, downstream and initial conditions, roughness, computation grid and timestep are not yet frozen.',
     nextDecision:
-      'Compose verified terrain coverage with the remaining public inputs, then freeze the experimental replacement-solver contract before opening either evaluation reference.',
+      'Compose the three native evidence grids for inspection, then freeze the experimental replacement-solver contract before opening either evaluation reference.',
   },
 ] as const;
 
-export const programmeUpdatedAt = '2 September 2026';
+export const programmeUpdatedAt = '3 September 2026';
