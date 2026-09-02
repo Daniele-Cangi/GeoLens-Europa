@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.15.0",
+  "manifestVersion": "0.16.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -187,6 +187,57 @@
       ]
     },
     "protocolSha256": "7fe1d804a5bbe8e5603d484422a9dce106960c90b26e38a83fb8d1cae30e3689"
+  },
+  "publicBaselineTerrainMaterialization": {
+    "schemaVersion": "cumbria-public-baseline-terrain-v0.1.0",
+    "state": "terrain_materialized_with_explicit_gaps",
+    "recordedOn": "2026-09-02",
+    "protocolSha256": "7fe1d804a5bbe8e5603d484422a9dce106960c90b26e38a83fb8d1cae30e3689",
+    "sourceReceipt": {
+      "fileName": "cumbria-public-baseline-dtm.receipt.json",
+      "sha256": "4ea7faa7f54f4a3e525d26e4324e6a56a86e2813ea6ae6cef07bf0d342a0cd8d"
+    },
+    "maskReceipt": {
+      "fileName": "cumbria-public-baseline-dtm-1km.receipt.json",
+      "schemaVersion": "cumbria-dtm-1km-receipt-v0.3.0",
+      "sha256": "c9acfe46f41e08e40e6473ce399e912b8d4e27c880e928e0f1a77aef15749988"
+    },
+    "storage": {
+      "archiveCount": 6,
+      "archiveBytes": 280161858,
+      "sourceRasterCount": 40,
+      "maskCount": 48,
+      "availableMaskCount": 46,
+      "uniqueArtifactCount": 47,
+      "physicalCompressedBytes": 36148351,
+      "decodedMaskBytes": 192000000
+    },
+    "coverage": {
+      "requiredGridCount": 56,
+      "catalogueSelectedGridCount": 52,
+      "georeferencedWindowCount": 48,
+      "availableGridCount": 46,
+      "catalogueMissingGridRefs": ["NY3256", "NY3257", "NY3357", "NY3959"],
+      "archiveMissingGridRefs": ["NY3258", "NY3259", "NY3358", "NY3359"],
+      "noDataOnlyGridRefs": ["NY3859", "NY3960"],
+      "effectiveMissingGridRefs": [
+        "NY3256", "NY3257", "NY3258", "NY3259", "NY3357",
+        "NY3358", "NY3359", "NY3859", "NY3959", "NY3960"
+      ],
+      "olderArchiveFallbackGridRefs": [
+        "NY3758", "NY3858", "NY3859", "NY3860", "NY3861", "NY3960"
+      ],
+      "validPixelCount": 30678994,
+      "noDataPixelCountInMappedWindows": 17321006,
+      "completeCoverage": false
+    },
+    "isolation": {
+      "observedFloodGeometryLoaded": false,
+      "observedFloodGeometryUsed": false,
+      "postEventModelUsed": false,
+      "h3UsedAsSourceOrSolverGrid": false,
+      "missingPixelsSubstitutedWithZero": false
+    }
   },
   "spatialGridProtocol": {
     "id": "cumbria-spatial-grid-boundary-v0",

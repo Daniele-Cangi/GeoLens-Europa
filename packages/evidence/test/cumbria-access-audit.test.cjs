@@ -155,7 +155,7 @@ test('public baseline freezes a small input-selected domain without evaluation l
   );
 });
 
-test('public baseline DTM selection closes coverage and keeps four gaps missing', () => {
+test('public baseline DTM catalogue selection keeps four initial gaps missing', () => {
   const manifest = manifestFixture();
   const terrain = manifest.publicBaselineProtocol.terrainAcquisition;
 
@@ -186,6 +186,56 @@ test('public baseline DTM selection closes coverage and keeps four gaps missing'
   assert.throws(
     () => assertCumbriaAccessManifest(solverEnabled),
     /solver gate/,
+  );
+});
+
+test('public baseline terrain materialization records real coverage without zero substitution', () => {
+  const manifest = manifestFixture();
+  const result = manifest.publicBaselineTerrainMaterialization;
+
+  assert.equal(manifest.manifestVersion, '0.16.0');
+  assert.equal(result.state, 'terrain_materialized_with_explicit_gaps');
+  assert.equal(
+    result.protocolSha256,
+    manifest.publicBaselineProtocol.protocolSha256,
+  );
+  assert.deepEqual(result.coverage.catalogueMissingGridRefs, [
+    'NY3256',
+    'NY3257',
+    'NY3357',
+    'NY3959',
+  ]);
+  assert.deepEqual(result.coverage.archiveMissingGridRefs, [
+    'NY3258',
+    'NY3259',
+    'NY3358',
+    'NY3359',
+  ]);
+  assert.deepEqual(result.coverage.noDataOnlyGridRefs, [
+    'NY3859',
+    'NY3960',
+  ]);
+  assert.equal(result.coverage.availableGridCount, 46);
+  assert.equal(result.coverage.completeCoverage, false);
+  assert.equal(result.storage.archiveBytes, 280161858);
+  assert.equal(result.storage.physicalCompressedBytes, 36148351);
+  assert.equal(result.isolation.missingPixelsSubstitutedWithZero, false);
+  assert.equal(result.isolation.observedFloodGeometryLoaded, false);
+
+  const inventedCoverage = manifestFixture();
+  inventedCoverage.publicBaselineTerrainMaterialization.coverage.completeCoverage =
+    true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(inventedCoverage),
+    /terrain complete coverage claim/,
+  );
+
+  const driftedReceipt = manifestFixture();
+  driftedReceipt.publicBaselineTerrainMaterialization.maskReceipt.sha256 =
+    'a'.repeat(64);
+  assert.throws(
+    () => assertCumbriaAccessManifest(driftedReceipt),
+    /terrain mask receipt identity/,
   );
 });
 
@@ -309,7 +359,7 @@ test('pre-event terrain selection maps to downloadable archives with explicit ga
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.15.0');
+  assert.equal(manifest.manifestVersion, '0.16.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {

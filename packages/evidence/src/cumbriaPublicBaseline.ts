@@ -85,6 +85,53 @@ interface CumbriaPublicBaselineArchive {
   readonly gridRefs: readonly string[];
 }
 
+export interface CumbriaPublicBaselineTerrainMaterialization {
+  readonly schemaVersion: 'cumbria-public-baseline-terrain-v0.1.0';
+  readonly state: 'terrain_materialized_with_explicit_gaps';
+  readonly recordedOn: '2026-09-02';
+  readonly protocolSha256: string;
+  readonly sourceReceipt: {
+    readonly fileName: 'cumbria-public-baseline-dtm.receipt.json';
+    readonly sha256: string;
+  };
+  readonly maskReceipt: {
+    readonly fileName: 'cumbria-public-baseline-dtm-1km.receipt.json';
+    readonly schemaVersion: 'cumbria-dtm-1km-receipt-v0.3.0';
+    readonly sha256: string;
+  };
+  readonly storage: {
+    readonly archiveCount: 6;
+    readonly archiveBytes: 280161858;
+    readonly sourceRasterCount: 40;
+    readonly maskCount: 48;
+    readonly availableMaskCount: 46;
+    readonly uniqueArtifactCount: 47;
+    readonly physicalCompressedBytes: 36148351;
+    readonly decodedMaskBytes: 192000000;
+  };
+  readonly coverage: {
+    readonly requiredGridCount: 56;
+    readonly catalogueSelectedGridCount: 52;
+    readonly georeferencedWindowCount: 48;
+    readonly availableGridCount: 46;
+    readonly catalogueMissingGridRefs: readonly string[];
+    readonly archiveMissingGridRefs: readonly string[];
+    readonly noDataOnlyGridRefs: readonly string[];
+    readonly effectiveMissingGridRefs: readonly string[];
+    readonly olderArchiveFallbackGridRefs: readonly string[];
+    readonly validPixelCount: 30678994;
+    readonly noDataPixelCountInMappedWindows: 17321006;
+    readonly completeCoverage: false;
+  };
+  readonly isolation: {
+    readonly observedFloodGeometryLoaded: false;
+    readonly observedFloodGeometryUsed: false;
+    readonly postEventModelUsed: false;
+    readonly h3UsedAsSourceOrSolverGrid: false;
+    readonly missingPixelsSubstitutedWithZero: false;
+  };
+}
+
 const expectedSelectionInputs = [
   'ea-hydrology-sheepmount-flow',
   'cumberland-carlisle-sfra-2011-main-and-appendix-c',
@@ -374,6 +421,166 @@ export function assertCumbriaPublicBaselineProtocol(
     .update(JSON.stringify(withoutHash))
     .digest('hex');
   equal(protocolSha256, recomputed, 'public baseline protocol content hash');
+}
+
+export function assertCumbriaPublicBaselineTerrainMaterialization(
+  candidate: unknown,
+  protocolCandidate: unknown,
+): asserts candidate is CumbriaPublicBaselineTerrainMaterialization {
+  const materialization = record(
+    candidate,
+    'publicBaselineTerrainMaterialization',
+  );
+  equal(
+    materialization.schemaVersion,
+    'cumbria-public-baseline-terrain-v0.1.0',
+    'terrain materialization schema',
+  );
+  equal(
+    materialization.state,
+    'terrain_materialized_with_explicit_gaps',
+    'terrain materialization state',
+  );
+  equal(materialization.recordedOn, '2026-09-02', 'terrain recorded date');
+  const protocol = record(protocolCandidate, 'publicBaselineProtocol');
+  equal(
+    materialization.protocolSha256,
+    protocol.protocolSha256,
+    'terrain materialization protocol identity',
+  );
+
+  const sourceReceipt = record(
+    materialization.sourceReceipt,
+    'terrain source receipt',
+  );
+  equal(
+    sourceReceipt.fileName,
+    'cumbria-public-baseline-dtm.receipt.json',
+    'terrain source receipt file',
+  );
+  equal(
+    sha256(sourceReceipt.sha256, 'terrain source receipt SHA-256'),
+    '4ea7faa7f54f4a3e525d26e4324e6a56a86e2813ea6ae6cef07bf0d342a0cd8d',
+    'terrain source receipt identity',
+  );
+  const maskReceipt = record(
+    materialization.maskReceipt,
+    'terrain mask receipt',
+  );
+  equal(
+    maskReceipt.fileName,
+    'cumbria-public-baseline-dtm-1km.receipt.json',
+    'terrain mask receipt file',
+  );
+  equal(
+    maskReceipt.schemaVersion,
+    'cumbria-dtm-1km-receipt-v0.3.0',
+    'terrain mask receipt schema',
+  );
+  equal(
+    sha256(maskReceipt.sha256, 'terrain mask receipt SHA-256'),
+    'c9acfe46f41e08e40e6473ce399e912b8d4e27c880e928e0f1a77aef15749988',
+    'terrain mask receipt identity',
+  );
+
+  const storage = record(materialization.storage, 'terrain materialization storage');
+  for (const [field, expected] of Object.entries({
+    archiveCount: 6,
+    archiveBytes: 280161858,
+    sourceRasterCount: 40,
+    maskCount: 48,
+    availableMaskCount: 46,
+    uniqueArtifactCount: 47,
+    physicalCompressedBytes: 36148351,
+    decodedMaskBytes: 192000000,
+  })) {
+    equal(storage[field], expected, `terrain storage ${field}`);
+  }
+
+  const coverage = record(
+    materialization.coverage,
+    'terrain materialization coverage',
+  );
+  for (const [field, expected] of Object.entries({
+    requiredGridCount: 56,
+    catalogueSelectedGridCount: 52,
+    georeferencedWindowCount: 48,
+    availableGridCount: 46,
+    validPixelCount: 30678994,
+    noDataPixelCountInMappedWindows: 17321006,
+  })) {
+    equal(coverage[field], expected, `terrain coverage ${field}`);
+  }
+  const catalogueMissing = ['NY3256', 'NY3257', 'NY3357', 'NY3959'];
+  const archiveMissing = ['NY3258', 'NY3259', 'NY3358', 'NY3359'];
+  const noDataOnly = ['NY3859', 'NY3960'];
+  const effectiveMissing = [
+    'NY3256',
+    'NY3257',
+    'NY3258',
+    'NY3259',
+    'NY3357',
+    'NY3358',
+    'NY3359',
+    'NY3859',
+    'NY3959',
+    'NY3960',
+  ];
+  const fallback = [
+    'NY3758',
+    'NY3858',
+    'NY3859',
+    'NY3860',
+    'NY3861',
+    'NY3960',
+  ];
+  deepEqual(
+    stringArray(coverage.catalogueMissingGridRefs, 'catalogue missing grids'),
+    catalogueMissing,
+    'catalogue missing grids',
+  );
+  deepEqual(
+    stringArray(coverage.archiveMissingGridRefs, 'archive missing grids'),
+    archiveMissing,
+    'archive missing grids',
+  );
+  deepEqual(
+    stringArray(coverage.noDataOnlyGridRefs, 'NoData-only grids'),
+    noDataOnly,
+    'NoData-only grids',
+  );
+  deepEqual(
+    stringArray(coverage.effectiveMissingGridRefs, 'effective missing grids'),
+    effectiveMissing,
+    'effective missing grids',
+  );
+  deepEqual(
+    stringArray(coverage.olderArchiveFallbackGridRefs, 'terrain fallback grids'),
+    fallback,
+    'terrain fallback grids',
+  );
+  equal(coverage.completeCoverage, false, 'terrain complete coverage claim');
+  if (
+    Number(coverage.validPixelCount) +
+      Number(coverage.noDataPixelCountInMappedWindows) !==
+    48000000
+  ) {
+    throw new Error('Mapped terrain pixel accounting must equal 48 million');
+  }
+
+  const isolation = record(
+    materialization.isolation,
+    'terrain materialization isolation',
+  );
+  for (const field of [
+    'observedFloodGeometryLoaded',
+    'observedFloodGeometryUsed',
+    'postEventModelUsed',
+    'h3UsedAsSourceOrSolverGrid',
+    'missingPixelsSubstitutedWithZero',
+  ]) {
+    equal(isolation[field], false, `terrain isolation ${field}`);
+  }
 }
 
 function gridReferencesForBounds(): string[] {

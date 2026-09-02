@@ -4,10 +4,12 @@ import {
 } from './cumbriaModelIntake';
 import {
   assertCumbriaPublicBaselineProtocol,
+  assertCumbriaPublicBaselineTerrainMaterialization,
   type CumbriaPublicBaselineProtocol,
+  type CumbriaPublicBaselineTerrainMaterialization,
 } from './cumbriaPublicBaseline';
 
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.15.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.16.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -749,6 +751,8 @@ export interface CumbriaAccessManifest {
   readonly spatialGridProtocol: CumbriaSpatialGridProtocol;
   readonly hydraulicProtocol: CumbriaHydraulicBoundaryProtocol;
   readonly publicBaselineProtocol: CumbriaPublicBaselineProtocol;
+  readonly publicBaselineTerrainMaterialization:
+    CumbriaPublicBaselineTerrainMaterialization;
   readonly evaluationProtocol: CumbriaBlindEvaluationProtocol;
   readonly modelAccessRequest: CumbriaModelAccessRequest;
   readonly modelDeliveryIntakeProtocol: CumbriaModelDeliveryIntakeProtocol;
@@ -982,6 +986,10 @@ export function assertCumbriaAccessManifest(
   }
 
   assertCumbriaPublicBaselineProtocol(manifest.publicBaselineProtocol, datasets);
+  assertCumbriaPublicBaselineTerrainMaterialization(
+    manifest.publicBaselineTerrainMaterialization,
+    manifest.publicBaselineProtocol,
+  );
   blindEvaluationProtocol(manifest.evaluationProtocol, datasetRecords);
 
   const imergFacts = record(
