@@ -1030,6 +1030,22 @@ test('model delivery intake is ready without claiming a received package', () =>
     () => assertCumbriaAccessManifest(manifest),
     /modelDeliveryIntakeProtocol.packageReceived/,
   );
+
+  const componentDrift = manifestFixture();
+  componentDrift.modelDeliveryIntakeProtocol.declaredComponentIds =
+    componentDrift.modelDeliveryIntakeProtocol.declaredComponentIds.slice(1);
+  assert.throws(
+    () => assertCumbriaAccessManifest(componentDrift),
+    /component identities drifted/,
+  );
+
+  const gateRequirementDrift = manifestFixture();
+  gateRequirementDrift.modelDeliveryIntakeProtocol.requiredForGateAssessment =
+    gateRequirementDrift.modelDeliveryIntakeProtocol.requiredForGateAssessment.slice(1);
+  assert.throws(
+    () => assertCumbriaAccessManifest(gateRequirementDrift),
+    /gate requirements drifted/,
+  );
 });
 
 test('terrain identity passes while bulk acquisition remains physically gated', () => {

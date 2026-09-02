@@ -502,12 +502,14 @@ npm run verify:emilia-map -- --data-root C:\Users\dacan\GeoLens\data\emilia-roma
 
 ## External evidence intake
 
-GeoLens includes one local intake command for future ARPAE and Amsterdam/Waternet deliveries. It reads originals from a data directory outside Git, computes their byte counts and SHA-256 identities, validates the appropriate scientific contract and writes a new package receipt. It does not copy the originals and refuses to overwrite an existing receipt.
+GeoLens includes one local intake command for future ARPAE, Amsterdam/Waternet and Cumbria model deliveries. It reads originals from a data directory outside Git, computes their byte counts and SHA-256 identities, validates the appropriate scientific contract and writes a new package receipt. It does not copy the originals and refuses to overwrite an existing receipt.
 
 ```powershell
 npm run intake:external-evidence -- --kind arpae --draft C:\path\to\arpae-draft.json --data-root C:\path\to\arpae-delivery --output C:\path\to\receipts\arpae-package.json
 
 npm run intake:external-evidence -- --kind amsterdam --draft C:\path\to\amsterdam-draft.json --data-root C:\path\to\amsterdam-delivery --output C:\path\to\receipts\amsterdam-package.json
+
+npm run intake:external-evidence -- --kind cumbria-model --draft C:\path\to\cumbria-model-draft.json --data-root C:\path\to\cumbria-model-delivery --output C:\path\to\receipts\cumbria-model-package.json
 ```
 
 The draft is the corresponding package JSON with artifact entries containing `id`, `role`, portable `relativePath` and `mediaType`. Any draft `bytes`, `sha256` or local source-path fields are discarded and recomputed from `data-root`. Artifact paths and resolved symlinks must remain inside that root.

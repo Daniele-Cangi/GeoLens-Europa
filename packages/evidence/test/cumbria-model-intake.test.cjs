@@ -144,6 +144,27 @@ test('reviewed required components become candidates, never automatic replay evi
   assert.ok(summary.blockingReasons.some((reason) => /separate physical-gate/.test(reason)));
 });
 
+test('reviewed but incomplete required evidence remains under review', () => {
+  const evidencePackage = completePackage();
+  const component = evidencePackage.components.find(
+    (candidate) => candidate.id === 'roughness_and_parameter_definitions',
+  );
+  component.status = 'incomplete';
+  component.missingReason = 'Some model reaches have no attributable roughness value.';
+  const review = acceptedReview(evidencePackage);
+  const decision = review.componentDecisions.find(
+    (candidate) => candidate.id === component.id,
+  );
+  decision.decision = 'incomplete';
+  decision.reason = component.missingReason;
+
+  assert.equal(validateCumbriaModelReviewReceipt(review, evidencePackage).ok, true);
+  const summary = inspectCumbriaModelEvidenceIntake(evidencePackage, review);
+  assert.equal(summary.status, 'under_review');
+  assert.equal(summary.hydraulicContextAssessment, 'blocked');
+  assert.equal(summary.replayEligibility, 'blocked');
+});
+
 test('synthetic package can verify shape but cannot pass candidate review', () => {
   const evidencePackage = completePackage('synthetic_fixture');
   assert.equal(validateCumbriaModelEvidencePackage(evidencePackage).ok, true);
@@ -196,6 +217,17 @@ test('available model evidence requires dated and genuinely pre-event lineage', 
     validateCumbriaModelEvidencePackage(postEventDated).errors[0],
     /contains a non-pre-event date/,
   );
+
+  const hostTimezoneDependent = completePackage();
+  hostTimezoneDependent.components[0].sourceDates = ['2011-11-22T10:00:00'];
+  assert.match(
+    validateCumbriaModelEvidencePackage(hostTimezoneDependent).errors[0],
+    /time-zone-qualified timestamp/,
+  );
+
+  const explicitOffset = completePackage();
+  explicitOffset.components[0].sourceDates = ['2011-11-22T10:00:00+01:00'];
+  assert.equal(validateCumbriaModelEvidencePackage(explicitOffset).ok, true);
 });
 
 test('every delivered artifact must have one unique path and a component classification', () => {

@@ -661,6 +661,11 @@ test('API exposes the Cumbria model delivery as explicitly missing', async (cont
   assert.equal(body.policy.originalFilesStayOutsideGit, true);
   assert.equal(body.policy.automaticReplayPromotion, false);
   assert.equal(body.policy.evaluationReferenceSeal, 'must_remain_closed');
+  const serialized = JSON.stringify(body);
+  assert.equal(serialized.includes('relativePath'), false);
+  assert.equal(serialized.includes('deliveryReference'), false);
+  assert.equal(serialized.includes('observedEventGeometry'), false);
+  assert.equal(serialized.includes('evaluationGeometry'), false);
 });
 
 test('API exposes only publication-safe Emilia map layers', async (context) => {

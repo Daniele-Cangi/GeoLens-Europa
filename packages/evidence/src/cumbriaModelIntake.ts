@@ -616,7 +616,7 @@ export function inspectCumbriaModelEvidenceIntake(
     caseId: CASE_ID,
     status: hasRejected
       ? 'rejected'
-      : review !== null
+      : assessmentReady
         ? 'verified'
         : reviewValidation === null
           ? 'received'
@@ -725,6 +725,14 @@ function assertComponent(
   );
   const sourceDates = uniqueStringArray(component.sourceDates, `${label}.sourceDates`);
   for (const [dateIndex, sourceDate] of sourceDates.entries()) {
+    const isIsoDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(sourceDate);
+    const isZoneQualifiedTimestamp =
+      /^\d{4}-\d{2}-\d{2}T.+(?:Z|[+-]\d{2}:\d{2})$/i.test(sourceDate);
+    if (!isIsoDateOnly && !isZoneQualifiedTimestamp) {
+      throw new Error(
+        `${label}.sourceDates[${dateIndex}] must be an ISO date or a time-zone-qualified timestamp`,
+      );
+    }
     const timestamp = Date.parse(sourceDate);
     if (Number.isNaN(timestamp)) {
       throw new Error(`${label}.sourceDates[${dateIndex}] must be a date`);
