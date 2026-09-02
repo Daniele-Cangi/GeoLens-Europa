@@ -221,7 +221,7 @@ test('pre-event terrain selection maps to downloadable archives with explicit ga
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.13.0');
+  assert.equal(manifest.manifestVersion, '0.14.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
@@ -967,7 +967,10 @@ test('model access request asks for Products 5, 6 and 7 without evaluation leaka
   const manifest = manifestFixture();
   const request = manifest.modelAccessRequest;
 
-  assert.equal(request.state, 'prepared_not_sent');
+  assert.equal(request.state, 'sent_awaiting_response');
+  assert.equal(request.sentAt, '2026-09-02T11:36:32Z');
+  assert.equal(request.transport, 'email');
+  assert.equal(request.responseState, 'awaiting_response');
   assert.equal(request.recipient, 'enquiries@environment-agency.gov.uk');
   assert.deepEqual(
     request.products.map((product) => [product.number, product.scope]),

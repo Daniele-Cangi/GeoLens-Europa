@@ -3,7 +3,7 @@ import {
   type CumbriaModelDeliveryIntakeProtocol,
 } from './cumbriaModelIntake';
 
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.13.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.14.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -758,7 +758,10 @@ export interface CumbriaAccessManifest {
 
 export interface CumbriaModelAccessRequest {
   readonly id: 'cumbria-carlisle-pre-event-model-products-5-6-7-v0';
-  readonly state: 'prepared_not_sent';
+  readonly state: 'sent_awaiting_response';
+  readonly sentAt: string;
+  readonly transport: 'email';
+  readonly responseState: 'awaiting_response';
   readonly recipient: 'enquiries@environment-agency.gov.uk';
   readonly routing: 'local_environment_agency_team';
   readonly subject: string;
@@ -2916,7 +2919,15 @@ function modelAccessRequest(value: unknown): void {
     'cumbria-carlisle-pre-event-model-products-5-6-7-v0',
     'modelAccessRequest.id',
   );
-  equal(request.state, 'prepared_not_sent', 'modelAccessRequest.state');
+  equal(request.state, 'sent_awaiting_response', 'modelAccessRequest.state');
+  equal(request.sentAt, '2026-09-02T11:36:32Z', 'modelAccessRequest.sentAt');
+  timestamp(request.sentAt, 'modelAccessRequest.sentAt');
+  equal(request.transport, 'email', 'modelAccessRequest.transport');
+  equal(
+    request.responseState,
+    'awaiting_response',
+    'modelAccessRequest.responseState',
+  );
   equal(
     request.recipient,
     'enquiries@environment-agency.gov.uk',

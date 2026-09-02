@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.13.0",
+  "manifestVersion": "0.14.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -486,7 +486,10 @@
   },
   "modelAccessRequest": {
     "id": "cumbria-carlisle-pre-event-model-products-5-6-7-v0",
-    "state": "prepared_not_sent",
+    "state": "sent_awaiting_response",
+    "sentAt": "2026-09-02T11:36:32Z",
+    "transport": "email",
+    "responseState": "awaiting_response",
     "recipient": "enquiries@environment-agency.gov.uk",
     "routing": "local_environment_agency_team",
     "subject": "Request for Carlisle pre-event hydraulic model Products 5, 6 and 7 — model groups 1313, 1314, 1797 and 8323",
@@ -1870,7 +1873,7 @@
     {
       "id": "hydraulic_model_access_request",
       "state": "passed",
-      "reason": "The official Products 5, 6 and 7 request is frozen for pre-event model groups 1313, 1314, 1797 and 8323. Product 4 and post-event groups 2039 and 9458 are excluded so observed or hindsight material cannot silently enter replay input."
+      "reason": "The official Products 5, 6 and 7 request was sent on 2 September 2026 for pre-event model groups 1313, 1314, 1797 and 8323. Product 4 and post-event groups 2039 and 9458 are excluded so observed or hindsight material cannot silently enter replay input. The optional response is not on the open-data replay critical path."
     },
     {
       "id": "model_delivery_intake",
@@ -1946,6 +1949,6 @@
   "acquisition": {
     "state": "metadata_only",
     "largeDownloadsAllowed": false,
-    "nextAction": "Send the frozen Products 5, 6 and 7 request if it has not already been submitted. If a response arrives, run the fail-closed cumbria-model intake outside Git and qualify all ten components through a separate review before changing any physical gate. Keep the H3 resolution 10 evidence index separate from the still-missing solver mesh and retain ten terrain grid references and every unresolved hydraulic component explicitly missing."
+    "nextAction": "Proceed with a bounded public-only Carlisle replay whose domain is selected without evaluation geometry. Materialize only the minimum pre-event DTM archives required by that frozen domain and retain uncovered terrain as missing. Treat any later Products 5, 6 and 7 response as an optional independently reviewed comparison or physics upgrade, not as a prerequisite for the open-data baseline."
   }
 }

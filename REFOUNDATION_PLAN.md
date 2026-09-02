@@ -492,7 +492,7 @@ State: terrain acquisition, spatial-role, evidence-composition, blind-evaluation
 
 Progress:
 
-- manifest v0.13.0 freezes a bounded Carlisle source-discovery envelope, a separate local hydraulic-protocol envelope and the half-open 72-hour Storm Desmond window from 4 December 2015 00:00 UTC to 7 December 2015 00:00 UTC;
+- manifest v0.14.0 freezes a bounded Carlisle source-discovery envelope, a separate local hydraulic-protocol envelope and the half-open 72-hour Storm Desmond window from 4 December 2015 00:00 UTC to 7 December 2015 00:00 UTC;
 - the canonical Python Earthaccess path found all 144 expected GPM_3IMERGHH V07 Final Run half-hour granules without opening or downloading raster data; V07 remains explicitly retrospective reprocessing;
 - the Environment Agency Hydrology API returned all 288 expected qualified 15-minute flow values and all 288 level values at Sheepmount on the River Eden, with observed maxima of 1,676.632 m3/s and 7.648 m respectively;
 - Willow Holme returned all 288 expected local rainfall values and a 49 mm window total; this is station comparison only and is not represented as high-fell or catchment-wide rainfall;
@@ -530,7 +530,7 @@ Progress:
 - the bounded current AIMS defence query returns 291 records with selection SHA-256 `79d2cc31c6212c7300bc23cc9171bfde3b500a4c59e60880cc362fca072eb564`; 114 lack an asset start date, 56 start on or after the event and four report post-2015 refurbishment, so current geometry, crest and condition attributes remain context-only rather than an as-of-event defence state;
 - the bounded Flood Model Locations OGC query returns 19 records with deterministic SHA-256 `0b721138c212753c7b54739846fa451fbaf964a8ce72ac5e45adc8a7fda45cd1`; pre-event Carlisle model-group IDs `1313`, `1314`, `1797` and `8323` are frozen as request lineage only, while post-event groups `2039` and `9458` are excluded from input and calibration, and the catalogue still contains no model files or outputs;
 - current GOV.UK guidance defines Product 5 as model/hydrology reports, Product 6 as model outputs with Product 5 reports and Product 7 as model inputs with Product 5 reports, routed through the local Environment Agency team at `enquiries@environment-agency.gov.uk`;
-- the Products 5, 6 and 7 request is frozen for the four pre-event group IDs and explicitly asks for native archived model files, survey sections, boundary sources, roughness, defence/floodgate representation, development logs, software, datum, units and reuse conditions; Product 4, observed-event geometry and post-event model groups `2039` and `9458` are excluded;
+- the Products 5, 6 and 7 request was sent to `enquiries@environment-agency.gov.uk` on 2 September 2026 at 11:36:32 UTC for the four pre-event group IDs and explicitly asks for native archived model files, survey sections, boundary sources, roughness, defence/floodgate representation, development logs, software, datum, units and reuse conditions; Product 4, observed-event geometry and post-event model groups `2039` and `9458` are excluded, and the response is not a prerequisite for the public-only baseline;
 - `cumbria-ea-model-evidence-package-v0.1.0` declares ten delivery components with explicit available, incomplete, missing, metadata-only, context-only or synthetic-fixture state; Product 4, unrequested/post-event groups, observed flood geometry and synthetic-to-real promotion are structurally rejected;
 - the shared `intake:external-evidence -- --kind cumbria-model` path recomputes bytes and SHA-256 beneath an explicit external data root, retains portable receipt paths, does not copy originals or extract archives and writes a new receipt only after compiled-contract validation;
 - a separate review receipt must decide every component and verify integrity, licence, temporal lineage, product/model identities, CRS/units/datum and the sealed evaluation boundary. Accepted required components become candidates for a separate physical-gate assessment; intake can never grant replay eligibility itself, and the manifest truthfully retains `packageReceived: false`;
@@ -548,12 +548,12 @@ Progress:
 
 Work:
 
-- send the frozen Products 5, 6 and 7 request for Flood Model Locations groups `1313`, `1314`, `1797` and `8323`, then content-address and qualify any delivery component by component;
-- obtain event-valid channel geometry so the four frozen station series can be mapped through declared transformations to actual model sections rather than merely enclosed by the protocol envelope;
-- obtain or explicitly rule out the downstream condition at Old Sandsfield and the December 2015 defence state;
-- define a distributed initial state or reproducible warm-up procedure and a solver timestep before any resampling of the native hydrographs;
-- freeze input identities and transformation versions before downloading or opening either independent flood-extent reference;
-- only after those gates pass, materialize bounded IMERG, terrain and land-cover evidence outside Git and define a prediction/evaluation protocol.
+- freeze a small public-only Carlisle pilot domain from input evidence and pre-event DTM coverage without opening either observed flood extent;
+- materialize only the minimum pre-event DTM archives intersecting that domain, preserving native resolution, survey dates, NoData and content identity;
+- define an explicitly experimental open-data baseline from DTM, CLC, IMERG and public river observations, with fixed initial/boundary assumptions and sensitivity scenarios rather than hidden calibration;
+- keep the missing historical channel sections, Old Sandsfield boundary and December 2015 defence state explicit, and keep the future EA package on a separate optional comparison track;
+- freeze the prediction artifact, code revision, domain, transformations and physical wetness semantics before opening either independent flood-extent reference;
+- evaluate the frozen public-only prediction independently against Environment Agency and Copernicus geometry, reporting negative results and sensitivity without retuning.
 
 Gate:
 
@@ -563,6 +563,6 @@ Gate:
 - missing hydraulic context remains missing rather than becoming zero or inferred geometry;
 - incomplete native-grid coverage cannot expose a partial H3 value, observed zero remains distinguishable from missing and synthetic composition cannot enter real-evidence mode;
 - observed flood geometry remains sealed until prediction identity and semantics are frozen; references are compared separately and cannot influence inputs, calibration, domain, mesh or wetness threshold;
-- source grids, the H3 evidence index and the future solver mesh remain distinct: the protocol envelope, H3 cells and native DTM/CLC grids cannot be represented as the final hydraulic mesh; bulk acquisition begins only after the remaining physical gates are reproducible.
+- source grids, the H3 evidence index and the public-only computation grid remain distinct: the protocol envelope, H3 cells and native DTM/CLC grids cannot be represented as the final hydraulic mesh; bounded terrain acquisition may begin only after the pilot domain is frozen independently of evaluation geometry.
 
-Checkpoints: `test: qualify Cumbria public-data access`; `test: freeze Cumbria pre-event terrain catalogue`; `test: qualify Cumbria hydraulic context`; `test: freeze Cumbria hydraulic boundary protocol`; `test: qualify Cumbria hydraulic domain lineage`; `test: freeze Cumbria hydraulic model request`; `test: qualify Cumbria DTM archive mapping`; `test: freeze Cumbria DTM materialization protocol`; `test: freeze Cumbria spatial grid boundary`; `feat: compose native spatial evidence index`; `test: freeze Cumbria blind evaluation boundary`; `feat: add Cumbria model delivery intake`
+Checkpoints: `test: qualify Cumbria public-data access`; `test: freeze Cumbria pre-event terrain catalogue`; `test: qualify Cumbria hydraulic context`; `test: freeze Cumbria hydraulic boundary protocol`; `test: qualify Cumbria hydraulic domain lineage`; `test: freeze Cumbria hydraulic model request`; `test: qualify Cumbria DTM archive mapping`; `test: freeze Cumbria DTM materialization protocol`; `test: freeze Cumbria spatial grid boundary`; `feat: compose native spatial evidence index`; `test: freeze Cumbria blind evaluation boundary`; `feat: add Cumbria model delivery intake`; `chore: record Cumbria model request dispatch`
