@@ -133,7 +133,7 @@ test('pre-event terrain selection maps to downloadable archives with explicit ga
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.10.0');
+  assert.equal(manifest.manifestVersion, '0.11.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
@@ -379,6 +379,32 @@ test('spatial protocol preserves native grids and limits H3 to evidence joins', 
   );
   assert.equal(protocol.evidenceIndex.physicalRoutingAllowed, false);
   assert.equal(protocol.evidenceIndex.hydraulicStateAllowed, false);
+  assert.deepEqual(protocol.evidenceIndex.composition, {
+    implementationVersion: 'spatial-evidence-index-v0.1.0',
+    state: 'deterministic_fixture_verified_real_sources_not_materialized',
+    geometryMethod: 'exact_native_footprint_overlap',
+    areaReferenceCrs: 'EPSG:27700',
+    areaMeasurementMethod: 'projected_h3_boundary_shoelace',
+    coverageToleranceFraction: 0.000001,
+    incompletePolicy: 'null_evidence_with_partial_coverage_diagnostics',
+    syntheticFixtureCannotEnterRealMode: true,
+    observedZeroPreserved: true,
+    overlappingFootprintsRejected: true,
+    identicalPrecipitationWindowRequired: true,
+    verificationFixture: {
+      id: 'cumbria-spatial-composition-single-cell-v0',
+      h3: '8a1955d817b7fff',
+      composedAt: '2026-09-02T06:00:00.000Z',
+      terrainElevationM: 105,
+      terrainResolutionM: 1,
+      landCoverClass: 211,
+      rainfallMm: 0,
+      windowStart: '2015-12-04T00:00:00.000Z',
+      windowEnd: '2015-12-07T00:00:00.000Z',
+      expectedResultSha256:
+        protocol.evidenceIndex.composition.verificationFixture.expectedResultSha256,
+    },
+  });
   assert.equal(
     protocol.exchangeFrame.topology,
     'no_common_raster_grid_before_solver_contract',
@@ -446,6 +472,14 @@ test('spatial protocol rejects false precision and invented solver geometry', ()
   assert.throws(
     () => assertCumbriaAccessManifest(driftedEnvelope),
     /must use the frozen hydraulic protocol envelope/,
+  );
+
+  const fixtureLeakage = manifestFixture();
+  fixtureLeakage.spatialGridProtocol.evidenceIndex.composition.syntheticFixtureCannotEnterRealMode =
+    false;
+  assert.throws(
+    () => assertCumbriaAccessManifest(fixtureLeakage),
+    /evidence composition fixture isolation/,
   );
 });
 
@@ -895,6 +929,7 @@ test('terrain identity passes while bulk acquisition remains physically gated', 
   assert.equal(gates.get('pre_event_lidar_tiles'), 'passed');
   assert.equal(gates.get('dtm_materialization_protocol'), 'passed');
   assert.equal(gates.get('spatial_grid_roles'), 'passed');
+  assert.equal(gates.get('spatial_evidence_composition'), 'passed');
   assert.equal(gates.get('upstream_boundary_series'), 'passed');
   assert.equal(gates.get('hydraulic_model_access_request'), 'passed');
   assert.equal(gates.get('as_of_event_defence_state'), 'blocked');

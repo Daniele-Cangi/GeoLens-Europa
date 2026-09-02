@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.10.0",
+  "manifestVersion": "0.11.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -92,7 +92,32 @@
       "sourceResolutionsRemainVisible": true,
       "exactCellAreaUsed": true,
       "physicalRoutingAllowed": false,
-      "hydraulicStateAllowed": false
+      "hydraulicStateAllowed": false,
+      "composition": {
+        "implementationVersion": "spatial-evidence-index-v0.1.0",
+        "state": "deterministic_fixture_verified_real_sources_not_materialized",
+        "geometryMethod": "exact_native_footprint_overlap",
+        "areaReferenceCrs": "EPSG:27700",
+        "areaMeasurementMethod": "projected_h3_boundary_shoelace",
+        "coverageToleranceFraction": 0.000001,
+        "incompletePolicy": "null_evidence_with_partial_coverage_diagnostics",
+        "syntheticFixtureCannotEnterRealMode": true,
+        "observedZeroPreserved": true,
+        "overlappingFootprintsRejected": true,
+        "identicalPrecipitationWindowRequired": true,
+        "verificationFixture": {
+          "id": "cumbria-spatial-composition-single-cell-v0",
+          "h3": "8a1955d817b7fff",
+          "composedAt": "2026-09-02T06:00:00.000Z",
+          "terrainElevationM": 105,
+          "terrainResolutionM": 1,
+          "landCoverClass": 211,
+          "rainfallMm": 0,
+          "windowStart": "2015-12-04T00:00:00.000Z",
+          "windowEnd": "2015-12-07T00:00:00.000Z",
+          "expectedResultSha256": "54dd22a25c9900fd6c989ae21ec4675171b6e0382e92f5571294c5d00bfd9441"
+        }
+      }
     },
     "exchangeFrame": {
       "horizontalCrs": "EPSG:27700",
@@ -1710,6 +1735,11 @@
       "id": "spatial_grid_roles",
       "state": "passed",
       "reason": "Native DTM, CLC and IMERG grids remain separate and retain their source resolution. H3 resolution 10 is frozen only for cataloguing, inspection and evidence joins over the hydraulic-protocol envelope; it cannot carry physical routing or hydraulic state, and the final solver extent, origin, cell size and timestep remain explicitly missing."
+    },
+    {
+      "id": "spatial_evidence_composition",
+      "state": "passed",
+      "reason": "A deterministic fixture verifies exact native-footprint composition into one H3 evidence cell. Incomplete coverage yields null evidence plus diagnostics, observed zero remains zero, overlapping footprints and mixed precipitation windows are rejected, and synthetic fixture inputs cannot enter real-evidence mode. No real Cumbria raster has been materialized by this gate."
     },
     {
       "id": "as_of_event_hydrography",
