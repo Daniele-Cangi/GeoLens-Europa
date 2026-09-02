@@ -71,7 +71,7 @@ GeoLens has two complementary operational proofs and two historical benchmark pr
 | Trento Proof 0 | The complete software chain works from real environmental inputs to a downstream result | Evidence composition, deterministic runoff, catchment aggregation, network propagation, provenance and mass balance | The small drainage network is a deterministic fixture, not surveyed municipal infrastructure |
 | Amsterdam observed proof | GeoLens can read real Waternet pipes and nodes and derive a real, non-zero surface runoff source | Observed topology, elevation-based direction states, real rainfall/terrain/land cover and an inspectable surface contribution | No owner-published surface-to-pipe attachment has yet been found, so sewer propagation is deliberately blocked |
 | Emilia-Romagna 2023 | A simple terrain-only concentration hypothesis was tested against an independent observed flood extent and did not perform better than chance | A reproducible historical benchmark, withheld evaluation data and honest negative evidence | A conditioned replay requires discharge, boundary, breach and terrain/channel evidence that is not currently available |
-| Cumbria 2015 | Public evidence now defines the historical Carlisle model domain, exact model records to request, bounded pre-event terrain delivery and the boundary between source grids, evidence indexing and a future solver mesh—without pretending the replay is runnable | A fixed Storm Desmond window, four typed upstream discharge series, the documented Old Sandsfield downstream limit, complete direct observations, complete IMERG catalogue coverage, pre-event model lineage, current-asset qualification, 30 traceable DTM archive identities, a reproducible H3 evidence index, fail-closed native-footprint composition and a sealed blind-evaluation protocol | Model cross-sections/files, boundary placement and values, initial conditions, ten explicitly missing terrain grid references, an as-of-event defence/channel state, materialized real raster intersections, the prediction and the actual hydraulic mesh remain unresolved |
+| Cumbria 2015 | A small public-only River Eden experiment can now advance without waiting for the official archived model | The 56 km² Sheepmount–Old Sandsfield domain is frozen without observed flood geometry; 52 of 56 source grids map to six pre-event 1 m DTM archives, Sheepmount supplies a complete input-candidate flow series, and the blind evaluation references remain sealed | Four terrain grids remain missing; terrain is not yet materialized, and channel placement, downstream/initial conditions, roughness, computation grid, timestep and the prediction remain unresolved |
 
 ![GeoLens Case 02 spatial inspector showing the Emilia-Romagna event runoff layer and explicit withheld evidence](docs/screenshots/emilia-event-runoff.png)
 
@@ -134,12 +134,12 @@ GeoLens makes no inundation-depth, probability or operational-forecast claim fro
 
 ### Case 03 — Cumbria 2015 protocol-qualified replay
 
-The Carlisle candidate is no longer just a list of promising portals. GeoLens has frozen a metadata-only acquisition audit, a fail-closed hydraulic input protocol and a sealed blind-evaluation boundary for Storm Desmond from `2015-12-04T00:00:00Z` to `2015-12-07T00:00:00Z`.
+The Carlisle candidate is no longer just a list of promising portals. GeoLens has frozen a public-only downstream-reach domain, a fail-closed hydraulic input protocol and a sealed blind-evaluation boundary for Storm Desmond from `2015-12-04T00:00:00Z` to `2015-12-07T00:00:00Z`. The Environment Agency model request is useful, but it is no longer on the critical path.
 
 The audit verifies:
 
 - all 144 expected NASA IMERG V07 Final Run half-hour granules through the canonical Python catalogue path, without downloading the rasters;
-- all 288 expected 15-minute qualified flow observations and all 288 level observations at Sheepmount on the River Eden;
+- all 288 expected 15-minute qualified flow observations and all 288 level observations at Sheepmount on the River Eden; flow is input-only for the public baseline, while level remains comparison evidence;
 - all 288 local rainfall observations at Willow Holme, retained as station comparison rather than basin-wide rainfall;
 - four complete candidate upstream hydrographs: 288 qualified flow values each at Great Corby on the Eden, Greenholme on the Irthing, Cummersdale on the Caldew and Newbiggin Bridge on the Petteril;
 - a local protocol envelope containing those four stations, with British National Grid required for future solver geometry and Ordnance Datum Newlyn required for vertical evidence;
@@ -150,15 +150,21 @@ The audit verifies:
 - official time-stamped Environment Agency LiDAR metadata: 550 source records over 241 intersecting OS grid references, with a deterministic selection of 231 pre-event records;
 - all 231 selected 1 km records mapped to 30 official time-stamped DTM ZIP identities through the current survey-search contract, with source-to-archive and archive-inventory SHA-256 identities;
 - a header-only probe of the mapped `2009 / 1 m / NY3555` identity returned `application/zip` and filename `lidar_tiles_dtm-2009-1-NY35ne.zip` while reading and storing zero archive bytes;
-- a dry-run-only DTM materialization protocol that performs no network request or file write, recomputes the frozen mapping before any future download, caps bytes, requires SHA-256 receipts, rejects unsafe ZIP entries and preserves native British National Grid resolution;
+- a bounded DTM materialization path that downloaded six official pre-event archives, content-addressed every archive and source raster, rejected unsafe ZIP entries, preserved native British National Grid resolution and wrote only explicitly georeferenced 1 km windows outside Git;
 - ten explicitly missing pre-event terrain grid references: `NY3256`, `NY3446`, `NY3448`, `NY3646`, `NY3652`, `NY3846`, `NY3848`, `NY3959`, `NY4062` and `NY4162`;
 - 16 event-valid WFD Cycle 1 river-context features intersecting the audit AOI, pinned independently from current OS Open Rivers;
 - the 2011 official main report and appendices: the historical model began in 1999, was expanded with surveyed sections in 2003, calibrated against January 2005, and ran from four named upstream watercourse limits to Old Sandsfield; the reports expose none of the runnable cross-section, model or boundary files;
 - 19 bounded Environment Agency Flood Model Locations records and six exact Carlisle model-group identities; pre-event groups `1313`, `1314`, `1797` and `8323` are request lineage only, while groups `2039` and `9458` are post-event and excluded from input and calibration;
-- a prepared Environment Agency Products 5, 6 and 7 request for the four pre-event groups, covering reports, outputs, native model inputs, survey sections, boundary definitions, roughness, defence state, software, datum and reuse conditions; Product 4 and the two post-event model groups remain deliberately excluded;
+- an Environment Agency Products 5, 6 and 7 request sent on 2 September 2026 for the four pre-event groups, covering reports, outputs, native model inputs, survey sections, boundary definitions, roughness, defence state, software, datum and reuse conditions; Product 4 and the two post-event model groups remain deliberately excluded, and the response is an optional comparison rather than an open-data replay dependency;
+- a fail-closed `cumbria-model` intake contract that content-addresses any future delivery outside Git, inventories ten requested components and requires a separate scientific review before any component can become a candidate for physical-gate assessment;
 - 291 current AIMS defence records in the bounded query, pinned as current context only: 114 have no asset start date, 56 start on or after the event and four report refurbishment after 2015;
 - 349 current AIMS Channel records, also context only: 272 have no start date, 17 dated records start on or after the event, and the schema contains no hydraulic cross-sections, bed levels or roughness;
 - pre-event-reference CLC 2012 land cover.
+- an input-selected 56 km² British National Grid domain from Sheepmount to the documented Old Sandsfield limit, fixed without loading either observed flood extent;
+- six official pre-event 1 m DTM archives totalling 280,161,858 bytes and 40 unique source GeoTIFFs, all retained outside Git with content hashes;
+- 48 georeferenced 1 km windows from the 52 catalogue-selected references, including six explicit fallbacks to older pre-event source rasters already present in the selected archive set; 46 windows contain observed terrain and two contain only provider-declared NoData;
+- 10 effectively missing 1 km references after real archive inspection: four absent from the catalogue selection, four absent from the selected and already materialized older archive rasters, and two represented only by NoData pixels;
+- 30,678,994 valid elevation pixels and 17,321,006 NoData pixels across the 48 mapped windows, compressed to 36,148,351 physical bytes without replacing missing values with zero; solver execution remains blocked.
 
 This proves data access and narrows the missing physics; it is not yet a flood reconstruction. The four upstream series now have fixed identities, units, windows and sampling semantics, but their station coordinates are not asserted to be historical model cross-sections. Old Sandsfield (`NY332617`) is retained as the documented downstream model limit, not as a usable boundary: the nearby station search finds no observation at that limit and the historical boundary values remain missing. Sheepmount level remains an observation for comparison, not a downstream boundary. A separately screened station named Rockcliffe publishes a qualified groundwater-dip measure rather than a surface-water boundary, so it was explicitly rejected. The first discharge samples do not invent channel stage, floodplain wetness or a distributed initial state.
 
@@ -166,17 +172,19 @@ The WFD layer contains only designated 1:50,000 river stretches. The current AIM
 
 The selected LiDAR catalogue rows and their download mapping are now pinned independently. The earlier `DTM / 2009 / 1M / NY3957` probe was invalid: it used a legacy route and a 1 km source reference where the active delivery service expects product id `lidar_tiles_dtm`, numeric resolution `1` and the containing 5 km tile `NY3555`. The current bounded search returns 590 survey products, including 123 time-stamped DTM identities; deterministic source-year and 5 km containment mapping resolves the 231 selected source rows to 30 archives. Two identities are labelled 2015, but only their individually selected 1 km source areas have exact pre-event survey dates. GeoLens must therefore mask every archive back to its mapped 1 km references and may not treat the whole 5 km ZIP as event-valid.
 
-Manifest v0.12.0 also freezes how those files may eventually be handled. The 30 complete native grids contain an estimated 900 million raster cells, or 3.6 GB when represented as single-band Float32 values. The authorized 1 km masks retain an estimated 264 million cells, or 1.056 GB. These are decoded-payload estimates, not claims about ZIP download size or temporary format overhead. The protocol therefore requires at least 16 GiB free before execution, applies an 8 GiB total download ceiling, writes partial files outside Git, content-addresses verified archives with SHA-256 receipts, and rejects encrypted entries, links, absolute paths, path traversal and duplicate normalized paths. Source NoData is preserved; pixels outside each archive's mapped 1 km references and the ten uncovered references remain NoData rather than zero.
+Manifest v0.16.0 preserves the original content-addressed public-baseline protocol and records what the archives actually contained. The domain remains the 8 km × 7 km British National Grid rectangle selected from Sheepmount and the documented Old Sandsfield limit, without loading either observed flood extent. The six ZIP archives occupy 280,161,858 bytes. Their 40 unique source GeoTIFFs yielded 48 exact one-kilometre windows: 46 carry at least one real elevation sample, while `NY3859` and `NY3960` contain only the provider's NoData value. Four further catalogue-selected cells have no covering raster in the selected or already materialized older archive for the same 5 km tile. Together with the four original catalogue gaps, the effective missing set contains ten cells. Six windows use fully traceable older pre-event source rasters where the newer selected archive lacked usable coverage. The retained Float32 windows decode to 192,000,000 bytes and are stored as 36,148,351 bytes of deterministic gzip-compressed artifacts outside Git. Missing pixels remain missing. Neither solver execution nor evaluation-reference access is authorized by this materialization.
 
 The same manifest now draws a hard spatial boundary between evidence and simulation. Terrain remains on its native 0.5 m, 1 m or 2 m British National Grid cells; CLC 2012 remains a 100 m categorical product in EPSG:3035; IMERG remains an approximately 0.1-degree, 30-minute observation in EPSG:4326. None is silently resampled onto another source's grid. EPSG:27700 is the declared exchange coordinate frame for overlap calculations, not a common raster grid.
 
 H3 resolution 10 provides a reproducible catalogue and inspection index of 24,230 cells over the frozen hydraulic-protocol envelope, with an approximate mean cell area of 13,199 m2 near Carlisle. Each index value must retain the source resolution and overlap semantics that produced it: terrain coverage and NoData statistics, CLC area fractions and IMERG native-cell overlap. H3 does not sharpen IMERG, retain sub-metre terrain detail, route water or store hydraulic state. The final solver extent, origin, cell size and timestep remain `null` until runnable model evidence or an explicitly versioned replacement solver provides a defensible mesh contract.
 
-The generic `spatial-evidence-index-v0.1.0` composer now makes that boundary executable. It accepts native source-footprint intersections rather than H3-labelled source measurements, requires an explicit area CRS and measurement method, preserves source identities, versions, acquisition times and resolutions, and rejects overlapping footprints or inconsistent precipitation windows. For Cumbria, coverage fractions use the H3 boundary projected into EPSG:27700 as their denominator; they are not compared against the different spherical area returned by the H3 catalogue library. Complete coverage yields terrain statistics, CLC area fractions and area-weighted rainfall. Partial or unavailable coverage yields `null` evidence plus explicit coverage diagnostics—never a partial valid-looking value. Observed `0 mm` remains zero. A content-addressed single-cell fixture verifies these semantics, but remains structurally marked `synthetic_fixture`; no real Cumbria raster has been materialized by this test.
+The generic `spatial-evidence-index-v0.1.0` composer now makes that boundary executable. It accepts native source-footprint intersections rather than H3-labelled source measurements, requires an explicit area CRS and measurement method, preserves source identities, versions, acquisition times and resolutions, and rejects overlapping footprints or inconsistent precipitation windows. For Cumbria, coverage fractions use the H3 boundary projected into EPSG:27700 as their denominator; they are not compared against the different spherical area returned by the H3 catalogue library. Complete coverage yields terrain statistics, CLC area fractions and area-weighted rainfall. Partial or unavailable coverage yields `null` evidence plus explicit coverage diagnostics—never a partial valid-looking value. Observed `0 mm` remains zero. A content-addressed single-cell fixture verifies the composition semantics and remains structurally marked `synthetic_fixture`; the separate real Cumbria DTM materialization is source-window evidence only and has not yet been composed into H3 or a solver state.
 
-The blind evaluation boundary is now executable as a dry verification too. It freezes six metrics—intersection over union, area precision, area recall, false-positive area, false-negative area and symmetric 95th-percentile boundary distance—in EPSG:27700. Missing observed coverage is excluded and reported rather than treated as dry; missing prediction coverage blocks evaluation. Environment Agency and Copernicus extents must be evaluated separately, so disagreement between them remains visible. Their geometry cannot select the domain, mesh, wetness threshold or model parameters, and cannot be visually inspected before the prediction is content-addressed. This protocol does not claim that a prediction exists: prediction, domain and wetness semantics remain explicitly missing and evaluation remains blocked.
+The blind evaluation boundary is now executable as a dry verification too. It freezes six metrics—intersection over union, area precision, area recall, false-positive area, false-negative area and symmetric 95th-percentile boundary distance—in EPSG:27700. Missing observed coverage is excluded and reported rather than treated as dry; missing prediction coverage blocks evaluation. Environment Agency and Copernicus extents must be evaluated separately, so disagreement between them remains visible. Their geometry cannot select the domain, mesh, wetness threshold or model parameters, and cannot be visually inspected before the prediction is content-addressed. The public computation envelope is now fixed, but no materialized evaluation mask, prediction or wetness semantic exists yet, so evaluation remains blocked.
 
-This removes both the terrain-identity and acquisition-protocol blockers without hiding the ten real coverage gaps. Bulk downloads remain paused because the runnable model, channel sections, boundary placement and values, initial state, defence state and final mesh are still missing—not because the files cannot be found or safely staged. The two observed flood extents remain unavailable to model input and calibration.
+The repository is also ready to receive an Environment Agency model delivery without trusting filenames or draft checksums. The shared intake command accepts `--kind cumbria-model`, resolves artifacts only beneath an explicit data root, recomputes byte length and SHA-256, leaves originals in place, writes a new non-overwriting receipt and performs no archive extraction. The package must declare all ten requested components and can reference only Products 5, 6 and 7 and model groups `1313`, `1314`, `1797` and `8323`; Product 4, post-event groups `2039`/`9458`, observed flood geometry and automatic replay promotion are rejected. Structural validity records receipt only. A second component-level review must verify temporal lineage, licence, CRS/units/datum and evaluation isolation, and even a fully accepted package becomes only ready for physical-gate assessment—not replay-eligible by itself. No Environment Agency delivery has been received.
+
+This removes the public-baseline domain, archive-download and terrain-window materialization blockers without hiding the ten effective grid gaps or the NoData pixels inside partially covered windows. The archived EA model, channel sections, historical boundary values and defence state remain unavailable for an official-model reconstruction, but they are not on the critical path. GeoLens can now define the explicitly experimental replacement-solver contract and acquire the remaining public inputs against the verified terrain coverage. Any later EA delivery will be reviewed as an optional comparison or physics upgrade. The two observed flood extents remain unavailable to model input and calibration until the prediction is frozen.
 
 The deterministic manifest is [tests/ground-truth/cumbria-2015/manifest.json](tests/ground-truth/cumbria-2015/manifest.json). Re-run the open-service checks with:
 
@@ -187,11 +195,20 @@ npm run audit:cumbria-hydrography
 npm run audit:cumbria-hydraulic-context
 npm run audit:cumbria-boundary-protocol
 npm run audit:cumbria-hydraulic-domain
+npm run audit:cumbria-public-baseline
+npm run materialize:cumbria-dtm -- --data-root <external-directory>
+npm run materialize:cumbria-dtm-masks -- --data-root <external-directory>
 npm run prepare:cumbria-model-request
 npm run plan:cumbria-dtm-materialization
 npm run plan:cumbria-spatial-grid
 npm run verify:cumbria-spatial-composition-fixture
 npm run verify:cumbria-blind-evaluation-protocol
+~~~
+
+When a delivery arrives, prepare a draft package beside the originals and run the intake with explicit paths outside Git:
+
+~~~powershell
+npm run intake:external-evidence -- --kind cumbria-model --draft <draft.json> --data-root <delivery-directory> --output <new-receipt.json>
 ~~~
 
 ## For Amsterdam data owners and collaborators
@@ -422,6 +439,7 @@ Default local endpoints:
 - Emilia-Romagna benchmark: http://localhost:3003/api/benchmarks/emilia-romagna-2023
 - Emilia-Romagna map manifest: http://localhost:3003/api/benchmarks/emilia-romagna-2023/map-manifest
 - ARPAE hydraulic evidence intake: http://localhost:3003/api/benchmarks/emilia-romagna-2023/hydraulic-evidence-intake
+- Cumbria model evidence intake: http://localhost:3003/api/benchmarks/cumbria-2015/model-evidence-intake
 
 The root launcher starts services in dependency order and waits for their health gates. The first uncached IMERG acquisition can take several minutes.
 
@@ -454,6 +472,10 @@ The response keeps these layers separate:
 The GWSW polygon containing the selected outfall is context only. Point containment does not prove that a surface drains to an outfall.
 
 The companion GET /api/infrastructure/amsterdam-waternet/attachment-intake exposes the delivery gate for the owner-published BGT Inlooptabel requested from Amsterdam/Waternet. Its current state is `missing`; both attachment assessment and propagation remain `blocked`. A future package must retain the STOWA 2025 relation semantics, publisher authority, bounded selection, source records and content-addressed original artifacts. Receipt, integrity review and exact topology matching are separate operations. A reviewed package becomes only `ready_for_exact_observed_topology_match`: propagation remains blocked until its published asset code matches one observed Waternet pipe uniquely. Proximity, polygon containment and the conditioned BGT/AHN outlet cannot be promoted into observed attachment evidence.
+
+### Cumbria model-delivery intake
+
+GET /api/benchmarks/cumbria-2015/model-evidence-intake exposes the current Environment Agency Products 5/6/7 delivery state. It currently reports `missing`, ten explicit component records, blocked hydraulic-context assessment and blocked replay eligibility. The endpoint contains no external archive path or evaluation geometry. When a structurally valid receipt is eventually registered, it still cannot promote the delivery automatically: component review and a later physical-gate decision remain separate operations.
 
 ### Emilia-Romagna historical benchmark
 
@@ -488,13 +510,15 @@ npm run verify:emilia-map -- --data-root C:\Users\dacan\GeoLens\data\emilia-roma
 
 ## External evidence intake
 
-GeoLens includes one local intake command for future ARPAE and Amsterdam/Waternet deliveries. It reads originals from a data directory outside Git, computes their byte counts and SHA-256 identities, validates the appropriate scientific contract and writes a new package receipt. It does not copy the originals and refuses to overwrite an existing receipt.
+GeoLens includes one local intake command for future ARPAE, Amsterdam/Waternet and Cumbria model deliveries. It reads originals from a data directory outside Git, computes their byte counts and SHA-256 identities, validates the appropriate scientific contract and writes a new package receipt. It does not copy the originals and refuses to overwrite an existing receipt.
 
-```powershell
+~~~powershell
 npm run intake:external-evidence -- --kind arpae --draft C:\path\to\arpae-draft.json --data-root C:\path\to\arpae-delivery --output C:\path\to\receipts\arpae-package.json
 
 npm run intake:external-evidence -- --kind amsterdam --draft C:\path\to\amsterdam-draft.json --data-root C:\path\to\amsterdam-delivery --output C:\path\to\receipts\amsterdam-package.json
-```
+
+npm run intake:external-evidence -- --kind cumbria-model --draft C:\path\to\cumbria-model-draft.json --data-root C:\path\to\cumbria-model-delivery --output C:\path\to\receipts\cumbria-model-package.json
+~~~
 
 The draft is the corresponding package JSON with artifact entries containing `id`, `role`, portable `relativePath` and `mediaType`. Any draft `bytes`, `sha256` or local source-path fields are discarded and recomputed from `data-root`. Artifact paths and resolved symlinks must remain inside that root.
 

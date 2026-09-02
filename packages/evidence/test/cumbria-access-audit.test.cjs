@@ -25,7 +25,7 @@ function manifestFixture() {
   return JSON.parse(readFileSync(manifestPath, 'utf8'));
 }
 
-test('Cumbria metadata-only manifest passes the evidence-isolation contract', () => {
+test('Cumbria manifest permits only the bounded public terrain acquisition', () => {
   const manifest = manifestFixture();
 
   assert.doesNotThrow(() => assertCumbriaAccessManifest(manifest));
@@ -36,8 +36,9 @@ test('Cumbria metadata-only manifest passes the evidence-isolation contract', ()
     },
     CUMBRIA_EVENT_WINDOW,
   );
-  assert.equal(manifest.acquisition.state, 'metadata_only');
+  assert.equal(manifest.acquisition.state, 'bounded_public_baseline_ready');
   assert.equal(manifest.acquisition.largeDownloadsAllowed, false);
+  assert.equal(manifest.acquisition.boundedTerrainDownloadsAllowed, true);
   assert.equal(
     manifest.datasets.some((dataset) => 'localArtifacts' in dataset),
     false,
@@ -64,7 +65,7 @@ test('canonical IMERG discovery covers all 144 expected half-hour granules', () 
   );
 });
 
-test('direct Carlisle comparison series close the 72-hour reading account', () => {
+test('direct Carlisle observations close the 72-hour reading account', () => {
   const manifest = manifestFixture();
   const series = manifest.datasets.filter(
     (dataset) => dataset.role === 'observation_comparison' && dataset.seriesAudit,
@@ -73,7 +74,6 @@ test('direct Carlisle comparison series close the 72-hour reading account', () =
   assert.deepEqual(
     series.map((dataset) => dataset.id),
     [
-      'ea-hydrology-sheepmount-flow',
       'ea-hydrology-sheepmount-level',
       'ea-hydrology-willow-holme-rainfall',
     ],
@@ -93,11 +93,149 @@ test('direct Carlisle comparison series close the 72-hour reading account', () =
   assert.equal(rainfall.seriesAudit.aggregate.value, 49);
   assert.match(rainfall.access.note, /must not be represented as catchment-wide/);
 
+  const sheepmountFlow = manifest.datasets.find(
+    (dataset) => dataset.id === 'ea-hydrology-sheepmount-flow',
+  );
+  assert.equal(sheepmountFlow.role, 'model_input_candidate');
+  assert.deepEqual(sheepmountFlow.permittedUses, {
+    modelInput: true,
+    calibration: false,
+    observationComparison: false,
+    evaluation: false,
+  });
+  assert.match(sheepmountFlow.access.note, /public baseline/);
+
   rainfall.seriesAudit.readings = 287;
   rainfall.seriesAudit.missingReadings = 1;
   assert.throws(
     () => assertCumbriaAccessManifest(manifest),
     /verified readings must equal 288/,
+  );
+});
+
+test('public baseline freezes a small input-selected domain without evaluation leakage', () => {
+  const manifest = manifestFixture();
+  const protocol = manifest.publicBaselineProtocol;
+
+  assert.equal(
+    protocol.id,
+    'cumbria-sheepmount-old-sandsfield-public-baseline-v0',
+  );
+  assert.equal(protocol.state, 'domain_frozen_terrain_acquisition_ready');
+  assert.deepEqual(protocol.domain.bounds, [332000, 556000, 340000, 563000]);
+  assert.equal(protocol.domain.areaSquareMetres, 56000000);
+  assert.equal(protocol.domain.observedGeometryMayDefineDomain, false);
+  assert.equal(protocol.domain.h3MayDefineComputationGrid, false);
+  assert.equal(protocol.domain.solverGridFrozen, false);
+  assert.equal(protocol.selectionIsolation.observedFloodGeometryLoaded, false);
+  assert.equal(protocol.selectionIsolation.observedFloodGeometryUsed, false);
+  assert.equal(protocol.selectionIsolation.postEventModelUsed, false);
+  assert.equal(
+    protocol.selectionIsolation.selectionInputs.includes(
+      'ea-recorded-flood-outlines',
+    ),
+    false,
+  );
+  assert.equal(
+    protocol.selectionIsolation.selectionInputs.includes(
+      'copernicus-emsr147-carlisle',
+    ),
+    false,
+  );
+  assert.equal(protocol.execution.terrainDownloadAllowed, true);
+  assert.equal(protocol.execution.solverExecutionAllowed, false);
+
+  const leaked = manifestFixture();
+  leaked.publicBaselineProtocol.selectionIsolation.selectionInputs.push(
+    'ea-recorded-flood-outlines',
+  );
+  assert.throws(
+    () => assertCumbriaAccessManifest(leaked),
+    /selection inputs drifted|Observed flood geometry cannot select/,
+  );
+});
+
+test('public baseline DTM catalogue selection keeps four initial gaps missing', () => {
+  const manifest = manifestFixture();
+  const terrain = manifest.publicBaselineProtocol.terrainAcquisition;
+
+  assert.equal(terrain.requiredGridRefs.length, 56);
+  assert.equal(terrain.coveredGridRefs.length, 52);
+  assert.deepEqual(terrain.missingGridRefs, [
+    'NY3256',
+    'NY3257',
+    'NY3357',
+    'NY3959',
+  ]);
+  assert.equal(terrain.archiveCount, 6);
+  assert.equal(terrain.archiveSelections.length, 6);
+  assert.equal(terrain.budget.estimatedRetainedDecodedBytes, 208000000);
+  assert.equal(terrain.budget.estimatedFullArchiveDecodedBytes, 600000000);
+  assert.equal(terrain.archiveBytesDownloaded, 0);
+  assert.equal(terrain.rasterBytesWritten, 0);
+
+  const substituted = manifestFixture();
+  substituted.publicBaselineProtocol.terrainAcquisition.missingGridRefs = [];
+  assert.throws(
+    () => assertCumbriaAccessManifest(substituted),
+    /missing grid references drifted/,
+  );
+
+  const solverEnabled = manifestFixture();
+  solverEnabled.publicBaselineProtocol.execution.solverExecutionAllowed = true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(solverEnabled),
+    /solver gate/,
+  );
+});
+
+test('public baseline terrain materialization records real coverage without zero substitution', () => {
+  const manifest = manifestFixture();
+  const result = manifest.publicBaselineTerrainMaterialization;
+
+  assert.equal(manifest.manifestVersion, '0.16.0');
+  assert.equal(result.state, 'terrain_materialized_with_explicit_gaps');
+  assert.equal(
+    result.protocolSha256,
+    manifest.publicBaselineProtocol.protocolSha256,
+  );
+  assert.deepEqual(result.coverage.catalogueMissingGridRefs, [
+    'NY3256',
+    'NY3257',
+    'NY3357',
+    'NY3959',
+  ]);
+  assert.deepEqual(result.coverage.archiveMissingGridRefs, [
+    'NY3258',
+    'NY3259',
+    'NY3358',
+    'NY3359',
+  ]);
+  assert.deepEqual(result.coverage.noDataOnlyGridRefs, [
+    'NY3859',
+    'NY3960',
+  ]);
+  assert.equal(result.coverage.availableGridCount, 46);
+  assert.equal(result.coverage.completeCoverage, false);
+  assert.equal(result.storage.archiveBytes, 280161858);
+  assert.equal(result.storage.physicalCompressedBytes, 36148351);
+  assert.equal(result.isolation.missingPixelsSubstitutedWithZero, false);
+  assert.equal(result.isolation.observedFloodGeometryLoaded, false);
+
+  const inventedCoverage = manifestFixture();
+  inventedCoverage.publicBaselineTerrainMaterialization.coverage.completeCoverage =
+    true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(inventedCoverage),
+    /terrain complete coverage claim/,
+  );
+
+  const driftedReceipt = manifestFixture();
+  driftedReceipt.publicBaselineTerrainMaterialization.maskReceipt.sha256 =
+    'a'.repeat(64);
+  assert.throws(
+    () => assertCumbriaAccessManifest(driftedReceipt),
+    /terrain mask receipt identity/,
   );
 });
 
@@ -221,7 +359,7 @@ test('pre-event terrain selection maps to downloadable archives with explicit ga
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.12.0');
+  assert.equal(manifest.manifestVersion, '0.16.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
@@ -967,7 +1105,10 @@ test('model access request asks for Products 5, 6 and 7 without evaluation leaka
   const manifest = manifestFixture();
   const request = manifest.modelAccessRequest;
 
-  assert.equal(request.state, 'prepared_not_sent');
+  assert.equal(request.state, 'sent_awaiting_response');
+  assert.equal(request.sentAt, '2026-09-02T11:36:32Z');
+  assert.equal(request.transport, 'email');
+  assert.equal(request.responseState, 'awaiting_response');
   assert.equal(request.recipient, 'enquiries@environment-agency.gov.uk');
   assert.deepEqual(
     request.products.map((product) => [product.number, product.scope]),
@@ -1008,6 +1149,46 @@ test('model access request rejects Product 4 and post-event replay input', () =>
   );
 });
 
+test('model delivery intake is ready without claiming a received package', () => {
+  const manifest = manifestFixture();
+  const protocol = manifest.modelDeliveryIntakeProtocol;
+
+  assert.equal(protocol.state, 'ready_no_delivery_received');
+  assert.equal(protocol.intakeKind, 'cumbria-model');
+  assert.deepEqual(protocol.acceptedProductNumbers, [5, 6, 7]);
+  assert.deepEqual(protocol.acceptedModelGroupIds, [1313, 1314, 1797, 8323]);
+  assert.deepEqual(protocol.excludedModelGroupIds, [2039, 9458]);
+  assert.equal(protocol.originalFilesStayOutsideGit, true);
+  assert.equal(protocol.originalsCopiedByIntake, false);
+  assert.equal(protocol.archivesExtractedByIntake, false);
+  assert.equal(protocol.packageReceived, false);
+  assert.equal(protocol.scientificReviewCompleted, false);
+  assert.equal(protocol.automaticReplayPromotion, false);
+  assert.equal(protocol.evaluationReferenceSeal, 'must_remain_closed');
+
+  protocol.packageReceived = true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(manifest),
+    /modelDeliveryIntakeProtocol.packageReceived/,
+  );
+
+  const componentDrift = manifestFixture();
+  componentDrift.modelDeliveryIntakeProtocol.declaredComponentIds =
+    componentDrift.modelDeliveryIntakeProtocol.declaredComponentIds.slice(1);
+  assert.throws(
+    () => assertCumbriaAccessManifest(componentDrift),
+    /component identities drifted/,
+  );
+
+  const gateRequirementDrift = manifestFixture();
+  gateRequirementDrift.modelDeliveryIntakeProtocol.requiredForGateAssessment =
+    gateRequirementDrift.modelDeliveryIntakeProtocol.requiredForGateAssessment.slice(1);
+  assert.throws(
+    () => assertCumbriaAccessManifest(gateRequirementDrift),
+    /gate requirements drifted/,
+  );
+});
+
 test('terrain identity passes while bulk acquisition remains physically gated', () => {
   const manifest = manifestFixture();
   const gates = new Map(
@@ -1021,6 +1202,7 @@ test('terrain identity passes while bulk acquisition remains physically gated', 
   assert.equal(gates.get('blind_evaluation_protocol'), 'passed');
   assert.equal(gates.get('upstream_boundary_series'), 'passed');
   assert.equal(gates.get('hydraulic_model_access_request'), 'passed');
+  assert.equal(gates.get('model_delivery_intake'), 'passed');
   assert.equal(gates.get('as_of_event_defence_state'), 'blocked');
   assert.equal(gates.get('hydraulic_context'), 'blocked');
   assert.equal(gates.get('evaluation_geometry_identity'), 'blocked');

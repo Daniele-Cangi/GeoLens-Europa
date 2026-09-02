@@ -1,4 +1,15 @@
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.12.0' as const;
+import {
+  assertCumbriaModelDeliveryIntakeProtocol,
+  type CumbriaModelDeliveryIntakeProtocol,
+} from './cumbriaModelIntake';
+import {
+  assertCumbriaPublicBaselineProtocol,
+  assertCumbriaPublicBaselineTerrainMaterialization,
+  type CumbriaPublicBaselineProtocol,
+  type CumbriaPublicBaselineTerrainMaterialization,
+} from './cumbriaPublicBaseline';
+
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.16.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -739,20 +750,28 @@ export interface CumbriaAccessManifest {
   };
   readonly spatialGridProtocol: CumbriaSpatialGridProtocol;
   readonly hydraulicProtocol: CumbriaHydraulicBoundaryProtocol;
+  readonly publicBaselineProtocol: CumbriaPublicBaselineProtocol;
+  readonly publicBaselineTerrainMaterialization:
+    CumbriaPublicBaselineTerrainMaterialization;
   readonly evaluationProtocol: CumbriaBlindEvaluationProtocol;
   readonly modelAccessRequest: CumbriaModelAccessRequest;
+  readonly modelDeliveryIntakeProtocol: CumbriaModelDeliveryIntakeProtocol;
   readonly datasets: readonly CumbriaDatasetAudit[];
   readonly gates: readonly CumbriaAccessGate[];
   readonly acquisition: {
-    readonly state: 'metadata_only';
+    readonly state: 'bounded_public_baseline_ready';
     readonly largeDownloadsAllowed: false;
+    readonly boundedTerrainDownloadsAllowed: true;
     readonly nextAction: string;
   };
 }
 
 export interface CumbriaModelAccessRequest {
   readonly id: 'cumbria-carlisle-pre-event-model-products-5-6-7-v0';
-  readonly state: 'prepared_not_sent';
+  readonly state: 'sent_awaiting_response';
+  readonly sentAt: string;
+  readonly transport: 'email';
+  readonly responseState: 'awaiting_response';
   readonly recipient: 'enquiries@environment-agency.gov.uk';
   readonly routing: 'local_environment_agency_team';
   readonly subject: string;
@@ -866,6 +885,9 @@ export function assertCumbriaAccessManifest(
   );
 
   modelAccessRequest(manifest.modelAccessRequest);
+  assertCumbriaModelDeliveryIntakeProtocol(
+    manifest.modelDeliveryIntakeProtocol,
+  );
 
   const datasets = array(manifest.datasets, 'datasets');
   const datasetIds = new Set<string>();
@@ -963,6 +985,11 @@ export function assertCumbriaAccessManifest(
     }
   }
 
+  assertCumbriaPublicBaselineProtocol(manifest.publicBaselineProtocol, datasets);
+  assertCumbriaPublicBaselineTerrainMaterialization(
+    manifest.publicBaselineTerrainMaterialization,
+    manifest.publicBaselineProtocol,
+  );
   blindEvaluationProtocol(manifest.evaluationProtocol, datasetRecords);
 
   const imergFacts = record(
@@ -1818,6 +1845,16 @@ export function assertCumbriaAccessManifest(
     'passed',
     'hydraulic_model_access_request',
   );
+  equal(
+    gateStates.get('model_delivery_intake'),
+    'passed',
+    'model_delivery_intake',
+  );
+  equal(
+    gateStates.get('public_baseline_domain'),
+    'passed',
+    'public_baseline_domain',
+  );
   equal(gateStates.get('pre_event_lidar_tiles'), 'passed', 'pre_event_lidar_tiles');
   equal(
     gateStates.get('dtm_materialization_protocol'),
@@ -1835,11 +1872,20 @@ export function assertCumbriaAccessManifest(
   equal(gateStates.get('large_artifact_downloads'), 'blocked', 'large_artifact_downloads');
 
   const acquisition = record(manifest.acquisition, 'acquisition');
-  equal(acquisition.state, 'metadata_only', 'acquisition.state');
+  equal(
+    acquisition.state,
+    'bounded_public_baseline_ready',
+    'acquisition.state',
+  );
   equal(
     acquisition.largeDownloadsAllowed,
     false,
     'acquisition.largeDownloadsAllowed',
+  );
+  equal(
+    acquisition.boundedTerrainDownloadsAllowed,
+    true,
+    'acquisition.boundedTerrainDownloadsAllowed',
   );
   nonEmpty(acquisition.nextAction, 'acquisition.nextAction');
 }
@@ -2902,7 +2948,15 @@ function modelAccessRequest(value: unknown): void {
     'cumbria-carlisle-pre-event-model-products-5-6-7-v0',
     'modelAccessRequest.id',
   );
-  equal(request.state, 'prepared_not_sent', 'modelAccessRequest.state');
+  equal(request.state, 'sent_awaiting_response', 'modelAccessRequest.state');
+  equal(request.sentAt, '2026-09-02T11:36:32Z', 'modelAccessRequest.sentAt');
+  timestamp(request.sentAt, 'modelAccessRequest.sentAt');
+  equal(request.transport, 'email', 'modelAccessRequest.transport');
+  equal(
+    request.responseState,
+    'awaiting_response',
+    'modelAccessRequest.responseState',
+  );
   equal(
     request.recipient,
     'enquiries@environment-agency.gov.uk',

@@ -519,6 +519,10 @@ test('API identity exposes health, Proof 0 and observed infrastructure', async (
     root.endpoints.emiliaHydraulicEvidenceIntake,
     'GET /api/benchmarks/emilia-romagna-2023/hydraulic-evidence-intake',
   );
+  assert.equal(
+    root.endpoints.cumbriaModelEvidenceIntake,
+    'GET /api/benchmarks/cumbria-2015/model-evidence-intake',
+  );
   assert.equal(JSON.stringify(root).includes('ai'), false);
   assert.equal(JSON.stringify(root).includes('mineral'), false);
   assert.equal(health.coreRequiresAi, false);
@@ -623,6 +627,45 @@ test('API exposes the ARPAE intake as explicitly missing and replay-blocking', a
   assert.equal(body.policy.originalFilesStayOutsideGit, true);
   assert.equal(body.policy.syntheticFixturesCanBecomeReplayEvidence, false);
   assert.equal(JSON.stringify(body).includes('floodProbability'), false);
+});
+
+test('API exposes the Cumbria model delivery as explicitly missing', async (context) => {
+  const server = buildTestServer();
+  context.after(() => server.close());
+
+  const response = await server.inject({
+    method: 'GET',
+    url: '/api/benchmarks/cumbria-2015/model-evidence-intake',
+  });
+  const body = response.json();
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(
+    response.headers['cache-control'],
+    'public, max-age=300, stale-while-revalidate=86400',
+  );
+  assert.equal(body.schemaVersion, 'cumbria-ea-model-intake-status-v0.1.0');
+  assert.equal(body.status, 'missing');
+  assert.equal(body.packageId, null);
+  assert.equal(body.hydraulicContextAssessment, 'blocked');
+  assert.equal(body.replayEligibility, 'blocked');
+  assert.equal(body.requiredComponents.length, 10);
+  assert.ok(
+    body.requiredComponents.every(
+      (component) =>
+        component.status === 'missing' &&
+        component.artifactCount === 0 &&
+        component.reviewDecision === 'not_reviewed',
+    ),
+  );
+  assert.equal(body.policy.originalFilesStayOutsideGit, true);
+  assert.equal(body.policy.automaticReplayPromotion, false);
+  assert.equal(body.policy.evaluationReferenceSeal, 'must_remain_closed');
+  const serialized = JSON.stringify(body);
+  assert.equal(serialized.includes('relativePath'), false);
+  assert.equal(serialized.includes('deliveryReference'), false);
+  assert.equal(serialized.includes('observedEventGeometry'), false);
+  assert.equal(serialized.includes('evaluationGeometry'), false);
 });
 
 test('API exposes only publication-safe Emilia map layers', async (context) => {

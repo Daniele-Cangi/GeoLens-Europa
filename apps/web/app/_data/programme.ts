@@ -59,15 +59,15 @@ export const programmeRecords: readonly ProgrammeRecord[] = [
     code: 'Case 03',
     title: 'Event-specific public-data replay',
     place: 'Carlisle / Cumbria, United Kingdom',
-    status: 'Metadata access verified',
-    statusTone: 'screening',
+    status: 'Terrain evidence materialized',
+    statusTone: 'evidence-gate',
     established:
-      'The 72-hour event window has complete direct Carlisle flow, level and rainfall series, 144/144 IMERG granules, two independent flood-extent sources, 231 selected terrain records and 16 event-valid WFD river-context features.',
+      'A 56 km² Sheepmount–Old Sandsfield reach is fixed without observed flood geometry; six official pre-event DTM archives yield 46 usable one-kilometre terrain windows with content-addressed provenance.',
     openGate:
-      'Ten of 241 intersecting terrain grid references lack a pre-event record, while the official raster selector currently reports an upstream service error; event-valid hydrography and a defensible hydraulic protocol also remain unresolved.',
+      'Ten one-kilometre grids remain explicitly unavailable after archive and pixel inspection; channel placement, downstream and initial conditions, roughness, computation grid and timestep are not yet frozen.',
     nextDecision:
-      'Map the selected catalogue records to official DTM GeoTIFF artifacts, preserve the ten gaps as missing and then freeze the modelling grid.',
+      'Compose verified terrain coverage with the remaining public inputs, then freeze the experimental replacement-solver contract before opening either evaluation reference.',
   },
 ] as const;
 
-export const programmeUpdatedAt = '30 August 2026';
+export const programmeUpdatedAt = '2 September 2026';
