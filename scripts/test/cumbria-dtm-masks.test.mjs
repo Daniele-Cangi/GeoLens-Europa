@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import test from 'node:test';
 
 import {
@@ -82,13 +83,22 @@ test('pixel statistics preserve NoData and reject implausible values', () => {
 });
 
 test('materializer requires an explicit external non-OneDrive root', () => {
+  const repositoryRoot = path.resolve('portable-fixture', 'repository');
   assert.throws(() => parseArguments([]), /--data-root is required/);
   assert.throws(
-    () => ensureExternalDataRoot('C:\\repo\\data', 'C:\\repo'),
+    () =>
+      ensureExternalDataRoot(
+        path.join(repositoryRoot, 'data'),
+        repositoryRoot,
+      ),
     /outside the Git repository/,
   );
   assert.throws(
-    () => ensureExternalDataRoot('C:\\Users\\test\\OneDrive\\data', 'C:\\repo'),
+    () =>
+      ensureExternalDataRoot(
+        path.resolve(repositoryRoot, '..', 'OneDrive', 'data'),
+        repositoryRoot,
+      ),
     /outside OneDrive/,
   );
 });
