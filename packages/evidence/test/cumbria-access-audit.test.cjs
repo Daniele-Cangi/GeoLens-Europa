@@ -133,7 +133,7 @@ test('pre-event terrain selection maps to downloadable archives with explicit ga
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.9.0');
+  assert.equal(manifest.manifestVersion, '0.10.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
@@ -347,6 +347,105 @@ test('Cumbria DTM protocol rejects unsafe archive handling and invented coverage
   assert.throws(
     () => assertCumbriaAccessManifest(enabledDownloads),
     /large-download gate/,
+  );
+});
+
+test('spatial protocol preserves native grids and limits H3 to evidence joins', () => {
+  const manifest = manifestFixture();
+  const protocol = manifest.spatialGridProtocol;
+
+  assert.equal(protocol.state, 'evidence_index_frozen_solver_mesh_blocked');
+  assert.deepEqual(protocol.sourceGrids.terrain.nativeResolutionMetres, [0.5, 1, 2]);
+  assert.equal(protocol.sourceGrids.terrain.resampling, 'none');
+  assert.equal(protocol.sourceGrids.landCover.nativeResolutionMetres, 100);
+  assert.equal(
+    protocol.sourceGrids.landCover.categoricalInterpolation,
+    'forbidden',
+  );
+  assert.equal(
+    protocol.sourceGrids.precipitation.nativeResolution,
+    'approximately_0.1_degree',
+  );
+  assert.equal(protocol.evidenceIndex.system, 'H3');
+  assert.equal(protocol.evidenceIndex.resolution, 10);
+  assert.equal(protocol.evidenceIndex.cellCount, 24230);
+  assert.equal(
+    protocol.evidenceIndex.selectionSha256,
+    'cee0f57bf78d1886f9e787402aa05eeed431bc36cfd0239f9370d725e2c947f9',
+  );
+  assert.equal(
+    protocol.evidenceIndex.role,
+    'catalog_inspection_and_evidence_join_only',
+  );
+  assert.equal(protocol.evidenceIndex.physicalRoutingAllowed, false);
+  assert.equal(protocol.evidenceIndex.hydraulicStateAllowed, false);
+  assert.equal(
+    protocol.exchangeFrame.topology,
+    'no_common_raster_grid_before_solver_contract',
+  );
+  assert.deepEqual(protocol.solverMesh, {
+    state: 'blocked_missing_runnable_model_and_geometry',
+    horizontalCrsRequired: 'EPSG:27700',
+    verticalDatumRequired: 'Ordnance Datum Newlyn',
+    extent: null,
+    cellSizeMetres: null,
+    origin: null,
+    width: null,
+    height: null,
+    timeStepSeconds: null,
+    cannotBeDerivedFrom: [
+      'metadata_aoi',
+      'boundary_protocol_envelope',
+      'h3_evidence_index',
+      'dtm_native_grid',
+      'clc_native_grid',
+    ],
+    requiredEvidence: [
+      'runnable_pre_event_model_or_versioned_replacement_solver',
+      'event_valid_channel_cross_sections_and_roughness',
+      'boundary_placement_and_values',
+      'distributed_initial_state_or_warmup',
+      'as_of_event_defence_and_floodgate_state',
+      'declared_mesh_extent_origin_cell_size_and_timestep',
+    ],
+  });
+});
+
+test('spatial protocol rejects false precision and invented solver geometry', () => {
+  const wrongResolution = manifestFixture();
+  wrongResolution.spatialGridProtocol.evidenceIndex.resolution = 12;
+  assert.throws(
+    () => assertCumbriaAccessManifest(wrongResolution),
+    /evidence index resolution/,
+  );
+
+  const routingOnH3 = manifestFixture();
+  routingOnH3.spatialGridProtocol.evidenceIndex.physicalRoutingAllowed = true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(routingOnH3),
+    /evidence index routing policy/,
+  );
+
+  const interpolatedClasses = manifestFixture();
+  interpolatedClasses.spatialGridProtocol.sourceGrids.landCover.categoricalInterpolation =
+    'bilinear';
+  assert.throws(
+    () => assertCumbriaAccessManifest(interpolatedClasses),
+    /land-cover interpolation policy/,
+  );
+
+  const inventedMesh = manifestFixture();
+  inventedMesh.spatialGridProtocol.solverMesh.cellSizeMetres = 2;
+  assert.throws(
+    () => assertCumbriaAccessManifest(inventedMesh),
+    /solver mesh cellSizeMetres/,
+  );
+
+  const driftedEnvelope = manifestFixture();
+  driftedEnvelope.spatialGridProtocol.evidenceIndex.envelopeBounds[0] = -3.04;
+  assert.throws(
+    () => assertCumbriaAccessManifest(driftedEnvelope),
+    /must use the frozen hydraulic protocol envelope/,
   );
 });
 
@@ -795,6 +894,7 @@ test('terrain identity passes while bulk acquisition remains physically gated', 
 
   assert.equal(gates.get('pre_event_lidar_tiles'), 'passed');
   assert.equal(gates.get('dtm_materialization_protocol'), 'passed');
+  assert.equal(gates.get('spatial_grid_roles'), 'passed');
   assert.equal(gates.get('upstream_boundary_series'), 'passed');
   assert.equal(gates.get('hydraulic_model_access_request'), 'passed');
   assert.equal(gates.get('as_of_event_defence_state'), 'blocked');

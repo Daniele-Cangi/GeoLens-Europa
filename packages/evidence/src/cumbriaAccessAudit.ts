@@ -1,4 +1,4 @@
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.9.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.10.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -383,6 +383,107 @@ export interface CumbriaDtmMaterializationPlan {
   }[];
 }
 
+export interface CumbriaSpatialGridProtocol {
+  readonly id: 'cumbria-spatial-grid-boundary-v0';
+  readonly state: 'evidence_index_frozen_solver_mesh_blocked';
+  readonly sourceGrids: {
+    readonly terrain: {
+      readonly datasetId: 'ea-lidar-dtm-time-stamped';
+      readonly horizontalCrs: 'EPSG:27700';
+      readonly verticalDatum: 'Ordnance Datum Newlyn';
+      readonly nativeResolutionMetres: readonly [0.5, 1, 2];
+      readonly stagingUnit: 'masked_native_1km_grid_clips';
+      readonly resampling: 'none';
+      readonly sourceNodata: 'preserve';
+      readonly commonResolutionClaim: false;
+    };
+    readonly landCover: {
+      readonly datasetId: 'copernicus-clc2012';
+      readonly horizontalCrs: 'EPSG:3035';
+      readonly nativeResolutionMetres: 100;
+      readonly minimumMappingUnitHectares: 25;
+      readonly stagingUnit: 'native_categorical_cells';
+      readonly categoricalInterpolation: 'forbidden';
+      readonly commonResolutionClaim: false;
+    };
+    readonly precipitation: {
+      readonly datasetId: 'nasa-imerg-v07-final';
+      readonly horizontalCrs: 'EPSG:4326';
+      readonly nativeResolution: 'approximately_0.1_degree';
+      readonly nativeIntervalSeconds: 1800;
+      readonly stagingUnit: 'native_cell_footprints';
+      readonly h3DoesNotSharpenSource: true;
+    };
+  };
+  readonly evidenceIndex: {
+    readonly system: 'H3';
+    readonly libraryVersion: '4.3.0';
+    readonly resolution: 10;
+    readonly envelopeSource: 'hydraulicProtocol.domainEnvelope';
+    readonly envelopeBounds: readonly [-3.05, 54.82, -2.8, 55];
+    readonly inclusion: 'cell_centroid_inside_envelope';
+    readonly cellCount: 24230;
+    readonly selectionSha256: string;
+    readonly approximateMeanCellAreaM2: 13199;
+    readonly role: 'catalog_inspection_and_evidence_join_only';
+    readonly terrainSummaries: readonly [
+      'coverage_fraction',
+      'nodata_fraction',
+      'minimum_elevation_m',
+      'maximum_elevation_m',
+      'mean_elevation_m',
+      'source_resolution_counts',
+    ];
+    readonly landCoverSummaries: readonly [
+      'area_fraction_by_clc_class',
+      'dominant_class_with_fraction',
+    ];
+    readonly precipitationSummaries: readonly [
+      'native_cell_overlap_fraction',
+      'window_accumulation_mm',
+    ];
+    readonly sourceResolutionsRemainVisible: true;
+    readonly exactCellAreaUsed: true;
+    readonly physicalRoutingAllowed: false;
+    readonly hydraulicStateAllowed: false;
+  };
+  readonly exchangeFrame: {
+    readonly horizontalCrs: 'EPSG:27700';
+    readonly topology: 'no_common_raster_grid_before_solver_contract';
+    readonly terrain: 'native_grid_clips';
+    readonly landCover: 'native_class_footprints_reprojected_for_overlap_only';
+    readonly precipitation: 'native_cell_footprints_reprojected_for_overlap_only';
+    readonly categoricalInterpolationForbidden: true;
+    readonly missingInputPolicy: 'missing_or_partial_remains_explicit';
+  };
+  readonly solverMesh: {
+    readonly state: 'blocked_missing_runnable_model_and_geometry';
+    readonly horizontalCrsRequired: 'EPSG:27700';
+    readonly verticalDatumRequired: 'Ordnance Datum Newlyn';
+    readonly extent: null;
+    readonly cellSizeMetres: null;
+    readonly origin: null;
+    readonly width: null;
+    readonly height: null;
+    readonly timeStepSeconds: null;
+    readonly cannotBeDerivedFrom: readonly [
+      'metadata_aoi',
+      'boundary_protocol_envelope',
+      'h3_evidence_index',
+      'dtm_native_grid',
+      'clc_native_grid',
+    ];
+    readonly requiredEvidence: readonly [
+      'runnable_pre_event_model_or_versioned_replacement_solver',
+      'event_valid_channel_cross_sections_and_roughness',
+      'boundary_placement_and_values',
+      'distributed_initial_state_or_warmup',
+      'as_of_event_defence_and_floodgate_state',
+      'declared_mesh_extent_origin_cell_size_and_timestep',
+    ];
+  };
+}
+
 export interface CumbriaHydraulicBoundaryProtocol {
   readonly id: 'carlisle-local-hydraulic-protocol-v0';
   readonly state: 'frozen_inputs_blocked_execution';
@@ -532,6 +633,7 @@ export interface CumbriaAccessManifest {
     readonly currentAssetStateExcludedFromEventInputs: true;
     readonly largeArtifactsStayOutsideGit: true;
   };
+  readonly spatialGridProtocol: CumbriaSpatialGridProtocol;
   readonly hydraulicProtocol: CumbriaHydraulicBoundaryProtocol;
   readonly modelAccessRequest: CumbriaModelAccessRequest;
   readonly datasets: readonly CumbriaDatasetAudit[];
@@ -795,6 +897,11 @@ export function assertCumbriaAccessManifest(
   equal(willowSeries.stationReference, '606299', 'Willow Holme station reference');
 
   hydraulicBoundaryProtocol(manifest.hydraulicProtocol, datasetRecords);
+  spatialGridProtocol(
+    manifest.spatialGridProtocol,
+    manifest.hydraulicProtocol,
+    datasetRecords,
+  );
 
   const lidarDataset = datasetRecords.get('ea-lidar-dtm-time-stamped');
   const lidarFacts = record(
@@ -1605,6 +1712,7 @@ export function assertCumbriaAccessManifest(
     'passed',
     'dtm_materialization_protocol',
   );
+  equal(gateStates.get('spatial_grid_roles'), 'passed', 'spatial_grid_roles');
   equal(gateStates.get('as_of_event_defence_state'), 'blocked', 'as_of_event_defence_state');
   equal(gateStates.get('hydraulic_context'), 'blocked', 'hydraulic_context');
   equal(gateStates.get('large_artifact_downloads'), 'blocked', 'large_artifact_downloads');
@@ -1972,6 +2080,319 @@ function dtmMaterializationProtocol(
     0,
     'LiDAR DTM downloaded archive bytes',
   );
+}
+
+function spatialGridProtocol(
+  value: unknown,
+  hydraulicProtocolValue: unknown,
+  datasetRecords: ReadonlyMap<string, Record<string, unknown>>,
+): void {
+  const protocol = record(value, 'spatialGridProtocol');
+  equal(
+    protocol.id,
+    'cumbria-spatial-grid-boundary-v0',
+    'spatialGridProtocol.id',
+  );
+  equal(
+    protocol.state,
+    'evidence_index_frozen_solver_mesh_blocked',
+    'spatialGridProtocol.state',
+  );
+
+  const sourceGrids = record(protocol.sourceGrids, 'spatialGridProtocol.sourceGrids');
+  const terrain = record(sourceGrids.terrain, 'spatialGridProtocol.sourceGrids.terrain');
+  equal(terrain.datasetId, 'ea-lidar-dtm-time-stamped', 'terrain grid dataset');
+  equal(terrain.horizontalCrs, 'EPSG:27700', 'terrain grid CRS');
+  equal(terrain.verticalDatum, 'Ordnance Datum Newlyn', 'terrain grid datum');
+  const terrainResolutions = numericArray(
+    terrain.nativeResolutionMetres,
+    3,
+    'terrain native resolutions',
+  );
+  if (JSON.stringify(terrainResolutions) !== JSON.stringify([0.5, 1, 2])) {
+    throw new Error('terrain native resolutions drifted');
+  }
+  equal(
+    terrain.stagingUnit,
+    'masked_native_1km_grid_clips',
+    'terrain staging unit',
+  );
+  equal(terrain.resampling, 'none', 'terrain staging resampling');
+  equal(terrain.sourceNodata, 'preserve', 'terrain source NoData policy');
+  equal(terrain.commonResolutionClaim, false, 'terrain common-resolution claim');
+
+  const terrainFacts = record(
+    datasetRecords.get('ea-lidar-dtm-time-stamped')?.facts,
+    'terrain dataset facts',
+  );
+  equal(terrainFacts.horizontalCrs, 'British National Grid', 'terrain source CRS fact');
+  equal(
+    terrainFacts.verticalDatum,
+    'Ordnance Datum Newlyn',
+    'terrain source datum fact',
+  );
+
+  const landCover = record(
+    sourceGrids.landCover,
+    'spatialGridProtocol.sourceGrids.landCover',
+  );
+  equal(landCover.datasetId, 'copernicus-clc2012', 'land-cover grid dataset');
+  equal(landCover.horizontalCrs, 'EPSG:3035', 'land-cover grid CRS');
+  equal(landCover.nativeResolutionMetres, 100, 'land-cover native resolution');
+  equal(landCover.minimumMappingUnitHectares, 25, 'land-cover mapping unit');
+  equal(
+    landCover.stagingUnit,
+    'native_categorical_cells',
+    'land-cover staging unit',
+  );
+  equal(
+    landCover.categoricalInterpolation,
+    'forbidden',
+    'land-cover interpolation policy',
+  );
+  equal(
+    landCover.commonResolutionClaim,
+    false,
+    'land-cover common-resolution claim',
+  );
+  const landCoverFacts = record(
+    datasetRecords.get('copernicus-clc2012')?.facts,
+    'land-cover dataset facts',
+  );
+  equal(landCoverFacts.crs, 'EPSG:3035', 'land-cover source CRS fact');
+  equal(
+    landCoverFacts.rasterResolutionMetres,
+    100,
+    'land-cover source resolution fact',
+  );
+
+  const precipitation = record(
+    sourceGrids.precipitation,
+    'spatialGridProtocol.sourceGrids.precipitation',
+  );
+  equal(
+    precipitation.datasetId,
+    'nasa-imerg-v07-final',
+    'precipitation grid dataset',
+  );
+  equal(precipitation.horizontalCrs, 'EPSG:4326', 'precipitation grid CRS');
+  equal(
+    precipitation.nativeResolution,
+    'approximately_0.1_degree',
+    'precipitation native resolution',
+  );
+  equal(
+    precipitation.nativeIntervalSeconds,
+    1800,
+    'precipitation native interval',
+  );
+  equal(
+    precipitation.stagingUnit,
+    'native_cell_footprints',
+    'precipitation staging unit',
+  );
+  equal(
+    precipitation.h3DoesNotSharpenSource,
+    true,
+    'precipitation H3 precision policy',
+  );
+  const imerg = datasetRecords.get('nasa-imerg-v07-final');
+  equal(imerg?.datasetVersion, '07', 'precipitation source version');
+  equal(
+    imerg?.sourceResolution,
+    'approximately 0.1 degree; 30 minutes',
+    'precipitation source-resolution fact',
+  );
+
+  const evidenceIndex = record(
+    protocol.evidenceIndex,
+    'spatialGridProtocol.evidenceIndex',
+  );
+  equal(evidenceIndex.system, 'H3', 'evidence index system');
+  equal(evidenceIndex.libraryVersion, '4.3.0', 'evidence index library version');
+  equal(evidenceIndex.resolution, 10, 'evidence index resolution');
+  equal(
+    evidenceIndex.envelopeSource,
+    'hydraulicProtocol.domainEnvelope',
+    'evidence index envelope source',
+  );
+  const indexBounds = numericArray(
+    evidenceIndex.envelopeBounds,
+    4,
+    'evidence index envelope bounds',
+  );
+  const hydraulic = record(hydraulicProtocolValue, 'hydraulicProtocol');
+  const hydraulicEnvelope = record(
+    hydraulic.domainEnvelope,
+    'hydraulicProtocol.domainEnvelope',
+  );
+  const hydraulicBounds = numericArray(
+    hydraulicEnvelope.bounds,
+    4,
+    'hydraulic protocol envelope bounds',
+  );
+  if (JSON.stringify(indexBounds) !== JSON.stringify(hydraulicBounds)) {
+    throw new Error('H3 evidence index must use the frozen hydraulic protocol envelope');
+  }
+  equal(
+    evidenceIndex.inclusion,
+    'cell_centroid_inside_envelope',
+    'evidence index inclusion',
+  );
+  equal(evidenceIndex.cellCount, 24230, 'evidence index cell count');
+  equal(
+    evidenceIndex.selectionSha256,
+    'cee0f57bf78d1886f9e787402aa05eeed431bc36cfd0239f9370d725e2c947f9',
+    'evidence index selection identity',
+  );
+  equal(
+    evidenceIndex.approximateMeanCellAreaM2,
+    13199,
+    'evidence index approximate mean cell area',
+  );
+  equal(
+    evidenceIndex.role,
+    'catalog_inspection_and_evidence_join_only',
+    'evidence index role',
+  );
+  const terrainSummaries = stringArray(
+    evidenceIndex.terrainSummaries,
+    'evidence index terrain summaries',
+  );
+  if (
+    JSON.stringify(terrainSummaries) !==
+    JSON.stringify([
+      'coverage_fraction',
+      'nodata_fraction',
+      'minimum_elevation_m',
+      'maximum_elevation_m',
+      'mean_elevation_m',
+      'source_resolution_counts',
+    ])
+  ) {
+    throw new Error('evidence index terrain summaries drifted');
+  }
+  const landCoverSummaries = stringArray(
+    evidenceIndex.landCoverSummaries,
+    'evidence index land-cover summaries',
+  );
+  if (
+    JSON.stringify(landCoverSummaries) !==
+    JSON.stringify(['area_fraction_by_clc_class', 'dominant_class_with_fraction'])
+  ) {
+    throw new Error('evidence index land-cover summaries drifted');
+  }
+  const precipitationSummaries = stringArray(
+    evidenceIndex.precipitationSummaries,
+    'evidence index precipitation summaries',
+  );
+  if (
+    JSON.stringify(precipitationSummaries) !==
+    JSON.stringify(['native_cell_overlap_fraction', 'window_accumulation_mm'])
+  ) {
+    throw new Error('evidence index precipitation summaries drifted');
+  }
+  equal(
+    evidenceIndex.sourceResolutionsRemainVisible,
+    true,
+    'evidence index source-resolution policy',
+  );
+  equal(evidenceIndex.exactCellAreaUsed, true, 'evidence index cell-area policy');
+  equal(
+    evidenceIndex.physicalRoutingAllowed,
+    false,
+    'evidence index routing policy',
+  );
+  equal(
+    evidenceIndex.hydraulicStateAllowed,
+    false,
+    'evidence index hydraulic-state policy',
+  );
+
+  const exchange = record(protocol.exchangeFrame, 'spatialGridProtocol.exchangeFrame');
+  equal(exchange.horizontalCrs, 'EPSG:27700', 'exchange frame CRS');
+  equal(
+    exchange.topology,
+    'no_common_raster_grid_before_solver_contract',
+    'exchange frame topology',
+  );
+  equal(exchange.terrain, 'native_grid_clips', 'exchange terrain representation');
+  equal(
+    exchange.landCover,
+    'native_class_footprints_reprojected_for_overlap_only',
+    'exchange land-cover representation',
+  );
+  equal(
+    exchange.precipitation,
+    'native_cell_footprints_reprojected_for_overlap_only',
+    'exchange precipitation representation',
+  );
+  equal(
+    exchange.categoricalInterpolationForbidden,
+    true,
+    'exchange categorical interpolation policy',
+  );
+  equal(
+    exchange.missingInputPolicy,
+    'missing_or_partial_remains_explicit',
+    'exchange missing-input policy',
+  );
+
+  const solver = record(protocol.solverMesh, 'spatialGridProtocol.solverMesh');
+  equal(
+    solver.state,
+    'blocked_missing_runnable_model_and_geometry',
+    'solver mesh state',
+  );
+  equal(solver.horizontalCrsRequired, 'EPSG:27700', 'solver mesh CRS');
+  equal(
+    solver.verticalDatumRequired,
+    'Ordnance Datum Newlyn',
+    'solver mesh vertical datum',
+  );
+  for (const field of [
+    'extent',
+    'cellSizeMetres',
+    'origin',
+    'width',
+    'height',
+    'timeStepSeconds',
+  ]) {
+    equal(solver[field], null, `solver mesh ${field}`);
+  }
+  const cannotBeDerivedFrom = stringArray(
+    solver.cannotBeDerivedFrom,
+    'solver mesh prohibited derivations',
+  );
+  if (
+    JSON.stringify(cannotBeDerivedFrom) !==
+    JSON.stringify([
+      'metadata_aoi',
+      'boundary_protocol_envelope',
+      'h3_evidence_index',
+      'dtm_native_grid',
+      'clc_native_grid',
+    ])
+  ) {
+    throw new Error('solver mesh prohibited derivations drifted');
+  }
+  const requiredEvidence = stringArray(
+    solver.requiredEvidence,
+    'solver mesh required evidence',
+  );
+  if (
+    JSON.stringify(requiredEvidence) !==
+    JSON.stringify([
+      'runnable_pre_event_model_or_versioned_replacement_solver',
+      'event_valid_channel_cross_sections_and_roughness',
+      'boundary_placement_and_values',
+      'distributed_initial_state_or_warmup',
+      'as_of_event_defence_and_floodgate_state',
+      'declared_mesh_extent_origin_cell_size_and_timestep',
+    ])
+  ) {
+    throw new Error('solver mesh required evidence drifted');
+  }
 }
 
 function modelAccessRequest(value: unknown): void {
