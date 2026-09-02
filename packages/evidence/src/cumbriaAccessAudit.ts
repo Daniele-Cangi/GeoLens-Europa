@@ -1,4 +1,9 @@
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.12.0' as const;
+import {
+  assertCumbriaModelDeliveryIntakeProtocol,
+  type CumbriaModelDeliveryIntakeProtocol,
+} from './cumbriaModelIntake';
+
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.13.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -741,6 +746,7 @@ export interface CumbriaAccessManifest {
   readonly hydraulicProtocol: CumbriaHydraulicBoundaryProtocol;
   readonly evaluationProtocol: CumbriaBlindEvaluationProtocol;
   readonly modelAccessRequest: CumbriaModelAccessRequest;
+  readonly modelDeliveryIntakeProtocol: CumbriaModelDeliveryIntakeProtocol;
   readonly datasets: readonly CumbriaDatasetAudit[];
   readonly gates: readonly CumbriaAccessGate[];
   readonly acquisition: {
@@ -866,6 +872,9 @@ export function assertCumbriaAccessManifest(
   );
 
   modelAccessRequest(manifest.modelAccessRequest);
+  assertCumbriaModelDeliveryIntakeProtocol(
+    manifest.modelDeliveryIntakeProtocol,
+  );
 
   const datasets = array(manifest.datasets, 'datasets');
   const datasetIds = new Set<string>();
@@ -1817,6 +1826,11 @@ export function assertCumbriaAccessManifest(
     gateStates.get('hydraulic_model_access_request'),
     'passed',
     'hydraulic_model_access_request',
+  );
+  equal(
+    gateStates.get('model_delivery_intake'),
+    'passed',
+    'model_delivery_intake',
   );
   equal(gateStates.get('pre_event_lidar_tiles'), 'passed', 'pre_event_lidar_tiles');
   equal(

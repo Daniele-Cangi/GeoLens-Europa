@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.12.0",
+  "manifestVersion": "0.13.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -536,6 +536,48 @@
       "postEventMaterialContextOnly": true,
       "incompleteDeliveryRemainsMissing": true
     }
+  },
+  "modelDeliveryIntakeProtocol": {
+    "id": "cumbria-ea-model-delivery-intake-v0",
+    "state": "ready_no_delivery_received",
+    "packageSchemaVersion": "cumbria-ea-model-evidence-package-v0.1.0",
+    "reviewSchemaVersion": "cumbria-ea-model-evidence-review-v0.1.0",
+    "validatorVersion": "cumbria-ea-model-evidence-validator-v0.1.0",
+    "intakeKind": "cumbria-model",
+    "requestId": "cumbria-carlisle-pre-event-model-products-5-6-7-v0",
+    "acceptedProductNumbers": [5, 6, 7],
+    "acceptedModelGroupIds": [1313, 1314, 1797, 8323],
+    "excludedModelGroupIds": [2039, 9458],
+    "declaredComponentIds": [
+      "native_archived_hydraulic_model",
+      "model_and_hydrology_reports",
+      "pre_event_model_outputs",
+      "channel_cross_sections_and_topographic_survey",
+      "boundary_condition_definitions_and_source_records",
+      "roughness_and_parameter_definitions",
+      "defence_and_floodgate_representation",
+      "development_and_change_logs",
+      "software_version_units_crs_and_datum",
+      "licence_and_reuse_conditions"
+    ],
+    "requiredForGateAssessment": [
+      "native_archived_hydraulic_model",
+      "channel_cross_sections_and_topographic_survey",
+      "boundary_condition_definitions_and_source_records",
+      "roughness_and_parameter_definitions",
+      "defence_and_floodgate_representation",
+      "software_version_units_crs_and_datum",
+      "licence_and_reuse_conditions"
+    ],
+    "originalFilesStayOutsideGit": true,
+    "contentAddressAlgorithm": "sha256",
+    "receiptWriteMode": "create_new_only",
+    "originalsCopiedByIntake": false,
+    "archivesExtractedByIntake": false,
+    "packageReceived": false,
+    "scientificReviewCompleted": false,
+    "automaticReplayPromotion": false,
+    "evaluationReferenceSeal": "must_remain_closed"
   },
   "datasets": [
     {
@@ -1831,6 +1873,11 @@
       "reason": "The official Products 5, 6 and 7 request is frozen for pre-event model groups 1313, 1314, 1797 and 8323. Product 4 and post-event groups 2039 and 9458 are excluded so observed or hindsight material cannot silently enter replay input."
     },
     {
+      "id": "model_delivery_intake",
+      "state": "passed",
+      "reason": "The shared external-evidence intake now supports a Cumbria model package contract for Products 5, 6 and 7. It computes byte/SHA-256 identity from originals outside Git, declares every requested component, rejects Product 4 and post-event groups, preserves the evaluation seal and requires component-level scientific review without granting automatic replay eligibility. No delivery has been received."
+    },
+    {
       "id": "land_cover_lineage",
       "state": "passed",
       "reason": "CLC 2012 gives an explicit pre-event reference year while retaining its post-event corrected release identity."
@@ -1899,6 +1946,6 @@
   "acquisition": {
     "state": "metadata_only",
     "largeDownloadsAllowed": false,
-    "nextAction": "Send the frozen Products 5, 6 and 7 request if it has not already been submitted, then content-address and qualify any response component by component. Keep the H3 resolution 10 evidence index separate from the still-missing solver mesh and retain ten terrain grid references and every unresolved hydraulic component explicitly missing."
+    "nextAction": "Send the frozen Products 5, 6 and 7 request if it has not already been submitted. If a response arrives, run the fail-closed cumbria-model intake outside Git and qualify all ten components through a separate review before changing any physical gate. Keep the H3 resolution 10 evidence index separate from the still-missing solver mesh and retain ten terrain grid references and every unresolved hydraulic component explicitly missing."
   }
 }

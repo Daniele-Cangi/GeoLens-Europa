@@ -18,6 +18,7 @@ This plan is the durable execution record for the refoundation described in `AGE
 - External benchmark recovery: after the D volume became temporarily unavailable, the complete pinned benchmark was rebuilt under `C:/Users/dacan/GeoLens/data/emilia-romagna-2023`; 55 artifacts totaling 746,444,721 bytes pass the streamed byte-count and SHA-256 verifier
 - Historical benchmark API gate: established through a compact `GET /api/benchmarks/emilia-romagna-2023` snapshot that is contract-tested against manifest v1.16.0; the Case 02 inspector exposes the negative evaluation, source resolution, artifact inventory and blocked hydraulic evidence gate without loading or redistributing the external archive; a separate ARPAE intake endpoint now reports the awaited package as explicitly missing and replay-blocking
 - Historical benchmark spatial-inspection gate: established through a deterministic nominal 300 m display projection from byte-verified 30 m AOI, GLO-30, CLC, DBTR, terrain-routing and event-runoff artifacts; the map manifest exposes five attribution-bearing renderable layers while V7 geometry and ARPAE station geometry remain explicitly withheld under restricted or unresolved redistribution state
+- Cumbria replay qualification gate: metadata, four upstream hydrographs, pre-event DTM identities, native-grid/H3 composition semantics, blind evaluation isolation and a fail-closed Products 5/6/7 delivery intake are frozen; no model package or evaluation geometry has been received or opened, and hydraulic execution remains blocked
 
 Verified starting baseline (historical):
 
@@ -487,11 +488,11 @@ Checkpoints:
 
 ## Phase 11 - Qualify the Cumbria 2015 public-data replay
 
-State: terrain acquisition, spatial-role, evidence-composition and blind-evaluation protocols frozen; real materialization, solver and hydraulic-context execution gated
+State: terrain acquisition, spatial-role, evidence-composition, blind-evaluation and model-delivery intake protocols frozen; real materialization, solver and hydraulic-context execution gated
 
 Progress:
 
-- manifest v0.12.0 freezes a bounded Carlisle source-discovery envelope, a separate local hydraulic-protocol envelope and the half-open 72-hour Storm Desmond window from 4 December 2015 00:00 UTC to 7 December 2015 00:00 UTC;
+- manifest v0.13.0 freezes a bounded Carlisle source-discovery envelope, a separate local hydraulic-protocol envelope and the half-open 72-hour Storm Desmond window from 4 December 2015 00:00 UTC to 7 December 2015 00:00 UTC;
 - the canonical Python Earthaccess path found all 144 expected GPM_3IMERGHH V07 Final Run half-hour granules without opening or downloading raster data; V07 remains explicitly retrospective reprocessing;
 - the Environment Agency Hydrology API returned all 288 expected qualified 15-minute flow values and all 288 level values at Sheepmount on the River Eden, with observed maxima of 1,676.632 m3/s and 7.648 m respectively;
 - Willow Holme returned all 288 expected local rainfall values and a 49 mm window total; this is station comparison only and is not represented as high-fell or catchment-wide rainfall;
@@ -530,6 +531,9 @@ Progress:
 - the bounded Flood Model Locations OGC query returns 19 records with deterministic SHA-256 `0b721138c212753c7b54739846fa451fbaf964a8ce72ac5e45adc8a7fda45cd1`; pre-event Carlisle model-group IDs `1313`, `1314`, `1797` and `8323` are frozen as request lineage only, while post-event groups `2039` and `9458` are excluded from input and calibration, and the catalogue still contains no model files or outputs;
 - current GOV.UK guidance defines Product 5 as model/hydrology reports, Product 6 as model outputs with Product 5 reports and Product 7 as model inputs with Product 5 reports, routed through the local Environment Agency team at `enquiries@environment-agency.gov.uk`;
 - the Products 5, 6 and 7 request is frozen for the four pre-event group IDs and explicitly asks for native archived model files, survey sections, boundary sources, roughness, defence/floodgate representation, development logs, software, datum, units and reuse conditions; Product 4, observed-event geometry and post-event model groups `2039` and `9458` are excluded;
+- `cumbria-ea-model-evidence-package-v0.1.0` declares ten delivery components with explicit available, incomplete, missing, metadata-only, context-only or synthetic-fixture state; Product 4, unrequested/post-event groups, observed flood geometry and synthetic-to-real promotion are structurally rejected;
+- the shared `intake:external-evidence -- --kind cumbria-model` path recomputes bytes and SHA-256 beneath an explicit external data root, retains portable receipt paths, does not copy originals or extract archives and writes a new receipt only after compiled-contract validation;
+- a separate review receipt must decide every component and verify integrity, licence, temporal lineage, product/model identities, CRS/units/datum and the sealed evaluation boundary. Accepted required components become candidates for a separate physical-gate assessment; intake can never grant replay eligibility itself, and the manifest truthfully retains `packageReceived: false`;
 - the bounded current AIMS Channel query returns 349 records with deterministic SHA-256 `2521ff81a5e2c5b308d3ac69005ab8b7ebeb8338fe51afc93ec92ac57ba75c0c`; 272 lack start dates, 17 dated assets start on or after the event, and the source contains no cross-sections, bed levels or roughness, so it remains current context rather than solver geometry;
 - the post-event Section 19 report records overtopping and bypass with no defence breach, but remains narrative context and cannot provide geometry, calibration or boundary values;
 - Environment Agency Recorded Flood Outlines and both Copernicus EMSR147 Carlisle vector products are accessible and structurally evaluation-only; exact observed geometries remain sealed until the input protocol is frozen;
@@ -561,4 +565,4 @@ Gate:
 - observed flood geometry remains sealed until prediction identity and semantics are frozen; references are compared separately and cannot influence inputs, calibration, domain, mesh or wetness threshold;
 - source grids, the H3 evidence index and the future solver mesh remain distinct: the protocol envelope, H3 cells and native DTM/CLC grids cannot be represented as the final hydraulic mesh; bulk acquisition begins only after the remaining physical gates are reproducible.
 
-Checkpoints: `test: qualify Cumbria public-data access`; `test: freeze Cumbria pre-event terrain catalogue`; `test: qualify Cumbria hydraulic context`; `test: freeze Cumbria hydraulic boundary protocol`; `test: qualify Cumbria hydraulic domain lineage`; `test: freeze Cumbria hydraulic model request`; `test: qualify Cumbria DTM archive mapping`; `test: freeze Cumbria DTM materialization protocol`; `test: freeze Cumbria spatial grid boundary`; `feat: compose native spatial evidence index`; `test: freeze Cumbria blind evaluation boundary`
+Checkpoints: `test: qualify Cumbria public-data access`; `test: freeze Cumbria pre-event terrain catalogue`; `test: qualify Cumbria hydraulic context`; `test: freeze Cumbria hydraulic boundary protocol`; `test: qualify Cumbria hydraulic domain lineage`; `test: freeze Cumbria hydraulic model request`; `test: qualify Cumbria DTM archive mapping`; `test: freeze Cumbria DTM materialization protocol`; `test: freeze Cumbria spatial grid boundary`; `feat: compose native spatial evidence index`; `test: freeze Cumbria blind evaluation boundary`; `feat: add Cumbria model delivery intake`

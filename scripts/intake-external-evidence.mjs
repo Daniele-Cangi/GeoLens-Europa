@@ -10,7 +10,7 @@ import {
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const SUPPORTED_KINDS = new Set(['arpae', 'amsterdam']);
+const SUPPORTED_KINDS = new Set(['arpae', 'amsterdam', 'cumbria-model']);
 
 export async function materializeExternalEvidencePackage({
   draft,
@@ -96,7 +96,7 @@ export async function writeValidatedExternalEvidencePackage({
 export async function loadContractValidator(kind) {
   if (!SUPPORTED_KINDS.has(kind)) {
     throw new Error(
-      `Unsupported intake kind "${String(kind)}"; expected arpae or amsterdam`,
+      `Unsupported intake kind "${String(kind)}"; expected arpae, amsterdam or cumbria-model`,
     );
   }
 
@@ -108,6 +108,18 @@ export async function loadContractValidator(kind) {
       module.validateArpaeHydraulicEvidencePackage;
     if (typeof validator !== 'function') {
       throw new Error('Built ARPAE contract validator is unavailable');
+    }
+    return validator;
+  }
+
+  if (kind === 'cumbria-model') {
+    const loaded = await import('../packages/evidence/dist/index.js');
+    const module = loaded.default ?? loaded;
+    const validator =
+      loaded.validateCumbriaModelEvidencePackage ??
+      module.validateCumbriaModelEvidencePackage;
+    if (typeof validator !== 'function') {
+      throw new Error('Built Cumbria model contract validator is unavailable');
     }
     return validator;
   }
@@ -130,7 +142,7 @@ export function parseIntakeArguments(argv) {
     const value = argv[index + 1];
     if (!key?.startsWith('--') || value === undefined) {
       throw new Error(
-        'Usage: --kind <arpae|amsterdam> --draft <json> --data-root <directory> --output <json>',
+        'Usage: --kind <arpae|amsterdam|cumbria-model> --draft <json> --data-root <directory> --output <json>',
       );
     }
     if (values.has(key)) {
@@ -149,7 +161,7 @@ export function parseIntakeArguments(argv) {
 
   const kind = values.get('--kind');
   if (!SUPPORTED_KINDS.has(kind)) {
-    throw new Error('--kind must equal arpae or amsterdam');
+    throw new Error('--kind must equal arpae, amsterdam or cumbria-model');
   }
   return {
     kind,

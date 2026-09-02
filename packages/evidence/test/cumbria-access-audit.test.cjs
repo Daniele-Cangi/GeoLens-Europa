@@ -221,7 +221,7 @@ test('pre-event terrain selection maps to downloadable archives with explicit ga
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.12.0');
+  assert.equal(manifest.manifestVersion, '0.13.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
@@ -1008,6 +1008,30 @@ test('model access request rejects Product 4 and post-event replay input', () =>
   );
 });
 
+test('model delivery intake is ready without claiming a received package', () => {
+  const manifest = manifestFixture();
+  const protocol = manifest.modelDeliveryIntakeProtocol;
+
+  assert.equal(protocol.state, 'ready_no_delivery_received');
+  assert.equal(protocol.intakeKind, 'cumbria-model');
+  assert.deepEqual(protocol.acceptedProductNumbers, [5, 6, 7]);
+  assert.deepEqual(protocol.acceptedModelGroupIds, [1313, 1314, 1797, 8323]);
+  assert.deepEqual(protocol.excludedModelGroupIds, [2039, 9458]);
+  assert.equal(protocol.originalFilesStayOutsideGit, true);
+  assert.equal(protocol.originalsCopiedByIntake, false);
+  assert.equal(protocol.archivesExtractedByIntake, false);
+  assert.equal(protocol.packageReceived, false);
+  assert.equal(protocol.scientificReviewCompleted, false);
+  assert.equal(protocol.automaticReplayPromotion, false);
+  assert.equal(protocol.evaluationReferenceSeal, 'must_remain_closed');
+
+  protocol.packageReceived = true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(manifest),
+    /modelDeliveryIntakeProtocol.packageReceived/,
+  );
+});
+
 test('terrain identity passes while bulk acquisition remains physically gated', () => {
   const manifest = manifestFixture();
   const gates = new Map(
@@ -1021,6 +1045,7 @@ test('terrain identity passes while bulk acquisition remains physically gated', 
   assert.equal(gates.get('blind_evaluation_protocol'), 'passed');
   assert.equal(gates.get('upstream_boundary_series'), 'passed');
   assert.equal(gates.get('hydraulic_model_access_request'), 'passed');
+  assert.equal(gates.get('model_delivery_intake'), 'passed');
   assert.equal(gates.get('as_of_event_defence_state'), 'blocked');
   assert.equal(gates.get('hydraulic_context'), 'blocked');
   assert.equal(gates.get('evaluation_geometry_identity'), 'blocked');
