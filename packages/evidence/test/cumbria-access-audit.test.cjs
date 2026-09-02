@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { createHash } = require('node:crypto');
 const { readFileSync } = require('node:fs');
 const path = require('node:path');
 
@@ -127,13 +128,100 @@ test('post-event flood geometry cannot leak into input or calibration', () => {
   );
 });
 
+test('blind evaluation protocol remains sealed until the prediction is frozen', () => {
+  const manifest = manifestFixture();
+  const protocol = manifest.evaluationProtocol;
+  const { protocolSha256, ...hashPayload } = protocol;
+
+  assert.equal(protocol.validationMode, 'blind_hindcast');
+  assert.equal(
+    protocol.claimBoundary,
+    'retrospective_historical_replay_not_operational_forecast',
+  );
+  assert.equal(protocol.predictionFreeze.state, 'missing');
+  assert.equal(protocol.predictionFreeze.predictionArtifactSha256, null);
+  assert.equal(protocol.predictionFreeze.evaluationDomain.state, 'missing');
+  assert.equal(
+    protocol.predictionFreeze.evaluationDomain.observedGeometryMayDefineDomain,
+    false,
+  );
+  assert.equal(
+    protocol.predictionFreeze.evaluationDomain.h3MayDefineHydraulicMesh,
+    false,
+  );
+  assert.equal(protocol.referenceSeal.state, 'sealed_not_loaded');
+  assert.equal(protocol.referenceSeal.geometryLoaded, false);
+  assert.equal(protocol.referenceSeal.archivesDownloaded, false);
+  assert.equal(protocol.referenceSeal.separateComparisons, true);
+  assert.equal(protocol.referenceSeal.combineReferences, false);
+  assert.deepEqual(
+    protocol.metrics.map((metric) => metric.id),
+    [
+      'intersection_over_union',
+      'area_precision',
+      'area_recall',
+      'false_positive_area',
+      'false_negative_area',
+      'boundary_distance_p95',
+    ],
+  );
+  assert.equal(protocol.comparisonPolicy.horizontalCrs, 'EPSG:27700');
+  assert.equal(
+    protocol.comparisonPolicy.missingObservedCoverage,
+    'exclude_and_report_not_dry',
+  );
+  assert.equal(
+    protocol.comparisonPolicy.missingPredictionCoverage,
+    'block_evaluation',
+  );
+  assert.equal(protocol.execution.state, 'blocked');
+  assert.equal(protocol.execution.networkRequests, 0);
+  assert.equal(protocol.execution.filesWritten, 0);
+  assert.equal(protocol.execution.evaluationRuns, 0);
+  assert.equal(
+    createHash('sha256').update(JSON.stringify(hashPayload)).digest('hex'),
+    protocolSha256,
+  );
+});
+
+test('blind evaluation protocol rejects reference access and post-hoc changes', () => {
+  const loadedReference = manifestFixture();
+  loadedReference.evaluationProtocol.referenceSeal.geometryLoaded = true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(loadedReference),
+    /evaluationProtocol.referenceSeal.geometryLoaded/,
+  );
+
+  const combinedReferences = manifestFixture();
+  combinedReferences.evaluationProtocol.referenceSeal.combineReferences = true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(combinedReferences),
+    /evaluationProtocol.referenceSeal.combineReferences/,
+  );
+
+  const postHocMetric = manifestFixture();
+  postHocMetric.evaluationProtocol.metrics.pop();
+  assert.throws(
+    () => assertCumbriaAccessManifest(postHocMetric),
+    /Blind evaluation metric definitions drifted/,
+  );
+
+  const inventedPrediction = manifestFixture();
+  inventedPrediction.evaluationProtocol.predictionFreeze.predictionArtifactSha256 =
+    'a'.repeat(64);
+  assert.throws(
+    () => assertCumbriaAccessManifest(inventedPrediction),
+    /evaluationProtocol.predictionFreeze.predictionArtifactSha256/,
+  );
+});
+
 test('pre-event terrain selection maps to downloadable archives with explicit gaps', () => {
   const manifest = manifestFixture();
   const lidar = manifest.datasets.find(
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.11.0');
+  assert.equal(manifest.manifestVersion, '0.12.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
@@ -930,6 +1018,7 @@ test('terrain identity passes while bulk acquisition remains physically gated', 
   assert.equal(gates.get('dtm_materialization_protocol'), 'passed');
   assert.equal(gates.get('spatial_grid_roles'), 'passed');
   assert.equal(gates.get('spatial_evidence_composition'), 'passed');
+  assert.equal(gates.get('blind_evaluation_protocol'), 'passed');
   assert.equal(gates.get('upstream_boundary_series'), 'passed');
   assert.equal(gates.get('hydraulic_model_access_request'), 'passed');
   assert.equal(gates.get('as_of_event_defence_state'), 'blocked');

@@ -288,7 +288,7 @@ if (process.argv.includes('--print-computed')) {
   process.exit(0);
 }
 if (JSON.stringify(pinnedValues) !== JSON.stringify(lidarManifest)) {
-  throw new Error('Live EA LiDAR catalogue or download mapping drifted from manifest v0.11.0');
+  throw new Error('Live EA LiDAR catalogue or download mapping drifted from manifest v0.12.0');
 }
 
 console.log(

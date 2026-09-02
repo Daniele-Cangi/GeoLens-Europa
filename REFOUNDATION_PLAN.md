@@ -487,11 +487,11 @@ Checkpoints:
 
 ## Phase 11 - Qualify the Cumbria 2015 public-data replay
 
-State: terrain acquisition, spatial-role and evidence-composition protocols frozen; real materialization, solver and hydraulic-context execution gated
+State: terrain acquisition, spatial-role, evidence-composition and blind-evaluation protocols frozen; real materialization, solver and hydraulic-context execution gated
 
 Progress:
 
-- manifest v0.11.0 freezes a bounded Carlisle source-discovery envelope, a separate local hydraulic-protocol envelope and the half-open 72-hour Storm Desmond window from 4 December 2015 00:00 UTC to 7 December 2015 00:00 UTC;
+- manifest v0.12.0 freezes a bounded Carlisle source-discovery envelope, a separate local hydraulic-protocol envelope and the half-open 72-hour Storm Desmond window from 4 December 2015 00:00 UTC to 7 December 2015 00:00 UTC;
 - the canonical Python Earthaccess path found all 144 expected GPM_3IMERGHH V07 Final Run half-hour granules without opening or downloading raster data; V07 remains explicitly retrospective reprocessing;
 - the Environment Agency Hydrology API returned all 288 expected qualified 15-minute flow values and all 288 level values at Sheepmount on the River Eden, with observed maxima of 1,676.632 m3/s and 7.648 m respectively;
 - Willow Holme returned all 288 expected local rainfall values and a 49 mm window total; this is station comparison only and is not represented as high-fell or catchment-wide rainfall;
@@ -520,6 +520,9 @@ Progress:
 - complete terrain composition exposes area-weighted minimum, maximum and mean elevation with contributing native-resolution counts; CLC exposes area fractions and a deterministic dominant class; IMERG exposes native-cell overlap fractions and area-weighted window accumulation while preserving observed zero;
 - incomplete or unavailable intersections produce null evidence with mapped, observed, unavailable and uncovered area diagnostics. Real mode rejects any synthetic provenance, while fixture mode cannot lose its `synthetic_fixture` identity;
 - `npm run verify:cumbria-spatial-composition-fixture` reproduces H3 cell `8a1955d817b7fff`, measures its target footprint as 13,254.576126 m2 in EPSG:27700 and pins result SHA-256 `54dd22a25c9900fd6c989ae21ec4675171b6e0382e92f5571294c5d00bfd9441` with zero network requests and zero writes; this verifies transformation semantics only and does not represent materialized Cumbria evidence;
+- blind evaluation protocol `carlisle-blind-inundation-evaluation-v0` is frozen before either post-event geometry is loaded: a future prediction must first pin its content hash, code revision, model/transformation versions, physically defined wetness semantic and EPSG:27700 evaluation domain;
+- six metrics are fixed in advance (IoU, area precision/recall, false-positive/false-negative area and symmetric p95 boundary distance), missing observed coverage is excluded and reported rather than called dry, missing prediction coverage blocks evaluation, and the Environment Agency and Copernicus references must be evaluated separately;
+- the protocol forbids reference-driven domain, mesh, threshold or calibration choices and visual inspection before prediction freeze; `npm run verify:cumbria-blind-evaluation-protocol` pins SHA-256 `ee3eb1d5c2a26b8e3c4c6b5ff3c3f5a4c5a8ac65f99e7a2efbd951253d4297e2` while confirming zero network requests, zero writes and zero evaluation runs;
 - the current OS Open Rivers product is accessible but remains context-only until an event-valid edition or defensible historical lineage is frozen;
 - Environment Agency WFD River Water Bodies Cycle 1 is event-valid (created 2008, revised 2012); the bounded WFS query returns 16 stable water-body identities with SHA-256 `29cb9324f4ecb25324e893e3bbe07324c6df877f475de922476c9eba19a21a13`, but the 1:50,000 WFD subset remains river context rather than a complete hydraulic network;
 - the official 2011 Carlisle SFRA main report and appendices establish a model completed in 1999, expanded with October 2003 cross-section survey, calibrated against the January 2005 flood, converted to linked ISIS 1D/TUFLOW 2D, bounded by four named upstream watercourse limits and Old Sandsfield downstream, and incorporating defence schemes and 23 floodgates; no runnable model, cross-section or boundary artifacts are attached;
@@ -555,6 +558,7 @@ Gate:
 - post-event reports and observed flood geometry cannot enter model input or calibration;
 - missing hydraulic context remains missing rather than becoming zero or inferred geometry;
 - incomplete native-grid coverage cannot expose a partial H3 value, observed zero remains distinguishable from missing and synthetic composition cannot enter real-evidence mode;
+- observed flood geometry remains sealed until prediction identity and semantics are frozen; references are compared separately and cannot influence inputs, calibration, domain, mesh or wetness threshold;
 - source grids, the H3 evidence index and the future solver mesh remain distinct: the protocol envelope, H3 cells and native DTM/CLC grids cannot be represented as the final hydraulic mesh; bulk acquisition begins only after the remaining physical gates are reproducible.
 
-Checkpoints: `test: qualify Cumbria public-data access`; `test: freeze Cumbria pre-event terrain catalogue`; `test: qualify Cumbria hydraulic context`; `test: freeze Cumbria hydraulic boundary protocol`; `test: qualify Cumbria hydraulic domain lineage`; `test: freeze Cumbria hydraulic model request`; `test: qualify Cumbria DTM archive mapping`; `test: freeze Cumbria DTM materialization protocol`; `test: freeze Cumbria spatial grid boundary`; `feat: compose native spatial evidence index`
+Checkpoints: `test: qualify Cumbria public-data access`; `test: freeze Cumbria pre-event terrain catalogue`; `test: qualify Cumbria hydraulic context`; `test: freeze Cumbria hydraulic boundary protocol`; `test: qualify Cumbria hydraulic domain lineage`; `test: freeze Cumbria hydraulic model request`; `test: qualify Cumbria DTM archive mapping`; `test: freeze Cumbria DTM materialization protocol`; `test: freeze Cumbria spatial grid boundary`; `feat: compose native spatial evidence index`; `test: freeze Cumbria blind evaluation boundary`
