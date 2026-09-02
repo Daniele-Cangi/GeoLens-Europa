@@ -297,3 +297,5 @@ function assertIsoTimestamp(label: string, value: string): void {
     throw new Error(`${label} must be a valid timestamp`);
   }
 }
+
+export * from './spatialEvidenceIndex';

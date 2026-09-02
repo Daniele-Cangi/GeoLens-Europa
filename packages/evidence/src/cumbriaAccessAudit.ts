@@ -1,4 +1,4 @@
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.10.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.11.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -446,6 +446,31 @@ export interface CumbriaSpatialGridProtocol {
     readonly exactCellAreaUsed: true;
     readonly physicalRoutingAllowed: false;
     readonly hydraulicStateAllowed: false;
+    readonly composition: {
+      readonly implementationVersion: 'spatial-evidence-index-v0.1.0';
+      readonly state: 'deterministic_fixture_verified_real_sources_not_materialized';
+      readonly geometryMethod: 'exact_native_footprint_overlap';
+      readonly areaReferenceCrs: 'EPSG:27700';
+      readonly areaMeasurementMethod: 'projected_h3_boundary_shoelace';
+      readonly coverageToleranceFraction: 0.000001;
+      readonly incompletePolicy: 'null_evidence_with_partial_coverage_diagnostics';
+      readonly syntheticFixtureCannotEnterRealMode: true;
+      readonly observedZeroPreserved: true;
+      readonly overlappingFootprintsRejected: true;
+      readonly identicalPrecipitationWindowRequired: true;
+      readonly verificationFixture: {
+        readonly id: 'cumbria-spatial-composition-single-cell-v0';
+        readonly h3: '8a1955d817b7fff';
+        readonly composedAt: '2026-09-02T06:00:00.000Z';
+        readonly terrainElevationM: 105;
+        readonly terrainResolutionM: 1;
+        readonly landCoverClass: 211;
+        readonly rainfallMm: 0;
+        readonly windowStart: '2015-12-04T00:00:00.000Z';
+        readonly windowEnd: '2015-12-07T00:00:00.000Z';
+        readonly expectedResultSha256: string;
+      };
+    };
   };
   readonly exchangeFrame: {
     readonly horizontalCrs: 'EPSG:27700';
@@ -1713,6 +1738,11 @@ export function assertCumbriaAccessManifest(
     'dtm_materialization_protocol',
   );
   equal(gateStates.get('spatial_grid_roles'), 'passed', 'spatial_grid_roles');
+  equal(
+    gateStates.get('spatial_evidence_composition'),
+    'passed',
+    'spatial_evidence_composition',
+  );
   equal(gateStates.get('as_of_event_defence_state'), 'blocked', 'as_of_event_defence_state');
   equal(gateStates.get('hydraulic_context'), 'blocked', 'hydraulic_context');
   equal(gateStates.get('large_artifact_downloads'), 'blocked', 'large_artifact_downloads');
@@ -2307,6 +2337,115 @@ function spatialGridProtocol(
     evidenceIndex.hydraulicStateAllowed,
     false,
     'evidence index hydraulic-state policy',
+  );
+  const composition = record(
+    evidenceIndex.composition,
+    'spatialGridProtocol.evidenceIndex.composition',
+  );
+  equal(
+    composition.implementationVersion,
+    'spatial-evidence-index-v0.1.0',
+    'evidence composition implementation version',
+  );
+  equal(
+    composition.state,
+    'deterministic_fixture_verified_real_sources_not_materialized',
+    'evidence composition state',
+  );
+  equal(
+    composition.geometryMethod,
+    'exact_native_footprint_overlap',
+    'evidence composition geometry method',
+  );
+  equal(
+    composition.areaReferenceCrs,
+    'EPSG:27700',
+    'evidence composition area-reference CRS',
+  );
+  equal(
+    composition.areaMeasurementMethod,
+    'projected_h3_boundary_shoelace',
+    'evidence composition area-measurement method',
+  );
+  equal(
+    composition.coverageToleranceFraction,
+    0.000001,
+    'evidence composition coverage tolerance',
+  );
+  equal(
+    composition.incompletePolicy,
+    'null_evidence_with_partial_coverage_diagnostics',
+    'evidence composition incomplete policy',
+  );
+  equal(
+    composition.syntheticFixtureCannotEnterRealMode,
+    true,
+    'evidence composition fixture isolation',
+  );
+  equal(
+    composition.observedZeroPreserved,
+    true,
+    'evidence composition zero policy',
+  );
+  equal(
+    composition.overlappingFootprintsRejected,
+    true,
+    'evidence composition overlap policy',
+  );
+  equal(
+    composition.identicalPrecipitationWindowRequired,
+    true,
+    'evidence composition precipitation-window policy',
+  );
+  const compositionFixture = record(
+    composition.verificationFixture,
+    'evidence composition verification fixture',
+  );
+  equal(
+    compositionFixture.id,
+    'cumbria-spatial-composition-single-cell-v0',
+    'evidence composition fixture id',
+  );
+  equal(compositionFixture.h3, '8a1955d817b7fff', 'evidence composition fixture H3');
+  equal(
+    compositionFixture.composedAt,
+    '2026-09-02T06:00:00.000Z',
+    'evidence composition fixture time',
+  );
+  equal(
+    compositionFixture.terrainElevationM,
+    105,
+    'evidence composition fixture elevation',
+  );
+  equal(
+    compositionFixture.terrainResolutionM,
+    1,
+    'evidence composition fixture terrain resolution',
+  );
+  equal(
+    compositionFixture.landCoverClass,
+    211,
+    'evidence composition fixture land-cover class',
+  );
+  equal(
+    compositionFixture.rainfallMm,
+    0,
+    'evidence composition fixture rainfall',
+  );
+  equal(
+    compositionFixture.windowStart,
+    '2015-12-04T00:00:00.000Z',
+    'evidence composition fixture window start',
+  );
+  equal(
+    compositionFixture.windowEnd,
+    '2015-12-07T00:00:00.000Z',
+    'evidence composition fixture window end',
+  );
+  equal(
+    compositionFixture.expectedResultSha256,
+    '54dd22a25c9900fd6c989ae21ec4675171b6e0382e92f5571294c5d00bfd9441',
+    'evidence composition fixture result identity',
   );
 
   const exchange = record(protocol.exchangeFrame, 'spatialGridProtocol.exchangeFrame');
