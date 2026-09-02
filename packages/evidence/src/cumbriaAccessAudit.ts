@@ -1,4 +1,4 @@
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.8.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.9.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -280,6 +280,107 @@ export interface CumbriaLidarDownloadMapping {
     readonly rangeHonored: false;
     readonly archiveBytesRead: 0;
   };
+  readonly materializationProtocol: CumbriaDtmMaterializationProtocol;
+}
+
+export interface CumbriaDtmMaterializationProtocol {
+  readonly id: 'cumbria-dtm-materialization-v0';
+  readonly state: 'frozen_download_blocked_by_physical_gates';
+  readonly sourceMapping: {
+    readonly archiveIdentitySha256: string;
+    readonly sourceToArchiveMappingSha256: string;
+    readonly archiveCount: 30;
+    readonly mappedGridRefCount: 231;
+    readonly mappingRecomputedBeforeDownload: true;
+    readonly mappingHashMustMatch: true;
+  };
+  readonly budget: {
+    readonly estimateMethod: 'native-grid-cell-count-times-float32';
+    readonly estimateExcludesArchiveAndFormatOverhead: true;
+    readonly decodedBytesPerCell: 4;
+    readonly resolutionArchiveCounts: Readonly<Record<'0.5' | '1' | '2', number>>;
+    readonly resolutionMappedGridRefCounts: Readonly<
+      Record<'0.5' | '1' | '2', number>
+    >;
+    readonly fullArchiveRasterCells: 900000000;
+    readonly retainedMaskRasterCells: 264000000;
+    readonly estimatedFullArchiveDecodedBytes: 3600000000;
+    readonly estimatedRetainedMaskDecodedBytes: 1056000000;
+    readonly maxArchiveDownloadBytes: 1073741824;
+    readonly maxTotalDownloadBytes: 8589934592;
+    readonly minimumFreeSpaceBytes: 17179869184;
+  };
+  readonly receipts: {
+    readonly contentAddressAlgorithm: 'sha256';
+    readonly archivePathTemplate: 'archives/sha256/{sha256}.zip';
+    readonly receiptPathTemplate: 'receipts/sha256/{sha256}.receipt.json';
+    readonly partialFileSuffix: '.part';
+    readonly atomicRenameAfterVerification: true;
+    readonly requiredFields: readonly [
+      'sourceUri',
+      'archiveIdentity',
+      'downloadedAt',
+      'byteLength',
+      'sha256',
+      'contentType',
+      'contentDisposition',
+      'sourceToArchiveMappingSha256',
+      'mappedGridRefs',
+    ];
+  };
+  readonly zipInspection: {
+    readonly rejectEncryptedEntries: true;
+    readonly rejectSymlinksAndReparsePoints: true;
+    readonly rejectAbsolutePaths: true;
+    readonly rejectParentTraversal: true;
+    readonly rejectDuplicateNormalizedPaths: true;
+    readonly maxEntriesPerArchive: 512;
+    readonly maxExpandedBytesPerArchive: 4294967296;
+    readonly maxTotalExpandedBytes: 34359738368;
+    readonly rasterCandidateExtensions: readonly ['.tif', '.tiff', '.asc'];
+  };
+  readonly rasterMask: {
+    readonly horizontalCrs: 'EPSG:27700';
+    readonly verticalDatum: 'Ordnance Datum Newlyn';
+    readonly maskUnit: 'selected_1km_os_grid_reference';
+    readonly nativeResolutionPreserved: true;
+    readonly resamplingAllowed: false;
+    readonly pixelsOutsideMappedGridRefs: 'nodata';
+    readonly sourceNodataPreserved: true;
+    readonly uncoveredGridRefs: readonly string[];
+    readonly uncoveredGridRefsRemain: 'missing';
+    readonly h3Role: 'evidence_index_after_materialization_not_source_grid';
+  };
+  readonly execution: {
+    readonly mode: 'dry_run_only';
+    readonly archiveConcurrency: 1;
+    readonly temporaryExpandedArchiveRetention: 'delete_after_mask_receipt';
+    readonly largeDownloadsAllowed: false;
+    readonly requiresHydraulicContextGatePassed: true;
+    readonly archiveDownloadsAttempted: 0;
+    readonly archiveBytesDownloaded: 0;
+  };
+}
+
+export interface CumbriaDtmMaterializationPlan {
+  readonly protocolId: 'cumbria-dtm-materialization-v0';
+  readonly state: 'blocked_by_physical_gates';
+  readonly archiveCount: 30;
+  readonly mappedGridRefCount: 231;
+  readonly missingGridRefs: readonly string[];
+  readonly estimatedRetainedMaskDecodedBytes: 1056000000;
+  readonly minimumFreeSpaceBytes: 17179869184;
+  readonly downloadAttempted: false;
+  readonly archives: readonly {
+    readonly identity: string;
+    readonly uri: string;
+    readonly resolutionMetres: number;
+    readonly mappedGridRefs: number;
+    readonly fullArchiveRasterCells: number;
+    readonly retainedMaskRasterCells: number;
+    readonly estimatedFullArchiveDecodedBytes: number;
+    readonly estimatedRetainedMaskDecodedBytes: number;
+  }[];
 }
 
 export interface CumbriaHydraulicBoundaryProtocol {
@@ -695,8 +796,25 @@ export function assertCumbriaAccessManifest(
 
   hydraulicBoundaryProtocol(manifest.hydraulicProtocol, datasetRecords);
 
+  const lidarDataset = datasetRecords.get('ea-lidar-dtm-time-stamped');
+  const lidarFacts = record(
+    lidarDataset?.facts,
+    'ea-lidar-dtm-time-stamped.facts',
+  );
+  equal(
+    lidarFacts.downloadableRasterIdentitiesVerified,
+    true,
+    'LiDAR downloadable raster identity state',
+  );
+  equal(lidarFacts.downloadArchiveIdentities, 30, 'LiDAR download archive count');
+  equal(
+    lidarFacts.materializationProtocolFrozen,
+    true,
+    'LiDAR materialization protocol state',
+  );
+  equal(lidarFacts.archiveBytesDownloaded, 0, 'LiDAR downloaded archive bytes');
   const lidar = record(
-    datasetRecords.get('ea-lidar-dtm-time-stamped')?.lidarCatalogAudit,
+    lidarDataset?.lidarCatalogAudit,
     'ea-lidar-dtm-time-stamped.lidarCatalogAudit',
   );
   httpsUrl(lidar.queryUrl, 'LiDAR catalogue query URL');
@@ -899,6 +1017,11 @@ export function assertCumbriaAccessManifest(
     archiveProbe.archiveBytesRead,
     0,
     'LiDAR sample archive bytes read',
+  );
+  dtmMaterializationProtocol(
+    downloadMapping.materializationProtocol,
+    downloadMapping,
+    missingGridRefs,
   );
   equal(
     lidar.acquisitionState,
@@ -1477,6 +1600,11 @@ export function assertCumbriaAccessManifest(
     'hydraulic_model_access_request',
   );
   equal(gateStates.get('pre_event_lidar_tiles'), 'passed', 'pre_event_lidar_tiles');
+  equal(
+    gateStates.get('dtm_materialization_protocol'),
+    'passed',
+    'dtm_materialization_protocol',
+  );
   equal(gateStates.get('as_of_event_defence_state'), 'blocked', 'as_of_event_defence_state');
   equal(gateStates.get('hydraulic_context'), 'blocked', 'hydraulic_context');
   equal(gateStates.get('large_artifact_downloads'), 'blocked', 'large_artifact_downloads');
@@ -1489,6 +1617,361 @@ export function assertCumbriaAccessManifest(
     'acquisition.largeDownloadsAllowed',
   );
   nonEmpty(acquisition.nextAction, 'acquisition.nextAction');
+}
+
+export function createCumbriaDtmMaterializationPlan(
+  candidate: unknown,
+  options: { readonly execute?: boolean } = {},
+): CumbriaDtmMaterializationPlan {
+  assertCumbriaAccessManifest(candidate);
+
+  if (options.execute === true) {
+    throw new Error(
+      'Cumbria DTM downloads are blocked until the hydraulic-context and large-artifact gates pass',
+    );
+  }
+
+  const lidar = candidate.datasets.find(
+    (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
+  )?.lidarCatalogAudit;
+  if (lidar === undefined) {
+    throw new Error('Cumbria DTM materialization requires the frozen LiDAR audit');
+  }
+
+  const protocol = lidar.downloadMapping.materializationProtocol;
+  const archives = lidar.downloadMapping.archiveIdentities.map((archive) => {
+    const resolutionMetres = Number(archive.resolution);
+    const fullArchiveRasterCells = Math.round((5000 / resolutionMetres) ** 2);
+    const retainedMaskRasterCells = Math.round(
+      archive.mappedGridRefs * (1000 / resolutionMetres) ** 2,
+    );
+    return {
+      identity: `${archive.product}/${archive.year}/${archive.resolution}/${archive.tile}`,
+      uri: archive.uri,
+      resolutionMetres,
+      mappedGridRefs: archive.mappedGridRefs,
+      fullArchiveRasterCells,
+      retainedMaskRasterCells,
+      estimatedFullArchiveDecodedBytes:
+        fullArchiveRasterCells * protocol.budget.decodedBytesPerCell,
+      estimatedRetainedMaskDecodedBytes:
+        retainedMaskRasterCells * protocol.budget.decodedBytesPerCell,
+    };
+  });
+
+  return {
+    protocolId: protocol.id,
+    state: 'blocked_by_physical_gates',
+    archiveCount: 30,
+    mappedGridRefCount: 231,
+    missingGridRefs: [...protocol.rasterMask.uncoveredGridRefs],
+    estimatedRetainedMaskDecodedBytes:
+      protocol.budget.estimatedRetainedMaskDecodedBytes,
+    minimumFreeSpaceBytes: protocol.budget.minimumFreeSpaceBytes,
+    downloadAttempted: false,
+    archives,
+  };
+}
+
+function dtmMaterializationProtocol(
+  value: unknown,
+  downloadMapping: Record<string, unknown>,
+  missingGridRefs: readonly string[],
+): void {
+  const protocol = record(value, 'LiDAR DTM materialization protocol');
+  equal(
+    protocol.id,
+    'cumbria-dtm-materialization-v0',
+    'LiDAR DTM materialization protocol id',
+  );
+  equal(
+    protocol.state,
+    'frozen_download_blocked_by_physical_gates',
+    'LiDAR DTM materialization protocol state',
+  );
+
+  const sourceMapping = record(
+    protocol.sourceMapping,
+    'LiDAR DTM materialization source mapping',
+  );
+  equal(
+    sourceMapping.archiveIdentitySha256,
+    downloadMapping.archiveIdentitySha256,
+    'LiDAR DTM archive identity receipt',
+  );
+  equal(
+    sourceMapping.sourceToArchiveMappingSha256,
+    downloadMapping.mappingSha256,
+    'LiDAR DTM source-to-archive receipt',
+  );
+  equal(sourceMapping.archiveCount, 30, 'LiDAR DTM protocol archive count');
+  equal(
+    sourceMapping.mappedGridRefCount,
+    231,
+    'LiDAR DTM protocol mapped grid-reference count',
+  );
+  equal(
+    sourceMapping.mappingRecomputedBeforeDownload,
+    true,
+    'LiDAR DTM mapping recomputation policy',
+  );
+  equal(
+    sourceMapping.mappingHashMustMatch,
+    true,
+    'LiDAR DTM mapping hash policy',
+  );
+
+  const archiveIdentities = array(
+    downloadMapping.archiveIdentities,
+    'LiDAR DTM archive identities for budget',
+  );
+  const computedArchiveCounts: Record<string, number> = {
+    '0.5': 0,
+    '1': 0,
+    '2': 0,
+  };
+  const computedMappedCounts: Record<string, number> = {
+    '0.5': 0,
+    '1': 0,
+    '2': 0,
+  };
+  let computedFullCells = 0;
+  let computedMaskCells = 0;
+  for (const [index, archiveValue] of archiveIdentities.entries()) {
+    const archive = record(archiveValue, `LiDAR DTM budget archive ${index}`);
+    const resolution = nonEmpty(
+      archive.resolution,
+      `LiDAR DTM budget archive ${index} resolution`,
+    );
+    const mappedCount = integer(
+      archive.mappedGridRefs,
+      `LiDAR DTM budget archive ${index} mapped grid references`,
+    );
+    const resolutionMetres = Number(resolution);
+    computedArchiveCounts[resolution] += 1;
+    computedMappedCounts[resolution] += mappedCount;
+    computedFullCells += Math.round((5000 / resolutionMetres) ** 2);
+    computedMaskCells += Math.round(
+      mappedCount * (1000 / resolutionMetres) ** 2,
+    );
+  }
+
+  const budget = record(protocol.budget, 'LiDAR DTM materialization budget');
+  equal(
+    budget.estimateMethod,
+    'native-grid-cell-count-times-float32',
+    'LiDAR DTM budget estimate method',
+  );
+  equal(
+    budget.estimateExcludesArchiveAndFormatOverhead,
+    true,
+    'LiDAR DTM budget scope',
+  );
+  equal(budget.decodedBytesPerCell, 4, 'LiDAR DTM decoded bytes per cell');
+  const archiveCounts = record(
+    budget.resolutionArchiveCounts,
+    'LiDAR DTM resolution archive counts',
+  );
+  const mappedCounts = record(
+    budget.resolutionMappedGridRefCounts,
+    'LiDAR DTM resolution mapped grid-reference counts',
+  );
+  for (const resolution of ['0.5', '1', '2']) {
+    equal(
+      archiveCounts[resolution],
+      computedArchiveCounts[resolution],
+      `LiDAR DTM ${resolution} m archive count`,
+    );
+    equal(
+      mappedCounts[resolution],
+      computedMappedCounts[resolution],
+      `LiDAR DTM ${resolution} m mapped grid-reference count`,
+    );
+  }
+  equal(
+    budget.fullArchiveRasterCells,
+    computedFullCells,
+    'LiDAR DTM full-archive raster cells',
+  );
+  equal(
+    budget.retainedMaskRasterCells,
+    computedMaskCells,
+    'LiDAR DTM retained-mask raster cells',
+  );
+  equal(
+    budget.estimatedFullArchiveDecodedBytes,
+    computedFullCells * 4,
+    'LiDAR DTM full-archive decoded-byte estimate',
+  );
+  equal(
+    budget.estimatedRetainedMaskDecodedBytes,
+    computedMaskCells * 4,
+    'LiDAR DTM retained-mask decoded-byte estimate',
+  );
+  equal(
+    budget.maxArchiveDownloadBytes,
+    1073741824,
+    'LiDAR DTM per-archive download limit',
+  );
+  equal(
+    budget.maxTotalDownloadBytes,
+    8589934592,
+    'LiDAR DTM total download limit',
+  );
+  equal(
+    budget.minimumFreeSpaceBytes,
+    17179869184,
+    'LiDAR DTM minimum free-space gate',
+  );
+
+  const receipts = record(protocol.receipts, 'LiDAR DTM receipts');
+  equal(receipts.contentAddressAlgorithm, 'sha256', 'LiDAR DTM content address');
+  equal(
+    receipts.archivePathTemplate,
+    'archives/sha256/{sha256}.zip',
+    'LiDAR DTM archive path template',
+  );
+  equal(
+    receipts.receiptPathTemplate,
+    'receipts/sha256/{sha256}.receipt.json',
+    'LiDAR DTM receipt path template',
+  );
+  equal(receipts.partialFileSuffix, '.part', 'LiDAR DTM partial-file suffix');
+  equal(
+    receipts.atomicRenameAfterVerification,
+    true,
+    'LiDAR DTM atomic receipt policy',
+  );
+  const requiredReceiptFields = stringArray(
+    receipts.requiredFields,
+    'LiDAR DTM required receipt fields',
+  );
+  const expectedReceiptFields = [
+    'sourceUri',
+    'archiveIdentity',
+    'downloadedAt',
+    'byteLength',
+    'sha256',
+    'contentType',
+    'contentDisposition',
+    'sourceToArchiveMappingSha256',
+    'mappedGridRefs',
+  ];
+  if (
+    JSON.stringify(requiredReceiptFields) !==
+    JSON.stringify(expectedReceiptFields)
+  ) {
+    throw new Error('LiDAR DTM receipt fields drifted');
+  }
+
+  const zip = record(protocol.zipInspection, 'LiDAR DTM ZIP inspection');
+  equal(zip.rejectEncryptedEntries, true, 'LiDAR DTM encrypted-entry policy');
+  equal(
+    zip.rejectSymlinksAndReparsePoints,
+    true,
+    'LiDAR DTM symlink policy',
+  );
+  equal(zip.rejectAbsolutePaths, true, 'LiDAR DTM absolute-path policy');
+  equal(zip.rejectParentTraversal, true, 'LiDAR DTM path-traversal policy');
+  equal(
+    zip.rejectDuplicateNormalizedPaths,
+    true,
+    'LiDAR DTM duplicate-path policy',
+  );
+  equal(zip.maxEntriesPerArchive, 512, 'LiDAR DTM ZIP entry limit');
+  equal(
+    zip.maxExpandedBytesPerArchive,
+    4294967296,
+    'LiDAR DTM per-archive expanded-byte limit',
+  );
+  equal(
+    zip.maxTotalExpandedBytes,
+    34359738368,
+    'LiDAR DTM total expanded-byte limit',
+  );
+  if (
+    Number(budget.minimumFreeSpaceBytes) <
+    Number(budget.maxTotalDownloadBytes) +
+      Number(zip.maxExpandedBytesPerArchive) +
+      Number(budget.estimatedRetainedMaskDecodedBytes)
+  ) {
+    throw new Error(
+      'LiDAR DTM free-space gate must cover retained downloads, one expanded archive and masked output',
+    );
+  }
+  const rasterExtensions = stringArray(
+    zip.rasterCandidateExtensions,
+    'LiDAR DTM raster extensions',
+  );
+  if (
+    JSON.stringify(rasterExtensions) !==
+    JSON.stringify(['.tif', '.tiff', '.asc'])
+  ) {
+    throw new Error('LiDAR DTM raster candidate extensions drifted');
+  }
+
+  const mask = record(protocol.rasterMask, 'LiDAR DTM raster mask');
+  equal(mask.horizontalCrs, 'EPSG:27700', 'LiDAR DTM horizontal CRS');
+  equal(mask.verticalDatum, 'Ordnance Datum Newlyn', 'LiDAR DTM vertical datum');
+  equal(
+    mask.maskUnit,
+    'selected_1km_os_grid_reference',
+    'LiDAR DTM mask unit',
+  );
+  equal(mask.nativeResolutionPreserved, true, 'LiDAR DTM resolution policy');
+  equal(mask.resamplingAllowed, false, 'LiDAR DTM resampling policy');
+  equal(
+    mask.pixelsOutsideMappedGridRefs,
+    'nodata',
+    'LiDAR DTM outside-mask policy',
+  );
+  equal(mask.sourceNodataPreserved, true, 'LiDAR DTM source NoData policy');
+  const uncoveredGridRefs = stringArray(
+    mask.uncoveredGridRefs,
+    'LiDAR DTM uncovered grid references',
+  );
+  if (JSON.stringify(uncoveredGridRefs) !== JSON.stringify(missingGridRefs)) {
+    throw new Error('LiDAR DTM uncovered grid references drifted');
+  }
+  equal(
+    mask.uncoveredGridRefsRemain,
+    'missing',
+    'LiDAR DTM uncovered-grid-reference state',
+  );
+  equal(
+    mask.h3Role,
+    'evidence_index_after_materialization_not_source_grid',
+    'LiDAR DTM H3 role',
+  );
+
+  const execution = record(protocol.execution, 'LiDAR DTM execution policy');
+  equal(execution.mode, 'dry_run_only', 'LiDAR DTM execution mode');
+  equal(execution.archiveConcurrency, 1, 'LiDAR DTM archive concurrency');
+  equal(
+    execution.temporaryExpandedArchiveRetention,
+    'delete_after_mask_receipt',
+    'LiDAR DTM temporary expanded-archive retention',
+  );
+  equal(
+    execution.largeDownloadsAllowed,
+    false,
+    'LiDAR DTM large-download gate',
+  );
+  equal(
+    execution.requiresHydraulicContextGatePassed,
+    true,
+    'LiDAR DTM hydraulic-context gate',
+  );
+  equal(
+    execution.archiveDownloadsAttempted,
+    0,
+    'LiDAR DTM attempted archive downloads',
+  );
+  equal(
+    execution.archiveBytesDownloaded,
+    0,
+    'LiDAR DTM downloaded archive bytes',
+  );
 }
 
 function modelAccessRequest(value: unknown): void {

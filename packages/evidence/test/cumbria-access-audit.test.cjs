@@ -6,6 +6,7 @@ const path = require('node:path');
 const {
   assertCumbriaAccessManifest,
   CUMBRIA_EVENT_WINDOW,
+  createCumbriaDtmMaterializationPlan,
 } = require('../dist');
 
 const manifestPath = path.join(
@@ -132,7 +133,7 @@ test('pre-event terrain selection maps to downloadable archives with explicit ga
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.8.0');
+  assert.equal(manifest.manifestVersion, '0.9.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
@@ -172,6 +173,7 @@ test('pre-event terrain selection maps to downloadable archives with explicit ga
   });
   assert.equal(lidar.facts.downloadableRasterIdentitiesVerified, true);
   assert.equal(lidar.facts.downloadArchiveIdentities, 30);
+  assert.equal(lidar.facts.materializationProtocolFrozen, true);
   assert.equal(lidar.facts.archiveBytesDownloaded, 0);
   assert.deepEqual(
     {
@@ -213,6 +215,37 @@ test('pre-event terrain selection maps to downloadable archives with explicit ga
     rangeHonored: false,
     archiveBytesRead: 0,
   });
+  const materialization =
+    lidar.lidarCatalogAudit.downloadMapping.materializationProtocol;
+  assert.equal(materialization.id, 'cumbria-dtm-materialization-v0');
+  assert.equal(
+    materialization.state,
+    'frozen_download_blocked_by_physical_gates',
+  );
+  assert.deepEqual(materialization.budget.resolutionArchiveCounts, {
+    '0.5': 3,
+    '1': 23,
+    '2': 4,
+  });
+  assert.deepEqual(materialization.budget.resolutionMappedGridRefCounts, {
+    '0.5': 14,
+    '1': 205,
+    '2': 12,
+  });
+  assert.equal(materialization.budget.fullArchiveRasterCells, 900000000);
+  assert.equal(materialization.budget.retainedMaskRasterCells, 264000000);
+  assert.equal(
+    materialization.budget.estimatedRetainedMaskDecodedBytes,
+    1056000000,
+  );
+  assert.equal(materialization.execution.largeDownloadsAllowed, false);
+  assert.equal(materialization.execution.archiveConcurrency, 1);
+  assert.equal(materialization.execution.archiveBytesDownloaded, 0);
+  assert.equal(materialization.rasterMask.resamplingAllowed, false);
+  assert.equal(
+    materialization.rasterMask.uncoveredGridRefsRemain,
+    'missing',
+  );
   assert.equal(
     lidar.lidarCatalogAudit.downloadMapping.archiveIdentities.reduce(
       (sum, archive) => sum + archive.mappedGridRefs,
@@ -249,6 +282,71 @@ test('pre-event terrain selection maps to downloadable archives with explicit ga
   assert.throws(
     () => assertCumbriaAccessManifest(wrongArchive),
     /LiDAR archive URI identity/,
+  );
+});
+
+test('Cumbria DTM planner is a bounded dry-run and cannot start downloads', () => {
+  const manifest = manifestFixture();
+  const plan = createCumbriaDtmMaterializationPlan(manifest);
+
+  assert.equal(plan.protocolId, 'cumbria-dtm-materialization-v0');
+  assert.equal(plan.state, 'blocked_by_physical_gates');
+  assert.equal(plan.archiveCount, 30);
+  assert.equal(plan.archives.length, 30);
+  assert.equal(plan.mappedGridRefCount, 231);
+  assert.equal(plan.missingGridRefs.length, 10);
+  assert.equal(plan.estimatedRetainedMaskDecodedBytes, 1056000000);
+  assert.equal(plan.minimumFreeSpaceBytes, 17179869184);
+  assert.equal(plan.downloadAttempted, false);
+  assert.equal(
+    plan.archives.reduce(
+      (sum, archive) => sum + archive.estimatedFullArchiveDecodedBytes,
+      0,
+    ),
+    3600000000,
+  );
+  assert.equal(
+    plan.archives.reduce(
+      (sum, archive) => sum + archive.estimatedRetainedMaskDecodedBytes,
+      0,
+    ),
+    1056000000,
+  );
+  assert.throws(
+    () => createCumbriaDtmMaterializationPlan(manifest, { execute: true }),
+    /downloads are blocked/,
+  );
+});
+
+test('Cumbria DTM protocol rejects unsafe archive handling and invented coverage', () => {
+  const unsafeZip = manifestFixture();
+  unsafeZip.datasets.find(
+    (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
+  ).lidarCatalogAudit.downloadMapping.materializationProtocol.zipInspection
+    .rejectParentTraversal = false;
+  assert.throws(
+    () => assertCumbriaAccessManifest(unsafeZip),
+    /path-traversal policy/,
+  );
+
+  const inventedCoverage = manifestFixture();
+  inventedCoverage.datasets.find(
+    (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
+  ).lidarCatalogAudit.downloadMapping.materializationProtocol.rasterMask
+    .uncoveredGridRefs = [];
+  assert.throws(
+    () => assertCumbriaAccessManifest(inventedCoverage),
+    /uncovered grid references drifted/,
+  );
+
+  const enabledDownloads = manifestFixture();
+  enabledDownloads.datasets.find(
+    (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
+  ).lidarCatalogAudit.downloadMapping.materializationProtocol.execution
+    .largeDownloadsAllowed = true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(enabledDownloads),
+    /large-download gate/,
   );
 });
 
@@ -696,6 +794,7 @@ test('terrain identity passes while bulk acquisition remains physically gated', 
   );
 
   assert.equal(gates.get('pre_event_lidar_tiles'), 'passed');
+  assert.equal(gates.get('dtm_materialization_protocol'), 'passed');
   assert.equal(gates.get('upstream_boundary_series'), 'passed');
   assert.equal(gates.get('hydraulic_model_access_request'), 'passed');
   assert.equal(gates.get('as_of_event_defence_state'), 'blocked');

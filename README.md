@@ -149,6 +149,7 @@ The audit verifies:
 - official time-stamped Environment Agency LiDAR metadata: 550 source records over 241 intersecting OS grid references, with a deterministic selection of 231 pre-event records;
 - all 231 selected 1 km records mapped to 30 official time-stamped DTM ZIP identities through the current survey-search contract, with source-to-archive and archive-inventory SHA-256 identities;
 - a header-only probe of the mapped `2009 / 1 m / NY3555` identity returned `application/zip` and filename `lidar_tiles_dtm-2009-1-NY35ne.zip` while reading and storing zero archive bytes;
+- a dry-run-only DTM materialization protocol that performs no network request or file write, recomputes the frozen mapping before any future download, caps bytes, requires SHA-256 receipts, rejects unsafe ZIP entries and preserves native British National Grid resolution;
 - ten explicitly missing pre-event terrain grid references: `NY3256`, `NY3446`, `NY3448`, `NY3646`, `NY3652`, `NY3846`, `NY3848`, `NY3959`, `NY4062` and `NY4162`;
 - 16 event-valid WFD Cycle 1 river-context features intersecting the audit AOI, pinned independently from current OS Open Rivers;
 - the 2011 official main report and appendices: the historical model began in 1999, was expanded with surveyed sections in 2003, calibrated against January 2005, and ran from four named upstream watercourse limits to Old Sandsfield; the reports expose none of the runnable cross-section, model or boundary files;
@@ -164,7 +165,9 @@ The WFD layer contains only designated 1:50,000 river stretches. The current AIM
 
 The selected LiDAR catalogue rows and their download mapping are now pinned independently. The earlier `DTM / 2009 / 1M / NY3957` probe was invalid: it used a legacy route and a 1 km source reference where the active delivery service expects product id `lidar_tiles_dtm`, numeric resolution `1` and the containing 5 km tile `NY3555`. The current bounded search returns 590 survey products, including 123 time-stamped DTM identities; deterministic source-year and 5 km containment mapping resolves the 231 selected source rows to 30 archives. Two identities are labelled 2015, but only their individually selected 1 km source areas have exact pre-event survey dates. GeoLens must therefore mask every archive back to its mapped 1 km references and may not treat the whole 5 km ZIP as event-valid.
 
-This removes the terrain-identity blocker without hiding the ten real coverage gaps. Bulk downloads remain paused because the runnable model, channel sections, boundary placement and values, initial state, defence state and final mesh are still missing—not because the files cannot be found. The two observed flood extents remain unavailable to model input and calibration.
+Manifest v0.9.0 also freezes how those files may eventually be handled. The 30 complete native grids contain an estimated 900 million raster cells, or 3.6 GB when represented as single-band Float32 values. The authorized 1 km masks retain an estimated 264 million cells, or 1.056 GB. These are decoded-payload estimates, not claims about ZIP download size or temporary format overhead. The protocol therefore requires at least 16 GiB free before execution, applies an 8 GiB total download ceiling, writes partial files outside Git, content-addresses verified archives with SHA-256 receipts, and rejects encrypted entries, links, absolute paths, path traversal and duplicate normalized paths. Source NoData is preserved; pixels outside each archive's mapped 1 km references and the ten uncovered references remain NoData rather than zero.
+
+This removes both the terrain-identity and acquisition-protocol blockers without hiding the ten real coverage gaps. Bulk downloads remain paused because the runnable model, channel sections, boundary placement and values, initial state, defence state and final mesh are still missing—not because the files cannot be found or safely staged. The two observed flood extents remain unavailable to model input and calibration.
 
 The deterministic manifest is [tests/ground-truth/cumbria-2015/manifest.json](tests/ground-truth/cumbria-2015/manifest.json). Re-run the open-service checks with:
 
@@ -176,6 +179,7 @@ npm run audit:cumbria-hydraulic-context
 npm run audit:cumbria-boundary-protocol
 npm run audit:cumbria-hydraulic-domain
 npm run prepare:cumbria-model-request
+npm run plan:cumbria-dtm-materialization
 ~~~
 
 ## For Amsterdam data owners and collaborators
