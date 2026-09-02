@@ -34,6 +34,7 @@
     "plan:cumbria-dtm-materialization": "npm run build --workspace=@geo-lens/evidence && node scripts/plan-cumbria-dtm-materialization.mjs",
     "plan:cumbria-spatial-grid": "npm run build --workspace=@geo-lens/evidence && node scripts/plan-cumbria-spatial-grid.mjs",
     "verify:cumbria-spatial-composition-fixture": "npm run build --workspace=@geo-lens/evidence && node scripts/verify-cumbria-spatial-composition-fixture.mjs",
+    "verify:cumbria-blind-evaluation-protocol": "npm run build --workspace=@geo-lens/evidence && node scripts/verify-cumbria-blind-evaluation-protocol.mjs",
     "materialize:emilia-inputs": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/providers && node scripts/materialize-emilia-bounded-inputs.mjs",
     "materialize:emilia-xdbtr": "python scripts/materialize_emilia_xdbtr_masks.py",
     "materialize:emilia-imerg-cache": "python scripts/materialize_emilia_imerg_cache.py",

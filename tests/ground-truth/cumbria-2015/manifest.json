@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.11.0",
+  "manifestVersion": "0.12.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -364,6 +364,125 @@
         "pre_event_terrain_incomplete"
       ]
     }
+  },
+  "evaluationProtocol": {
+    "id": "carlisle-blind-inundation-evaluation-v0",
+    "version": "0.1.0",
+    "state": "frozen_reference_sealed_execution_blocked",
+    "frozenOn": "2026-09-02",
+    "validationMode": "blind_hindcast",
+    "claimBoundary": "retrospective_historical_replay_not_operational_forecast",
+    "eventWindow": {
+      "start": "2015-12-04T00:00:00Z",
+      "endExclusive": "2015-12-07T00:00:00Z"
+    },
+    "predictionFreeze": {
+      "state": "missing",
+      "contentAddressAlgorithm": "sha256",
+      "predictionArtifactSha256": null,
+      "codeRevision": null,
+      "modelVersion": null,
+      "transformationVersions": null,
+      "wetnessCriterion": {
+        "state": "missing",
+        "requirement": "Freeze a physically defined predicted-wet semantic and any numeric threshold before reference access."
+      },
+      "evaluationDomain": {
+        "state": "missing",
+        "horizontalCrsRequired": "EPSG:27700",
+        "artifactSha256": null,
+        "observedGeometryMayDefineDomain": false,
+        "h3MayDefineHydraulicMesh": false
+      },
+      "requiredBeforeReferenceAccess": [
+        "physical_input_gates_passed",
+        "input_artifact_receipts_frozen",
+        "model_and_transformation_versions_frozen",
+        "prediction_artifact_content_addressed",
+        "predicted_wetness_semantic_frozen",
+        "evaluation_domain_and_mask_frozen",
+        "code_revision_frozen"
+      ]
+    },
+    "referenceSeal": {
+      "state": "sealed_not_loaded",
+      "datasetIds": [
+        "ea-recorded-flood-outlines",
+        "copernicus-emsr147-carlisle"
+      ],
+      "featureIdentifiersFrozen": false,
+      "geometryLoaded": false,
+      "archivesDownloaded": false,
+      "artifactReceipts": null,
+      "separateComparisons": true,
+      "combineReferences": false
+    },
+    "metrics": [
+      {
+        "id": "intersection_over_union",
+        "unit": "fraction",
+        "definition": "intersection_area_divided_by_union_area"
+      },
+      {
+        "id": "area_precision",
+        "unit": "fraction",
+        "definition": "intersection_area_divided_by_predicted_wet_area"
+      },
+      {
+        "id": "area_recall",
+        "unit": "fraction",
+        "definition": "intersection_area_divided_by_observed_wet_area"
+      },
+      {
+        "id": "false_positive_area",
+        "unit": "m2",
+        "definition": "predicted_wet_area_outside_observed_wet_area"
+      },
+      {
+        "id": "false_negative_area",
+        "unit": "m2",
+        "definition": "observed_wet_area_outside_predicted_wet_area"
+      },
+      {
+        "id": "boundary_distance_p95",
+        "unit": "m",
+        "definition": "symmetric_95th_percentile_nearest_boundary_distance"
+      }
+    ],
+    "comparisonPolicy": {
+      "horizontalCrs": "EPSG:27700",
+      "areaUnit": "m2",
+      "distanceUnit": "m",
+      "evaluateEachReferenceSeparately": true,
+      "missingObservedCoverage": "exclude_and_report_not_dry",
+      "missingPredictionCoverage": "block_evaluation",
+      "emptyPredictedOrObservedDenominator": "undefined_metric_with_reason",
+      "referenceDisagreement": "report_separately_no_union_or_intersection"
+    },
+    "antiLeakage": {
+      "referenceGeometryMayEnterModelInput": false,
+      "referenceGeometryMayEnterCalibration": false,
+      "referenceGeometryMaySelectDomain": false,
+      "referenceGeometryMaySelectMesh": false,
+      "referenceGeometryMaySelectWetnessThreshold": false,
+      "visualInspectionBeforePredictionFreeze": false,
+      "postHocThresholdSelection": false,
+      "metricRemovalAfterReferenceAccess": false
+    },
+    "execution": {
+      "state": "blocked",
+      "networkRequests": 0,
+      "filesWritten": 0,
+      "evaluationRuns": 0,
+      "blockers": [
+        "hydraulic_execution_blocked",
+        "prediction_artifact_missing",
+        "prediction_semantics_missing",
+        "evaluation_domain_missing",
+        "reference_geometry_sealed"
+      ]
+    },
+    "protocolSha256": "ee3eb1d5c2a26b8e3c4c6b5ff3c3f5a4c5a8ac65f99e7a2efbd951253d4297e2"
   },
   "modelAccessRequest": {
     "id": "cumbria-carlisle-pre-event-model-products-5-6-7-v0",
@@ -1722,6 +1841,11 @@
       "reason": "Recorded Flood Outlines and EMSR147 are structurally evaluation-only and cannot enter model input or calibration."
     },
     {
+      "id": "blind_evaluation_protocol",
+      "state": "passed",
+      "reason": "A content-addressed blind-hindcast protocol freezes the metric set, separate-reference comparison rules, explicit missing-coverage semantics and anti-leakage conditions while both observed geometries remain sealed. Evaluation stays blocked until a physically admissible prediction, wetness semantic, domain, code revision and input receipts are frozen."
+    },
+    {
       "id": "pre_event_lidar_tiles",
       "state": "passed",
       "reason": "The official catalogue selects 231 dated pre-event 1 km grid references and the current survey search maps all of them to 30 downloadable 5 km DTM ZIP identities. The ten uncovered references remain explicit missing terrain and whole-archive pixels outside the selected 1 km mapping are not event-valid by default."
@@ -1764,7 +1888,7 @@
     {
       "id": "evaluation_geometry_identity",
       "state": "blocked",
-      "reason": "Evaluation services are accessible, but exact feature selections and hashes will be frozen only after the input protocol is sealed."
+      "reason": "Evaluation services are accessible and the blind protocol is sealed, but exact feature selections and hashes remain blocked until the prediction artifact, code revision, physical wetness semantic and evaluation domain are frozen."
     },
     {
       "id": "large_artifact_downloads",

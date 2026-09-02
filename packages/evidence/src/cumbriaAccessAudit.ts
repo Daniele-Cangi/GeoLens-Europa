@@ -1,4 +1,4 @@
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.11.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.12.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -589,6 +589,85 @@ export interface CumbriaHydraulicBoundaryProtocol {
   };
 }
 
+export interface CumbriaBlindEvaluationProtocol {
+  readonly id: 'carlisle-blind-inundation-evaluation-v0';
+  readonly version: '0.1.0';
+  readonly state: 'frozen_reference_sealed_execution_blocked';
+  readonly frozenOn: string;
+  readonly validationMode: 'blind_hindcast';
+  readonly claimBoundary: 'retrospective_historical_replay_not_operational_forecast';
+  readonly eventWindow: {
+    readonly start: string;
+    readonly endExclusive: string;
+  };
+  readonly predictionFreeze: {
+    readonly state: 'missing';
+    readonly contentAddressAlgorithm: 'sha256';
+    readonly predictionArtifactSha256: null;
+    readonly codeRevision: null;
+    readonly modelVersion: null;
+    readonly transformationVersions: null;
+    readonly wetnessCriterion: {
+      readonly state: 'missing';
+      readonly requirement: string;
+    };
+    readonly evaluationDomain: {
+      readonly state: 'missing';
+      readonly horizontalCrsRequired: 'EPSG:27700';
+      readonly artifactSha256: null;
+      readonly observedGeometryMayDefineDomain: false;
+      readonly h3MayDefineHydraulicMesh: false;
+    };
+    readonly requiredBeforeReferenceAccess: readonly string[];
+  };
+  readonly referenceSeal: {
+    readonly state: 'sealed_not_loaded';
+    readonly datasetIds: readonly [
+      'ea-recorded-flood-outlines',
+      'copernicus-emsr147-carlisle',
+    ];
+    readonly featureIdentifiersFrozen: false;
+    readonly geometryLoaded: false;
+    readonly archivesDownloaded: false;
+    readonly artifactReceipts: null;
+    readonly separateComparisons: true;
+    readonly combineReferences: false;
+  };
+  readonly metrics: readonly {
+    readonly id: string;
+    readonly unit: 'fraction' | 'm2' | 'm';
+    readonly definition: string;
+  }[];
+  readonly comparisonPolicy: {
+    readonly horizontalCrs: 'EPSG:27700';
+    readonly areaUnit: 'm2';
+    readonly distanceUnit: 'm';
+    readonly evaluateEachReferenceSeparately: true;
+    readonly missingObservedCoverage: 'exclude_and_report_not_dry';
+    readonly missingPredictionCoverage: 'block_evaluation';
+    readonly emptyPredictedOrObservedDenominator: 'undefined_metric_with_reason';
+    readonly referenceDisagreement: 'report_separately_no_union_or_intersection';
+  };
+  readonly antiLeakage: {
+    readonly referenceGeometryMayEnterModelInput: false;
+    readonly referenceGeometryMayEnterCalibration: false;
+    readonly referenceGeometryMaySelectDomain: false;
+    readonly referenceGeometryMaySelectMesh: false;
+    readonly referenceGeometryMaySelectWetnessThreshold: false;
+    readonly visualInspectionBeforePredictionFreeze: false;
+    readonly postHocThresholdSelection: false;
+    readonly metricRemovalAfterReferenceAccess: false;
+  };
+  readonly execution: {
+    readonly state: 'blocked';
+    readonly networkRequests: 0;
+    readonly filesWritten: 0;
+    readonly evaluationRuns: 0;
+    readonly blockers: readonly string[];
+  };
+  readonly protocolSha256: string;
+}
+
 export interface CumbriaProtocolCoordinate {
   readonly crs: 'EPSG:4326';
   readonly lon: number;
@@ -660,6 +739,7 @@ export interface CumbriaAccessManifest {
   };
   readonly spatialGridProtocol: CumbriaSpatialGridProtocol;
   readonly hydraulicProtocol: CumbriaHydraulicBoundaryProtocol;
+  readonly evaluationProtocol: CumbriaBlindEvaluationProtocol;
   readonly modelAccessRequest: CumbriaModelAccessRequest;
   readonly datasets: readonly CumbriaDatasetAudit[];
   readonly gates: readonly CumbriaAccessGate[];
@@ -882,6 +962,8 @@ export function assertCumbriaAccessManifest(
       throw new Error(`Missing required Cumbria dataset "${requiredId}"`);
     }
   }
+
+  blindEvaluationProtocol(manifest.evaluationProtocol, datasetRecords);
 
   const imergFacts = record(
     datasetRecords.get('nasa-imerg-v07-final')?.facts,
@@ -1720,6 +1802,11 @@ export function assertCumbriaAccessManifest(
     gateStates.set(id, gate.state);
   }
   equal(gateStates.get('evaluation_withholding'), 'passed', 'evaluation_withholding');
+  equal(
+    gateStates.get('blind_evaluation_protocol'),
+    'passed',
+    'blind_evaluation_protocol',
+  );
   equal(gateStates.get('upstream_boundary_series'), 'passed', 'upstream_boundary_series');
   equal(
     gateStates.get('hydraulic_boundary_protocol'),
@@ -2531,6 +2618,280 @@ function spatialGridProtocol(
     ])
   ) {
     throw new Error('solver mesh required evidence drifted');
+  }
+}
+
+function blindEvaluationProtocol(
+  value: unknown,
+  datasetRecords: ReadonlyMap<string, Record<string, unknown>>,
+): void {
+  const protocol = record(value, 'evaluationProtocol');
+  equal(
+    protocol.id,
+    'carlisle-blind-inundation-evaluation-v0',
+    'evaluationProtocol.id',
+  );
+  equal(protocol.version, '0.1.0', 'evaluationProtocol.version');
+  equal(
+    protocol.state,
+    'frozen_reference_sealed_execution_blocked',
+    'evaluationProtocol.state',
+  );
+  equal(protocol.frozenOn, '2026-09-02', 'evaluationProtocol.frozenOn');
+  dateOnly(protocol.frozenOn, 'evaluationProtocol.frozenOn');
+  equal(
+    protocol.validationMode,
+    'blind_hindcast',
+    'evaluationProtocol.validationMode',
+  );
+  equal(
+    protocol.claimBoundary,
+    'retrospective_historical_replay_not_operational_forecast',
+    'evaluationProtocol.claimBoundary',
+  );
+
+  const eventWindow = record(protocol.eventWindow, 'evaluationProtocol.eventWindow');
+  equal(eventWindow.start, CUMBRIA_EVENT_WINDOW.start, 'evaluationProtocol.eventWindow.start');
+  equal(
+    eventWindow.endExclusive,
+    CUMBRIA_EVENT_WINDOW.endExclusive,
+    'evaluationProtocol.eventWindow.endExclusive',
+  );
+
+  const prediction = record(
+    protocol.predictionFreeze,
+    'evaluationProtocol.predictionFreeze',
+  );
+  equal(prediction.state, 'missing', 'evaluationProtocol.predictionFreeze.state');
+  equal(
+    prediction.contentAddressAlgorithm,
+    'sha256',
+    'evaluationProtocol.predictionFreeze.contentAddressAlgorithm',
+  );
+  for (const field of [
+    'predictionArtifactSha256',
+    'codeRevision',
+    'modelVersion',
+    'transformationVersions',
+  ]) {
+    equal(
+      prediction[field],
+      null,
+      `evaluationProtocol.predictionFreeze.${field}`,
+    );
+  }
+
+  const wetness = record(
+    prediction.wetnessCriterion,
+    'evaluationProtocol.predictionFreeze.wetnessCriterion',
+  );
+  equal(
+    wetness.state,
+    'missing',
+    'evaluationProtocol.predictionFreeze.wetnessCriterion.state',
+  );
+  nonEmpty(
+    wetness.requirement,
+    'evaluationProtocol.predictionFreeze.wetnessCriterion.requirement',
+  );
+
+  const domain = record(
+    prediction.evaluationDomain,
+    'evaluationProtocol.predictionFreeze.evaluationDomain',
+  );
+  equal(
+    domain.state,
+    'missing',
+    'evaluationProtocol.predictionFreeze.evaluationDomain.state',
+  );
+  equal(
+    domain.horizontalCrsRequired,
+    'EPSG:27700',
+    'evaluationProtocol.predictionFreeze.evaluationDomain.horizontalCrsRequired',
+  );
+  equal(
+    domain.artifactSha256,
+    null,
+    'evaluationProtocol.predictionFreeze.evaluationDomain.artifactSha256',
+  );
+  equal(
+    domain.observedGeometryMayDefineDomain,
+    false,
+    'evaluationProtocol.predictionFreeze.evaluationDomain.observedGeometryMayDefineDomain',
+  );
+  equal(
+    domain.h3MayDefineHydraulicMesh,
+    false,
+    'evaluationProtocol.predictionFreeze.evaluationDomain.h3MayDefineHydraulicMesh',
+  );
+
+  const requiredBeforeReferenceAccess = stringArray(
+    prediction.requiredBeforeReferenceAccess,
+    'evaluationProtocol.predictionFreeze.requiredBeforeReferenceAccess',
+  );
+  const expectedFreezeRequirements = [
+    'physical_input_gates_passed',
+    'input_artifact_receipts_frozen',
+    'model_and_transformation_versions_frozen',
+    'prediction_artifact_content_addressed',
+    'predicted_wetness_semantic_frozen',
+    'evaluation_domain_and_mask_frozen',
+    'code_revision_frozen',
+  ];
+  if (
+    JSON.stringify(requiredBeforeReferenceAccess) !==
+    JSON.stringify(expectedFreezeRequirements)
+  ) {
+    throw new Error('Blind evaluation prediction-freeze requirements drifted');
+  }
+
+  const referenceSeal = record(
+    protocol.referenceSeal,
+    'evaluationProtocol.referenceSeal',
+  );
+  equal(
+    referenceSeal.state,
+    'sealed_not_loaded',
+    'evaluationProtocol.referenceSeal.state',
+  );
+  const referenceIds = stringArray(
+    referenceSeal.datasetIds,
+    'evaluationProtocol.referenceSeal.datasetIds',
+  );
+  const expectedReferenceIds = [
+    'ea-recorded-flood-outlines',
+    'copernicus-emsr147-carlisle',
+  ];
+  if (JSON.stringify(referenceIds) !== JSON.stringify(expectedReferenceIds)) {
+    throw new Error('Blind evaluation reference identities drifted');
+  }
+  for (const id of referenceIds) {
+    const dataset = datasetRecords.get(id);
+    if (dataset === undefined) {
+      throw new Error(`Blind evaluation references unknown dataset "${id}"`);
+    }
+    const uses = record(dataset.permittedUses, `${id}.permittedUses`);
+    if (
+      dataset.role !== 'evaluation_reference' ||
+      dataset.temporalRelation !== 'post_event' ||
+      uses.modelInput !== false ||
+      uses.calibration !== false ||
+      uses.observationComparison !== false ||
+      uses.evaluation !== true
+    ) {
+      throw new Error(`Blind evaluation dataset "${id}" is not isolated`);
+    }
+  }
+  for (const field of [
+    'featureIdentifiersFrozen',
+    'geometryLoaded',
+    'archivesDownloaded',
+  ]) {
+    equal(referenceSeal[field], false, `evaluationProtocol.referenceSeal.${field}`);
+  }
+  equal(
+    referenceSeal.artifactReceipts,
+    null,
+    'evaluationProtocol.referenceSeal.artifactReceipts',
+  );
+  equal(
+    referenceSeal.separateComparisons,
+    true,
+    'evaluationProtocol.referenceSeal.separateComparisons',
+  );
+  equal(
+    referenceSeal.combineReferences,
+    false,
+    'evaluationProtocol.referenceSeal.combineReferences',
+  );
+
+  const metrics = array(protocol.metrics, 'evaluationProtocol.metrics').map(
+    (metricValue, index) => {
+      const metric = record(metricValue, `evaluationProtocol.metrics[${index}]`);
+      return [
+        nonEmpty(metric.id, `evaluationProtocol.metrics[${index}].id`),
+        nonEmpty(metric.unit, `evaluationProtocol.metrics[${index}].unit`),
+        nonEmpty(
+          metric.definition,
+          `evaluationProtocol.metrics[${index}].definition`,
+        ),
+      ];
+    },
+  );
+  const expectedMetrics = [
+    ['intersection_over_union', 'fraction', 'intersection_area_divided_by_union_area'],
+    ['area_precision', 'fraction', 'intersection_area_divided_by_predicted_wet_area'],
+    ['area_recall', 'fraction', 'intersection_area_divided_by_observed_wet_area'],
+    ['false_positive_area', 'm2', 'predicted_wet_area_outside_observed_wet_area'],
+    ['false_negative_area', 'm2', 'observed_wet_area_outside_predicted_wet_area'],
+    [
+      'boundary_distance_p95',
+      'm',
+      'symmetric_95th_percentile_nearest_boundary_distance',
+    ],
+  ];
+  if (JSON.stringify(metrics) !== JSON.stringify(expectedMetrics)) {
+    throw new Error('Blind evaluation metric definitions drifted');
+  }
+
+  const comparison = record(
+    protocol.comparisonPolicy,
+    'evaluationProtocol.comparisonPolicy',
+  );
+  const expectedComparison: Readonly<Record<string, unknown>> = {
+    horizontalCrs: 'EPSG:27700',
+    areaUnit: 'm2',
+    distanceUnit: 'm',
+    evaluateEachReferenceSeparately: true,
+    missingObservedCoverage: 'exclude_and_report_not_dry',
+    missingPredictionCoverage: 'block_evaluation',
+    emptyPredictedOrObservedDenominator: 'undefined_metric_with_reason',
+    referenceDisagreement: 'report_separately_no_union_or_intersection',
+  };
+  for (const [field, expected] of Object.entries(expectedComparison)) {
+    equal(comparison[field], expected, `evaluationProtocol.comparisonPolicy.${field}`);
+  }
+
+  const antiLeakage = record(protocol.antiLeakage, 'evaluationProtocol.antiLeakage');
+  for (const field of [
+    'referenceGeometryMayEnterModelInput',
+    'referenceGeometryMayEnterCalibration',
+    'referenceGeometryMaySelectDomain',
+    'referenceGeometryMaySelectMesh',
+    'referenceGeometryMaySelectWetnessThreshold',
+    'visualInspectionBeforePredictionFreeze',
+    'postHocThresholdSelection',
+    'metricRemovalAfterReferenceAccess',
+  ]) {
+    equal(antiLeakage[field], false, `evaluationProtocol.antiLeakage.${field}`);
+  }
+
+  const execution = record(protocol.execution, 'evaluationProtocol.execution');
+  equal(execution.state, 'blocked', 'evaluationProtocol.execution.state');
+  equal(execution.networkRequests, 0, 'evaluationProtocol.execution.networkRequests');
+  equal(execution.filesWritten, 0, 'evaluationProtocol.execution.filesWritten');
+  equal(execution.evaluationRuns, 0, 'evaluationProtocol.execution.evaluationRuns');
+  const blockers = stringArray(
+    execution.blockers,
+    'evaluationProtocol.execution.blockers',
+  );
+  const expectedBlockers = [
+    'hydraulic_execution_blocked',
+    'prediction_artifact_missing',
+    'prediction_semantics_missing',
+    'evaluation_domain_missing',
+    'reference_geometry_sealed',
+  ];
+  if (JSON.stringify(blockers) !== JSON.stringify(expectedBlockers)) {
+    throw new Error('Blind evaluation execution blockers drifted');
+  }
+
+  const protocolSha256 = nonEmpty(
+    protocol.protocolSha256,
+    'evaluationProtocol.protocolSha256',
+  );
+  if (!/^[a-f0-9]{64}$/.test(protocolSha256)) {
+    throw new Error('evaluationProtocol.protocolSha256 must be lowercase SHA-256');
   }
 }
 
