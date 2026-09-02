@@ -30,6 +30,7 @@
     "audit:cumbria-hydraulic-context": "npm run build --workspace=@geo-lens/evidence && node scripts/audit-cumbria-hydraulic-context.mjs",
     "audit:cumbria-boundary-protocol": "npm run build --workspace=@geo-lens/evidence && node scripts/audit-cumbria-boundary-protocol.mjs",
     "audit:cumbria-hydraulic-domain": "npm run build --workspace=@geo-lens/evidence && node scripts/audit-cumbria-hydraulic-domain.mjs",
+    "audit:cumbria-public-baseline": "npm run build --workspace=@geo-lens/evidence && node scripts/audit-cumbria-public-baseline.mjs",
     "prepare:cumbria-model-request": "npm run build --workspace=@geo-lens/evidence && node scripts/prepare-cumbria-model-request.mjs",
     "plan:cumbria-dtm-materialization": "npm run build --workspace=@geo-lens/evidence && node scripts/plan-cumbria-dtm-materialization.mjs",
     "plan:cumbria-spatial-grid": "npm run build --workspace=@geo-lens/evidence && node scripts/plan-cumbria-spatial-grid.mjs",

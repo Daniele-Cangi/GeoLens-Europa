@@ -2,8 +2,12 @@ import {
   assertCumbriaModelDeliveryIntakeProtocol,
   type CumbriaModelDeliveryIntakeProtocol,
 } from './cumbriaModelIntake';
+import {
+  assertCumbriaPublicBaselineProtocol,
+  type CumbriaPublicBaselineProtocol,
+} from './cumbriaPublicBaseline';
 
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.14.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.15.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -744,14 +748,16 @@ export interface CumbriaAccessManifest {
   };
   readonly spatialGridProtocol: CumbriaSpatialGridProtocol;
   readonly hydraulicProtocol: CumbriaHydraulicBoundaryProtocol;
+  readonly publicBaselineProtocol: CumbriaPublicBaselineProtocol;
   readonly evaluationProtocol: CumbriaBlindEvaluationProtocol;
   readonly modelAccessRequest: CumbriaModelAccessRequest;
   readonly modelDeliveryIntakeProtocol: CumbriaModelDeliveryIntakeProtocol;
   readonly datasets: readonly CumbriaDatasetAudit[];
   readonly gates: readonly CumbriaAccessGate[];
   readonly acquisition: {
-    readonly state: 'metadata_only';
+    readonly state: 'bounded_public_baseline_ready';
     readonly largeDownloadsAllowed: false;
+    readonly boundedTerrainDownloadsAllowed: true;
     readonly nextAction: string;
   };
 }
@@ -975,6 +981,7 @@ export function assertCumbriaAccessManifest(
     }
   }
 
+  assertCumbriaPublicBaselineProtocol(manifest.publicBaselineProtocol, datasets);
   blindEvaluationProtocol(manifest.evaluationProtocol, datasetRecords);
 
   const imergFacts = record(
@@ -1835,6 +1842,11 @@ export function assertCumbriaAccessManifest(
     'passed',
     'model_delivery_intake',
   );
+  equal(
+    gateStates.get('public_baseline_domain'),
+    'passed',
+    'public_baseline_domain',
+  );
   equal(gateStates.get('pre_event_lidar_tiles'), 'passed', 'pre_event_lidar_tiles');
   equal(
     gateStates.get('dtm_materialization_protocol'),
@@ -1852,11 +1864,20 @@ export function assertCumbriaAccessManifest(
   equal(gateStates.get('large_artifact_downloads'), 'blocked', 'large_artifact_downloads');
 
   const acquisition = record(manifest.acquisition, 'acquisition');
-  equal(acquisition.state, 'metadata_only', 'acquisition.state');
+  equal(
+    acquisition.state,
+    'bounded_public_baseline_ready',
+    'acquisition.state',
+  );
   equal(
     acquisition.largeDownloadsAllowed,
     false,
     'acquisition.largeDownloadsAllowed',
+  );
+  equal(
+    acquisition.boundedTerrainDownloadsAllowed,
+    true,
+    'acquisition.boundedTerrainDownloadsAllowed',
   );
   nonEmpty(acquisition.nextAction, 'acquisition.nextAction');
 }

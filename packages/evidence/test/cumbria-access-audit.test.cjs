@@ -25,7 +25,7 @@ function manifestFixture() {
   return JSON.parse(readFileSync(manifestPath, 'utf8'));
 }
 
-test('Cumbria metadata-only manifest passes the evidence-isolation contract', () => {
+test('Cumbria manifest permits only the bounded public terrain acquisition', () => {
   const manifest = manifestFixture();
 
   assert.doesNotThrow(() => assertCumbriaAccessManifest(manifest));
@@ -36,8 +36,9 @@ test('Cumbria metadata-only manifest passes the evidence-isolation contract', ()
     },
     CUMBRIA_EVENT_WINDOW,
   );
-  assert.equal(manifest.acquisition.state, 'metadata_only');
+  assert.equal(manifest.acquisition.state, 'bounded_public_baseline_ready');
   assert.equal(manifest.acquisition.largeDownloadsAllowed, false);
+  assert.equal(manifest.acquisition.boundedTerrainDownloadsAllowed, true);
   assert.equal(
     manifest.datasets.some((dataset) => 'localArtifacts' in dataset),
     false,
@@ -64,7 +65,7 @@ test('canonical IMERG discovery covers all 144 expected half-hour granules', () 
   );
 });
 
-test('direct Carlisle comparison series close the 72-hour reading account', () => {
+test('direct Carlisle observations close the 72-hour reading account', () => {
   const manifest = manifestFixture();
   const series = manifest.datasets.filter(
     (dataset) => dataset.role === 'observation_comparison' && dataset.seriesAudit,
@@ -73,7 +74,6 @@ test('direct Carlisle comparison series close the 72-hour reading account', () =
   assert.deepEqual(
     series.map((dataset) => dataset.id),
     [
-      'ea-hydrology-sheepmount-flow',
       'ea-hydrology-sheepmount-level',
       'ea-hydrology-willow-holme-rainfall',
     ],
@@ -93,11 +93,99 @@ test('direct Carlisle comparison series close the 72-hour reading account', () =
   assert.equal(rainfall.seriesAudit.aggregate.value, 49);
   assert.match(rainfall.access.note, /must not be represented as catchment-wide/);
 
+  const sheepmountFlow = manifest.datasets.find(
+    (dataset) => dataset.id === 'ea-hydrology-sheepmount-flow',
+  );
+  assert.equal(sheepmountFlow.role, 'model_input_candidate');
+  assert.deepEqual(sheepmountFlow.permittedUses, {
+    modelInput: true,
+    calibration: false,
+    observationComparison: false,
+    evaluation: false,
+  });
+  assert.match(sheepmountFlow.access.note, /public baseline/);
+
   rainfall.seriesAudit.readings = 287;
   rainfall.seriesAudit.missingReadings = 1;
   assert.throws(
     () => assertCumbriaAccessManifest(manifest),
     /verified readings must equal 288/,
+  );
+});
+
+test('public baseline freezes a small input-selected domain without evaluation leakage', () => {
+  const manifest = manifestFixture();
+  const protocol = manifest.publicBaselineProtocol;
+
+  assert.equal(
+    protocol.id,
+    'cumbria-sheepmount-old-sandsfield-public-baseline-v0',
+  );
+  assert.equal(protocol.state, 'domain_frozen_terrain_acquisition_ready');
+  assert.deepEqual(protocol.domain.bounds, [332000, 556000, 340000, 563000]);
+  assert.equal(protocol.domain.areaSquareMetres, 56000000);
+  assert.equal(protocol.domain.observedGeometryMayDefineDomain, false);
+  assert.equal(protocol.domain.h3MayDefineComputationGrid, false);
+  assert.equal(protocol.domain.solverGridFrozen, false);
+  assert.equal(protocol.selectionIsolation.observedFloodGeometryLoaded, false);
+  assert.equal(protocol.selectionIsolation.observedFloodGeometryUsed, false);
+  assert.equal(protocol.selectionIsolation.postEventModelUsed, false);
+  assert.equal(
+    protocol.selectionIsolation.selectionInputs.includes(
+      'ea-recorded-flood-outlines',
+    ),
+    false,
+  );
+  assert.equal(
+    protocol.selectionIsolation.selectionInputs.includes(
+      'copernicus-emsr147-carlisle',
+    ),
+    false,
+  );
+  assert.equal(protocol.execution.terrainDownloadAllowed, true);
+  assert.equal(protocol.execution.solverExecutionAllowed, false);
+
+  const leaked = manifestFixture();
+  leaked.publicBaselineProtocol.selectionIsolation.selectionInputs.push(
+    'ea-recorded-flood-outlines',
+  );
+  assert.throws(
+    () => assertCumbriaAccessManifest(leaked),
+    /selection inputs drifted|Observed flood geometry cannot select/,
+  );
+});
+
+test('public baseline DTM selection closes coverage and keeps four gaps missing', () => {
+  const manifest = manifestFixture();
+  const terrain = manifest.publicBaselineProtocol.terrainAcquisition;
+
+  assert.equal(terrain.requiredGridRefs.length, 56);
+  assert.equal(terrain.coveredGridRefs.length, 52);
+  assert.deepEqual(terrain.missingGridRefs, [
+    'NY3256',
+    'NY3257',
+    'NY3357',
+    'NY3959',
+  ]);
+  assert.equal(terrain.archiveCount, 6);
+  assert.equal(terrain.archiveSelections.length, 6);
+  assert.equal(terrain.budget.estimatedRetainedDecodedBytes, 208000000);
+  assert.equal(terrain.budget.estimatedFullArchiveDecodedBytes, 600000000);
+  assert.equal(terrain.archiveBytesDownloaded, 0);
+  assert.equal(terrain.rasterBytesWritten, 0);
+
+  const substituted = manifestFixture();
+  substituted.publicBaselineProtocol.terrainAcquisition.missingGridRefs = [];
+  assert.throws(
+    () => assertCumbriaAccessManifest(substituted),
+    /missing grid references drifted/,
+  );
+
+  const solverEnabled = manifestFixture();
+  solverEnabled.publicBaselineProtocol.execution.solverExecutionAllowed = true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(solverEnabled),
+    /solver gate/,
   );
 });
 
@@ -221,7 +309,7 @@ test('pre-event terrain selection maps to downloadable archives with explicit ga
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.14.0');
+  assert.equal(manifest.manifestVersion, '0.15.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
