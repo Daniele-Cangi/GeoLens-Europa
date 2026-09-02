@@ -733,6 +733,19 @@ function assertComponent(
         `${label}.sourceDates[${dateIndex}] must be an ISO date or a time-zone-qualified timestamp`,
       );
     }
+    const [year, month, day] = sourceDate.slice(0, 10).split('-').map(Number);
+    const calendarDate = new Date(0);
+    calendarDate.setUTCHours(0, 0, 0, 0);
+    calendarDate.setUTCFullYear(year, month - 1, day);
+    if (
+      calendarDate.getUTCFullYear() !== year ||
+      calendarDate.getUTCMonth() !== month - 1 ||
+      calendarDate.getUTCDate() !== day
+    ) {
+      throw new Error(
+        `${label}.sourceDates[${dateIndex}] must be a real calendar date`,
+      );
+    }
     const timestamp = Date.parse(sourceDate);
     if (Number.isNaN(timestamp)) {
       throw new Error(`${label}.sourceDates[${dateIndex}] must be a date`);

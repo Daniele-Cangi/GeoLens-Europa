@@ -228,6 +228,22 @@ test('available model evidence requires dated and genuinely pre-event lineage', 
   const explicitOffset = completePackage();
   explicitOffset.components[0].sourceDates = ['2011-11-22T10:00:00+01:00'];
   assert.equal(validateCumbriaModelEvidencePackage(explicitOffset).ok, true);
+
+  for (const impossibleDate of ['2011-02-29', '2011-04-31']) {
+    const impossibleCalendarDate = completePackage();
+    impossibleCalendarDate.components[0].sourceDates = [impossibleDate];
+    assert.match(
+      validateCumbriaModelEvidencePackage(impossibleCalendarDate).errors[0],
+      /must be a real calendar date/,
+    );
+  }
+
+  const impossibleTimestamp = completePackage();
+  impossibleTimestamp.components[0].sourceDates = ['2011-02-29T10:00:00Z'];
+  assert.match(
+    validateCumbriaModelEvidencePackage(impossibleTimestamp).errors[0],
+    /must be a real calendar date/,
+  );
 });
 
 test('every delivered artifact must have one unique path and a component classification', () => {
