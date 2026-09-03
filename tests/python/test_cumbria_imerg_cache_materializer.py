@@ -4,8 +4,10 @@ from datetime import datetime, timedelta, timezone
 import importlib.util
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import numpy as np
 import xarray as xr
@@ -116,6 +118,25 @@ class CumbriaImergMaterializerTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "missing, negative"):
             MODULE.validate_window(window, bounds)
+
+    def test_invalid_acquisition_is_not_written_to_the_canonical_cache(self):
+        with tempfile.TemporaryDirectory() as directory:
+            invalid_window = SimpleNamespace()
+            with (
+                patch.object(MODULE, "get_cached_window", return_value=None),
+                patch.object(MODULE, "load_imerg_window", return_value=invalid_window),
+                patch.object(
+                    MODULE,
+                    "validate_window",
+                    side_effect=ValueError("invalid acquired window"),
+                ),
+                patch.object(MODULE, "set_cached_window") as cache_write,
+            ):
+                with self.assertRaisesRegex(ValueError, "invalid acquired window"):
+                    MODULE.run(
+                        ["--data-root", directory, "--execute"]
+                    )
+                cache_write.assert_not_called()
 
 
 if __name__ == "__main__":
