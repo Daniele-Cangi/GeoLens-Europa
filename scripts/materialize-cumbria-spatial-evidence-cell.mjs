@@ -770,7 +770,7 @@ function assertCompleteRealResult(result) {
   }
 }
 
-function assertManifestRealProbe(manifest, receipt) {
+export function assertManifestRealProbe(manifest, receipt) {
   const probe =
     manifest.spatialGridProtocol?.evidenceIndex?.composition?.realEvidenceProbe;
   const expected = {
@@ -802,7 +802,7 @@ function assertManifestRealProbe(manifest, receipt) {
     receiptSha256: probe?.receipt?.sha256,
     artifact: probe?.artifact,
   };
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+  if (canonicalJson(actual) !== canonicalJson(expected)) {
     throw new Error(
       `Cumbria manifest real-evidence probe differs from the reproduced receipt: ${JSON.stringify(
         { expected, actual },

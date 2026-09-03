@@ -3,12 +3,65 @@ import path from 'node:path';
 import test from 'node:test';
 
 import {
+  assertManifestRealProbe,
   coordinateEdges,
   ensureExternalDataRoot,
   intersectConvexPolygons,
   parseArguments,
   polygonAreaM2,
 } from '../materialize-cumbria-spatial-evidence-cell.mjs';
+
+test('manifest probe comparison ignores nested object key order', () => {
+  const receipt = {
+    compositionId: 'probe-1',
+    selection: {
+      h3: '8a1955d9535ffff',
+      h3Resolution: 10,
+      targetCellAreaM2: 13_257.434_906_005_86,
+    },
+    composedAt: '2015-12-07T18:00:00.000Z',
+    inputReceipts: { terrain: 'terrain-sha', landCover: 'clc-sha' },
+    intersectionCounts: { terrain: 13_528, landCover: 4 },
+    resultSha256: 'result-sha',
+    receiptSha256: 'receipt-sha',
+    artifact: {
+      sha256: 'artifact-sha',
+      contentSha256: 'content-sha',
+      bytes: 96_438,
+      decodedBytes: 5_645_297,
+    },
+  };
+  const manifest = {
+    spatialGridProtocol: {
+      evidenceIndex: {
+        composition: {
+          realEvidenceProbe: {
+            artifact: {
+              decodedBytes: 5_645_297,
+              compressedBytes: 96_438,
+              contentSha256: 'content-sha',
+              sha256: 'artifact-sha',
+            },
+            receipt: { sha256: 'receipt-sha' },
+            resultSha256: 'result-sha',
+            intersectionCounts: { landCover: 4, terrain: 13_528 },
+            inputReceiptSha256: {
+              landCover: 'clc-sha',
+              terrain: 'terrain-sha',
+            },
+            targetCellAreaM2: 13_257.434_906_005_86,
+            composedAt: '2015-12-07T18:00:00.000Z',
+            h3Resolution: 10,
+            h3: '8a1955d9535ffff',
+            id: 'probe-1',
+          },
+        },
+      },
+    },
+  };
+
+  assert.doesNotThrow(() => assertManifestRealProbe(manifest, receipt));
+});
 
 test('native coordinate edges preserve shared cell boundaries', () => {
   assert.deepEqual(coordinateEdges([-3.05, -2.95, -2.85]), [

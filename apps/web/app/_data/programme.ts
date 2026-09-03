@@ -62,7 +62,7 @@ export const programmeRecords: readonly ProgrammeRecord[] = [
     status: 'Real evidence composed',
     statusTone: 'evidence-gate',
     established:
-      'A 56 km² Sheepmount–Old Sandsfield reach is fixed without observed flood geometry. Its central H3 inspection cell now composes 13,528 native 1 m terrain pixels, CLC class 231 and 98.784 mm of area-weighted 72-hour IMERG rainfall with reproducible hashes.',
+      'A 56 km² Sheepmount–Old Sandsfield reach is fixed without observed flood geometry. Its central H3 inspection cell now composes 13,528 native 1 m terrain pixels, CLC class 231 and 98.784 mm of area-weighted 72-hour rainfall from two coarse native IMERG footprints, with reproducible hashes.',
     openGate:
       'Ten terrain grids remain explicitly unavailable; channel placement, downstream and initial conditions, roughness, computation grid and timestep are not yet frozen.',
     nextDecision:
