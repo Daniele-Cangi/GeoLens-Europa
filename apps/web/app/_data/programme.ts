@@ -59,15 +59,15 @@ export const programmeRecords: readonly ProgrammeRecord[] = [
     code: 'Case 03',
     title: 'Event-specific public-data replay',
     place: 'Carlisle / Cumbria, United Kingdom',
-    status: 'Real evidence composed',
+    status: 'Solver contract frozen',
     statusTone: 'evidence-gate',
     established:
-      'A 56 km² Sheepmount–Old Sandsfield reach is fixed without observed flood geometry. Its central H3 inspection cell now composes 13,528 native 1 m terrain pixels, CLC class 231 and 98.784 mm of area-weighted 72-hour rainfall from two coarse native IMERG footprints, with reproducible hashes.',
+      'A 56 km² Sheepmount–Old Sandsfield reach is fixed without observed flood geometry. Real terrain, CLC and IMERG evidence is composed for an inspection cell, while a separate hashed 2D surface-flow contract fixes the 20 m primary mesh, sensitivities, assumptions and wetness semantics.',
     openGate:
-      'Ten terrain grids remain explicitly unavailable; channel placement, downstream and initial conditions, roughness, computation grid and timestep are not yet frozen.',
+      'Ten terrain grids remain explicitly unavailable. The computation grids, time-varying forcing and local-inertial kernel are not yet materialized or verified, so execution and evaluation remain sealed.',
     nextDecision:
-      'Freeze an explicit public-only replacement-solver contract; the H3 inspection result cannot define routing geometry, boundary state or the hydraulic mesh.',
+      'Materialize the three declared grids and forcing receipts, then prove numerical stability and mass conservation on deterministic fixtures before the event run.',
   },
 ] as const;
 
-export const programmeUpdatedAt = '3 September 2026';
+export const programmeUpdatedAt = '4 September 2026';

@@ -8,6 +8,7 @@ const {
   assertCumbriaAccessManifest,
   CUMBRIA_EVENT_WINDOW,
   createCumbriaDtmMaterializationPlan,
+  cumbriaReplacementSolverProtocolSha256,
 } = require('../dist');
 
 const manifestPath = path.join(
@@ -25,7 +26,7 @@ function manifestFixture() {
   return JSON.parse(readFileSync(manifestPath, 'utf8'));
 }
 
-test('Cumbria manifest records bounded environmental inputs without opening solver access', () => {
+test('Cumbria manifest freezes the replacement-solver contract without opening solver access', () => {
   const manifest = manifestFixture();
 
   assert.doesNotThrow(() => assertCumbriaAccessManifest(manifest));
@@ -38,7 +39,7 @@ test('Cumbria manifest records bounded environmental inputs without opening solv
   );
   assert.equal(
     manifest.acquisition.state,
-    'bounded_environmental_inputs_materialized',
+    'replacement_solver_contract_frozen',
   );
   assert.equal(manifest.acquisition.largeDownloadsAllowed, false);
   assert.equal(manifest.acquisition.boundedTerrainDownloadsAllowed, true);
@@ -197,7 +198,7 @@ test('public baseline terrain materialization records real coverage without zero
   const manifest = manifestFixture();
   const result = manifest.publicBaselineTerrainMaterialization;
 
-  assert.equal(manifest.manifestVersion, '0.18.0');
+  assert.equal(manifest.manifestVersion, '0.19.0');
   assert.equal(result.state, 'terrain_materialized_with_explicit_gaps');
   assert.equal(
     result.protocolSha256,
@@ -401,7 +402,7 @@ test('pre-event terrain selection maps to downloadable archives with explicit ga
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.18.0');
+  assert.equal(manifest.manifestVersion, '0.19.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
@@ -618,11 +619,14 @@ test('Cumbria DTM protocol rejects unsafe archive handling and invented coverage
   );
 });
 
-test('spatial protocol preserves native grids and limits H3 to evidence joins', () => {
+test('spatial protocol preserves native grids and links only the declared replacement mesh', () => {
   const manifest = manifestFixture();
   const protocol = manifest.spatialGridProtocol;
 
-  assert.equal(protocol.state, 'evidence_index_frozen_solver_mesh_blocked');
+  assert.equal(
+    protocol.state,
+    'evidence_index_and_replacement_mesh_frozen_execution_blocked',
+  );
   assert.deepEqual(protocol.sourceGrids.terrain.nativeResolutionMetres, [0.5, 1, 2]);
   assert.equal(protocol.sourceGrids.terrain.resampling, 'none');
   assert.equal(protocol.sourceGrids.landCover.nativeResolutionMetres, 100);
@@ -737,34 +741,93 @@ test('spatial protocol preserves native grids and limits H3 to evidence joins', 
   });
   assert.equal(
     protocol.exchangeFrame.topology,
-    'no_common_raster_grid_before_solver_contract',
+    'replacement_solver_grid_declared_sources_remain_native',
   );
   assert.deepEqual(protocol.solverMesh, {
-    state: 'blocked_missing_runnable_model_and_geometry',
-    horizontalCrsRequired: 'EPSG:27700',
-    verticalDatumRequired: 'Ordnance Datum Newlyn',
-    extent: null,
-    cellSizeMetres: null,
-    origin: null,
-    width: null,
-    height: null,
-    timeStepSeconds: null,
-    cannotBeDerivedFrom: [
-      'metadata_aoi',
-      'boundary_protocol_envelope',
-      'h3_evidence_index',
-      'dtm_native_grid',
-      'clc_native_grid',
-    ],
-    requiredEvidence: [
-      'runnable_pre_event_model_or_versioned_replacement_solver',
-      'event_valid_channel_cross_sections_and_roughness',
-      'boundary_placement_and_values',
-      'distributed_initial_state_or_warmup',
-      'as_of_event_defence_and_floodgate_state',
-      'declared_mesh_extent_origin_cell_size_and_timestep',
+    state: 'replacement_solver_contract_frozen_execution_blocked',
+    contractId: 'cumbria-public-surface-flow-replacement-v0',
+    horizontalCrs: 'EPSG:27700',
+    verticalDatum: 'Ordnance Datum Newlyn',
+    extent: [332000, 556000, 340000, 563000],
+    originUpperLeft: [332000, 563000],
+    primary: {
+      cellSizeMetres: 20,
+      width: 400,
+      height: 350,
+      cellCount: 140000,
+    },
+    sensitivityCellSizesMetres: [10, 40],
+    timeIntegration: 'adaptive_cfl',
+    h3Role: 'not_source_or_solver_grid',
+    executionAuthorized: false,
+    blockers: [
+      'domain_solver_grids_not_materialized',
+      'numerical_kernel_not_fixture_verified',
+      'prediction_identity_not_frozen',
     ],
   });
+});
+
+test('replacement solver freezes assumptions and sensitivities before evaluation access', () => {
+  const manifest = manifestFixture();
+  const protocol = manifest.replacementSolverProtocol;
+
+  assert.equal(protocol.state, 'contract_frozen_preprocessing_and_kernel_blocked');
+  assert.equal(
+    protocol.protocolSha256,
+    cumbriaReplacementSolverProtocolSha256(protocol),
+  );
+  assert.deepEqual(protocol.domain.bounds, [332000, 556000, 340000, 563000]);
+  assert.deepEqual(protocol.meshes.primary, {
+    id: 'mesh-20m',
+    role: 'primary',
+    cellSizeMetres: 20,
+    width: 400,
+    height: 350,
+    cellCount: 140000,
+  });
+  assert.deepEqual(
+    protocol.meshes.sensitivities.map((mesh) => mesh.cellSizeMetres),
+    [10, 40],
+  );
+  assert.equal(protocol.forcing.landCoverParameters.classes.length, 12);
+  assert.equal(
+    protocol.forcing.riverInflow.dischargeTransformation,
+    'positive_excess_above_first_window_sample',
+  );
+  assert.equal(
+    protocol.initialState.semantic,
+    'explicit_dry_surface_assumption_not_observation',
+  );
+  assert.equal(protocol.outputs.wetness.primaryThresholdM, 0.05);
+  assert.equal(protocol.scenarios.length, 9);
+  assert.equal(protocol.scenarioPolicy.bestScenarioSelectionForbidden, true);
+  assert.equal(protocol.isolation.observedFloodGeometryLoaded, false);
+  assert.equal(protocol.execution.solverExecutionAllowed, false);
+  assert.equal(protocol.execution.evaluationReferenceAccessAllowed, false);
+
+  const h3Routing = manifestFixture();
+  h3Routing.replacementSolverProtocol.domain.h3Role = 'solver_grid';
+  assert.throws(
+    () => assertCumbriaAccessManifest(h3Routing),
+    /replacement solver H3 role/,
+  );
+
+  const unboundedRunoff = manifestFixture();
+  unboundedRunoff.replacementSolverProtocol.forcing.landCoverParameters.classes[0]
+    .runoffCoefficient.high = 1.1;
+  assert.throws(
+    () => assertCumbriaAccessManifest(unboundedRunoff),
+    /physically bounded/,
+  );
+
+  const evaluationLeak = manifestFixture();
+  evaluationLeak.replacementSolverProtocol.execution.evaluationReferenceAccessAllowed =
+    true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(evaluationLeak),
+    /evaluation access gate/,
+  );
 });
 
 test('spatial protocol rejects false precision and invented solver geometry', () => {
@@ -791,10 +854,10 @@ test('spatial protocol rejects false precision and invented solver geometry', ()
   );
 
   const inventedMesh = manifestFixture();
-  inventedMesh.spatialGridProtocol.solverMesh.cellSizeMetres = 2;
+  inventedMesh.spatialGridProtocol.solverMesh.primary.cellSizeMetres = 2;
   assert.throws(
     () => assertCumbriaAccessManifest(inventedMesh),
-    /solver mesh cellSizeMetres/,
+    /solver primary cellSizeMetres/,
   );
 
   const driftedEnvelope = manifestFixture();
@@ -1315,6 +1378,7 @@ test('terrain identity passes while bulk acquisition remains physically gated', 
   assert.equal(gates.get('upstream_boundary_series'), 'passed');
   assert.equal(gates.get('hydraulic_model_access_request'), 'passed');
   assert.equal(gates.get('model_delivery_intake'), 'passed');
+  assert.equal(gates.get('replacement_solver_contract'), 'passed');
   assert.equal(gates.get('as_of_event_defence_state'), 'blocked');
   assert.equal(gates.get('hydraulic_context'), 'blocked');
   assert.equal(gates.get('evaluation_geometry_identity'), 'blocked');

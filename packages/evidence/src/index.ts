@@ -3,6 +3,7 @@ export * from './arpaeHydraulicIntake';
 export * from './cumbriaAccessAudit';
 export * from './cumbriaModelIntake';
 export * from './cumbriaPublicBaseline';
+export * from './cumbriaReplacementSolver';
 export * from './emiliaBenchmark';
 export * from './emiliaMap';
 

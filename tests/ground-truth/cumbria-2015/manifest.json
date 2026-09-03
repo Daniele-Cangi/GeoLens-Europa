@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.18.0",
+  "manifestVersion": "0.19.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -318,7 +318,7 @@
   },
   "spatialGridProtocol": {
     "id": "cumbria-spatial-grid-boundary-v0",
-    "state": "evidence_index_frozen_solver_mesh_blocked",
+    "state": "evidence_index_and_replacement_mesh_frozen_execution_blocked",
     "sourceGrids": {
       "terrain": {
         "datasetId": "ea-lidar-dtm-time-stamped",
@@ -460,7 +460,7 @@
     },
     "exchangeFrame": {
       "horizontalCrs": "EPSG:27700",
-      "topology": "no_common_raster_grid_before_solver_contract",
+      "topology": "replacement_solver_grid_declared_sources_remain_native",
       "terrain": "native_grid_clips",
       "landCover": "native_class_footprints_reprojected_for_overlap_only",
       "precipitation": "native_cell_footprints_reprojected_for_overlap_only",
@@ -468,31 +468,237 @@
       "missingInputPolicy": "missing_or_partial_remains_explicit"
     },
     "solverMesh": {
-      "state": "blocked_missing_runnable_model_and_geometry",
-      "horizontalCrsRequired": "EPSG:27700",
-      "verticalDatumRequired": "Ordnance Datum Newlyn",
-      "extent": null,
-      "cellSizeMetres": null,
-      "origin": null,
-      "width": null,
-      "height": null,
-      "timeStepSeconds": null,
-      "cannotBeDerivedFrom": [
-        "metadata_aoi",
-        "boundary_protocol_envelope",
-        "h3_evidence_index",
-        "dtm_native_grid",
-        "clc_native_grid"
-      ],
-      "requiredEvidence": [
-        "runnable_pre_event_model_or_versioned_replacement_solver",
-        "event_valid_channel_cross_sections_and_roughness",
-        "boundary_placement_and_values",
-        "distributed_initial_state_or_warmup",
-        "as_of_event_defence_and_floodgate_state",
-        "declared_mesh_extent_origin_cell_size_and_timestep"
+      "state": "replacement_solver_contract_frozen_execution_blocked",
+      "contractId": "cumbria-public-surface-flow-replacement-v0",
+      "horizontalCrs": "EPSG:27700",
+      "verticalDatum": "Ordnance Datum Newlyn",
+      "extent": [332000, 556000, 340000, 563000],
+      "originUpperLeft": [332000, 563000],
+      "primary": {
+        "cellSizeMetres": 20,
+        "width": 400,
+        "height": 350,
+        "cellCount": 140000
+      },
+      "sensitivityCellSizesMetres": [10, 40],
+      "timeIntegration": "adaptive_cfl",
+      "h3Role": "not_source_or_solver_grid",
+      "executionAuthorized": false,
+      "blockers": [
+        "domain_solver_grids_not_materialized",
+        "numerical_kernel_not_fixture_verified",
+        "prediction_identity_not_frozen"
       ]
     }
+  },
+  "replacementSolverProtocol": {
+    "id": "cumbria-public-surface-flow-replacement-v0",
+    "version": "0.1.0",
+    "frozenOn": "2026-09-04",
+    "state": "contract_frozen_preprocessing_and_kernel_blocked",
+    "claimBoundary": "Experimental public-data 2D surface-flow replay; not the official Carlisle hydraulic model, not a reconstructed channel model and not a validated flood forecast.",
+    "eventWindow": {
+      "start": "2015-12-04T00:00:00Z",
+      "endExclusive": "2015-12-07T00:00:00Z"
+    },
+    "domain": {
+      "sourceProtocolId": "cumbria-sheepmount-old-sandsfield-public-baseline-v0",
+      "horizontalCrs": "EPSG:27700",
+      "verticalDatum": "Ordnance Datum Newlyn",
+      "bounds": [332000, 556000, 340000, 563000],
+      "originUpperLeft": [332000, 563000],
+      "rowOrder": "north_to_south",
+      "observedFloodGeometryUsed": false,
+      "h3Role": "inspection_and_evidence_join_only"
+    },
+    "formulation": {
+      "family": "two_dimensional_local_inertial_shallow_water",
+      "implementationVersion": "cumbria-local-inertial-surface-flow-v0.1.0",
+      "implementationState": "not_implemented",
+      "conservedState": [
+        "water_depth_m",
+        "unit_discharge_x_m2_s",
+        "unit_discharge_y_m2_s"
+      ],
+      "gravityMps2": 9.80665,
+      "minimumWetDepthM": 0.001,
+      "negativeDepthPolicy": "reject_beyond_numeric_tolerance",
+      "massBalanceRequired": true,
+      "calibrationAllowed": false
+    },
+    "meshes": {
+      "primary": {
+        "id": "mesh-20m",
+        "role": "primary",
+        "cellSizeMetres": 20,
+        "width": 400,
+        "height": 350,
+        "cellCount": 140000
+      },
+      "sensitivities": [
+        {
+          "id": "mesh-10m",
+          "role": "predeclared_sensitivity",
+          "cellSizeMetres": 10,
+          "width": 800,
+          "height": 700,
+          "cellCount": 560000
+        },
+        {
+          "id": "mesh-40m",
+          "role": "predeclared_sensitivity",
+          "cellSizeMetres": 40,
+          "width": 200,
+          "height": 175,
+          "cellCount": 35000
+        }
+      ],
+      "terrainAggregation": "area_weighted_mean_of_complete_native_dtm_coverage",
+      "completeNativeCoverageRequiredPerCell": true,
+      "missingTerrainPolicy": "cell_missing_not_zero_no_flux_faces_and_prediction_excluded",
+      "missingBoundaryExclusionCells": 1
+    },
+    "forcing": {
+      "rainfall": {
+        "datasetId": "nasa-imerg-v07-final",
+        "sourceIntervalSeconds": 1800,
+        "transformation": "native_footprint_overlap_then_piecewise_constant_intensity",
+        "sourceResolutionRetained": true,
+        "observedZeroPreserved": true,
+        "missingPolicy": "cell_interval_missing_and_solver_execution_blocked"
+      },
+      "landCoverParameters": {
+        "datasetId": "copernicus-clc2012",
+        "parameterStatus": "explicit_experimental_assumption_not_calibrated",
+        "transformation": "native_class_footprint_area_weighted_parameter",
+        "unknownClassPolicy": "missing_and_solver_execution_blocked",
+        "classes": [
+          { "classCode": 111, "runoffCoefficient": { "low": 0.7, "primary": 0.85, "high": 0.95 }, "manningN": { "low": 0.04, "primary": 0.06, "high": 0.08 } },
+          { "classCode": 112, "runoffCoefficient": { "low": 0.5, "primary": 0.7, "high": 0.85 }, "manningN": { "low": 0.05, "primary": 0.08, "high": 0.12 } },
+          { "classCode": 121, "runoffCoefficient": { "low": 0.65, "primary": 0.8, "high": 0.95 }, "manningN": { "low": 0.035, "primary": 0.05, "high": 0.075 } },
+          { "classCode": 122, "runoffCoefficient": { "low": 0.75, "primary": 0.9, "high": 0.98 }, "manningN": { "low": 0.025, "primary": 0.04, "high": 0.06 } },
+          { "classCode": 131, "runoffCoefficient": { "low": 0.45, "primary": 0.7, "high": 0.9 }, "manningN": { "low": 0.03, "primary": 0.05, "high": 0.08 } },
+          { "classCode": 142, "runoffCoefficient": { "low": 0.3, "primary": 0.55, "high": 0.75 }, "manningN": { "low": 0.04, "primary": 0.07, "high": 0.1 } },
+          { "classCode": 211, "runoffCoefficient": { "low": 0.25, "primary": 0.5, "high": 0.75 }, "manningN": { "low": 0.035, "primary": 0.06, "high": 0.1 } },
+          { "classCode": 231, "runoffCoefficient": { "low": 0.3, "primary": 0.55, "high": 0.8 }, "manningN": { "low": 0.06, "primary": 0.1, "high": 0.16 } },
+          { "classCode": 311, "runoffCoefficient": { "low": 0.1, "primary": 0.25, "high": 0.5 }, "manningN": { "low": 0.1, "primary": 0.16, "high": 0.24 } },
+          { "classCode": 313, "runoffCoefficient": { "low": 0.1, "primary": 0.25, "high": 0.5 }, "manningN": { "low": 0.09, "primary": 0.15, "high": 0.23 } },
+          { "classCode": 421, "runoffCoefficient": { "low": 0.65, "primary": 0.85, "high": 0.98 }, "manningN": { "low": 0.12, "primary": 0.2, "high": 0.3 } },
+          { "classCode": 522, "runoffCoefficient": { "low": 1, "primary": 1, "high": 1 }, "manningN": { "low": 0.025, "primary": 0.035, "high": 0.05 } }
+        ]
+      },
+      "riverInflow": {
+        "datasetId": "ea-hydrology-sheepmount-flow",
+        "stationReference": "765512",
+        "sourceIntervalSeconds": 900,
+        "expectedSamples": 288,
+        "temporalTransformation": "left_constant_over_native_900_second_interval",
+        "dischargeTransformation": "positive_excess_above_first_window_sample",
+        "transformationVersion": "sheepmount-incremental-discharge-v0.1.0",
+        "sourceMeaning": "incremental_event_discharge_proxy_not_total_channel_flow",
+        "footprintCentreBng": [339063, 557118],
+        "primaryFootprintSideMetres": 100,
+        "sensitivityFootprintSideMetres": [60, 140],
+        "distribution": "uniform_by_intersected_valid_cell_area",
+        "historicalCrossSectionClaim": false,
+        "missingSamplePolicy": "execution_blocked_no_gap_fill"
+      }
+    },
+    "initialState": {
+      "surfaceWaterDepthM": 0,
+      "unitDischargeXM2S": 0,
+      "unitDischargeYM2S": 0,
+      "semantic": "explicit_dry_surface_assumption_not_observation",
+      "warmup": "none_available"
+    },
+    "boundaries": {
+      "outerDomain": "zero_gradient_free_outflow_no_external_inflow",
+      "imposedDownstreamStage": false,
+      "oldSandsfieldUse": "historical_extent_anchor_not_boundary_value",
+      "missingTerrainFaces": "no_flux_with_adjacent_prediction_exclusion",
+      "defenceAndFloodgateGeometry": "omitted_missing_event_valid_state",
+      "channelGeometry": "omitted_missing_event_valid_cross_sections"
+    },
+    "numerics": {
+      "integration": "adaptive_cfl",
+      "cfl": 0.7,
+      "minimumTimeStepSeconds": 0.05,
+      "maximumTimeStepSeconds": 5,
+      "belowMinimumTimeStepPolicy": "fail_scenario",
+      "sourceChangeAlignment": true,
+      "outputIntervalSeconds": 900,
+      "frictionUpdate": "semi_implicit_manning"
+    },
+    "scenarios": [
+      { "id": "primary-20m", "meshId": "mesh-20m", "runoffParameterSet": "primary", "roughnessParameterSet": "primary", "inflowFootprintSideMetres": 100 },
+      { "id": "mesh-10m", "meshId": "mesh-10m", "runoffParameterSet": "primary", "roughnessParameterSet": "primary", "inflowFootprintSideMetres": 100 },
+      { "id": "mesh-40m", "meshId": "mesh-40m", "runoffParameterSet": "primary", "roughnessParameterSet": "primary", "inflowFootprintSideMetres": 100 },
+      { "id": "runoff-low", "meshId": "mesh-20m", "runoffParameterSet": "low", "roughnessParameterSet": "primary", "inflowFootprintSideMetres": 100 },
+      { "id": "runoff-high", "meshId": "mesh-20m", "runoffParameterSet": "high", "roughnessParameterSet": "primary", "inflowFootprintSideMetres": 100 },
+      { "id": "roughness-low", "meshId": "mesh-20m", "runoffParameterSet": "primary", "roughnessParameterSet": "low", "inflowFootprintSideMetres": 100 },
+      { "id": "roughness-high", "meshId": "mesh-20m", "runoffParameterSet": "primary", "roughnessParameterSet": "high", "inflowFootprintSideMetres": 100 },
+      { "id": "inflow-60m", "meshId": "mesh-20m", "runoffParameterSet": "primary", "roughnessParameterSet": "primary", "inflowFootprintSideMetres": 60 },
+      { "id": "inflow-140m", "meshId": "mesh-20m", "runoffParameterSet": "primary", "roughnessParameterSet": "primary", "inflowFootprintSideMetres": 140 }
+    ],
+    "outputs": {
+      "requiredState": [
+        "maximum_surface_water_depth_m",
+        "time_of_maximum_depth",
+        "final_surface_water_depth_m",
+        "valid_prediction_mask",
+        "mass_balance"
+      ],
+      "wetness": {
+        "statistic": "maximum_surface_water_depth_over_event",
+        "primaryThresholdM": 0.05,
+        "sensitivityThresholdsM": [0.01, 0.1, 0.3],
+        "missingPredictionTreatedAsDry": false,
+        "thresholdSelectionMayUseEvaluation": false
+      },
+      "massBalance": {
+        "absoluteToleranceM3": 0.001,
+        "relativeTolerance": 0.000001,
+        "termsRequired": [
+          "initial_volume_m3",
+          "rainfall_excess_input_m3",
+          "river_excess_input_m3",
+          "boundary_outflow_m3",
+          "final_storage_m3",
+          "residual_m3"
+        ]
+      }
+    },
+    "scenarioPolicy": {
+      "primaryScenarioId": "primary-20m",
+      "everyScenarioMustRun": true,
+      "bestScenarioSelectionForbidden": true,
+      "evaluationDrivenRetuningForbidden": true,
+      "failuresRemainReported": true
+    },
+    "isolation": {
+      "observedFloodGeometryLoaded": false,
+      "observedFloodGeometryUsed": false,
+      "postEventModelUsed": false,
+      "currentAssetGeometryUsed": false,
+      "h3UsedAsSolverGrid": false,
+      "missingValuesSubstitutedWithZero": false
+    },
+    "execution": {
+      "state": "blocked",
+      "solverExecutionAllowed": false,
+      "evaluationReferenceAccessAllowed": false,
+      "networkRequests": 0,
+      "filesWritten": 0,
+      "blockers": [
+        "domain_solver_grids_not_materialized",
+        "sheepmount_series_not_content_addressed",
+        "half_hourly_imerg_forcing_not_materialized",
+        "numerical_kernel_not_fixture_verified",
+        "mass_balance_and_stability_not_verified",
+        "prediction_identity_not_frozen"
+      ]
+    },
+    "protocolSha256": "b9db1fbc10cc0aeff5d3a4e24bf1afc5d66226902ecad92ce111f1fcfb60c89b"
   },
   "hydraulicProtocol": {
     "id": "carlisle-local-hydraulic-protocol-v0",
@@ -2223,7 +2429,7 @@
     {
       "id": "public_baseline_domain",
       "state": "passed",
-      "reason": "The 56 km2 Sheepmount-to-Old-Sandsfield domain is selected only from an event-window flow station, the documented pre-event model limit and the pre-event terrain catalogue. Neither observed flood geometry nor a post-event model was loaded or used. Fifty-two of 56 one-kilometre source grids map to six official one-metre DTM archives; four grids remain explicit NoData. Terrain acquisition is allowed, while solver execution remains blocked until channel placement, downstream and initial assumptions, roughness, grid and timestep are frozen."
+      "reason": "The 56 km2 Sheepmount-to-Old-Sandsfield domain is selected only from an event-window flow station, the documented pre-event model limit and the pre-event terrain catalogue. Neither observed flood geometry nor a post-event model was loaded or used. Fifty-two of 56 one-kilometre source grids map to six official one-metre DTM archives; four catalogue gaps remain explicit. The later replacement-solver contract does not rewrite this original selection record."
     },
     {
       "id": "hydraulic_model_access_request",
@@ -2263,7 +2469,7 @@
     {
       "id": "spatial_grid_roles",
       "state": "passed",
-      "reason": "Native DTM, CLC and IMERG grids remain separate and retain their source resolution. H3 resolution 10 is frozen only for cataloguing, inspection and evidence joins over the hydraulic-protocol envelope; it cannot carry physical routing or hydraulic state, and the final solver extent, origin, cell size and timestep remain explicitly missing."
+      "reason": "Native DTM, CLC and IMERG grids remain separate and retain their source resolution. H3 resolution 10 is frozen only for cataloguing, inspection and evidence joins over the hydraulic-protocol envelope; it cannot carry physical routing or hydraulic state. A separate versioned replacement-solver contract now declares 10 m, 20 m and 40 m computation meshes without converting any source into that resolution."
     },
     {
       "id": "spatial_evidence_composition",
@@ -2274,6 +2480,11 @@
       "id": "bounded_environmental_inputs",
       "state": "passed",
       "reason": "The bounded public baseline now has content-addressed real terrain, CLC 2012 and IMERG V07 Final evidence outside Git. The ten effective DTM gaps remain missing, the observed flood geometries remain sealed, H3 remains an inspection join only and solver execution is still unauthorized."
+    },
+    {
+      "id": "replacement_solver_contract",
+      "state": "passed",
+      "reason": "The public-only experimental replacement solver now freezes its 2D local-inertial formulation, primary 20 m and sensitivity meshes, explicit dry-start and free-outflow assumptions, Sheepmount incremental-discharge proxy, CLC runoff and roughness ranges, adaptive CFL rule, mass-balance terms, wetness thresholds and nine scenarios before any observed flood geometry is opened. Grid materialization, numerical-kernel verification, solver execution and evaluation remain blocked."
     },
     {
       "id": "as_of_event_hydrography",
@@ -2307,9 +2518,9 @@
     }
   ],
   "acquisition": {
-    "state": "bounded_environmental_inputs_materialized",
+    "state": "replacement_solver_contract_frozen",
     "largeDownloadsAllowed": false,
     "boundedTerrainDownloadsAllowed": true,
-    "nextAction": "Freeze an explicitly experimental public-only replacement-solver contract covering channel representation, upstream and downstream boundary placement, distributed initial state or warm-up, roughness, computation grid and timestep. Extend native-footprint composition only to cells that contract actually requires; keep all ten effective DTM gaps explicit and both observed flood geometries sealed."
+    "nextAction": "Materialize the three declared solver grids and the Sheepmount/half-hourly IMERG forcing as content-addressed preprocessing artifacts, preserving all ten effective DTM gaps. Then verify the local-inertial numerical kernel on deterministic mass-balance and stability fixtures; do not execute the event or open either observed flood geometry yet."
   }
 }

@@ -8,8 +8,12 @@ import {
   type CumbriaPublicBaselineProtocol,
   type CumbriaPublicBaselineTerrainMaterialization,
 } from './cumbriaPublicBaseline';
+import {
+  assertCumbriaReplacementSolverProtocol,
+  type CumbriaReplacementSolverProtocol,
+} from './cumbriaReplacementSolver';
 
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.18.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.19.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -397,7 +401,7 @@ export interface CumbriaDtmMaterializationPlan {
 
 export interface CumbriaSpatialGridProtocol {
   readonly id: 'cumbria-spatial-grid-boundary-v0';
-  readonly state: 'evidence_index_frozen_solver_mesh_blocked';
+  readonly state: 'evidence_index_and_replacement_mesh_frozen_execution_blocked';
   readonly sourceGrids: {
     readonly terrain: {
       readonly datasetId: 'ea-lidar-dtm-time-stamped';
@@ -539,7 +543,7 @@ export interface CumbriaSpatialGridProtocol {
   };
   readonly exchangeFrame: {
     readonly horizontalCrs: 'EPSG:27700';
-    readonly topology: 'no_common_raster_grid_before_solver_contract';
+    readonly topology: 'replacement_solver_grid_declared_sources_remain_native';
     readonly terrain: 'native_grid_clips';
     readonly landCover: 'native_class_footprints_reprojected_for_overlap_only';
     readonly precipitation: 'native_cell_footprints_reprojected_for_overlap_only';
@@ -547,29 +551,26 @@ export interface CumbriaSpatialGridProtocol {
     readonly missingInputPolicy: 'missing_or_partial_remains_explicit';
   };
   readonly solverMesh: {
-    readonly state: 'blocked_missing_runnable_model_and_geometry';
-    readonly horizontalCrsRequired: 'EPSG:27700';
-    readonly verticalDatumRequired: 'Ordnance Datum Newlyn';
-    readonly extent: null;
-    readonly cellSizeMetres: null;
-    readonly origin: null;
-    readonly width: null;
-    readonly height: null;
-    readonly timeStepSeconds: null;
-    readonly cannotBeDerivedFrom: readonly [
-      'metadata_aoi',
-      'boundary_protocol_envelope',
-      'h3_evidence_index',
-      'dtm_native_grid',
-      'clc_native_grid',
-    ];
-    readonly requiredEvidence: readonly [
-      'runnable_pre_event_model_or_versioned_replacement_solver',
-      'event_valid_channel_cross_sections_and_roughness',
-      'boundary_placement_and_values',
-      'distributed_initial_state_or_warmup',
-      'as_of_event_defence_and_floodgate_state',
-      'declared_mesh_extent_origin_cell_size_and_timestep',
+    readonly state: 'replacement_solver_contract_frozen_execution_blocked';
+    readonly contractId: 'cumbria-public-surface-flow-replacement-v0';
+    readonly horizontalCrs: 'EPSG:27700';
+    readonly verticalDatum: 'Ordnance Datum Newlyn';
+    readonly extent: readonly [332000, 556000, 340000, 563000];
+    readonly originUpperLeft: readonly [332000, 563000];
+    readonly primary: {
+      readonly cellSizeMetres: 20;
+      readonly width: 400;
+      readonly height: 350;
+      readonly cellCount: 140000;
+    };
+    readonly sensitivityCellSizesMetres: readonly [10, 40];
+    readonly timeIntegration: 'adaptive_cfl';
+    readonly h3Role: 'not_source_or_solver_grid';
+    readonly executionAuthorized: false;
+    readonly blockers: readonly [
+      'domain_solver_grids_not_materialized',
+      'numerical_kernel_not_fixture_verified',
+      'prediction_identity_not_frozen',
     ];
   };
 }
@@ -874,13 +875,14 @@ export interface CumbriaAccessManifest {
     CumbriaPublicBaselineTerrainMaterialization;
   readonly publicBaselineEnvironmentalMaterialization:
     CumbriaPublicBaselineEnvironmentalMaterialization;
+  readonly replacementSolverProtocol: CumbriaReplacementSolverProtocol;
   readonly evaluationProtocol: CumbriaBlindEvaluationProtocol;
   readonly modelAccessRequest: CumbriaModelAccessRequest;
   readonly modelDeliveryIntakeProtocol: CumbriaModelDeliveryIntakeProtocol;
   readonly datasets: readonly CumbriaDatasetAudit[];
   readonly gates: readonly CumbriaAccessGate[];
   readonly acquisition: {
-    readonly state: 'bounded_environmental_inputs_materialized';
+    readonly state: 'replacement_solver_contract_frozen';
     readonly largeDownloadsAllowed: false;
     readonly boundedTerrainDownloadsAllowed: true;
     readonly nextAction: string;
@@ -1115,6 +1117,11 @@ export function assertCumbriaAccessManifest(
     manifest.publicBaselineEnvironmentalMaterialization,
     manifest.publicBaselineProtocol,
   );
+  assertCumbriaReplacementSolverProtocol(manifest.replacementSolverProtocol, {
+    event: manifest.event,
+    publicBaselineProtocol: manifest.publicBaselineProtocol,
+    datasets,
+  });
   blindEvaluationProtocol(manifest.evaluationProtocol, datasetRecords);
 
   const imergFacts = record(
@@ -1160,6 +1167,7 @@ export function assertCumbriaAccessManifest(
   spatialGridProtocol(
     manifest.spatialGridProtocol,
     manifest.hydraulicProtocol,
+    manifest.replacementSolverProtocol,
     datasetRecords,
   );
 
@@ -1998,6 +2006,11 @@ export function assertCumbriaAccessManifest(
     'passed',
     'bounded_environmental_inputs',
   );
+  equal(
+    gateStates.get('replacement_solver_contract'),
+    'passed',
+    'replacement_solver_contract',
+  );
   equal(gateStates.get('as_of_event_defence_state'), 'blocked', 'as_of_event_defence_state');
   equal(gateStates.get('hydraulic_context'), 'blocked', 'hydraulic_context');
   equal(gateStates.get('large_artifact_downloads'), 'blocked', 'large_artifact_downloads');
@@ -2005,7 +2018,7 @@ export function assertCumbriaAccessManifest(
   const acquisition = record(manifest.acquisition, 'acquisition');
   equal(
     acquisition.state,
-    'bounded_environmental_inputs_materialized',
+    'replacement_solver_contract_frozen',
     'acquisition.state',
   );
   equal(
@@ -2572,6 +2585,7 @@ function dtmMaterializationProtocol(
 function spatialGridProtocol(
   value: unknown,
   hydraulicProtocolValue: unknown,
+  replacementSolverValue: unknown,
   datasetRecords: ReadonlyMap<string, Record<string, unknown>>,
 ): void {
   const protocol = record(value, 'spatialGridProtocol');
@@ -2582,7 +2596,7 @@ function spatialGridProtocol(
   );
   equal(
     protocol.state,
-    'evidence_index_frozen_solver_mesh_blocked',
+    'evidence_index_and_replacement_mesh_frozen_execution_blocked',
     'spatialGridProtocol.state',
   );
 
@@ -3017,7 +3031,7 @@ function spatialGridProtocol(
   equal(exchange.horizontalCrs, 'EPSG:27700', 'exchange frame CRS');
   equal(
     exchange.topology,
-    'no_common_raster_grid_before_solver_contract',
+    'replacement_solver_grid_declared_sources_remain_native',
     'exchange frame topology',
   );
   equal(exchange.terrain, 'native_grid_clips', 'exchange terrain representation');
@@ -3045,57 +3059,61 @@ function spatialGridProtocol(
   const solver = record(protocol.solverMesh, 'spatialGridProtocol.solverMesh');
   equal(
     solver.state,
-    'blocked_missing_runnable_model_and_geometry',
+    'replacement_solver_contract_frozen_execution_blocked',
     'solver mesh state',
   );
-  equal(solver.horizontalCrsRequired, 'EPSG:27700', 'solver mesh CRS');
+  const replacement = record(replacementSolverValue, 'replacementSolverProtocol');
+  equal(solver.contractId, replacement.id, 'solver mesh contract identity');
+  equal(solver.horizontalCrs, 'EPSG:27700', 'solver mesh CRS');
   equal(
-    solver.verticalDatumRequired,
+    solver.verticalDatum,
     'Ordnance Datum Newlyn',
     'solver mesh vertical datum',
   );
-  for (const field of [
-    'extent',
-    'cellSizeMetres',
-    'origin',
-    'width',
-    'height',
-    'timeStepSeconds',
-  ]) {
-    equal(solver[field], null, `solver mesh ${field}`);
-  }
-  const cannotBeDerivedFrom = stringArray(
-    solver.cannotBeDerivedFrom,
-    'solver mesh prohibited derivations',
-  );
+  const replacementDomain = record(replacement.domain, 'replacement solver domain');
   if (
-    JSON.stringify(cannotBeDerivedFrom) !==
+    JSON.stringify(numericArray(solver.extent, 4, 'solver mesh extent')) !==
+    JSON.stringify(numericArray(replacementDomain.bounds, 4, 'replacement solver bounds'))
+  ) {
+    throw new Error('solver mesh extent must match the replacement-solver contract');
+  }
+  if (
+    JSON.stringify(numericArray(solver.originUpperLeft, 2, 'solver mesh origin')) !==
+    JSON.stringify(numericArray(replacementDomain.originUpperLeft, 2, 'replacement solver origin'))
+  ) {
+    throw new Error('solver mesh origin must match the replacement-solver contract');
+  }
+  const replacementMeshes = record(replacement.meshes, 'replacement solver meshes');
+  const replacementPrimary = record(replacementMeshes.primary, 'replacement primary mesh');
+  const primary = record(solver.primary, 'solver primary mesh');
+  for (const [field, expected] of Object.entries({
+    cellSizeMetres: 20,
+    width: 400,
+    height: 350,
+    cellCount: 140000,
+  })) {
+    equal(primary[field], expected, `solver primary ${field}`);
+    equal(primary[field], replacementPrimary[field], `replacement primary ${field}`);
+  }
+  if (
+    JSON.stringify(numericArray(solver.sensitivityCellSizesMetres, 2, 'solver sensitivity sizes')) !==
+    JSON.stringify([10, 40])
+  ) {
+    throw new Error('solver sensitivity cell sizes drifted');
+  }
+  equal(solver.timeIntegration, 'adaptive_cfl', 'solver time integration');
+  equal(solver.h3Role, 'not_source_or_solver_grid', 'solver mesh H3 role');
+  equal(solver.executionAuthorized, false, 'solver execution gate');
+  const blockers = stringArray(solver.blockers, 'solver mesh blockers');
+  if (
+    JSON.stringify(blockers) !==
     JSON.stringify([
-      'metadata_aoi',
-      'boundary_protocol_envelope',
-      'h3_evidence_index',
-      'dtm_native_grid',
-      'clc_native_grid',
+      'domain_solver_grids_not_materialized',
+      'numerical_kernel_not_fixture_verified',
+      'prediction_identity_not_frozen',
     ])
   ) {
-    throw new Error('solver mesh prohibited derivations drifted');
-  }
-  const requiredEvidence = stringArray(
-    solver.requiredEvidence,
-    'solver mesh required evidence',
-  );
-  if (
-    JSON.stringify(requiredEvidence) !==
-    JSON.stringify([
-      'runnable_pre_event_model_or_versioned_replacement_solver',
-      'event_valid_channel_cross_sections_and_roughness',
-      'boundary_placement_and_values',
-      'distributed_initial_state_or_warmup',
-      'as_of_event_defence_and_floodgate_state',
-      'declared_mesh_extent_origin_cell_size_and_timestep',
-    ])
-  ) {
-    throw new Error('solver mesh required evidence drifted');
+    throw new Error('solver mesh blockers drifted');
   }
 }
 
