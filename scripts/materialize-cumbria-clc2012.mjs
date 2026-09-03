@@ -180,9 +180,15 @@ export function classifyRgbaPixels(bytes, colorMap) {
   let missingCellCount = 0;
   for (let index = 0; index < values.length; index += 1) {
     const offset = index * 4;
-    if (bytes[offset + 3] === 0) {
+    const alpha = bytes[offset + 3];
+    if (alpha === 0) {
       missingCellCount += 1;
       continue;
+    }
+    if (alpha !== 255) {
+      throw new Error(
+        `Rendered CLC cell ${index} has partial alpha ${alpha}`,
+      );
     }
     const key = `${bytes[offset]},${bytes[offset + 1]},${bytes[offset + 2]}`;
     const code = colorMap.get(key);

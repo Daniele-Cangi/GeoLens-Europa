@@ -66,6 +66,17 @@ test('unknown visible renderer colours fail rather than becoming a class or zero
   );
 });
 
+test('partially transparent renderer pixels fail rather than becoming evidence', () => {
+  assert.throws(
+    () =>
+      classifyRgbaPixels(
+        Uint8Array.from([1, 2, 3, 128]),
+        new Map([['1,2,3', 211]]),
+      ),
+    /partial alpha 128/,
+  );
+});
+
 test('materializer requires an explicit external non-OneDrive root', () => {
   const repositoryRoot = path.resolve('portable-fixture', 'repository');
   assert.throws(() => parseArguments([]), /--data-root is required/);

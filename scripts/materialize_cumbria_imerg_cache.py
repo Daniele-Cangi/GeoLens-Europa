@@ -292,8 +292,8 @@ def run(arguments=None):
             allow_early=False,
             spatial_bounds=bounds,
         )
-        set_cached_window(REFERENCE_TIME, WINDOW_HOURS, window)
         validate_window(window, bounds)
+        set_cached_window(REFERENCE_TIME, WINDOW_HOURS, window)
     result = materialize(data_root, window, bounds)
     return {
         **plan,

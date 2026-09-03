@@ -18,7 +18,7 @@ This plan is the durable execution record for the refoundation described in `AGE
 - External benchmark recovery: after the D volume became temporarily unavailable, the complete pinned benchmark was rebuilt under `C:/Users/dacan/GeoLens/data/emilia-romagna-2023`; 55 artifacts totaling 746,444,721 bytes pass the streamed byte-count and SHA-256 verifier
 - Historical benchmark API gate: established through a compact `GET /api/benchmarks/emilia-romagna-2023` snapshot that is contract-tested against manifest v1.16.0; the Case 02 inspector exposes the negative evaluation, source resolution, artifact inventory and blocked hydraulic evidence gate without loading or redistributing the external archive; a separate ARPAE intake endpoint now reports the awaited package as explicitly missing and replay-blocking
 - Historical benchmark spatial-inspection gate: established through a deterministic nominal 300 m display projection from byte-verified 30 m AOI, GLO-30, CLC, DBTR, terrain-routing and event-runoff artifacts; the map manifest exposes five attribution-bearing renderable layers while V7 geometry and ARPAE station geometry remain explicitly withheld under restricted or unresolved redistribution state
-- Cumbria replay qualification gate: metadata, four upstream hydrographs, bounded real DTM/CLC/IMERG evidence, native-grid/H3 composition semantics, blind evaluation isolation and a fail-closed Products 5/6/7 delivery intake are frozen; no model package or evaluation geometry has been received or opened, and hydraulic execution remains blocked
+- Cumbria replay qualification gate: metadata, four upstream hydrographs, bounded real DTM/CLC/IMERG evidence, a reproducible real-source H3 inspection cell, blind evaluation isolation and a fail-closed Products 5/6/7 delivery intake are frozen; no model package or evaluation geometry has been received or opened, and hydraulic execution remains blocked
 
 Verified starting baseline (historical):
 
@@ -488,11 +488,11 @@ Checkpoints:
 
 ## Phase 11 - Qualify the Cumbria 2015 public-data replay
 
-State: public Sheepmount–Old Sandsfield domain and bounded real DTM, CLC and IMERG evidence materialized; native-footprint composition, replacement-solver definition and blind evaluation still gated
+State: public Sheepmount–Old Sandsfield domain and bounded real DTM, CLC and IMERG evidence materialized; a single real native-footprint H3 inspection cell is reproduced, while replacement-solver definition and blind evaluation remain gated
 
 Progress:
 
-- manifest v0.17.0 freezes a bounded Carlisle source-discovery envelope, a separate local hydraulic-protocol envelope, the public Sheepmount–Old Sandsfield baseline domain, verified DTM/CLC/IMERG materialization results and the half-open 72-hour Storm Desmond window from 4 December 2015 00:00 UTC to 7 December 2015 00:00 UTC;
+- manifest v0.18.0 freezes a bounded Carlisle source-discovery envelope, a separate local hydraulic-protocol envelope, the public Sheepmount–Old Sandsfield baseline domain, verified DTM/CLC/IMERG materialization and single-cell composition results, and the half-open 72-hour Storm Desmond window from 4 December 2015 00:00 UTC to 7 December 2015 00:00 UTC;
 - the canonical Python `earthaccess` + `xarray` path acquired all 144 expected GPM_3IMERGHH V07 Final Run half-hour granules and content-addressed a bounded 3 × 4 native-grid 72-hour accumulation outside Git; all 12 cells are finite, range from 81.705 to 115.900 mm and retain V07 as explicit retrospective reprocessing;
 - the Environment Agency Hydrology API returned all 288 expected qualified 15-minute flow values and all 288 level values at Sheepmount on the River Eden, with observed maxima of 1,676.632 m3/s and 7.648 m respectively;
 - Willow Holme returned all 288 expected local rainfall values and a 49 mm window total; this is station comparison only and is not represented as high-fell or catchment-wide rainfall;
@@ -530,6 +530,9 @@ Progress:
 - complete terrain composition exposes area-weighted minimum, maximum and mean elevation with contributing native-resolution counts; CLC exposes area fractions and a deterministic dominant class; IMERG exposes native-cell overlap fractions and area-weighted window accumulation while preserving observed zero;
 - incomplete or unavailable intersections produce null evidence with mapped, observed, unavailable and uncovered area diagnostics. Real mode rejects any synthetic provenance, while fixture mode cannot lose its `synthetic_fixture` identity;
 - `npm run verify:cumbria-spatial-composition-fixture` reproduces H3 cell `8a1955d817b7fff`, measures its target footprint as 13,254.576126 m2 in EPSG:27700 and pins result SHA-256 `54dd22a25c9900fd6c989ae21ec4675171b6e0382e92f5571294c5d00bfd9441` with zero network requests and zero writes; this verifies transformation semantics only and does not represent materialized Cumbria evidence;
+- real probe `cumbria-public-baseline-centroid-h3-cell-v0` selects H3 cell `8a1955d9535ffff` solely from the centre of the previously frozen public domain, independently of source values and evaluation geometry; 13,528 intersecting native 1 m DTM pixels yield 6.300–9.090 m elevation with an 8.097 m area-weighted mean, CLC class `231` covers the cell and two native IMERG footprints yield 98.784 mm over 72 hours;
+- the real composition result SHA-256 is `08a8a07b06f8d35543bd8ba7b3fda350e71b3d685358e7e4ff93ae2db9194200`; its external 5,645,297-byte normalized artifact compresses to 96,438 bytes with SHA-256 `fa728fe2935d5ab657f893513ea900b4c9088e68f020548409b1c6e08bb384e1`, and `--check` reproduces both artifact and receipt byte for byte without network access or writes;
+- this is intentionally one complete inspection cell rather than domain-wide computation: H3 remains forbidden for routing and hydraulic state, and the result does not authorize a solver mesh, boundary state or evaluation access;
 - blind evaluation protocol `carlisle-blind-inundation-evaluation-v0` is frozen before either post-event geometry is loaded: a future prediction must first pin its content hash, code revision, model/transformation versions, physically defined wetness semantic and EPSG:27700 evaluation domain;
 - six metrics are fixed in advance (IoU, area precision/recall, false-positive/false-negative area and symmetric p95 boundary distance), missing observed coverage is excluded and reported rather than called dry, missing prediction coverage blocks evaluation, and the Environment Agency and Copernicus references must be evaluated separately;
 - the protocol forbids reference-driven domain, mesh, threshold or calibration choices and visual inspection before prediction freeze; `npm run verify:cumbria-blind-evaluation-protocol` pins SHA-256 `ee3eb1d5c2a26b8e3c4c6b5ff3c3f5a4c5a8ac65f99e7a2efbd951253d4297e2` while confirming zero network requests, zero writes and zero evaluation runs;
@@ -553,11 +556,11 @@ Progress:
 - `npm run audit:cumbria-boundary-protocol` rechecks the four official upstream station identities and advertised flow measures, confirms Rockcliffe is a rejected groundwater measure, verifies Willow Holme station reference `606299`, and reports the still-missing downstream, initial-state and mesh gates without loading evaluation geometry;
 - `npm run audit:cumbria-hydraulic-domain` replays the 19-record model catalogue, 349-record current channel context, Old Sandsfield coordinate transformation and bounded downstream station screen, checks both official SFRA documents, and fails on identity drift without loading evaluation geometry;
 - `npm run prepare:cumbria-model-request` validates the frozen access contract against the model catalogue and renders the ready-to-send email without writing credentials or external state;
-- bounded real Cumbria DTM, CLC and IMERG artifacts are registered outside Git with content identities; no observed-extent artifact has been loaded, while native-footprint composition, solver execution and evaluation-reference access remain blocked.
+- bounded real Cumbria DTM, CLC and IMERG artifacts and the first native-footprint H3 inspection result are registered outside Git with content identities; no observed-extent artifact has been loaded, while solver execution and evaluation-reference access remain blocked.
 
 Work:
 
-- compose the materialized DTM, CLC and IMERG native footprints into the H3 inspection index without treating H3 as source or solver resolution;
+- extend real-source composition only to cells required by a separately frozen solver contract, without treating H3 as source or solver resolution;
 - define an explicitly experimental open-data replacement-solver contract from DTM, CLC, IMERG and public river observations, with fixed initial/boundary assumptions and sensitivity scenarios rather than hidden calibration;
 - keep the missing historical channel sections, Old Sandsfield boundary and December 2015 defence state explicit, and keep the future EA package on a separate optional comparison track;
 - freeze the prediction artifact, code revision, domain, transformations and physical wetness semantics before opening either independent flood-extent reference;
