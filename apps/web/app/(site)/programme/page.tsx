@@ -111,12 +111,12 @@ export default function ProgrammePage() {
 
       <section className="programme-selection">
         <div className="programme-selection-intro">
-          <p className="site-overline">Case 03 selection protocol</p>
+          <p className="site-overline">Case 03 evidence policy</p>
           <h2>Data access is a scientific requirement.</h2>
           <p>
-            The next territory will be chosen for the evidence it can support,
-            not for name recognition. Screening comes before downloads or model
-            adaptation.
+            Cumbria was selected for the evidence it can support, not for name
+            recognition. Source qualification remains separate from model
+            adaptation and from the sealed evaluation references.
           </p>
         </div>
         <ol>
@@ -139,8 +139,9 @@ export default function ProgrammePage() {
         </div>
         <p>
           Amsterdam and Emilia-Romagna remain open evidence gates. In parallel,
-          GeoLens can improve its public interface and screen a new territory
-          whose full validation package is already accessible.
+          GeoLens is advancing the Cumbria public-only baseline while awaiting
+          optional owner evidence. No open case is allowed to convert an absent
+          dataset into a valid-looking result.
         </p>
         <div className="site-actions">
           <Link className="site-primary-action" href="/cases">

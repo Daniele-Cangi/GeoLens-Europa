@@ -25,7 +25,7 @@ function manifestFixture() {
   return JSON.parse(readFileSync(manifestPath, 'utf8'));
 }
 
-test('Cumbria manifest permits only the bounded public terrain acquisition', () => {
+test('Cumbria manifest records bounded environmental inputs without opening solver access', () => {
   const manifest = manifestFixture();
 
   assert.doesNotThrow(() => assertCumbriaAccessManifest(manifest));
@@ -36,7 +36,10 @@ test('Cumbria manifest permits only the bounded public terrain acquisition', () 
     },
     CUMBRIA_EVENT_WINDOW,
   );
-  assert.equal(manifest.acquisition.state, 'bounded_public_baseline_ready');
+  assert.equal(
+    manifest.acquisition.state,
+    'bounded_environmental_inputs_materialized',
+  );
   assert.equal(manifest.acquisition.largeDownloadsAllowed, false);
   assert.equal(manifest.acquisition.boundedTerrainDownloadsAllowed, true);
   assert.equal(
@@ -45,16 +48,17 @@ test('Cumbria manifest permits only the bounded public terrain acquisition', () 
   );
 });
 
-test('canonical IMERG discovery covers all 144 expected half-hour granules', () => {
+test('canonical IMERG acquisition covers all 144 expected half-hour granules', () => {
   const manifest = manifestFixture();
   const imerg = manifest.datasets.find(
     (dataset) => dataset.id === 'nasa-imerg-v07-final',
   );
 
-  assert.equal(imerg.access.state, 'catalog_verified');
+  assert.equal(imerg.access.state, 'materialized');
   assert.equal(imerg.facts.product, 'GPM_3IMERGHH');
   assert.equal(imerg.facts.expectedGranules, 144);
   assert.equal(imerg.facts.discoveredGranules, 144);
+  assert.equal(imerg.facts.acquiredGranules, 144);
   assert.equal(imerg.facts.firstGranuleAt, manifest.event.windowStart);
   assert.equal(imerg.facts.lastGranuleAt, '2015-12-06T23:30:00Z');
 
@@ -193,7 +197,7 @@ test('public baseline terrain materialization records real coverage without zero
   const manifest = manifestFixture();
   const result = manifest.publicBaselineTerrainMaterialization;
 
-  assert.equal(manifest.manifestVersion, '0.16.0');
+  assert.equal(manifest.manifestVersion, '0.17.0');
   assert.equal(result.state, 'terrain_materialized_with_explicit_gaps');
   assert.equal(
     result.protocolSha256,
@@ -236,6 +240,44 @@ test('public baseline terrain materialization records real coverage without zero
   assert.throws(
     () => assertCumbriaAccessManifest(driftedReceipt),
     /terrain mask receipt identity/,
+  );
+});
+
+test('public baseline environmental receipts pin real CLC and IMERG without authorizing the solver', () => {
+  const manifest = manifestFixture();
+  const result = manifest.publicBaselineEnvironmentalMaterialization;
+
+  assert.equal(result.state, 'land_cover_and_precipitation_materialized');
+  assert.equal(
+    result.protocolSha256,
+    manifest.publicBaselineProtocol.protocolSha256,
+  );
+  assert.equal(result.landCover.status, 'available');
+  assert.equal(result.landCover.availableCellCount, 7553);
+  assert.equal(result.landCover.missingCellCount, 0);
+  assert.equal(result.precipitation.status, 'available');
+  assert.equal(result.precipitation.acquiredGranules, 144);
+  assert.deepEqual(result.precipitation.sourceGrid.shapeLatLon, [3, 4]);
+  assert.equal(result.precipitation.sourceGrid.finiteCellCount, 12);
+  assert.equal(result.precipitation.sourceGranulesCopied, false);
+  assert.equal(result.isolation.missingValuesSubstitutedWithZero, false);
+  assert.equal(result.isolation.observedFloodGeometryLoaded, false);
+  assert.equal(result.isolation.solverExecutionAuthorized, false);
+
+  const driftedLandCover = manifestFixture();
+  driftedLandCover.publicBaselineEnvironmentalMaterialization.landCover.receipt.sha256 =
+    'a'.repeat(64);
+  assert.throws(
+    () => assertCumbriaAccessManifest(driftedLandCover),
+    /land-cover receipt identity/,
+  );
+
+  const missingAsZero = manifestFixture();
+  missingAsZero.publicBaselineEnvironmentalMaterialization.isolation.missingValuesSubstitutedWithZero =
+    true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(missingAsZero),
+    /environmental missing-value policy/,
   );
 });
 
@@ -359,7 +401,7 @@ test('pre-event terrain selection maps to downloadable archives with explicit ga
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.16.0');
+  assert.equal(manifest.manifestVersion, '0.17.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
@@ -607,7 +649,8 @@ test('spatial protocol preserves native grids and limits H3 to evidence joins', 
   assert.equal(protocol.evidenceIndex.hydraulicStateAllowed, false);
   assert.deepEqual(protocol.evidenceIndex.composition, {
     implementationVersion: 'spatial-evidence-index-v0.1.0',
-    state: 'deterministic_fixture_verified_real_sources_not_materialized',
+    state:
+      'deterministic_fixture_verified_real_sources_materialized_composition_pending',
     geometryMethod: 'exact_native_footprint_overlap',
     areaReferenceCrs: 'EPSG:27700',
     areaMeasurementMethod: 'projected_h3_boundary_shoelace',

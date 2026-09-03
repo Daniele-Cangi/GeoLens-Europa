@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.16.0",
+  "manifestVersion": "0.17.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -239,6 +239,83 @@
       "missingPixelsSubstitutedWithZero": false
     }
   },
+  "publicBaselineEnvironmentalMaterialization": {
+    "schemaVersion": "cumbria-public-baseline-environment-v0.1.0",
+    "state": "land_cover_and_precipitation_materialized",
+    "recordedOn": "2026-09-03",
+    "protocolSha256": "7fe1d804a5bbe8e5603d484422a9dce106960c90b26e38a83fb8d1cae30e3689",
+    "landCover": {
+      "datasetId": "copernicus-clc2012",
+      "status": "available",
+      "receipt": {
+        "fileName": "cumbria-public-baseline-clc2012.receipt.json",
+        "schemaVersion": "cumbria-clc2012-source-receipt-v0.1.0",
+        "sha256": "dce61b2234329619ce1212ccc3a49650c1fec68eea7bc5d465f722e170ebc96d"
+      },
+      "sourceGrid": {
+        "crs": "EPSG:3035",
+        "bounds": [3487900, 3606400, 3497000, 3614700],
+        "width": 91,
+        "height": 83,
+        "cellSizeMetres": 100
+      },
+      "availableCellCount": 7553,
+      "missingCellCount": 0,
+      "classCounts": {
+        "111": 10,
+        "112": 563,
+        "121": 315,
+        "122": 110,
+        "131": 51,
+        "142": 166,
+        "211": 1968,
+        "231": 3542,
+        "311": 133,
+        "313": 79,
+        "421": 434,
+        "522": 182
+      },
+      "classGridArtifactSha256": "35214149c6bc51e703c766f6e06b5ddb28955e5aded709105acdf1aa3536d779",
+      "renderedSourceWindowSha256": "5eaa326270f17f42cbe4bed7c75baa14a89f57f901d533ac0646ffcc0c84270a"
+    },
+    "precipitation": {
+      "datasetId": "nasa-imerg-v07-final",
+      "status": "available",
+      "receipt": {
+        "fileName": "cumbria-public-baseline-imerg-v07.receipt.json",
+        "schemaVersion": "cumbria-imerg-v07-source-receipt-v0.1.0",
+        "sha256": "fb768f0de5dd2e39df8c32e80655b28e9dfef02d1ed82605eb94012bb244ebf7"
+      },
+      "product": "GPM_3IMERGHH",
+      "runType": "final",
+      "datasetVersion": "07",
+      "windowStart": "2015-12-04T00:00:00Z",
+      "windowEndExclusive": "2015-12-07T00:00:00Z",
+      "expectedGranules": 144,
+      "acquiredGranules": 144,
+      "sourceGrid": {
+        "crs": "EPSG:4326",
+        "shapeLatLon": [3, 4],
+        "loadedBounds": [-3.1999998569488524, 54.7999984741211, -2.7999999046325685, 55.099999237060544],
+        "finiteCellCount": 12
+      },
+      "statisticsMm": {
+        "minimum": 81.70501708984375,
+        "maximum": 115.9000015258789,
+        "mean": 102.97125244140625
+      },
+      "nativeGridArtifactSha256": "99bb25ba7ed8ae874eb44b711b47457948e29495f41c3c06c0f29b5f0158be94",
+      "sourceGranulesCopied": false,
+      "canonicalAcquisitionPath": "nasa-precip-engine/earthaccess+xarray"
+    },
+    "isolation": {
+      "observedFloodGeometryLoaded": false,
+      "observedFloodGeometryUsed": false,
+      "h3UsedAsSourceOrSolverGrid": false,
+      "missingValuesSubstitutedWithZero": false,
+      "solverExecutionAuthorized": false
+    }
+  },
   "spatialGridProtocol": {
     "id": "cumbria-spatial-grid-boundary-v0",
     "state": "evidence_index_frozen_solver_mesh_blocked",
@@ -304,7 +381,7 @@
       "hydraulicStateAllowed": false,
       "composition": {
         "implementationVersion": "spatial-evidence-index-v0.1.0",
-        "state": "deterministic_fixture_verified_real_sources_not_materialized",
+        "state": "deterministic_fixture_verified_real_sources_materialized_composition_pending",
         "geometryMethod": "exact_native_footprint_overlap",
         "areaReferenceCrs": "EPSG:27700",
         "areaMeasurementMethod": "projected_h3_boundary_shoelace",
@@ -808,19 +885,26 @@
         "evaluation": false
       },
       "access": {
-        "state": "catalog_verified",
-        "checkedOn": "2026-08-30",
+        "state": "materialized",
+        "checkedOn": "2026-09-03",
         "url": "https://doi.org/10.5067/GPM/IMERG/3B-HH/07",
-        "note": "The canonical Python earthaccess path found every expected V07 Final Run granule without opening or downloading the rasters. V07 is retrospective reprocessing and was not available during the 2015 event."
+        "note": "The canonical Python earthaccess+xarray path acquired all 144 expected V07 Final Run granules and materialized a bounded 3 x 4 native-grid 72-hour accumulation outside Git. V07 is retrospective reprocessing and was not available during the 2015 event."
       },
       "facts": {
         "product": "GPM_3IMERGHH",
         "runType": "final",
         "expectedGranules": 144,
         "discoveredGranules": 144,
+        "acquiredGranules": 144,
         "firstGranuleAt": "2015-12-04T00:00:00Z",
         "lastGranuleAt": "2015-12-06T23:30:00Z",
-        "authenticationRequired": true
+        "authenticationRequired": true,
+        "nativeGridShapeLatLon": [3, 4],
+        "finiteCells": 12,
+        "minimumAccumulationMm": 81.70501708984375,
+        "maximumAccumulationMm": 115.9000015258789,
+        "meanAccumulationMm": 102.97125244140625,
+        "receiptSha256": "fb768f0de5dd2e39df8c32e80655b28e9dfef02d1ed82605eb94012bb244ebf7"
       }
     },
     {
@@ -1272,16 +1356,20 @@
         "evaluation": false
       },
       "access": {
-        "state": "metadata_verified",
-        "checkedOn": "2026-08-30",
+        "state": "materialized",
+        "checkedOn": "2026-09-03",
         "url": "https://land.copernicus.eu/en/products/corine-land-cover/clc-2012",
-        "note": "Reference imagery is 2011-2012, before Storm Desmond. The currently published corrected release is post-event retrospective processing and is disclosed as such."
+        "note": "Reference imagery is 2011-2012, before Storm Desmond. The corrected V2020_20u1 release was materialized from the official EEA raster service on its aligned 100 m EPSG:3035 grid; all 7,553 bounded cells are available and the retrospective release identity remains explicit."
       },
       "facts": {
         "referenceYears": "2011-2012",
         "crs": "EPSG:3035",
         "rasterResolutionMetres": 100,
-        "doi": "10.2909/a84ae124-c5c5-4577-8e10-511bfe55cc0d"
+        "doi": "10.2909/a84ae124-c5c5-4577-8e10-511bfe55cc0d",
+        "materializedCellCount": 7553,
+        "missingCellCount": 0,
+        "observedClassCount": 12,
+        "receiptSha256": "dce61b2234329619ce1212ccc3a49650c1fec68eea7bc5d465f722e170ebc96d"
       }
     },
     {
@@ -2062,7 +2150,7 @@
     {
       "id": "imerg_catalog",
       "state": "passed",
-      "reason": "The canonical NASA path found 144 of 144 V07 Final Run half-hour granules for the exact window."
+      "reason": "The canonical NASA earthaccess+xarray path acquired all 144 V07 Final Run half-hour granules for the exact window and produced a content-addressed 3 x 4 native-grid accumulation with 12 finite cells outside Git."
     },
     {
       "id": "direct_hydrology_series",
@@ -2097,7 +2185,7 @@
     {
       "id": "land_cover_lineage",
       "state": "passed",
-      "reason": "CLC 2012 gives an explicit pre-event reference year while retaining its post-event corrected release identity."
+      "reason": "CLC 2012 retains its 2011-2012 reference period and post-event corrected release identity. The bounded official raster-service window produced 7,553 available 100 m cells across 12 observed classes with zero missing cells and content-addressed receipts."
     },
     {
       "id": "evaluation_withholding",
@@ -2127,7 +2215,12 @@
     {
       "id": "spatial_evidence_composition",
       "state": "passed",
-      "reason": "A deterministic fixture verifies exact native-footprint composition into one H3 evidence cell. Incomplete coverage yields null evidence plus diagnostics, observed zero remains zero, overlapping footprints and mixed precipitation windows are rejected, and synthetic fixture inputs cannot enter real-evidence mode. No real Cumbria raster has been materialized by this gate."
+      "reason": "A deterministic fixture verifies exact native-footprint composition into one H3 evidence cell. Incomplete coverage yields null evidence plus diagnostics, observed zero remains zero, overlapping footprints and mixed precipitation windows are rejected, and synthetic fixture inputs cannot enter real-evidence mode. Real DTM, CLC and IMERG source evidence is now materialized, but has not yet been composed into the H3 inspection index or solver state."
+    },
+    {
+      "id": "bounded_environmental_inputs",
+      "state": "passed",
+      "reason": "The bounded public baseline now has content-addressed real terrain, CLC 2012 and IMERG V07 Final evidence outside Git. The ten effective DTM gaps remain missing, the observed flood geometries remain sealed, H3 remains an inspection join only and solver execution is still unauthorized."
     },
     {
       "id": "as_of_event_hydrography",
@@ -2161,9 +2254,9 @@
     }
   ],
   "acquisition": {
-    "state": "bounded_public_baseline_ready",
+    "state": "bounded_environmental_inputs_materialized",
     "largeDownloadsAllowed": false,
     "boundedTerrainDownloadsAllowed": true,
-    "nextAction": "Materialize only the six pre-event DTM archives frozen by publicBaselineProtocol, mask them to the 52 covered one-kilometre grid references and retain NY3256, NY3257, NY3357 and NY3959 as explicit NoData. The Environment Agency model response remains an optional comparison or physics upgrade, not a prerequisite."
+    "nextAction": "Compose the materialized DTM, CLC and IMERG native footprints into the H3 inspection index, then freeze an explicitly experimental replacement-solver contract covering channel representation, downstream and initial conditions, roughness, computation grid and timestep. Keep all ten effective DTM gaps explicit and both observed flood geometries sealed."
   }
 }
