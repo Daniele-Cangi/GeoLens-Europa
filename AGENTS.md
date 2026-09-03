@@ -168,6 +168,30 @@ Compilation alone is insufficient. Use the strongest applicable typecheck, unit,
 
 Avoid unjustified confidence percentages and production/validated claims. Prefer experimental, heuristic, derived, and proxy where accurate.
 
+## External evidence baseline and freeze
+
+The annotated tag `pre-external-evidence-baseline-v1` identifies commit `938b18fb66925e36236ea04a49eefdb2ca9826cb`, the GeoLens architecture frozen before receipt of owner-supplied Waternet attachment evidence or an Environment Agency Carlisle model package. Never move, delete, recreate, or retarget this tag.
+
+The project is not paused. Expansion and reference-driven scientific change are paused while these external-evidence tests are pending.
+
+Permitted work:
+
+- complete only the Cumbria preprocessing, forcing, numerical-kernel, stability, mass-balance, prediction-freeze, and blind-evaluation gates already declared in the repository;
+- ingest, hash, catalogue, quarantine, and review external packages without promoting them automatically to usable evidence;
+- add minimal non-inferential adapters for file format, CRS, units, time, identifiers, and schema;
+- improve CI, reproducibility, security, documentation, UI inspection, performance, and tests without changing scientific semantics;
+- fix bugs, provided any output-changing correction creates a new version and retains the frozen-baseline result.
+
+Forbidden work while the freeze is active:
+
+- add countries, benchmark areas, opportunistic datasets, generic composer abstractions, or major physical models;
+- adapt the architecture in anticipation of what Waternet or the Environment Agency may deliver;
+- choose domains, meshes, thresholds, parameters, scenarios, or metrics after inspecting evaluation evidence;
+- tune or calibrate against owner-supplied attachment truth or observed flood geometry;
+- overwrite, hide, or relabel a negative frozen-baseline result.
+
+When a package arrives, first retain its original bytes outside Git and compute content identities. Classify each artifact as event-available model input, contextual evidence, or post-event evaluation evidence. Evaluation evidence stays sealed until the prediction identity is frozen. Run the tagged baseline through only the minimum reviewed adapter. Any later scientific revision is a separately versioned experiment and must be reported beside, never instead of, the frozen result.
+
 ## Scope until Proof 0
 
 Do not add authentication, accounts, billing, collaboration, AI, agents, LLM analysis, mineral exploration, elaborate 3D, mobile, continent-scale optimization, generic dashboards, or unrelated hazards.

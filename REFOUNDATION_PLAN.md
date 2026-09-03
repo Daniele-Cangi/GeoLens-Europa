@@ -7,6 +7,7 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Working branch: `codex/geolens-refoundation`
 - Canonical base: `main@46b41e70557f18c8ec6852f6af3e796a6d1e2a8d`
 - Protected historical snapshot: `codex/pre-overhaul-snapshot-20260822@9920ee29ed945a55af8e7ff89005724fab19a998`
+- Active pre-external-evidence baseline: annotated tag `pre-external-evidence-baseline-v1` resolves to `938b18fb66925e36236ea04a49eefdb2ca9826cb`; the tag freezes the architecture before receipt of owner-supplied Waternet attachment evidence or an Environment Agency Carlisle model package and must never be moved or rewritten
 - Deterministic core Proof 0: established through environmental bundle, runoff, catchment aggregation, point-sampled node elevation, direction, propagation, and mass balance
 - Live provider verification: Copernicus DEM, the official local CLC2018 V2020_20u1 raster, a complete 48-granule IMERG Early Run V07 window and the bounded 96-granule Emilia-Romagna Final Run V07 event window are established; live execution remains opt-in
 - Refoundation core, Proof 0 API, and minimal inspection UI build/typecheck/test baseline: established; historical legacy sources are excluded from the active TypeScript boundary
@@ -28,6 +29,48 @@ Verified starting baseline (historical):
 - root test orchestration referred to missing workspace test scripts;
 - the canonical Python IMERG path is established and silent precipitation fallback is removed; generic risk, AI, and mineral sources remain parked in the tree but are absent from the active API entrypoint, dependencies, routes, and TypeScript build;
 - no verified real-evidence-to-network result exists.
+
+## External-evidence freeze — active
+
+State: GeoLens development continues, but architectural and scientific expansion is frozen while the Waternet attachment request and Environment Agency Carlisle model request are pending. This is a freeze on target drift, not a pause in implementation.
+
+Frozen reference:
+
+- annotated Git tag: `pre-external-evidence-baseline-v1`;
+- dereferenced commit: `938b18fb66925e36236ea04a49eefdb2ca9826cb`;
+- frozen after merge of PR #51 and before either requested owner package was received;
+- scope: the canonical evidence semantics, Amsterdam observed-infrastructure and attachment boundary, Cumbria public-only replacement-solver contract, predeclared sensitivity matrix, blind-evaluation protocol, and current claim limits.
+
+Permitted work:
+
+- materialize Cumbria 10 m, 20 m, and 40 m computation grids from native evidence under the already frozen rules;
+- materialize the already declared 15-minute Sheepmount and 30-minute IMERG forcing;
+- implement and fixture-verify the declared local-inertial kernel, adaptive-step failure, non-negative state, stability, and complete mass-balance accounting;
+- freeze a content-addressed Cumbria prediction before opening evaluation geometry, then execute the already declared metrics without retuning;
+- intake and review Waternet or Environment Agency deliveries, preserving original bytes, SHA-256 identities, publisher authority, licence, temporal lineage, CRS, units, datum, and missing components;
+- build only minimal non-inferential adapters for format, schema, identifier, unit, CRS, and time normalization;
+- perform maintenance, security work, CI improvements, performance work, documentation, UI inspection, and semantic-preserving bug fixes.
+
+Forbidden work:
+
+- add new countries, benchmark areas, opportunistic datasets, broad product features, generic composer layers, or a new major physical model while the freeze is active;
+- pre-adapt GeoLens to an assumed Waternet or Environment Agency delivery;
+- inspect observed flood geometry before Cumbria prediction freeze;
+- use external truth to choose a domain, attachment heuristic, mesh, wetness threshold, parameter, scenario, metric, or preferred result;
+- reinterpret a transport, format, or CRS adapter as authority for a scientific relationship;
+- replace a failed or negative frozen result with a post-hoc revised run.
+
+Arrival and evaluation sequence:
+
+1. retain the delivered originals outside Git and compute immutable byte counts and SHA-256 identities before transformation;
+2. classify artifacts as event-available input, contextual evidence, or post-event evaluation evidence;
+3. quarantine rejected, unrequested, post-event, or semantically ambiguous material and keep missing components explicit;
+4. run the frozen architecture through only the minimum reviewed adapter;
+5. content-address the prediction, code revision, transformations, domain, thresholds, and scenario identities before unsealing evaluation evidence;
+6. calculate the predeclared result and metrics once, preserving negative evidence;
+7. if a scientific correction is required, retain the baseline result and create a separately versioned model and evaluation.
+
+The freeze may be reconsidered only after both external-delivery paths have either produced a documented frozen-baseline result or reached a durable external unavailability state. Ordinary waiting does not authorize unrelated expansion.
 
 ## Migration classification
 

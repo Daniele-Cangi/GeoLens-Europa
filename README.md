@@ -73,6 +73,16 @@ GeoLens has two complementary operational proofs and two historical benchmark pr
 | Emilia-Romagna 2023 | A simple terrain-only concentration hypothesis was tested against an independent observed flood extent and did not perform better than chance | A reproducible historical benchmark, withheld evaluation data and honest negative evidence | A conditioned replay requires discharge, boundary, breach and terrain/channel evidence that is not currently available |
 | Cumbria 2015 | A small public-only River Eden experiment can advance without waiting for the official archived model | The 56 km² Sheepmount–Old Sandsfield domain has content-addressed real DTM, CLC 2012 and IMERG evidence; one independently selected H3 inspection cell composes those sources, and a fail-closed 2D replacement-solver contract fixes the assumptions and sensitivity matrix before evaluation | Ten terrain grids remain explicitly missing; the three computation grids, time-varying forcing and numerical kernel are not yet materialized or verified, so no event run or prediction exists |
 
+## Why development is deliberately constrained now
+
+GeoLens is not paused. Its expansion is frozen while two independent external-evidence paths remain open: owner-supplied Waternet attachment evidence for Amsterdam and an Environment Agency model package for Carlisle.
+
+The annotated Git tag `pre-external-evidence-baseline-v1` identifies commit `938b18fb66925e36236ea04a49eefdb2ca9826cb`. It records what GeoLens was before either requested package arrived. The tag is intentionally separate from the public release line.
+
+Work can continue on the Cumbria gates that were already declared: computation-grid preparation, time-varying forcing, fixture verification of the numerical kernel, stability, mass balance, prediction freeze and blind evaluation. Package integrity checks, minimal format/CRS/unit/schema adapters, tests, security, reproducibility and interface work can also continue.
+
+What cannot happen is equally important. GeoLens will not add a new country or benchmark merely because data are available, anticipate the contents of an agency delivery, or select parameters and thresholds after seeing the expected answer. If the frozen baseline performs poorly, that result remains part of the record. A scientifically revised model may follow only as a separately versioned experiment shown beside the original result.
+
 ![GeoLens Case 02 spatial inspector showing the Emilia-Romagna event runoff layer and explicit withheld evidence](docs/screenshots/emilia-event-runoff.png)
 
 *Case 02 exposes the derived event-runoff concentration together with native resolution, transformation and publication state. Restricted or unavailable spatial evidence remains visibly withheld instead of being rendered as zero.*
@@ -523,6 +533,8 @@ npm run verify:emilia-map -- --data-root C:\Users\dacan\GeoLens\data\emilia-roma
 
 GeoLens includes one local intake command for future ARPAE, Amsterdam/Waternet and Cumbria model deliveries. It reads originals from a data directory outside Git, computes their byte counts and SHA-256 identities, validates the appropriate scientific contract and writes a new package receipt. It does not copy the originals and refuses to overwrite an existing receipt.
 
+For future Waternet and Environment Agency packages, the scientific reference is `pre-external-evidence-baseline-v1` at commit `938b18fb66925e36236ea04a49eefdb2ca9826cb`. Review records and any resulting prediction provenance must retain that identity. Intake may normalize representation; it cannot change model semantics, establish an undocumented attachment or grant calibration access to withheld evaluation evidence.
+
 ~~~powershell
 npm run intake:external-evidence -- --kind arpae --draft C:\path\to\arpae-draft.json --data-root C:\path\to\arpae-delivery --output C:\path\to\receipts\arpae-package.json
 
@@ -668,7 +680,7 @@ GeoLens originally contained a broad multi-hazard product, AI analysis, mineral 
 
 The pre-overhaul repository is preserved on branch codex/pre-overhaul-snapshot-20260822. Do not rewrite that branch.
 
-The latest repository tag is v0.1.0-alpha.4. Current main may contain later verified refoundation work.
+The public release line remains v0.1.0-alpha.4. The separate annotated tag `pre-external-evidence-baseline-v1` freezes commit `938b18fb66925e36236ea04a49eefdb2ca9826cb` for the Waternet and Environment Agency external-evidence tests; it is a scientific baseline, not a release claim. Current main may contain later maintenance and protocol-preserving work.
 
 When repository materials disagree, use this order:
 
