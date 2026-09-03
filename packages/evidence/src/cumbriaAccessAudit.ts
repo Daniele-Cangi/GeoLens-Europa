@@ -9,7 +9,7 @@ import {
   type CumbriaPublicBaselineTerrainMaterialization,
 } from './cumbriaPublicBaseline';
 
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.17.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.18.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -460,7 +460,7 @@ export interface CumbriaSpatialGridProtocol {
     readonly hydraulicStateAllowed: false;
     readonly composition: {
       readonly implementationVersion: 'spatial-evidence-index-v0.1.0';
-      readonly state: 'deterministic_fixture_verified_real_sources_materialized_composition_pending';
+      readonly state: 'real_single_cell_materialized_solver_mesh_blocked';
       readonly geometryMethod: 'exact_native_footprint_overlap';
       readonly areaReferenceCrs: 'EPSG:27700';
       readonly areaMeasurementMethod: 'projected_h3_boundary_shoelace';
@@ -481,6 +481,59 @@ export interface CumbriaSpatialGridProtocol {
         readonly windowStart: '2015-12-04T00:00:00.000Z';
         readonly windowEnd: '2015-12-07T00:00:00.000Z';
         readonly expectedResultSha256: string;
+      };
+      readonly realEvidenceProbe: {
+        readonly id: 'cumbria-public-baseline-centroid-h3-cell-v0';
+        readonly state: 'materialized_and_reproduced';
+        readonly scope: 'single_inspection_cell_not_domain_wide';
+        readonly selectionRule: string;
+        readonly fixedPointBng: readonly [336000, 559500];
+        readonly h3: '8a1955d9535ffff';
+        readonly h3Resolution: 10;
+        readonly composedAt: string;
+        readonly targetCellAreaM2: number;
+        readonly inputReceiptSha256: {
+          readonly terrain: string;
+          readonly landCover: string;
+          readonly precipitation: string;
+        };
+        readonly intersectionCounts: {
+          readonly terrain: number;
+          readonly landCover: number;
+          readonly precipitation: number;
+        };
+        readonly resultSha256: string;
+        readonly receipt: {
+          readonly fileName: string;
+          readonly schemaVersion: string;
+          readonly sha256: string;
+        };
+        readonly artifact: {
+          readonly sha256: string;
+          readonly contentSha256: string;
+          readonly compressedBytes: number;
+          readonly decodedBytes: number;
+        };
+        readonly summary: {
+          readonly meanElevationM: number;
+          readonly minimumElevationM: number;
+          readonly maximumElevationM: number;
+          readonly dominantClcClass: number;
+          readonly dominantClcClassFraction: number;
+          readonly rainfall72hMm: number;
+          readonly terrainCoverageFraction: number;
+          readonly landCoverCoverageFraction: number;
+          readonly precipitationCoverageFraction: number;
+        };
+        readonly isolation: {
+          readonly selectionIndependentOfSourceValues: true;
+          readonly observedFloodGeometryLoaded: false;
+          readonly h3UsedAsSourceOrSolverGrid: false;
+          readonly physicalRoutingAllowed: false;
+          readonly hydraulicStateAllowed: false;
+          readonly solverExecutionAuthorized: false;
+          readonly missingValuesSubstitutedWithZero: false;
+        };
       };
     };
   };
@@ -2753,7 +2806,7 @@ function spatialGridProtocol(
   );
   equal(
     composition.state,
-    'deterministic_fixture_verified_real_sources_materialized_composition_pending',
+    'real_single_cell_materialized_solver_mesh_blocked',
     'evidence composition state',
   );
   equal(
@@ -2851,6 +2904,114 @@ function spatialGridProtocol(
     '54dd22a25c9900fd6c989ae21ec4675171b6e0382e92f5571294c5d00bfd9441',
     'evidence composition fixture result identity',
   );
+  const realProbe = record(
+    composition.realEvidenceProbe,
+    'evidence composition real probe',
+  );
+  equal(
+    realProbe.id,
+    'cumbria-public-baseline-centroid-h3-cell-v0',
+    'real evidence probe id',
+  );
+  equal(realProbe.state, 'materialized_and_reproduced', 'real evidence probe state');
+  equal(
+    realProbe.scope,
+    'single_inspection_cell_not_domain_wide',
+    'real evidence probe scope',
+  );
+  nonEmpty(realProbe.selectionRule, 'real evidence probe selection rule');
+  if (
+    JSON.stringify(numericArray(realProbe.fixedPointBng, 2, 'real probe fixed point')) !==
+    JSON.stringify([336000, 559500])
+  ) {
+    throw new Error('real evidence probe fixed point drifted');
+  }
+  equal(realProbe.h3, '8a1955d9535ffff', 'real evidence probe H3');
+  equal(realProbe.h3Resolution, 10, 'real evidence probe H3 resolution');
+  timestamp(realProbe.composedAt, 'real evidence probe composition time');
+  equal(
+    finite(realProbe.targetCellAreaM2, 'real evidence probe target area'),
+    13257.43490600586,
+    'real evidence probe target area',
+  );
+  const inputReceipts = record(
+    realProbe.inputReceiptSha256,
+    'real evidence probe input receipts',
+  );
+  equal(
+    sha256(inputReceipts.terrain, 'real evidence probe terrain receipt'),
+    'c9acfe46f41e08e40e6473ce399e912b8d4e27c880e928e0f1a77aef15749988',
+    'real evidence probe terrain receipt',
+  );
+  equal(
+    sha256(inputReceipts.landCover, 'real evidence probe land-cover receipt'),
+    'dce61b2234329619ce1212ccc3a49650c1fec68eea7bc5d465f722e170ebc96d',
+    'real evidence probe land-cover receipt',
+  );
+  equal(
+    sha256(inputReceipts.precipitation, 'real evidence probe precipitation receipt'),
+    'fb768f0de5dd2e39df8c32e80655b28e9dfef02d1ed82605eb94012bb244ebf7',
+    'real evidence probe precipitation receipt',
+  );
+  const intersectionCounts = record(
+    realProbe.intersectionCounts,
+    'real evidence probe intersection counts',
+  );
+  equal(integer(intersectionCounts.terrain, 'real terrain intersections'), 13528, 'real terrain intersections');
+  equal(integer(intersectionCounts.landCover, 'real land-cover intersections'), 4, 'real land-cover intersections');
+  equal(integer(intersectionCounts.precipitation, 'real precipitation intersections'), 2, 'real precipitation intersections');
+  equal(
+    sha256(realProbe.resultSha256, 'real evidence probe result identity'),
+    '08a8a07b06f8d35543bd8ba7b3fda350e71b3d685358e7e4ff93ae2db9194200',
+    'real evidence probe result identity',
+  );
+  const realReceipt = record(realProbe.receipt, 'real evidence probe receipt');
+  equal(
+    realReceipt.fileName,
+    'cumbria-public-baseline-spatial-evidence-cell.receipt.json',
+    'real evidence probe receipt file',
+  );
+  equal(
+    realReceipt.schemaVersion,
+    'cumbria-spatial-evidence-cell-receipt-v0.1.0',
+    'real evidence probe receipt schema',
+  );
+  equal(
+    sha256(realReceipt.sha256, 'real evidence probe receipt SHA-256'),
+    'a51852c30b0d6cc79048c699c29aeb84e9b65f8a4960b05fc1df304eea18ff50',
+    'real evidence probe receipt SHA-256',
+  );
+  const realArtifact = record(realProbe.artifact, 'real evidence probe artifact');
+  equal(
+    sha256(realArtifact.sha256, 'real evidence artifact SHA-256'),
+    'fa728fe2935d5ab657f893513ea900b4c9088e68f020548409b1c6e08bb384e1',
+    'real evidence artifact SHA-256',
+  );
+  equal(
+    sha256(realArtifact.contentSha256, 'real evidence artifact content SHA-256'),
+    '7fa1ce9ea2c2683f0648b6514092509c14bbb8dc3a0eb8c4c105e42c823e73d4',
+    'real evidence artifact content SHA-256',
+  );
+  equal(integer(realArtifact.compressedBytes, 'real evidence artifact bytes'), 96438, 'real evidence artifact bytes');
+  equal(integer(realArtifact.decodedBytes, 'real evidence decoded bytes'), 5645297, 'real evidence decoded bytes');
+  const realSummary = record(realProbe.summary, 'real evidence probe summary');
+  equal(finite(realSummary.minimumElevationM, 'real minimum elevation'), 6.300000190734863, 'real minimum elevation');
+  equal(finite(realSummary.maximumElevationM, 'real maximum elevation'), 9.09000015258789, 'real maximum elevation');
+  equal(finite(realSummary.meanElevationM, 'real mean elevation'), 8.097015341227973, 'real mean elevation');
+  equal(realSummary.dominantClcClass, 231, 'real dominant CLC class');
+  equal(realSummary.dominantClcClassFraction, 1, 'real dominant CLC fraction');
+  equal(finite(realSummary.rainfall72hMm, 'real 72-hour rainfall'), 98.78403955006738, 'real 72-hour rainfall');
+  equal(realSummary.terrainCoverageFraction, 1, 'real terrain coverage');
+  equal(realSummary.landCoverCoverageFraction, 1, 'real land-cover coverage');
+  equal(realSummary.precipitationCoverageFraction, 0.9999999988490391, 'real precipitation coverage');
+  const realIsolation = record(realProbe.isolation, 'real evidence probe isolation');
+  equal(realIsolation.selectionIndependentOfSourceValues, true, 'real probe source-value isolation');
+  equal(realIsolation.observedFloodGeometryLoaded, false, 'real probe evaluation isolation');
+  equal(realIsolation.h3UsedAsSourceOrSolverGrid, false, 'real probe H3 role');
+  equal(realIsolation.physicalRoutingAllowed, false, 'real probe routing policy');
+  equal(realIsolation.hydraulicStateAllowed, false, 'real probe hydraulic-state policy');
+  equal(realIsolation.solverExecutionAuthorized, false, 'real probe solver gate');
+  equal(realIsolation.missingValuesSubstitutedWithZero, false, 'real probe missing-value policy');
 
   const exchange = record(protocol.exchangeFrame, 'spatialGridProtocol.exchangeFrame');
   equal(exchange.horizontalCrs, 'EPSG:27700', 'exchange frame CRS');

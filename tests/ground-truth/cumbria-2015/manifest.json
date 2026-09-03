@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.17.0",
+  "manifestVersion": "0.18.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -381,7 +381,7 @@
       "hydraulicStateAllowed": false,
       "composition": {
         "implementationVersion": "spatial-evidence-index-v0.1.0",
-        "state": "deterministic_fixture_verified_real_sources_materialized_composition_pending",
+        "state": "real_single_cell_materialized_solver_mesh_blocked",
         "geometryMethod": "exact_native_footprint_overlap",
         "areaReferenceCrs": "EPSG:27700",
         "areaMeasurementMethod": "projected_h3_boundary_shoelace",
@@ -402,6 +402,59 @@
           "windowStart": "2015-12-04T00:00:00.000Z",
           "windowEnd": "2015-12-07T00:00:00.000Z",
           "expectedResultSha256": "54dd22a25c9900fd6c989ae21ec4675171b6e0382e92f5571294c5d00bfd9441"
+        },
+        "realEvidenceProbe": {
+          "id": "cumbria-public-baseline-centroid-h3-cell-v0",
+          "state": "materialized_and_reproduced",
+          "scope": "single_inspection_cell_not_domain_wide",
+          "selectionRule": "H3 resolution 10 cell containing the exact centre of the frozen public-baseline EPSG:27700 domain; selection is independent of source values and evaluation geometry",
+          "fixedPointBng": [336000, 559500],
+          "h3": "8a1955d9535ffff",
+          "h3Resolution": 10,
+          "composedAt": "2026-09-02T22:04:05.843Z",
+          "targetCellAreaM2": 13257.43490600586,
+          "inputReceiptSha256": {
+            "terrain": "c9acfe46f41e08e40e6473ce399e912b8d4e27c880e928e0f1a77aef15749988",
+            "landCover": "dce61b2234329619ce1212ccc3a49650c1fec68eea7bc5d465f722e170ebc96d",
+            "precipitation": "fb768f0de5dd2e39df8c32e80655b28e9dfef02d1ed82605eb94012bb244ebf7"
+          },
+          "intersectionCounts": {
+            "terrain": 13528,
+            "landCover": 4,
+            "precipitation": 2
+          },
+          "resultSha256": "08a8a07b06f8d35543bd8ba7b3fda350e71b3d685358e7e4ff93ae2db9194200",
+          "receipt": {
+            "fileName": "cumbria-public-baseline-spatial-evidence-cell.receipt.json",
+            "schemaVersion": "cumbria-spatial-evidence-cell-receipt-v0.1.0",
+            "sha256": "a51852c30b0d6cc79048c699c29aeb84e9b65f8a4960b05fc1df304eea18ff50"
+          },
+          "artifact": {
+            "sha256": "fa728fe2935d5ab657f893513ea900b4c9088e68f020548409b1c6e08bb384e1",
+            "contentSha256": "7fa1ce9ea2c2683f0648b6514092509c14bbb8dc3a0eb8c4c105e42c823e73d4",
+            "compressedBytes": 96438,
+            "decodedBytes": 5645297
+          },
+          "summary": {
+            "minimumElevationM": 6.300000190734863,
+            "maximumElevationM": 9.09000015258789,
+            "meanElevationM": 8.097015341227973,
+            "dominantClcClass": 231,
+            "dominantClcClassFraction": 1,
+            "rainfall72hMm": 98.78403955006738,
+            "terrainCoverageFraction": 1,
+            "landCoverCoverageFraction": 1,
+            "precipitationCoverageFraction": 0.9999999988490391
+          },
+          "isolation": {
+            "selectionIndependentOfSourceValues": true,
+            "observedFloodGeometryLoaded": false,
+            "h3UsedAsSourceOrSolverGrid": false,
+            "physicalRoutingAllowed": false,
+            "hydraulicStateAllowed": false,
+            "solverExecutionAuthorized": false,
+            "missingValuesSubstitutedWithZero": false
+          }
         }
       }
     },
@@ -2215,7 +2268,7 @@
     {
       "id": "spatial_evidence_composition",
       "state": "passed",
-      "reason": "A deterministic fixture verifies exact native-footprint composition into one H3 evidence cell. Incomplete coverage yields null evidence plus diagnostics, observed zero remains zero, overlapping footprints and mixed precipitation windows are rejected, and synthetic fixture inputs cannot enter real-evidence mode. Real DTM, CLC and IMERG source evidence is now materialized, but has not yet been composed into the H3 inspection index or solver state."
+      "reason": "A deterministic fixture verifies the transformation semantics, and a separately selected real H3 inspection cell composes byte-verified native DTM, CLC and IMERG footprints with a reproducible result and receipt. Incomplete coverage yields null evidence plus diagnostics, observed zero remains zero, overlapping footprints and mixed precipitation windows are rejected, and synthetic fixture inputs cannot enter real-evidence mode. The real result remains inspection-only and does not create a solver state."
     },
     {
       "id": "bounded_environmental_inputs",
@@ -2257,6 +2310,6 @@
     "state": "bounded_environmental_inputs_materialized",
     "largeDownloadsAllowed": false,
     "boundedTerrainDownloadsAllowed": true,
-    "nextAction": "Compose the materialized DTM, CLC and IMERG native footprints into the H3 inspection index, then freeze an explicitly experimental replacement-solver contract covering channel representation, downstream and initial conditions, roughness, computation grid and timestep. Keep all ten effective DTM gaps explicit and both observed flood geometries sealed."
+    "nextAction": "Freeze an explicitly experimental public-only replacement-solver contract covering channel representation, upstream and downstream boundary placement, distributed initial state or warm-up, roughness, computation grid and timestep. Extend native-footprint composition only to cells that contract actually requires; keep all ten effective DTM gaps explicit and both observed flood geometries sealed."
   }
 }

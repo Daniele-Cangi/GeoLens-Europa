@@ -83,8 +83,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def validate_protocol(manifest: dict) -> dict:
-    if manifest.get("manifestVersion") != "0.17.0":
-        raise ValueError("Cumbria materializer requires manifest v0.17.0")
+    if manifest.get("manifestVersion") != "0.18.0":
+        raise ValueError("Cumbria materializer requires manifest v0.18.0")
     protocol = manifest.get("publicBaselineProtocol")
     if not isinstance(protocol, dict):
         raise ValueError("Cumbria public-baseline protocol is missing")

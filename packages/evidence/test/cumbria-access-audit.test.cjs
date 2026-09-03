@@ -197,7 +197,7 @@ test('public baseline terrain materialization records real coverage without zero
   const manifest = manifestFixture();
   const result = manifest.publicBaselineTerrainMaterialization;
 
-  assert.equal(manifest.manifestVersion, '0.17.0');
+  assert.equal(manifest.manifestVersion, '0.18.0');
   assert.equal(result.state, 'terrain_materialized_with_explicit_gaps');
   assert.equal(
     result.protocolSha256,
@@ -401,7 +401,7 @@ test('pre-event terrain selection maps to downloadable archives with explicit ga
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.17.0');
+  assert.equal(manifest.manifestVersion, '0.18.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
@@ -649,8 +649,7 @@ test('spatial protocol preserves native grids and limits H3 to evidence joins', 
   assert.equal(protocol.evidenceIndex.hydraulicStateAllowed, false);
   assert.deepEqual(protocol.evidenceIndex.composition, {
     implementationVersion: 'spatial-evidence-index-v0.1.0',
-    state:
-      'deterministic_fixture_verified_real_sources_materialized_composition_pending',
+    state: 'real_single_cell_materialized_solver_mesh_blocked',
     geometryMethod: 'exact_native_footprint_overlap',
     areaReferenceCrs: 'EPSG:27700',
     areaMeasurementMethod: 'projected_h3_boundary_shoelace',
@@ -672,6 +671,68 @@ test('spatial protocol preserves native grids and limits H3 to evidence joins', 
       windowEnd: '2015-12-07T00:00:00.000Z',
       expectedResultSha256:
         protocol.evidenceIndex.composition.verificationFixture.expectedResultSha256,
+    },
+    realEvidenceProbe: {
+      id: 'cumbria-public-baseline-centroid-h3-cell-v0',
+      state: 'materialized_and_reproduced',
+      scope: 'single_inspection_cell_not_domain_wide',
+      selectionRule:
+        'H3 resolution 10 cell containing the exact centre of the frozen public-baseline EPSG:27700 domain; selection is independent of source values and evaluation geometry',
+      fixedPointBng: [336000, 559500],
+      h3: '8a1955d9535ffff',
+      h3Resolution: 10,
+      composedAt: '2026-09-02T22:04:05.843Z',
+      targetCellAreaM2: 13257.43490600586,
+      inputReceiptSha256: {
+        terrain:
+          'c9acfe46f41e08e40e6473ce399e912b8d4e27c880e928e0f1a77aef15749988',
+        landCover:
+          'dce61b2234329619ce1212ccc3a49650c1fec68eea7bc5d465f722e170ebc96d',
+        precipitation:
+          'fb768f0de5dd2e39df8c32e80655b28e9dfef02d1ed82605eb94012bb244ebf7',
+      },
+      intersectionCounts: {
+        terrain: 13528,
+        landCover: 4,
+        precipitation: 2,
+      },
+      resultSha256:
+        '08a8a07b06f8d35543bd8ba7b3fda350e71b3d685358e7e4ff93ae2db9194200',
+      receipt: {
+        fileName:
+          'cumbria-public-baseline-spatial-evidence-cell.receipt.json',
+        schemaVersion: 'cumbria-spatial-evidence-cell-receipt-v0.1.0',
+        sha256:
+          'a51852c30b0d6cc79048c699c29aeb84e9b65f8a4960b05fc1df304eea18ff50',
+      },
+      artifact: {
+        sha256:
+          'fa728fe2935d5ab657f893513ea900b4c9088e68f020548409b1c6e08bb384e1',
+        contentSha256:
+          '7fa1ce9ea2c2683f0648b6514092509c14bbb8dc3a0eb8c4c105e42c823e73d4',
+        compressedBytes: 96438,
+        decodedBytes: 5645297,
+      },
+      summary: {
+        minimumElevationM: 6.300000190734863,
+        maximumElevationM: 9.09000015258789,
+        meanElevationM: 8.097015341227973,
+        dominantClcClass: 231,
+        dominantClcClassFraction: 1,
+        rainfall72hMm: 98.78403955006738,
+        terrainCoverageFraction: 1,
+        landCoverCoverageFraction: 1,
+        precipitationCoverageFraction: 0.9999999988490391,
+      },
+      isolation: {
+        selectionIndependentOfSourceValues: true,
+        observedFloodGeometryLoaded: false,
+        h3UsedAsSourceOrSolverGrid: false,
+        physicalRoutingAllowed: false,
+        hydraulicStateAllowed: false,
+        solverExecutionAuthorized: false,
+        missingValuesSubstitutedWithZero: false,
+      },
     },
   });
   assert.equal(
@@ -749,6 +810,14 @@ test('spatial protocol rejects false precision and invented solver geometry', ()
   assert.throws(
     () => assertCumbriaAccessManifest(fixtureLeakage),
     /evidence composition fixture isolation/,
+  );
+
+  const solverPromotion = manifestFixture();
+  solverPromotion.spatialGridProtocol.evidenceIndex.composition.realEvidenceProbe.isolation.solverExecutionAuthorized =
+    true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(solverPromotion),
+    /real probe solver gate/,
   );
 });
 
