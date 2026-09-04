@@ -1,6 +1,8 @@
 import math
+import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import numpy as np
@@ -13,6 +15,7 @@ from src.imerg_client import (
     archive_version_for,
     discover_imerg_granules,
     get_precip_at_point,
+    load_imerg_series,
     load_imerg_window,
     normalize_reference_time,
     precipitation_amount,
@@ -174,6 +177,101 @@ class ImergNumericSemanticsTests(unittest.TestCase):
         self.assertEqual(window.metadata.status, "available")
         for handle in handles:
             handle.close.assert_called_once_with()
+
+    def test_native_series_retains_half_hour_values_before_accumulation(self):
+        end = datetime(2023, 5, 18, tzinfo=timezone.utc)
+        start = end - timedelta(hours=1)
+        timestamps = (start, start + timedelta(minutes=30))
+        discovery = ImergGranuleDiscovery(
+            product="GPM_3IMERGHH",
+            run_type="final",
+            dataset_version="07",
+            archive_version="07",
+            requested_window_start=start,
+            requested_window_end=end,
+            expected_granule_count=2,
+            searched_granule_count=2,
+            granule_timestamps=timestamps,
+            timestamped_results=tuple(zip(timestamps, (object(), object()))),
+        )
+        bounds = ImergSpatialBounds(10.0, 45.0, 11.0, 46.0)
+
+        with patch(
+            "src.imerg_client.discover_imerg_granules",
+            return_value=discovery,
+        ), patch(
+            "src.imerg_client.earthaccess.open",
+            return_value=[Mock(), Mock()],
+        ), patch(
+            "src.imerg_client.xr.open_dataset",
+            side_effect=[
+                dataset([[0.0, 2.0], [4.0, 6.0]]),
+                dataset([[2.0, 4.0], [6.0, 8.0]]),
+            ],
+        ):
+            series = load_imerg_series(end, 1, spatial_bounds=bounds)
+
+        self.assertEqual(series.data.dims, ("time", "lon", "lat"))
+        self.assertEqual(
+            list(series.data.coords["time"].values),
+            [
+                np.datetime64(timestamp.replace(tzinfo=None), "ns")
+                for timestamp in timestamps
+            ],
+        )
+        self.assertEqual(float(series.data.isel(time=0, lon=0, lat=0)), 0.0)
+        self.assertEqual(float(series.data.isel(time=1, lon=0, lat=0)), 1.0)
+        self.assertEqual(series.metadata.granule_count, 2)
+
+    def test_native_series_reuses_content_scoped_granule_staging_cache(self):
+        end = datetime(2023, 5, 18, tzinfo=timezone.utc)
+        start = end - timedelta(hours=1)
+        timestamps = (start, start + timedelta(minutes=30))
+        discovery = ImergGranuleDiscovery(
+            product="GPM_3IMERGHH",
+            run_type="final",
+            dataset_version="07",
+            archive_version="07",
+            requested_window_start=start,
+            requested_window_end=end,
+            expected_granule_count=2,
+            searched_granule_count=2,
+            granule_timestamps=timestamps,
+            timestamped_results=tuple(zip(timestamps, (object(), object()))),
+        )
+        bounds = ImergSpatialBounds(10.0, 45.0, 11.0, 46.0)
+
+        with tempfile.TemporaryDirectory() as directory, patch(
+            "src.imerg_client.discover_imerg_granules",
+            return_value=discovery,
+        ), patch(
+            "src.imerg_client.earthaccess.open",
+            return_value=[Mock(), Mock()],
+        ), patch(
+            "src.imerg_client.xr.open_dataset",
+            side_effect=[
+                dataset([[0.0, 2.0], [4.0, 6.0]]),
+                dataset([[2.0, 4.0], [6.0, 8.0]]),
+            ],
+        ):
+            first = load_imerg_series(
+                end,
+                1,
+                spatial_bounds=bounds,
+                granule_cache_directory=Path(directory),
+            )
+
+            with patch("src.imerg_client.earthaccess.open") as open_granules:
+                second = load_imerg_series(
+                    end,
+                    1,
+                    spatial_bounds=bounds,
+                    granule_cache_directory=Path(directory),
+                )
+
+            open_granules.assert_not_called()
+            np.testing.assert_array_equal(first.data.values, second.data.values)
+            self.assertEqual(len(list(Path(directory).glob("*.nc"))), 2)
 
     def test_dataset_versions_map_to_explicit_archive_collections(self):
         self.assertEqual(archive_version_for("07"), "07")

@@ -7,7 +7,10 @@ IMERG grid cell contains a finite observed zero.
 
 from __future__ import annotations
 
+import hashlib
 import logging
+import os
+from pathlib import Path
 import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -217,6 +220,14 @@ class ImergWindow:
 
 
 @dataclass(frozen=True)
+class ImergSeries:
+    """One complete native half-hour amount grid per source timestamp."""
+
+    data: xr.DataArray
+    metadata: ImergWindowMetadata
+
+
+@dataclass(frozen=True)
 class PointSample:
     value_mm: float | None
     status: EvidenceStatus
@@ -408,6 +419,34 @@ def load_imerg_window(
 ) -> ImergWindow:
     """Acquire one complete, version-pinned IMERG accumulation window."""
 
+    series = load_imerg_series(
+        t_ref,
+        hours,
+        dataset_version=dataset_version,
+        allow_early=allow_early,
+        spatial_bounds=spatial_bounds,
+    )
+    amounts = [
+        series.data.isel(time=index, drop=True)
+        for index in range(series.data.sizes["time"])
+    ]
+    return ImergWindow(
+        data=accumulate_amounts(amounts),
+        metadata=series.metadata,
+    )
+
+
+def load_imerg_series(
+    t_ref: datetime,
+    hours: int,
+    *,
+    dataset_version: ImergDatasetVersion = IMERG_DEFAULT_DATASET_VERSION,
+    allow_early: bool = True,
+    spatial_bounds: ImergSpatialBounds = IMERG_EUROPE_BOUNDS,
+    granule_cache_directory: Path | None = None,
+) -> ImergSeries:
+    """Acquire native half-hour amounts without collapsing the time axis."""
+
     discovery = discover_imerg_granules(
         t_ref,
         hours,
@@ -427,30 +466,45 @@ def load_imerg_window(
     run_type = discovery.run_type
     searched_count = discovery.searched_granule_count
     timestamped_results = list(discovery.timestamped_results)
-    results = [result for _, result in timestamped_results]
+    amounts_by_timestamp: dict[datetime, xr.DataArray] = {}
+    variables_by_timestamp: dict[datetime, str] = {}
+    pending: list[tuple[datetime, object, Path | None]] = []
 
-    try:
-        files = earthaccess.open(results)
-    except Exception as exc:
-        raise _acquisition_error(
-            _status_for_exception(exc),
-            f"Failed to open IMERG granules: {exc}",
-            product=product,
-            run_type=run_type,
-        ) from exc
+    for timestamp, result in timestamped_results:
+        cache_path = _granule_amount_cache_path(
+            granule_cache_directory,
+            discovery,
+            timestamp,
+            spatial_bounds,
+        )
+        cached = _read_granule_amount_cache(cache_path)
+        if cached is None:
+            pending.append((timestamp, result, cache_path))
+        else:
+            amount, variable_name = cached
+            amounts_by_timestamp[timestamp] = amount
+            variables_by_timestamp[timestamp] = variable_name
 
-    if not files:
+    files: list[object] = []
+    if pending:
+        try:
+            files = list(earthaccess.open([result for _, result, _ in pending]))
+        except Exception as exc:
+            raise _acquisition_error(
+                _status_for_exception(exc),
+                f"Failed to open IMERG granules: {exc}",
+                product=product,
+                run_type=run_type,
+            ) from exc
+
+    if pending and not files and not amounts_by_timestamp:
         raise ImergUpstreamError(
             "NASA returned granules but none could be opened",
             product=product,
             run_type=run_type,
         )
 
-    amounts: list[xr.DataArray] = []
-    valid_timestamps: list[datetime] = []
-    variable_names: list[str] = []
-
-    for (timestamp, _), file_object in zip(timestamped_results, files):
+    for (timestamp, _, cache_path), file_object in zip(pending, files):
         dataset: xr.Dataset | None = None
 
         try:
@@ -463,9 +517,14 @@ def load_imerg_window(
                 dataset,
                 spatial_bounds=spatial_bounds,
             )
-            amounts.append(amount.load())
-            valid_timestamps.append(timestamp)
-            variable_names.append(variable_name)
+            loaded_amount = amount.load().transpose("lon", "lat")
+            amounts_by_timestamp[timestamp] = loaded_amount
+            variables_by_timestamp[timestamp] = variable_name
+            _write_granule_amount_cache(
+                cache_path,
+                loaded_amount,
+                variable_name,
+            )
         except Exception as exc:
             logger.warning(
                 "[IMERG] Granule %s was unusable: %s",
@@ -486,15 +545,37 @@ def load_imerg_window(
                         exc,
                     )
 
-    if not amounts:
+    if not amounts_by_timestamp:
         raise ImergInvalidResponseError(
             "No opened IMERG granule contained usable precipitation data",
             product=product,
             run_type=run_type,
         )
 
-    accumulated = accumulate_amounts(amounts)
-    actual_timestamps = tuple(sorted(valid_timestamps))
+    actual_timestamps = tuple(sorted(amounts_by_timestamp))
+    amounts = [amounts_by_timestamp[timestamp] for timestamp in actual_timestamps]
+    variable_names = [variables_by_timestamp[timestamp] for timestamp in actual_timestamps]
+    aligned = xr.align(*amounts, join="exact")
+    time_coordinates = np.asarray(
+        [
+            np.datetime64(
+                timestamp.astimezone(timezone.utc).replace(tzinfo=None),
+                "ns",
+            )
+            for timestamp in actual_timestamps
+        ]
+    )
+    series = xr.concat(
+        [amount.transpose("lon", "lat") for amount in aligned],
+        dim=xr.IndexVariable("time", time_coordinates),
+    ).transpose("time", "lon", "lat")
+    series.attrs = {
+        "units": "mm",
+        "temporal_resolution": f"{IMERG_INTERVAL_MINUTES} minute",
+        "transformation": (
+            "one non-negative half-hour precipitation amount per source granule"
+        ),
+    }
     expected_set = set(expected_timestamps)
     actual_set = set(actual_timestamps)
     is_complete = actual_set == expected_set
@@ -533,16 +614,86 @@ def load_imerg_window(
         source_resolution="0.1 degree",
         sampling_method="nearest IMERG grid cell at H3 centroid",
         requested_spatial_bounds=spatial_bounds,
-        loaded_spatial_bounds=spatial_bounds_from_data(accumulated),
+        loaded_spatial_bounds=spatial_bounds_from_data(
+            series.isel(time=0, drop=True)
+        ),
         grid_shape=(
-            accumulated.sizes["lat"],
-            accumulated.sizes["lon"],
+            series.sizes["lat"],
+            series.sizes["lon"],
         ),
         status=status,
         missing_reason=missing_reason,
     )
 
-    return ImergWindow(data=accumulated, metadata=metadata)
+    return ImergSeries(data=series, metadata=metadata)
+
+
+def _granule_amount_cache_path(
+    directory: Path | None,
+    discovery: ImergGranuleDiscovery,
+    timestamp: datetime,
+    spatial_bounds: ImergSpatialBounds,
+) -> Path | None:
+    if directory is None:
+        return None
+    scope = hashlib.sha256(
+        repr(tuple(round(value, 8) for value in spatial_bounds.as_tuple())).encode(
+            "ascii"
+        )
+    ).hexdigest()[:12]
+    stamp = timestamp.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return Path(directory) / (
+        f"{discovery.product}_v{discovery.dataset_version}_{stamp}_{scope}.nc"
+    )
+
+
+def _read_granule_amount_cache(
+    path: Path | None,
+) -> tuple[xr.DataArray, str] | None:
+    if path is None or not path.is_file():
+        return None
+    opened: xr.DataArray | None = None
+    try:
+        opened = xr.open_dataarray(path, engine="h5netcdf")
+        amount = opened.load().transpose("lon", "lat")
+        variable_name = str(amount.attrs.get("source_variable", ""))
+        values = np.asarray(amount.values)
+        if (
+            tuple(amount.dims) != ("lon", "lat")
+            or not variable_name
+            or np.any(np.isfinite(values) & (values < 0))
+        ):
+            raise ValueError("cached IMERG granule amount is invalid")
+        return amount, variable_name
+    except Exception as exc:
+        raise ImergInvalidResponseError(
+            f"Cached IMERG granule amount is unusable: {path.name}: {exc}"
+        ) from exc
+    finally:
+        if opened is not None:
+            opened.close()
+
+
+def _write_granule_amount_cache(
+    path: Path | None,
+    amount: xr.DataArray,
+    variable_name: str,
+) -> None:
+    if path is None or path.exists():
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + f".{os.getpid()}.tmp")
+    prepared = amount.transpose("lon", "lat").copy()
+    prepared.attrs = {
+        **prepared.attrs,
+        "source_variable": variable_name,
+        "cache_semantic": "native_half_hour_amount_staging_not_final_evidence",
+    }
+    try:
+        prepared.to_netcdf(temporary, engine="h5netcdf")
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def precipitation_amount(

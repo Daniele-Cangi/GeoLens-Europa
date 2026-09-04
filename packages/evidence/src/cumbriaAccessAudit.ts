@@ -13,7 +13,7 @@ import {
   type CumbriaReplacementSolverProtocol,
 } from './cumbriaReplacementSolver';
 
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.20.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.21.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -401,7 +401,7 @@ export interface CumbriaDtmMaterializationPlan {
 
 export interface CumbriaSpatialGridProtocol {
   readonly id: 'cumbria-spatial-grid-boundary-v0';
-  readonly state: 'static_solver_grids_materialized_forcing_and_kernel_blocked';
+  readonly state: 'time_varying_forcing_materialized_kernel_blocked';
   readonly sourceGrids: {
     readonly terrain: {
       readonly datasetId: 'ea-lidar-dtm-time-stamped';
@@ -551,7 +551,7 @@ export interface CumbriaSpatialGridProtocol {
     readonly missingInputPolicy: 'missing_or_partial_remains_explicit';
   };
   readonly solverMesh: {
-    readonly state: 'static_solver_grids_materialized_forcing_and_kernel_blocked';
+    readonly state: 'time_varying_forcing_materialized_kernel_blocked';
     readonly contractId: 'cumbria-public-surface-flow-replacement-v0';
     readonly horizontalCrs: 'EPSG:27700';
     readonly verticalDatum: 'Ordnance Datum Newlyn';
@@ -568,8 +568,6 @@ export interface CumbriaSpatialGridProtocol {
     readonly h3Role: 'not_source_or_solver_grid';
     readonly executionAuthorized: false;
     readonly blockers: readonly [
-      'sheepmount_series_not_content_addressed',
-      'half_hourly_imerg_forcing_not_materialized',
       'numerical_kernel_not_fixture_verified',
       'mass_balance_and_stability_not_verified',
       'prediction_identity_not_frozen',
@@ -914,6 +912,93 @@ export interface CumbriaPublicBaselineEnvironmentalMaterialization {
   };
 }
 
+export interface CumbriaForcingArtifact {
+  readonly sha256: string;
+  readonly contentSha256: string;
+  readonly bytes: number;
+  readonly decodedBytes: number;
+  readonly dtype: 'float32_little_endian' | 'float64_little_endian';
+}
+
+export interface CumbriaPublicBaselineForcingMaterialization {
+  readonly schemaVersion: 'cumbria-forcing-materialization-v0.1.0';
+  readonly state: 'time_varying_forcing_materialized_execution_blocked';
+  readonly recordedOn: string;
+  readonly baseline: {
+    readonly tag: 'pre-external-evidence-baseline-v1';
+    readonly commit: '938b18fb66925e36236ea04a49eefdb2ca9826cb';
+  };
+  readonly protocol: {
+    readonly id: 'cumbria-public-surface-flow-replacement-v0';
+    readonly sha256: string;
+  };
+  readonly transformation: {
+    readonly version: 'cumbria-time-varying-forcing-v0.1.0';
+    readonly scriptSha256: string;
+    readonly missingSubstitutedWithZero: false;
+  };
+  readonly receipt: {
+    readonly fileName: 'cumbria-public-baseline-forcing.receipt.json';
+    readonly schemaVersion: 'cumbria-forcing-receipt-v0.1.0';
+    readonly sha256: string;
+  };
+  readonly inputReceipts: {
+    readonly imergAccumulation: string;
+    readonly solverGrids: string;
+  };
+  readonly imerg: {
+    readonly datasetId: 'nasa-imerg-v07-final';
+    readonly product: 'GPM_3IMERGHH';
+    readonly runType: 'final';
+    readonly datasetVersion: '07';
+    readonly sourceResolution: '0.1 degree';
+    readonly sourceIntervalSeconds: 1800;
+    readonly sampleCount: 144;
+    readonly shape: readonly [144, 4, 3];
+    readonly valueOrder: 'time_major_longitude_major_latitude_minor';
+    readonly unit: 'mm_per_30_minute_interval';
+    readonly minimumIntervalMm: number;
+    readonly maximumIntervalMm: number;
+    readonly totalAcrossNativeCellsMm: number;
+    readonly maximumAccumulationDifferenceMm: 0;
+    readonly transformation: 'native_footprint_overlap_then_piecewise_constant_intensity';
+    readonly spatialMappingState: 'deferred_to_kernel_input_binding_source_resolution_retained';
+    readonly artifact: CumbriaForcingArtifact;
+  };
+  readonly sheepmount: {
+    readonly datasetId: 'ea-hydrology-sheepmount-flow';
+    readonly stationReference: '765512';
+    readonly measureNotation: '078cbfd9-31ae-46f4-bbcc-0dbdaa191cd3-flow-i-900-m3s-qualified';
+    readonly sourceIntervalSeconds: 900;
+    readonly sampleCount: 288;
+    readonly unit: 'm3/s';
+    readonly minimumObservedM3s: number;
+    readonly maximumObservedM3s: number;
+    readonly baselineFirstSampleM3s: number;
+    readonly maximumExcessM3s: number;
+    readonly totalExcessVolumeM3: number;
+    readonly temporalTransformation: 'left_constant_over_native_900_second_interval';
+    readonly dischargeTransformation: 'positive_excess_above_first_window_sample';
+    readonly transformationVersion: 'sheepmount-incremental-discharge-v0.1.0';
+    readonly sourceMeaning: 'incremental_event_discharge_proxy_not_total_channel_flow';
+    readonly artifacts: {
+      readonly observed: CumbriaForcingArtifact;
+      readonly excess: CumbriaForcingArtifact;
+      readonly intervalVolume: CumbriaForcingArtifact;
+    };
+  };
+  readonly isolation: {
+    readonly observedFloodGeometryLoaded: false;
+    readonly observedFloodGeometryUsed: false;
+    readonly externalOwnerPackageLoaded: false;
+    readonly h3UsedAsSourceOrSolverGrid: false;
+    readonly missingValuesSubstitutedWithZero: false;
+    readonly solverRuns: 0;
+    readonly evaluationRuns: 0;
+    readonly solverExecutionAuthorized: false;
+  };
+}
+
 export interface CumbriaAccessManifest {
   readonly manifestVersion: typeof CUMBRIA_ACCESS_MANIFEST_VERSION;
   readonly audit: {
@@ -949,6 +1034,8 @@ export interface CumbriaAccessManifest {
     CumbriaPublicBaselineTerrainMaterialization;
   readonly publicBaselineEnvironmentalMaterialization:
     CumbriaPublicBaselineEnvironmentalMaterialization;
+  readonly publicBaselineForcingMaterialization:
+    CumbriaPublicBaselineForcingMaterialization;
   readonly replacementSolverProtocol: CumbriaReplacementSolverProtocol;
   readonly publicBaselineSolverGridMaterialization:
     CumbriaSolverGridMaterialization;
@@ -958,7 +1045,7 @@ export interface CumbriaAccessManifest {
   readonly datasets: readonly CumbriaDatasetAudit[];
   readonly gates: readonly CumbriaAccessGate[];
   readonly acquisition: {
-    readonly state: 'static_solver_grids_materialized';
+    readonly state: 'time_varying_forcing_materialized';
     readonly largeDownloadsAllowed: false;
     readonly boundedTerrainDownloadsAllowed: true;
     readonly nextAction: string;
@@ -1204,6 +1291,12 @@ export function assertCumbriaAccessManifest(
     manifest.replacementSolverProtocol,
     manifest.publicBaselineTerrainMaterialization,
     manifest.publicBaselineEnvironmentalMaterialization,
+  );
+  forcingMaterialization(
+    manifest.publicBaselineForcingMaterialization,
+    manifest.replacementSolverProtocol,
+    manifest.publicBaselineEnvironmentalMaterialization,
+    manifest.publicBaselineSolverGridMaterialization,
   );
   blindEvaluationProtocol(manifest.evaluationProtocol, datasetRecords);
 
@@ -2099,6 +2192,11 @@ export function assertCumbriaAccessManifest(
     'passed',
     'solver_grid_materialization',
   );
+  equal(
+    gateStates.get('time_varying_forcing_materialization'),
+    'passed',
+    'time_varying_forcing_materialization',
+  );
   equal(gateStates.get('as_of_event_defence_state'), 'blocked', 'as_of_event_defence_state');
   equal(gateStates.get('hydraulic_context'), 'blocked', 'hydraulic_context');
   equal(gateStates.get('large_artifact_downloads'), 'blocked', 'large_artifact_downloads');
@@ -2106,7 +2204,7 @@ export function assertCumbriaAccessManifest(
   const acquisition = record(manifest.acquisition, 'acquisition');
   equal(
     acquisition.state,
-    'static_solver_grids_materialized',
+    'time_varying_forcing_materialized',
     'acquisition.state',
   );
   equal(
@@ -2684,7 +2782,7 @@ function spatialGridProtocol(
   );
   equal(
     protocol.state,
-    'static_solver_grids_materialized_forcing_and_kernel_blocked',
+    'time_varying_forcing_materialized_kernel_blocked',
     'spatialGridProtocol.state',
   );
 
@@ -3147,7 +3245,7 @@ function spatialGridProtocol(
   const solver = record(protocol.solverMesh, 'spatialGridProtocol.solverMesh');
   equal(
     solver.state,
-    'static_solver_grids_materialized_forcing_and_kernel_blocked',
+    'time_varying_forcing_materialized_kernel_blocked',
     'solver mesh state',
   );
   const replacement = record(replacementSolverValue, 'replacementSolverProtocol');
@@ -3196,8 +3294,6 @@ function spatialGridProtocol(
   if (
     JSON.stringify(blockers) !==
     JSON.stringify([
-      'sheepmount_series_not_content_addressed',
-      'half_hourly_imerg_forcing_not_materialized',
       'numerical_kernel_not_fixture_verified',
       'mass_balance_and_stability_not_verified',
       'prediction_identity_not_frozen',
@@ -3428,7 +3524,7 @@ function solverGridMaterialization(
   const solverMesh = record(spatialProtocol.solverMesh, 'spatial solver mesh');
   equal(
     solverMesh.state,
-    'static_solver_grids_materialized_forcing_and_kernel_blocked',
+    'time_varying_forcing_materialized_kernel_blocked',
     'solver-grid linked mesh state',
   );
   const isolation = record(result.isolation, 'solver-grid isolation');
@@ -3444,6 +3540,252 @@ function solverGridMaterialization(
   for (const field of ['networkRequests', 'solverRuns', 'evaluationRuns']) {
     equal(isolation[field], 0, `solver-grid isolation ${field}`);
   }
+}
+
+function forcingMaterialization(
+  value: unknown,
+  replacementProtocolValue: unknown,
+  environmentalMaterializationValue: unknown,
+  solverGridMaterializationValue: unknown,
+): void {
+  const result = record(value, 'publicBaselineForcingMaterialization');
+  equal(
+    result.schemaVersion,
+    'cumbria-forcing-materialization-v0.1.0',
+    'forcing materialization schema',
+  );
+  equal(
+    result.state,
+    'time_varying_forcing_materialized_execution_blocked',
+    'forcing materialization state',
+  );
+  dateOnly(result.recordedOn, 'forcing materialization date');
+
+  const baseline = record(result.baseline, 'forcing baseline');
+  equal(
+    baseline.tag,
+    'pre-external-evidence-baseline-v1',
+    'forcing baseline tag',
+  );
+  equal(
+    baseline.commit,
+    '938b18fb66925e36236ea04a49eefdb2ca9826cb',
+    'forcing baseline commit',
+  );
+
+  const replacement = record(
+    replacementProtocolValue,
+    'replacementSolverProtocol',
+  );
+  const protocol = record(result.protocol, 'forcing protocol');
+  equal(protocol.id, replacement.id, 'forcing protocol id');
+  equal(
+    sha256(protocol.sha256, 'forcing protocol SHA-256'),
+    replacement.protocolSha256,
+    'forcing protocol SHA-256',
+  );
+
+  const transformation = record(result.transformation, 'forcing transformation');
+  equal(
+    transformation.version,
+    'cumbria-time-varying-forcing-v0.1.0',
+    'forcing transformation version',
+  );
+  equal(
+    sha256(transformation.scriptSha256, 'forcing script SHA-256'),
+    '26cd624b40d246de403cde8546082e6389ab91995abb2edec4b0cf4cf08c1e61',
+    'forcing script SHA-256',
+  );
+  equal(
+    transformation.missingSubstitutedWithZero,
+    false,
+    'forcing missing-value policy',
+  );
+
+  const receipt = record(result.receipt, 'forcing receipt');
+  equal(
+    receipt.fileName,
+    'cumbria-public-baseline-forcing.receipt.json',
+    'forcing receipt filename',
+  );
+  equal(
+    receipt.schemaVersion,
+    'cumbria-forcing-receipt-v0.1.0',
+    'forcing receipt schema',
+  );
+  equal(
+    sha256(receipt.sha256, 'forcing receipt SHA-256'),
+    '782eb107578fe34bccba9bc0202d90d06d504ddd63bc03ba301b1ccb3781c38b',
+    'forcing receipt SHA-256',
+  );
+
+  const inputReceipts = record(result.inputReceipts, 'forcing input receipts');
+  const environmental = record(
+    environmentalMaterializationValue,
+    'publicBaselineEnvironmentalMaterialization',
+  );
+  const environmentalPrecipitation = record(
+    environmental.precipitation,
+    'public baseline precipitation',
+  );
+  const environmentalReceipt = record(
+    environmentalPrecipitation.receipt,
+    'public baseline precipitation receipt',
+  );
+  equal(
+    sha256(inputReceipts.imergAccumulation, 'forcing IMERG input receipt'),
+    environmentalReceipt.sha256,
+    'forcing IMERG input receipt',
+  );
+  const solverGrids = record(
+    solverGridMaterializationValue,
+    'publicBaselineSolverGridMaterialization',
+  );
+  const solverGridReceipt = record(solverGrids.receipt, 'solver-grid receipt');
+  equal(
+    sha256(inputReceipts.solverGrids, 'forcing solver-grid input receipt'),
+    solverGridReceipt.sha256,
+    'forcing solver-grid input receipt',
+  );
+
+  const imerg = record(result.imerg, 'forcing IMERG');
+  for (const [field, expected] of Object.entries({
+    datasetId: 'nasa-imerg-v07-final',
+    product: 'GPM_3IMERGHH',
+    runType: 'final',
+    datasetVersion: '07',
+    sourceResolution: '0.1 degree',
+    sourceIntervalSeconds: 1800,
+    sampleCount: 144,
+    valueOrder: 'time_major_longitude_major_latitude_minor',
+    unit: 'mm_per_30_minute_interval',
+    transformation: 'native_footprint_overlap_then_piecewise_constant_intensity',
+    spatialMappingState:
+      'deferred_to_kernel_input_binding_source_resolution_retained',
+  })) {
+    equal(imerg[field], expected, `forcing IMERG ${field}`);
+  }
+  if (
+    JSON.stringify(numericArray(imerg.shape, 3, 'forcing IMERG shape')) !==
+    JSON.stringify([144, 4, 3])
+  ) {
+    throw new Error('forcing IMERG shape drifted');
+  }
+  for (const [field, expected] of Object.entries({
+    minimumIntervalMm: 0,
+    maximumIntervalMm: 5.62999963760376,
+    totalAcrossNativeCellsMm: 1235.654974291101,
+    maximumAccumulationDifferenceMm: 0,
+  })) {
+    equal(finite(imerg[field], `forcing IMERG ${field}`), expected, `forcing IMERG ${field}`);
+  }
+  forcingArtifact(
+    imerg.artifact,
+    'forcing IMERG artifact',
+    '69c8ea9bfb18e6b722ff76b9125e44e3bb2df4965cbf09fd9f7d9705d1aac737',
+    '4db68b9a40b3dbcfd45300b84b0ed872f7d363caacd652e0bd668259c5a71501',
+    2218,
+    6912,
+    'float32_little_endian',
+  );
+
+  const sheepmount = record(result.sheepmount, 'forcing Sheepmount');
+  for (const [field, expected] of Object.entries({
+    datasetId: 'ea-hydrology-sheepmount-flow',
+    stationReference: '765512',
+    measureNotation:
+      '078cbfd9-31ae-46f4-bbcc-0dbdaa191cd3-flow-i-900-m3s-qualified',
+    sourceIntervalSeconds: 900,
+    sampleCount: 288,
+    unit: 'm3/s',
+    temporalTransformation: 'left_constant_over_native_900_second_interval',
+    dischargeTransformation: 'positive_excess_above_first_window_sample',
+    transformationVersion: 'sheepmount-incremental-discharge-v0.1.0',
+    sourceMeaning: 'incremental_event_discharge_proxy_not_total_channel_flow',
+  })) {
+    equal(sheepmount[field], expected, `forcing Sheepmount ${field}`);
+  }
+  for (const [field, expected] of Object.entries({
+    minimumObservedM3s: 189.575,
+    maximumObservedM3s: 1676.632,
+    baselineFirstSampleM3s: 422.716,
+    maximumExcessM3s: 1253.9160000000002,
+    totalExcessVolumeM3: 118482930.89999999,
+  })) {
+    equal(
+      finite(sheepmount[field], `forcing Sheepmount ${field}`),
+      expected,
+      `forcing Sheepmount ${field}`,
+    );
+  }
+  const artifacts = record(sheepmount.artifacts, 'forcing Sheepmount artifacts');
+  forcingArtifact(
+    artifacts.observed,
+    'forcing Sheepmount observed artifact',
+    '53829b545e4f34c1882e6ad179faff7b8a5dd97d70f203fedb98726d9975b033',
+    'e9e37eb3ea7c0b48496a43b7cc84fc6bcae204e1166afde07c3e99370c08a60f',
+    1507,
+    2304,
+    'float64_little_endian',
+  );
+  forcingArtifact(
+    artifacts.excess,
+    'forcing Sheepmount excess artifact',
+    '9940b1a6af17a5867a6bc1150810699f821c96debc419bcaea396765caf64010',
+    'c30a7ba83330de411abba805040235c70421caa443ae58ae2cd8e96a73dc6c22',
+    1303,
+    2304,
+    'float64_little_endian',
+  );
+  forcingArtifact(
+    artifacts.intervalVolume,
+    'forcing Sheepmount interval-volume artifact',
+    '084eea5145fa53596379ca7eb3d31f420192b3d90893e76fe474b5e1e9ff9dfc',
+    'd673cf5c586fd6d4cc2e18abf53092f968433b1aaf49f935e75559c84c40cf73',
+    1143,
+    2304,
+    'float64_little_endian',
+  );
+
+  const isolation = record(result.isolation, 'forcing isolation');
+  for (const field of [
+    'observedFloodGeometryLoaded',
+    'observedFloodGeometryUsed',
+    'externalOwnerPackageLoaded',
+    'h3UsedAsSourceOrSolverGrid',
+    'missingValuesSubstitutedWithZero',
+    'solverExecutionAuthorized',
+  ]) {
+    equal(isolation[field], false, `forcing isolation ${field}`);
+  }
+  for (const field of ['solverRuns', 'evaluationRuns']) {
+    equal(isolation[field], 0, `forcing isolation ${field}`);
+  }
+}
+
+function forcingArtifact(
+  value: unknown,
+  label: string,
+  expectedSha256: string,
+  expectedContentSha256: string,
+  expectedBytes: number,
+  expectedDecodedBytes: number,
+  expectedDtype: 'float32_little_endian' | 'float64_little_endian',
+): void {
+  const artifact = record(value, label);
+  equal(sha256(artifact.sha256, `${label} SHA-256`), expectedSha256, `${label} SHA-256`);
+  equal(
+    sha256(artifact.contentSha256, `${label} content SHA-256`),
+    expectedContentSha256,
+    `${label} content SHA-256`,
+  );
+  equal(integer(artifact.bytes, `${label} bytes`), expectedBytes, `${label} bytes`);
+  equal(
+    integer(artifact.decodedBytes, `${label} decoded bytes`),
+    expectedDecodedBytes,
+    `${label} decoded bytes`,
+  );
+  equal(artifact.dtype, expectedDtype, `${label} dtype`);
 }
 
 function blindEvaluationProtocol(
