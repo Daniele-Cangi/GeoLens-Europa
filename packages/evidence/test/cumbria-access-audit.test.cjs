@@ -39,7 +39,7 @@ test('Cumbria manifest freezes the replacement-solver contract without opening s
   );
   assert.equal(
     manifest.acquisition.state,
-    'static_solver_grids_materialized',
+    'time_varying_forcing_materialized',
   );
   assert.equal(manifest.acquisition.largeDownloadsAllowed, false);
   assert.equal(manifest.acquisition.boundedTerrainDownloadsAllowed, true);
@@ -198,7 +198,7 @@ test('public baseline terrain materialization records real coverage without zero
   const manifest = manifestFixture();
   const result = manifest.publicBaselineTerrainMaterialization;
 
-  assert.equal(manifest.manifestVersion, '0.20.0');
+  assert.equal(manifest.manifestVersion, '0.21.0');
   assert.equal(result.state, 'terrain_materialized_with_explicit_gaps');
   assert.equal(
     result.protocolSha256,
@@ -402,7 +402,7 @@ test('pre-event terrain selection maps to downloadable archives with explicit ga
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.20.0');
+  assert.equal(manifest.manifestVersion, '0.21.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
@@ -625,7 +625,7 @@ test('spatial protocol preserves native grids and links only the declared replac
 
   assert.equal(
     protocol.state,
-    'static_solver_grids_materialized_forcing_and_kernel_blocked',
+    'time_varying_forcing_materialized_kernel_blocked',
   );
   assert.deepEqual(protocol.sourceGrids.terrain.nativeResolutionMetres, [0.5, 1, 2]);
   assert.equal(protocol.sourceGrids.terrain.resampling, 'none');
@@ -744,7 +744,7 @@ test('spatial protocol preserves native grids and links only the declared replac
     'replacement_solver_grid_declared_sources_remain_native',
   );
   assert.deepEqual(protocol.solverMesh, {
-    state: 'static_solver_grids_materialized_forcing_and_kernel_blocked',
+    state: 'time_varying_forcing_materialized_kernel_blocked',
     contractId: 'cumbria-public-surface-flow-replacement-v0',
     horizontalCrs: 'EPSG:27700',
     verticalDatum: 'Ordnance Datum Newlyn',
@@ -761,8 +761,6 @@ test('spatial protocol preserves native grids and links only the declared replac
     h3Role: 'not_source_or_solver_grid',
     executionAuthorized: false,
     blockers: [
-      'sheepmount_series_not_content_addressed',
-      'half_hourly_imerg_forcing_not_materialized',
       'numerical_kernel_not_fixture_verified',
       'mass_balance_and_stability_not_verified',
       'prediction_identity_not_frozen',
@@ -819,6 +817,54 @@ test('static solver grids preserve native gaps and the pre-external baseline', (
   assert.throws(
     () => assertCumbriaAccessManifest(movedBaseline),
     /solver-grid baseline commit/,
+  );
+});
+
+test('time-varying forcing is content-addressed without opening solver or evaluation access', () => {
+  const manifest = manifestFixture();
+  const forcing = manifest.publicBaselineForcingMaterialization;
+
+  assert.equal(
+    forcing.state,
+    'time_varying_forcing_materialized_execution_blocked',
+  );
+  assert.deepEqual(forcing.baseline, {
+    tag: 'pre-external-evidence-baseline-v1',
+    commit: '938b18fb66925e36236ea04a49eefdb2ca9826cb',
+  });
+  assert.equal(
+    forcing.receipt.sha256,
+    '782eb107578fe34bccba9bc0202d90d06d504ddd63bc03ba301b1ccb3781c38b',
+  );
+  assert.equal(forcing.imerg.sampleCount, 144);
+  assert.deepEqual(forcing.imerg.shape, [144, 4, 3]);
+  assert.equal(forcing.imerg.sourceIntervalSeconds, 1800);
+  assert.equal(forcing.imerg.minimumIntervalMm, 0);
+  assert.equal(forcing.imerg.maximumAccumulationDifferenceMm, 0);
+  assert.equal(forcing.sheepmount.sampleCount, 288);
+  assert.equal(forcing.sheepmount.sourceIntervalSeconds, 900);
+  assert.equal(forcing.sheepmount.baselineFirstSampleM3s, 422.716);
+  assert.equal(forcing.sheepmount.maximumExcessM3s, 1253.9160000000002);
+  assert.equal(forcing.sheepmount.totalExcessVolumeM3, 118482930.89999999);
+  assert.equal(forcing.isolation.observedFloodGeometryLoaded, false);
+  assert.equal(forcing.isolation.missingValuesSubstitutedWithZero, false);
+  assert.equal(forcing.isolation.solverRuns, 0);
+  assert.equal(forcing.isolation.evaluationRuns, 0);
+  assert.equal(forcing.isolation.solverExecutionAuthorized, false);
+
+  const missingInterval = manifestFixture();
+  missingInterval.publicBaselineForcingMaterialization.imerg.sampleCount = 143;
+  assert.throws(
+    () => assertCumbriaAccessManifest(missingInterval),
+    /forcing IMERG sampleCount must equal 144/,
+  );
+
+  const movedBaseline = manifestFixture();
+  movedBaseline.publicBaselineForcingMaterialization.baseline.commit =
+    'a'.repeat(40);
+  assert.throws(
+    () => assertCumbriaAccessManifest(movedBaseline),
+    /forcing baseline commit/,
   );
 });
 
