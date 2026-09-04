@@ -39,7 +39,7 @@ test('Cumbria manifest freezes the replacement-solver contract without opening s
   );
   assert.equal(
     manifest.acquisition.state,
-    'time_varying_forcing_materialized',
+    'numerical_kernel_fixture_verified',
   );
   assert.equal(manifest.acquisition.largeDownloadsAllowed, false);
   assert.equal(manifest.acquisition.boundedTerrainDownloadsAllowed, true);
@@ -198,7 +198,7 @@ test('public baseline terrain materialization records real coverage without zero
   const manifest = manifestFixture();
   const result = manifest.publicBaselineTerrainMaterialization;
 
-  assert.equal(manifest.manifestVersion, '0.21.0');
+  assert.equal(manifest.manifestVersion, '0.22.0');
   assert.equal(result.state, 'terrain_materialized_with_explicit_gaps');
   assert.equal(
     result.protocolSha256,
@@ -402,7 +402,7 @@ test('pre-event terrain selection maps to downloadable archives with explicit ga
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.21.0');
+  assert.equal(manifest.manifestVersion, '0.22.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
@@ -625,7 +625,7 @@ test('spatial protocol preserves native grids and links only the declared replac
 
   assert.equal(
     protocol.state,
-    'time_varying_forcing_materialized_kernel_blocked',
+    'numerical_kernel_fixture_verified_event_binding_blocked',
   );
   assert.deepEqual(protocol.sourceGrids.terrain.nativeResolutionMetres, [0.5, 1, 2]);
   assert.equal(protocol.sourceGrids.terrain.resampling, 'none');
@@ -744,7 +744,7 @@ test('spatial protocol preserves native grids and links only the declared replac
     'replacement_solver_grid_declared_sources_remain_native',
   );
   assert.deepEqual(protocol.solverMesh, {
-    state: 'time_varying_forcing_materialized_kernel_blocked',
+    state: 'numerical_kernel_fixture_verified_event_binding_blocked',
     contractId: 'cumbria-public-surface-flow-replacement-v0',
     horizontalCrs: 'EPSG:27700',
     verticalDatum: 'Ordnance Datum Newlyn',
@@ -761,8 +761,7 @@ test('spatial protocol preserves native grids and links only the declared replac
     h3Role: 'not_source_or_solver_grid',
     executionAuthorized: false,
     blockers: [
-      'numerical_kernel_not_fixture_verified',
-      'mass_balance_and_stability_not_verified',
+      'event_input_binding_not_verified',
       'prediction_identity_not_frozen',
     ],
   });
@@ -865,6 +864,54 @@ test('time-varying forcing is content-addressed without opening solver or evalua
   assert.throws(
     () => assertCumbriaAccessManifest(movedBaseline),
     /forcing baseline commit/,
+  );
+});
+
+test('local-inertial kernel is fixture-verified without reading the event or evaluation geometry', () => {
+  const manifest = manifestFixture();
+  const verification = manifest.publicBaselineNumericalKernelVerification;
+
+  assert.equal(verification.state, 'fixture_verified_event_execution_blocked');
+  assert.equal(
+    verification.protocol.sha256,
+    manifest.replacementSolverProtocol.protocolSha256,
+  );
+  assert.equal(
+    verification.implementation.version,
+    manifest.replacementSolverProtocol.formulation.implementationVersion,
+  );
+  assert.equal(
+    verification.fixtureSuite.resultSha256,
+    'cd31a9e9cbfb41e44d9619e4a1d9bdd1fc34fa81ce877bbf596772e5c80704c1',
+  );
+  assert.deepEqual(verification.isolation, {
+    realEventInputsRead: 0,
+    observedEvaluationGeometriesRead: 0,
+    networkCalls: 0,
+    externalWrites: 0,
+    solverEventRuns: 0,
+    evaluationRuns: 0,
+    eventExecutionAuthorized: false,
+    evaluationReferenceAccessAllowed: false,
+  });
+  assert.equal(
+    manifest.spatialGridProtocol.solverMesh.executionAuthorized,
+    false,
+  );
+
+  const leaked = manifestFixture();
+  leaked.publicBaselineNumericalKernelVerification.isolation.realEventInputsRead = 1;
+  assert.throws(
+    () => assertCumbriaAccessManifest(leaked),
+    /numerical-kernel isolation realEventInputsRead/,
+  );
+
+  const driftedImplementation = manifestFixture();
+  driftedImplementation.publicBaselineNumericalKernelVerification.implementation.moduleSha256 =
+    'a'.repeat(64);
+  assert.throws(
+    () => assertCumbriaAccessManifest(driftedImplementation),
+    /numerical-kernel moduleSha256/,
   );
 });
 

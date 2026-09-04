@@ -67,3 +67,11 @@ jobs:
 
       - name: Run deterministic Python tests
         run: python -m unittest discover -s tests -v
+
+      - name: Compile benchmark and surface-flow Python sources
+        working-directory: .
+        run: python -m compileall -q surface-flow-engine scripts tests/python
+
+      - name: Run deterministic benchmark and surface-flow tests
+        working-directory: .
+        run: python -m unittest discover -s tests/python -v

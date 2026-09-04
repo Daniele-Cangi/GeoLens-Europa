@@ -38,7 +38,7 @@ from src.imerg_client import (  # noqa: E402
 MANIFEST_PATH = (
     REPOSITORY_ROOT / "tests/ground-truth/cumbria-2015/manifest.json"
 )
-ACCEPTED_MANIFEST_VERSIONS = {"0.20.0", "0.21.0"}
+ACCEPTED_MANIFEST_VERSIONS = {"0.20.0", "0.21.0", "0.22.0"}
 BASELINE_TAG = "pre-external-evidence-baseline-v1"
 BASELINE_COMMIT = "938b18fb66925e36236ea04a49eefdb2ca9826cb"
 PROTOCOL_ID = "cumbria-public-surface-flow-replacement-v0"
