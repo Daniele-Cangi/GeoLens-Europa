@@ -39,7 +39,7 @@ test('Cumbria manifest freezes the replacement-solver contract without opening s
   );
   assert.equal(
     manifest.acquisition.state,
-    'replacement_solver_contract_frozen',
+    'static_solver_grids_materialized',
   );
   assert.equal(manifest.acquisition.largeDownloadsAllowed, false);
   assert.equal(manifest.acquisition.boundedTerrainDownloadsAllowed, true);
@@ -198,7 +198,7 @@ test('public baseline terrain materialization records real coverage without zero
   const manifest = manifestFixture();
   const result = manifest.publicBaselineTerrainMaterialization;
 
-  assert.equal(manifest.manifestVersion, '0.19.0');
+  assert.equal(manifest.manifestVersion, '0.20.0');
   assert.equal(result.state, 'terrain_materialized_with_explicit_gaps');
   assert.equal(
     result.protocolSha256,
@@ -402,7 +402,7 @@ test('pre-event terrain selection maps to downloadable archives with explicit ga
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.19.0');
+  assert.equal(manifest.manifestVersion, '0.20.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
@@ -625,7 +625,7 @@ test('spatial protocol preserves native grids and links only the declared replac
 
   assert.equal(
     protocol.state,
-    'evidence_index_and_replacement_mesh_frozen_execution_blocked',
+    'static_solver_grids_materialized_forcing_and_kernel_blocked',
   );
   assert.deepEqual(protocol.sourceGrids.terrain.nativeResolutionMetres, [0.5, 1, 2]);
   assert.equal(protocol.sourceGrids.terrain.resampling, 'none');
@@ -744,7 +744,7 @@ test('spatial protocol preserves native grids and links only the declared replac
     'replacement_solver_grid_declared_sources_remain_native',
   );
   assert.deepEqual(protocol.solverMesh, {
-    state: 'replacement_solver_contract_frozen_execution_blocked',
+    state: 'static_solver_grids_materialized_forcing_and_kernel_blocked',
     contractId: 'cumbria-public-surface-flow-replacement-v0',
     horizontalCrs: 'EPSG:27700',
     verticalDatum: 'Ordnance Datum Newlyn',
@@ -761,11 +761,65 @@ test('spatial protocol preserves native grids and links only the declared replac
     h3Role: 'not_source_or_solver_grid',
     executionAuthorized: false,
     blockers: [
-      'domain_solver_grids_not_materialized',
+      'sheepmount_series_not_content_addressed',
+      'half_hourly_imerg_forcing_not_materialized',
       'numerical_kernel_not_fixture_verified',
+      'mass_balance_and_stability_not_verified',
       'prediction_identity_not_frozen',
     ],
   });
+});
+
+test('static solver grids preserve native gaps and the pre-external baseline', () => {
+  const manifest = manifestFixture();
+  const materialization = manifest.publicBaselineSolverGridMaterialization;
+
+  assert.equal(materialization.state, 'static_grids_materialized_execution_blocked');
+  assert.deepEqual(materialization.baseline, {
+    tag: 'pre-external-evidence-baseline-v1',
+    commit: '938b18fb66925e36236ea04a49eefdb2ca9826cb',
+  });
+  assert.equal(
+    materialization.protocol.sha256,
+    manifest.replacementSolverProtocol.protocolSha256,
+  );
+  assert.equal(
+    materialization.receipt.sha256,
+    '8cb59393a9eb368ab9298d0e64c5ae2e4ffbc2a087f40b6ae498ff29a2f251d2',
+  );
+  assert.equal(materialization.inventory.uniqueArtifactCount, 21);
+  assert.equal(materialization.inventory.decodedBytes, 25_725_000);
+  const primary = materialization.meshes.find((mesh) => mesh.id === 'mesh-20m');
+  assert.deepEqual(
+    {
+      valid: primary.solverValidCellCount,
+      missing: primary.solverInvalidCellCount,
+      eligible: primary.predictionEligibleCellCount,
+      halo: primary.predictionExcludedHaloCellCount,
+    },
+    { valid: 75_786, missing: 64_214, eligible: 73_502, halo: 2_284 },
+  );
+  assert.equal(primary.landCoverMissingCellCount, 0);
+  assert.equal(materialization.isolation.h3UsedAsSourceOrSolverGrid, false);
+  assert.equal(materialization.isolation.observedFloodGeometryLoaded, false);
+  assert.equal(materialization.isolation.solverRuns, 0);
+  assert.equal(materialization.isolation.solverExecutionAuthorized, false);
+
+  const inventedCoverage = manifestFixture();
+  inventedCoverage.publicBaselineSolverGridMaterialization.meshes[0]
+    .terrainMissingCellCount = 0;
+  assert.throws(
+    () => assertCumbriaAccessManifest(inventedCoverage),
+    /mesh-20m terrainMissingCellCount/,
+  );
+
+  const movedBaseline = manifestFixture();
+  movedBaseline.publicBaselineSolverGridMaterialization.baseline.commit =
+    'a'.repeat(40);
+  assert.throws(
+    () => assertCumbriaAccessManifest(movedBaseline),
+    /solver-grid baseline commit/,
+  );
 });
 
 test('replacement solver freezes assumptions and sensitivities before evaluation access', () => {

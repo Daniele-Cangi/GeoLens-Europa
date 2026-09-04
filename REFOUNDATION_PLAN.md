@@ -19,7 +19,7 @@ This plan is the durable execution record for the refoundation described in `AGE
 - External benchmark recovery: after the D volume became temporarily unavailable, the complete pinned benchmark was rebuilt under `C:/Users/dacan/GeoLens/data/emilia-romagna-2023`; 55 artifacts totaling 746,444,721 bytes pass the streamed byte-count and SHA-256 verifier
 - Historical benchmark API gate: established through a compact `GET /api/benchmarks/emilia-romagna-2023` snapshot that is contract-tested against manifest v1.16.0; the Case 02 inspector exposes the negative evaluation, source resolution, artifact inventory and blocked hydraulic evidence gate without loading or redistributing the external archive; a separate ARPAE intake endpoint now reports the awaited package as explicitly missing and replay-blocking
 - Historical benchmark spatial-inspection gate: established through a deterministic nominal 300 m display projection from byte-verified 30 m AOI, GLO-30, CLC, DBTR, terrain-routing and event-runoff artifacts; the map manifest exposes five attribution-bearing renderable layers while V7 geometry and ARPAE station geometry remain explicitly withheld under restricted or unresolved redistribution state
-- Cumbria replay qualification gate: metadata, four upstream hydrographs, bounded real DTM/CLC/IMERG evidence, a reproducible real-source H3 inspection cell, a canonically hashed public-only 2D replacement-solver contract, blind evaluation isolation and a fail-closed Products 5/6/7 delivery intake are frozen; no model package or evaluation geometry has been received or opened, while grid preprocessing, kernel verification and event execution remain blocked
+- Cumbria replay qualification gate: metadata, four upstream hydrographs, bounded real DTM/CLC/IMERG evidence, a reproducible real-source H3 inspection cell, a canonically hashed public-only 2D replacement-solver contract, all three static solver grids, blind evaluation isolation and a fail-closed Products 5/6/7 delivery intake are frozen; no model package or evaluation geometry has been received or opened, while time-varying forcing, kernel verification and event execution remain blocked
 
 Verified starting baseline (historical):
 
@@ -43,7 +43,7 @@ Frozen reference:
 
 Permitted work:
 
-- materialize Cumbria 10 m, 20 m, and 40 m computation grids from native evidence under the already frozen rules;
+- reproduce and audit the materialized Cumbria 10 m, 20 m, and 40 m computation grids under the already frozen rules;
 - materialize the already declared 15-minute Sheepmount and 30-minute IMERG forcing;
 - implement and fixture-verify the declared local-inertial kernel, adaptive-step failure, non-negative state, stability, and complete mass-balance accounting;
 - freeze a content-addressed Cumbria prediction before opening evaluation geometry, then execute the already declared metrics without retuning;
@@ -531,11 +531,11 @@ Checkpoints:
 
 ## Phase 11 - Qualify the Cumbria 2015 public-data replay
 
-State: public Sheepmount–Old Sandsfield domain and bounded real DTM, CLC and IMERG evidence materialized; a single real native-footprint H3 inspection cell and the experimental replacement-solver contract are reproduced, while solver-grid preprocessing, kernel verification, event execution and blind evaluation remain gated
+State: public Sheepmount–Old Sandsfield domain, bounded real DTM/CLC/IMERG evidence and the frozen 10 m, 20 m and 40 m static solver grids are materialized; a single real native-footprint H3 inspection cell and the experimental replacement-solver contract are reproduced, while time-varying forcing, kernel verification, event execution and blind evaluation remain gated
 
 Progress:
 
-- manifest v0.19.0 freezes a bounded Carlisle source-discovery envelope, a separate local hydraulic-protocol envelope, the public Sheepmount–Old Sandsfield baseline domain, verified DTM/CLC/IMERG materialization and single-cell composition results, the replacement-solver contract, and the half-open 72-hour Storm Desmond window from 4 December 2015 00:00 UTC to 7 December 2015 00:00 UTC;
+- manifest v0.20.0 freezes a bounded Carlisle source-discovery envelope, a separate local hydraulic-protocol envelope, the public Sheepmount–Old Sandsfield baseline domain, verified DTM/CLC/IMERG materialization and single-cell composition results, the replacement-solver contract, its static solver grids, and the half-open 72-hour Storm Desmond window from 4 December 2015 00:00 UTC to 7 December 2015 00:00 UTC;
 - the canonical Python `earthaccess` + `xarray` path acquired all 144 expected GPM_3IMERGHH V07 Final Run half-hour granules and content-addressed a bounded 3 × 4 native-grid 72-hour accumulation outside Git; all 12 cells are finite, range from 81.705 to 115.900 mm and retain V07 as explicit retrospective reprocessing;
 - the Environment Agency Hydrology API returned all 288 expected qualified 15-minute flow values and all 288 level values at Sheepmount on the River Eden, with observed maxima of 1,676.632 m3/s and 7.648 m respectively;
 - Willow Holme returned all 288 expected local rainfall values and a 49 mm window total; this is station comparison only and is not represented as high-fell or catchment-wide rainfall;
@@ -607,10 +607,12 @@ Progress:
 - `npm run audit:cumbria-hydraulic-domain` replays the 19-record model catalogue, 349-record current channel context, Old Sandsfield coordinate transformation and bounded downstream station screen, checks both official SFRA documents, and fails on identity drift without loading evaluation geometry;
 - `npm run prepare:cumbria-model-request` validates the frozen access contract against the model catalogue and renders the ready-to-send email without writing credentials or external state;
 - bounded real Cumbria DTM, CLC and IMERG artifacts and the first native-footprint H3 inspection result are registered outside Git with content identities; no observed-extent artifact has been loaded, while solver execution and evaluation-reference access remain blocked.
+- the frozen 10 m, 20 m and 40 m meshes are materialized directly from native DTM and CLC footprints as 21 unique content-addressed artifacts; the receipt SHA-256 is `8cb59393a9eb368ab9298d0e64c5ae2e4ffbc2a087f40b6ae498ff29a2f251d2`, representing 25,725,000 decoded bytes in 1,441,157 compressed physical bytes;
+- every solver cell requires complete native DTM coverage and missing pixels are never interpolated or converted to zero; the 20 m primary mesh retains 75,786 valid and 64,214 invalid terrain cells, while a one-cell missing-data halo leaves 73,502 prediction-eligible cells; all 140,000 cells have CLC coverage;
+- materialization used neither H3 as a physical grid nor observed flood geometry, made no network request, and performed no solver or evaluation run.
 
 Work:
 
-- materialize the declared 10 m, 20 m and 40 m solver grids directly from native DTM and CLC footprints, retaining explicit unavailable cells and without routing through H3;
 - materialize content-addressed 15-minute Sheepmount and half-hourly IMERG solver forcing under the frozen transformations;
 - implement and fixture-verify the local-inertial numerical kernel, including adaptive-step failure, non-negative state and complete mass-balance accounting, before allowing an event run;
 - keep the missing historical channel sections, Old Sandsfield boundary and December 2015 defence state explicit, and keep the future EA package on a separate optional comparison track;
@@ -626,5 +628,6 @@ Gate:
 - incomplete native-grid coverage cannot expose a partial H3 value, observed zero remains distinguishable from missing and synthetic composition cannot enter real-evidence mode;
 - observed flood geometry remains sealed until prediction identity and semantics are frozen; references are compared separately and cannot influence inputs, calibration, domain, mesh or wetness threshold;
 - source grids, the H3 evidence index and the public-only computation grid remain distinct: the protocol envelope, H3 cells and native DTM/CLC grids cannot be represented as the final hydraulic mesh; materialized source evidence cannot authorize solver execution or evaluation access.
+- all three declared computation grids reproduce byte for byte from their pinned receipts, require complete native terrain coverage per valid cell, preserve categorical CLC semantics through exact footprint overlap, and retain a one-cell exclusion halo around terrain gaps.
 
-Checkpoints: `test: qualify Cumbria public-data access`; `test: freeze Cumbria pre-event terrain catalogue`; `test: qualify Cumbria hydraulic context`; `test: freeze Cumbria hydraulic boundary protocol`; `test: qualify Cumbria hydraulic domain lineage`; `test: freeze Cumbria hydraulic model request`; `test: qualify Cumbria DTM archive mapping`; `test: freeze Cumbria DTM materialization protocol`; `test: freeze Cumbria spatial grid boundary`; `feat: compose native spatial evidence index`; `test: freeze Cumbria blind evaluation boundary`; `feat: add Cumbria model delivery intake`; `chore: record Cumbria model request dispatch`; `test: freeze Cumbria public baseline domain`; `feat: materialize Cumbria public terrain`; `feat: materialize Cumbria land cover and precipitation`; `test: freeze Cumbria replacement solver contract`
+Checkpoints: `test: qualify Cumbria public-data access`; `test: freeze Cumbria pre-event terrain catalogue`; `test: qualify Cumbria hydraulic context`; `test: freeze Cumbria hydraulic boundary protocol`; `test: qualify Cumbria hydraulic domain lineage`; `test: freeze Cumbria hydraulic model request`; `test: qualify Cumbria DTM archive mapping`; `test: freeze Cumbria DTM materialization protocol`; `test: freeze Cumbria spatial grid boundary`; `feat: compose native spatial evidence index`; `test: freeze Cumbria blind evaluation boundary`; `feat: add Cumbria model delivery intake`; `chore: record Cumbria model request dispatch`; `test: freeze Cumbria public baseline domain`; `feat: materialize Cumbria public terrain`; `feat: materialize Cumbria land cover and precipitation`; `test: freeze Cumbria replacement solver contract`; `feat: materialize Cumbria solver grids`
