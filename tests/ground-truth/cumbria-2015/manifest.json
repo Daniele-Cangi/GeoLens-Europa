@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.19.0",
+  "manifestVersion": "0.20.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -318,7 +318,7 @@
   },
   "spatialGridProtocol": {
     "id": "cumbria-spatial-grid-boundary-v0",
-    "state": "evidence_index_and_replacement_mesh_frozen_execution_blocked",
+    "state": "static_solver_grids_materialized_forcing_and_kernel_blocked",
     "sourceGrids": {
       "terrain": {
         "datasetId": "ea-lidar-dtm-time-stamped",
@@ -468,7 +468,7 @@
       "missingInputPolicy": "missing_or_partial_remains_explicit"
     },
     "solverMesh": {
-      "state": "replacement_solver_contract_frozen_execution_blocked",
+      "state": "static_solver_grids_materialized_forcing_and_kernel_blocked",
       "contractId": "cumbria-public-surface-flow-replacement-v0",
       "horizontalCrs": "EPSG:27700",
       "verticalDatum": "Ordnance Datum Newlyn",
@@ -485,10 +485,121 @@
       "h3Role": "not_source_or_solver_grid",
       "executionAuthorized": false,
       "blockers": [
-        "domain_solver_grids_not_materialized",
+        "sheepmount_series_not_content_addressed",
+        "half_hourly_imerg_forcing_not_materialized",
         "numerical_kernel_not_fixture_verified",
+        "mass_balance_and_stability_not_verified",
         "prediction_identity_not_frozen"
       ]
+    }
+  },
+  "publicBaselineSolverGridMaterialization": {
+    "schemaVersion": "cumbria-solver-grid-materialization-v0.1.0",
+    "state": "static_grids_materialized_execution_blocked",
+    "recordedOn": "2026-09-04",
+    "baseline": {
+      "tag": "pre-external-evidence-baseline-v1",
+      "commit": "938b18fb66925e36236ea04a49eefdb2ca9826cb"
+    },
+    "protocol": {
+      "id": "cumbria-public-surface-flow-replacement-v0",
+      "version": "0.1.0",
+      "sha256": "b9db1fbc10cc0aeff5d3a4e24bf1afc5d66226902ecad92ce111f1fcfb60c89b"
+    },
+    "transformation": {
+      "version": "cumbria-solver-grid-preprocessing-v0.1.0",
+      "scriptSha256": "09a8ba9a4f2c3cd86c2c2d3161e54553344bb29c8b3c76c0f58b01bec3884354",
+      "terrainAggregation": "area_weighted_mean_of_complete_native_dtm_coverage",
+      "completeNativeTerrainCoverageRequiredPerCell": true,
+      "landCoverAggregation": "native_class_footprint_area_weighted_parameter",
+      "categoricalInterpolationForbidden": true,
+      "landCoverCoverageToleranceFraction": 0.000001,
+      "predictionHaloCells": 1,
+      "missingSubstitutedWithZero": false
+    },
+    "sourceReceipts": {
+      "terrain": "c9acfe46f41e08e40e6473ce399e912b8d4e27c880e928e0f1a77aef15749988",
+      "landCover": "dce61b2234329619ce1212ccc3a49650c1fec68eea7bc5d465f722e170ebc96d",
+      "landCoverClassGrid": "35214149c6bc51e703c766f6e06b5ddb28955e5aded709105acdf1aa3536d779"
+    },
+    "receipt": {
+      "fileName": "cumbria-public-baseline-solver-grids.receipt.json",
+      "schemaVersion": "cumbria-solver-grid-receipt-v0.1.0",
+      "sha256": "8cb59393a9eb368ab9298d0e64c5ae2e4ffbc2a087f40b6ae498ff29a2f251d2"
+    },
+    "inventory": {
+      "meshCount": 3,
+      "artifactDescriptorCount": 39,
+      "uniqueArtifactCount": 21,
+      "descriptorCompressedBytes": 1461693,
+      "physicalCompressedBytes": 1441157,
+      "decodedBytes": 25725000
+    },
+    "meshes": [
+      {
+        "id": "mesh-20m",
+        "role": "primary",
+        "cellSizeMetres": 20,
+        "width": 400,
+        "height": 350,
+        "cellCount": 140000,
+        "terrainValidCellCount": 75786,
+        "terrainMissingCellCount": 64214,
+        "landCoverValidCellCount": 140000,
+        "landCoverMissingCellCount": 0,
+        "solverValidCellCount": 75786,
+        "solverInvalidCellCount": 64214,
+        "predictionEligibleCellCount": 73502,
+        "predictionExcludedHaloCellCount": 2284,
+        "minimumElevationM": 1.7214402958750725,
+        "maximumElevationM": 43.11755002975464
+      },
+      {
+        "id": "mesh-10m",
+        "role": "predeclared_sensitivity",
+        "cellSizeMetres": 10,
+        "width": 800,
+        "height": 700,
+        "cellCount": 560000,
+        "terrainValidCellCount": 305044,
+        "terrainMissingCellCount": 254956,
+        "landCoverValidCellCount": 560000,
+        "landCoverMissingCellCount": 0,
+        "solverValidCellCount": 305044,
+        "solverInvalidCellCount": 254956,
+        "predictionEligibleCellCount": 300445,
+        "predictionExcludedHaloCellCount": 4599,
+        "minimumElevationM": 1.6731022417545318,
+        "maximumElevationM": 43.295299949645994
+      },
+      {
+        "id": "mesh-40m",
+        "role": "predeclared_sensitivity",
+        "cellSizeMetres": 40,
+        "width": 200,
+        "height": 175,
+        "cellCount": 35000,
+        "terrainValidCellCount": 18693,
+        "terrainMissingCellCount": 16307,
+        "landCoverValidCellCount": 35000,
+        "landCoverMissingCellCount": 0,
+        "solverValidCellCount": 18693,
+        "solverInvalidCellCount": 16307,
+        "predictionEligibleCellCount": 17565,
+        "predictionExcludedHaloCellCount": 1128,
+        "minimumElevationM": 1.7645519149303437,
+        "maximumElevationM": 42.9763874912262
+      }
+    ],
+    "isolation": {
+      "h3UsedAsSourceOrSolverGrid": false,
+      "observedFloodGeometryLoaded": false,
+      "observedFloodGeometryUsed": false,
+      "externalOwnerPackageLoaded": false,
+      "networkRequests": 0,
+      "solverRuns": 0,
+      "evaluationRuns": 0,
+      "solverExecutionAuthorized": false
     }
   },
   "replacementSolverProtocol": {
@@ -2484,7 +2595,12 @@
     {
       "id": "replacement_solver_contract",
       "state": "passed",
-      "reason": "The public-only experimental replacement solver now freezes its 2D local-inertial formulation, primary 20 m and sensitivity meshes, explicit dry-start and free-outflow assumptions, Sheepmount incremental-discharge proxy, CLC runoff and roughness ranges, adaptive CFL rule, mass-balance terms, wetness thresholds and nine scenarios before any observed flood geometry is opened. Grid materialization, numerical-kernel verification, solver execution and evaluation remain blocked."
+      "reason": "The public-only experimental replacement solver freezes its 2D local-inertial formulation, primary 20 m and sensitivity meshes, explicit dry-start and free-outflow assumptions, Sheepmount incremental-discharge proxy, CLC runoff and roughness ranges, adaptive CFL rule, mass-balance terms, wetness thresholds and nine scenarios before any observed flood geometry is opened. Its original canonical contract remains immutable; the separate solver-grid gate now records completed static-grid materialization, while time-varying forcing, numerical-kernel verification, solver execution and evaluation remain blocked."
+    },
+    {
+      "id": "solver_grid_materialization",
+      "state": "passed",
+      "reason": "The frozen 10 m, 20 m and 40 m meshes now have content-addressed elevation, CLC-derived runoff and Manning parameters, explicit validity masks and a one-cell prediction-exclusion halo. Every solver cell requires complete native DTM coverage; internal NoData remains missing, so only 75,786 of 140,000 primary cells are solver-valid. Land cover covers all three meshes, H3 is not used for routing, and execution remains blocked by time-varying forcing and kernel verification."
     },
     {
       "id": "as_of_event_hydrography",
@@ -2518,9 +2634,9 @@
     }
   ],
   "acquisition": {
-    "state": "replacement_solver_contract_frozen",
+    "state": "static_solver_grids_materialized",
     "largeDownloadsAllowed": false,
     "boundedTerrainDownloadsAllowed": true,
-    "nextAction": "Materialize the three declared solver grids and the Sheepmount/half-hourly IMERG forcing as content-addressed preprocessing artifacts, preserving all ten effective DTM gaps. Then verify the local-inertial numerical kernel on deterministic mass-balance and stability fixtures; do not execute the event or open either observed flood geometry yet."
+    "nextAction": "Materialize the Sheepmount 15-minute and IMERG half-hourly forcing as content-addressed preprocessing artifacts under the frozen transformations. Then verify the local-inertial numerical kernel on deterministic mass-balance and stability fixtures; do not execute the event or open either observed flood geometry yet."
   }
 }

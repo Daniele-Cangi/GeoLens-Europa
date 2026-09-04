@@ -59,14 +59,14 @@ export const programmeRecords: readonly ProgrammeRecord[] = [
     code: 'Case 03',
     title: 'Event-specific public-data replay',
     place: 'Carlisle / Cumbria, United Kingdom',
-    status: 'Solver contract frozen',
+    status: 'Static grids materialized',
     statusTone: 'evidence-gate',
     established:
-      'A 56 km² Sheepmount–Old Sandsfield reach is fixed without observed flood geometry. Real terrain, CLC and IMERG evidence is composed for an inspection cell, while a separate hashed 2D surface-flow contract fixes the 20 m primary mesh, sensitivities, assumptions and wetness semantics.',
+      'A 56 km² Sheepmount–Old Sandsfield reach is fixed without observed flood geometry. The 10 m, 20 m and 40 m computation grids now reproduce from real DTM and CLC evidence while preserving every terrain gap; the hashed 2D contract and evaluation boundary remain unchanged.',
     openGate:
-      'Ten terrain grids remain explicitly unavailable. The computation grids, time-varying forcing and local-inertial kernel are not yet materialized or verified, so execution and evaluation remain sealed.',
+      'Ten terrain grids and internal NoData remain explicitly unavailable. Time-varying forcing and the local-inertial kernel are not yet materialized or verified, so execution and evaluation remain sealed.',
     nextDecision:
-      'Materialize the three declared grids and forcing receipts, then prove numerical stability and mass conservation on deterministic fixtures before the event run.',
+      'Materialize the frozen Sheepmount and IMERG forcing receipts, then prove numerical stability and mass conservation on deterministic fixtures before the event run.',
   },
 ] as const;
 

@@ -13,7 +13,7 @@ import {
   type CumbriaReplacementSolverProtocol,
 } from './cumbriaReplacementSolver';
 
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.19.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.20.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -401,7 +401,7 @@ export interface CumbriaDtmMaterializationPlan {
 
 export interface CumbriaSpatialGridProtocol {
   readonly id: 'cumbria-spatial-grid-boundary-v0';
-  readonly state: 'evidence_index_and_replacement_mesh_frozen_execution_blocked';
+  readonly state: 'static_solver_grids_materialized_forcing_and_kernel_blocked';
   readonly sourceGrids: {
     readonly terrain: {
       readonly datasetId: 'ea-lidar-dtm-time-stamped';
@@ -551,7 +551,7 @@ export interface CumbriaSpatialGridProtocol {
     readonly missingInputPolicy: 'missing_or_partial_remains_explicit';
   };
   readonly solverMesh: {
-    readonly state: 'replacement_solver_contract_frozen_execution_blocked';
+    readonly state: 'static_solver_grids_materialized_forcing_and_kernel_blocked';
     readonly contractId: 'cumbria-public-surface-flow-replacement-v0';
     readonly horizontalCrs: 'EPSG:27700';
     readonly verticalDatum: 'Ordnance Datum Newlyn';
@@ -568,10 +568,84 @@ export interface CumbriaSpatialGridProtocol {
     readonly h3Role: 'not_source_or_solver_grid';
     readonly executionAuthorized: false;
     readonly blockers: readonly [
-      'domain_solver_grids_not_materialized',
+      'sheepmount_series_not_content_addressed',
+      'half_hourly_imerg_forcing_not_materialized',
       'numerical_kernel_not_fixture_verified',
+      'mass_balance_and_stability_not_verified',
       'prediction_identity_not_frozen',
     ];
+  };
+}
+
+export interface CumbriaSolverGridMaterialization {
+  readonly schemaVersion: 'cumbria-solver-grid-materialization-v0.1.0';
+  readonly state: 'static_grids_materialized_execution_blocked';
+  readonly recordedOn: string;
+  readonly baseline: {
+    readonly tag: 'pre-external-evidence-baseline-v1';
+    readonly commit: '938b18fb66925e36236ea04a49eefdb2ca9826cb';
+  };
+  readonly protocol: {
+    readonly id: 'cumbria-public-surface-flow-replacement-v0';
+    readonly version: '0.1.0';
+    readonly sha256: string;
+  };
+  readonly transformation: {
+    readonly version: 'cumbria-solver-grid-preprocessing-v0.1.0';
+    readonly scriptSha256: string;
+    readonly terrainAggregation: 'area_weighted_mean_of_complete_native_dtm_coverage';
+    readonly completeNativeTerrainCoverageRequiredPerCell: true;
+    readonly landCoverAggregation: 'native_class_footprint_area_weighted_parameter';
+    readonly categoricalInterpolationForbidden: true;
+    readonly landCoverCoverageToleranceFraction: 0.000001;
+    readonly predictionHaloCells: 1;
+    readonly missingSubstitutedWithZero: false;
+  };
+  readonly sourceReceipts: {
+    readonly terrain: string;
+    readonly landCover: string;
+    readonly landCoverClassGrid: string;
+  };
+  readonly receipt: {
+    readonly fileName: 'cumbria-public-baseline-solver-grids.receipt.json';
+    readonly schemaVersion: 'cumbria-solver-grid-receipt-v0.1.0';
+    readonly sha256: string;
+  };
+  readonly inventory: {
+    readonly meshCount: 3;
+    readonly artifactDescriptorCount: 39;
+    readonly uniqueArtifactCount: 21;
+    readonly descriptorCompressedBytes: number;
+    readonly physicalCompressedBytes: number;
+    readonly decodedBytes: number;
+  };
+  readonly meshes: readonly {
+    readonly id: 'mesh-10m' | 'mesh-20m' | 'mesh-40m';
+    readonly role: 'primary' | 'predeclared_sensitivity';
+    readonly cellSizeMetres: 10 | 20 | 40;
+    readonly width: number;
+    readonly height: number;
+    readonly cellCount: number;
+    readonly terrainValidCellCount: number;
+    readonly terrainMissingCellCount: number;
+    readonly landCoverValidCellCount: number;
+    readonly landCoverMissingCellCount: number;
+    readonly solverValidCellCount: number;
+    readonly solverInvalidCellCount: number;
+    readonly predictionEligibleCellCount: number;
+    readonly predictionExcludedHaloCellCount: number;
+    readonly minimumElevationM: number;
+    readonly maximumElevationM: number;
+  }[];
+  readonly isolation: {
+    readonly h3UsedAsSourceOrSolverGrid: false;
+    readonly observedFloodGeometryLoaded: false;
+    readonly observedFloodGeometryUsed: false;
+    readonly externalOwnerPackageLoaded: false;
+    readonly networkRequests: 0;
+    readonly solverRuns: 0;
+    readonly evaluationRuns: 0;
+    readonly solverExecutionAuthorized: false;
   };
 }
 
@@ -876,13 +950,15 @@ export interface CumbriaAccessManifest {
   readonly publicBaselineEnvironmentalMaterialization:
     CumbriaPublicBaselineEnvironmentalMaterialization;
   readonly replacementSolverProtocol: CumbriaReplacementSolverProtocol;
+  readonly publicBaselineSolverGridMaterialization:
+    CumbriaSolverGridMaterialization;
   readonly evaluationProtocol: CumbriaBlindEvaluationProtocol;
   readonly modelAccessRequest: CumbriaModelAccessRequest;
   readonly modelDeliveryIntakeProtocol: CumbriaModelDeliveryIntakeProtocol;
   readonly datasets: readonly CumbriaDatasetAudit[];
   readonly gates: readonly CumbriaAccessGate[];
   readonly acquisition: {
-    readonly state: 'replacement_solver_contract_frozen';
+    readonly state: 'static_solver_grids_materialized';
     readonly largeDownloadsAllowed: false;
     readonly boundedTerrainDownloadsAllowed: true;
     readonly nextAction: string;
@@ -1122,6 +1198,13 @@ export function assertCumbriaAccessManifest(
     publicBaselineProtocol: manifest.publicBaselineProtocol,
     datasets,
   });
+  solverGridMaterialization(
+    manifest.publicBaselineSolverGridMaterialization,
+    manifest.spatialGridProtocol,
+    manifest.replacementSolverProtocol,
+    manifest.publicBaselineTerrainMaterialization,
+    manifest.publicBaselineEnvironmentalMaterialization,
+  );
   blindEvaluationProtocol(manifest.evaluationProtocol, datasetRecords);
 
   const imergFacts = record(
@@ -2011,6 +2094,11 @@ export function assertCumbriaAccessManifest(
     'passed',
     'replacement_solver_contract',
   );
+  equal(
+    gateStates.get('solver_grid_materialization'),
+    'passed',
+    'solver_grid_materialization',
+  );
   equal(gateStates.get('as_of_event_defence_state'), 'blocked', 'as_of_event_defence_state');
   equal(gateStates.get('hydraulic_context'), 'blocked', 'hydraulic_context');
   equal(gateStates.get('large_artifact_downloads'), 'blocked', 'large_artifact_downloads');
@@ -2018,7 +2106,7 @@ export function assertCumbriaAccessManifest(
   const acquisition = record(manifest.acquisition, 'acquisition');
   equal(
     acquisition.state,
-    'replacement_solver_contract_frozen',
+    'static_solver_grids_materialized',
     'acquisition.state',
   );
   equal(
@@ -2596,7 +2684,7 @@ function spatialGridProtocol(
   );
   equal(
     protocol.state,
-    'evidence_index_and_replacement_mesh_frozen_execution_blocked',
+    'static_solver_grids_materialized_forcing_and_kernel_blocked',
     'spatialGridProtocol.state',
   );
 
@@ -3059,7 +3147,7 @@ function spatialGridProtocol(
   const solver = record(protocol.solverMesh, 'spatialGridProtocol.solverMesh');
   equal(
     solver.state,
-    'replacement_solver_contract_frozen_execution_blocked',
+    'static_solver_grids_materialized_forcing_and_kernel_blocked',
     'solver mesh state',
   );
   const replacement = record(replacementSolverValue, 'replacementSolverProtocol');
@@ -3108,12 +3196,253 @@ function spatialGridProtocol(
   if (
     JSON.stringify(blockers) !==
     JSON.stringify([
-      'domain_solver_grids_not_materialized',
+      'sheepmount_series_not_content_addressed',
+      'half_hourly_imerg_forcing_not_materialized',
       'numerical_kernel_not_fixture_verified',
+      'mass_balance_and_stability_not_verified',
       'prediction_identity_not_frozen',
     ])
   ) {
     throw new Error('solver mesh blockers drifted');
+  }
+}
+
+function solverGridMaterialization(
+  value: unknown,
+  spatialProtocolValue: unknown,
+  replacementProtocolValue: unknown,
+  terrainMaterializationValue: unknown,
+  environmentalMaterializationValue: unknown,
+): void {
+  const result = record(value, 'publicBaselineSolverGridMaterialization');
+  equal(
+    result.schemaVersion,
+    'cumbria-solver-grid-materialization-v0.1.0',
+    'solver-grid materialization schema',
+  );
+  equal(
+    result.state,
+    'static_grids_materialized_execution_blocked',
+    'solver-grid materialization state',
+  );
+  nonEmpty(result.recordedOn, 'solver-grid materialization date');
+  const baseline = record(result.baseline, 'solver-grid baseline');
+  equal(
+    baseline.tag,
+    'pre-external-evidence-baseline-v1',
+    'solver-grid baseline tag',
+  );
+  equal(
+    baseline.commit,
+    '938b18fb66925e36236ea04a49eefdb2ca9826cb',
+    'solver-grid baseline commit',
+  );
+
+  const replacement = record(
+    replacementProtocolValue,
+    'replacementSolverProtocol',
+  );
+  const linkedProtocol = record(result.protocol, 'solver-grid protocol');
+  equal(linkedProtocol.id, replacement.id, 'solver-grid protocol id');
+  equal(linkedProtocol.version, replacement.version, 'solver-grid protocol version');
+  equal(
+    sha256(linkedProtocol.sha256, 'solver-grid protocol SHA-256'),
+    replacement.protocolSha256,
+    'solver-grid protocol SHA-256',
+  );
+
+  const transformation = record(
+    result.transformation,
+    'solver-grid transformation',
+  );
+  equal(
+    transformation.version,
+    'cumbria-solver-grid-preprocessing-v0.1.0',
+    'solver-grid transformation version',
+  );
+  equal(
+    sha256(transformation.scriptSha256, 'solver-grid script SHA-256'),
+    '09a8ba9a4f2c3cd86c2c2d3161e54553344bb29c8b3c76c0f58b01bec3884354',
+    'solver-grid script SHA-256',
+  );
+  const replacementMeshes = record(replacement.meshes, 'replacement meshes');
+  equal(
+    transformation.terrainAggregation,
+    replacementMeshes.terrainAggregation,
+    'solver-grid terrain aggregation',
+  );
+  equal(
+    transformation.completeNativeTerrainCoverageRequiredPerCell,
+    true,
+    'solver-grid complete terrain coverage policy',
+  );
+  const replacementForcing = record(replacement.forcing, 'replacement forcing');
+  const landCoverParameters = record(
+    replacementForcing.landCoverParameters,
+    'replacement land-cover parameters',
+  );
+  equal(
+    transformation.landCoverAggregation,
+    landCoverParameters.transformation,
+    'solver-grid land-cover aggregation',
+  );
+  equal(
+    transformation.categoricalInterpolationForbidden,
+    true,
+    'solver-grid categorical interpolation policy',
+  );
+  equal(
+    finite(
+      transformation.landCoverCoverageToleranceFraction,
+      'solver-grid land-cover tolerance',
+    ),
+    0.000001,
+    'solver-grid land-cover tolerance',
+  );
+  equal(
+    transformation.predictionHaloCells,
+    replacementMeshes.missingBoundaryExclusionCells,
+    'solver-grid prediction halo',
+  );
+  equal(
+    transformation.missingSubstitutedWithZero,
+    false,
+    'solver-grid missing-value policy',
+  );
+
+  const terrainMaterialization = record(
+    terrainMaterializationValue,
+    'publicBaselineTerrainMaterialization',
+  );
+  const terrainMaskReceipt = record(
+    terrainMaterialization.maskReceipt,
+    'terrain mask receipt',
+  );
+  const environmental = record(
+    environmentalMaterializationValue,
+    'publicBaselineEnvironmentalMaterialization',
+  );
+  const landCover = record(environmental.landCover, 'land-cover materialization');
+  const landCoverReceipt = record(landCover.receipt, 'land-cover receipt');
+  const sourceReceipts = record(result.sourceReceipts, 'solver-grid source receipts');
+  equal(sourceReceipts.terrain, terrainMaskReceipt.sha256, 'solver-grid terrain receipt');
+  equal(sourceReceipts.landCover, landCoverReceipt.sha256, 'solver-grid land-cover receipt');
+  equal(
+    sourceReceipts.landCoverClassGrid,
+    landCover.classGridArtifactSha256,
+    'solver-grid CLC artifact',
+  );
+
+  const receipt = record(result.receipt, 'solver-grid receipt');
+  equal(
+    receipt.fileName,
+    'cumbria-public-baseline-solver-grids.receipt.json',
+    'solver-grid receipt file',
+  );
+  equal(
+    receipt.schemaVersion,
+    'cumbria-solver-grid-receipt-v0.1.0',
+    'solver-grid receipt schema',
+  );
+  equal(
+    sha256(receipt.sha256, 'solver-grid receipt SHA-256'),
+    '8cb59393a9eb368ab9298d0e64c5ae2e4ffbc2a087f40b6ae498ff29a2f251d2',
+    'solver-grid receipt SHA-256',
+  );
+
+  const inventory = record(result.inventory, 'solver-grid inventory');
+  for (const [field, expected] of Object.entries({
+    meshCount: 3,
+    artifactDescriptorCount: 39,
+    uniqueArtifactCount: 21,
+    descriptorCompressedBytes: 1461693,
+    physicalCompressedBytes: 1441157,
+    decodedBytes: 25725000,
+  })) {
+    equal(integer(inventory[field], `solver-grid ${field}`), expected, `solver-grid ${field}`);
+  }
+
+  const expectedMeshes = new Map([
+    ['mesh-20m', {
+      role: 'primary', cellSizeMetres: 20, width: 400, height: 350,
+      cellCount: 140000, terrainValidCellCount: 75786,
+      terrainMissingCellCount: 64214, predictionEligibleCellCount: 73502,
+      predictionExcludedHaloCellCount: 2284,
+      minimumElevationM: 1.7214402958750725,
+      maximumElevationM: 43.11755002975464,
+    }],
+    ['mesh-10m', {
+      role: 'predeclared_sensitivity', cellSizeMetres: 10, width: 800,
+      height: 700, cellCount: 560000, terrainValidCellCount: 305044,
+      terrainMissingCellCount: 254956, predictionEligibleCellCount: 300445,
+      predictionExcludedHaloCellCount: 4599,
+      minimumElevationM: 1.6731022417545318,
+      maximumElevationM: 43.295299949645994,
+    }],
+    ['mesh-40m', {
+      role: 'predeclared_sensitivity', cellSizeMetres: 40, width: 200,
+      height: 175, cellCount: 35000, terrainValidCellCount: 18693,
+      terrainMissingCellCount: 16307, predictionEligibleCellCount: 17565,
+      predictionExcludedHaloCellCount: 1128,
+      minimumElevationM: 1.7645519149303437,
+      maximumElevationM: 42.9763874912262,
+    }],
+  ]);
+  const meshes = array(result.meshes, 'solver-grid meshes');
+  equal(meshes.length, 3, 'solver-grid mesh count');
+  const seen = new Set<string>();
+  for (const value_ of meshes) {
+    const mesh = record(value_, 'solver-grid mesh');
+    const id = nonEmpty(mesh.id, 'solver-grid mesh id');
+    if (seen.has(id)) {
+      throw new Error(`Duplicate solver-grid mesh ${id}`);
+    }
+    seen.add(id);
+    const expected = expectedMeshes.get(id);
+    if (!expected) {
+      throw new Error(`Unexpected solver-grid mesh ${id}`);
+    }
+    for (const [field, expectedValue] of Object.entries(expected)) {
+      equal(mesh[field], expectedValue, `${id} ${field}`);
+    }
+    equal(mesh.landCoverValidCellCount, expected.cellCount, `${id} land-cover valid cells`);
+    equal(mesh.landCoverMissingCellCount, 0, `${id} land-cover missing cells`);
+    equal(mesh.solverValidCellCount, expected.terrainValidCellCount, `${id} solver valid cells`);
+    equal(mesh.solverInvalidCellCount, expected.terrainMissingCellCount, `${id} solver invalid cells`);
+    equal(
+      integer(mesh.terrainValidCellCount, `${id} terrain valid`) +
+        integer(mesh.terrainMissingCellCount, `${id} terrain missing`),
+      expected.cellCount,
+      `${id} terrain cell accounting`,
+    );
+    equal(
+      integer(mesh.predictionEligibleCellCount, `${id} eligible`) +
+        integer(mesh.predictionExcludedHaloCellCount, `${id} halo`),
+      expected.terrainValidCellCount,
+      `${id} prediction cell accounting`,
+    );
+  }
+  equal(seen.size, expectedMeshes.size, 'solver-grid expected mesh identities');
+
+  const spatialProtocol = record(spatialProtocolValue, 'spatialGridProtocol');
+  const solverMesh = record(spatialProtocol.solverMesh, 'spatial solver mesh');
+  equal(
+    solverMesh.state,
+    'static_solver_grids_materialized_forcing_and_kernel_blocked',
+    'solver-grid linked mesh state',
+  );
+  const isolation = record(result.isolation, 'solver-grid isolation');
+  for (const field of [
+    'h3UsedAsSourceOrSolverGrid',
+    'observedFloodGeometryLoaded',
+    'observedFloodGeometryUsed',
+    'externalOwnerPackageLoaded',
+    'solverExecutionAuthorized',
+  ]) {
+    equal(isolation[field], false, `solver-grid isolation ${field}`);
+  }
+  for (const field of ['networkRequests', 'solverRuns', 'evaluationRuns']) {
+    equal(isolation[field], 0, `solver-grid isolation ${field}`);
   }
 }
 
