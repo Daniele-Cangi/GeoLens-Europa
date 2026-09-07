@@ -59,15 +59,15 @@ export const programmeRecords: readonly ProgrammeRecord[] = [
     code: 'Case 03',
     title: 'Event-specific public-data replay',
     place: 'Carlisle / Cumbria, United Kingdom',
-    status: 'Numerical kernel fixture-verified',
+    status: 'Event inputs bound and verified',
     statusTone: 'evidence-gate',
     established:
-      'A 56 km² Sheepmount–Old Sandsfield reach is fixed without observed flood geometry. Three computation grids, all 144 IMERG half-hours, 288 Sheepmount flow intervals and the isolated local-inertial fixture suite now reproduce from content-addressed evidence; the hashed 2D contract and evaluation boundary remain unchanged.',
+      'A 56 km² Sheepmount–Old Sandsfield reach is fixed without observed flood geometry. Corrected 10 m, 20 m and 40 m grids, 144 IMERG half-hours and 288 Sheepmount intervals are now connected to the verified local-inertial kernel through a fail-closed, content-addressed contract covering all nine frozen scenarios.',
     openGate:
-      'Ten terrain grids and internal NoData remain explicitly unavailable. The event arrays have not yet been bound to the verified kernel, so Storm Desmond execution and evaluation remain sealed.',
+      'Ten terrain grids remain explicitly unavailable. The event runner, stability and mass-balance procedure and exact prediction artifact contract are not yet frozen, so Storm Desmond execution and both evaluation references remain sealed.',
     nextDecision:
-      'Verify a fail-closed, content-addressed binding of grids, masks, units and time-varying forcing before the first event run.',
+      'Freeze and verify the event-runner contract before the first Storm Desmond execution; only a physically admissible content-addressed prediction may unlock blind evaluation.',
   },
 ] as const;
 
-export const programmeUpdatedAt = '4 September 2026';
+export const programmeUpdatedAt = '7 September 2026';

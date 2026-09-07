@@ -39,7 +39,7 @@ test('Cumbria manifest freezes the replacement-solver contract without opening s
   );
   assert.equal(
     manifest.acquisition.state,
-    'numerical_kernel_fixture_verified',
+    'event_inputs_bound_execution_blocked',
   );
   assert.equal(manifest.acquisition.largeDownloadsAllowed, false);
   assert.equal(manifest.acquisition.boundedTerrainDownloadsAllowed, true);
@@ -198,7 +198,7 @@ test('public baseline terrain materialization records real coverage without zero
   const manifest = manifestFixture();
   const result = manifest.publicBaselineTerrainMaterialization;
 
-  assert.equal(manifest.manifestVersion, '0.22.0');
+  assert.equal(manifest.manifestVersion, '0.23.0');
   assert.equal(result.state, 'terrain_materialized_with_explicit_gaps');
   assert.equal(
     result.protocolSha256,
@@ -402,7 +402,7 @@ test('pre-event terrain selection maps to downloadable archives with explicit ga
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.22.0');
+  assert.equal(manifest.manifestVersion, '0.23.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
@@ -625,7 +625,7 @@ test('spatial protocol preserves native grids and links only the declared replac
 
   assert.equal(
     protocol.state,
-    'numerical_kernel_fixture_verified_event_binding_blocked',
+    'event_inputs_content_addressed_prediction_freeze_blocked',
   );
   assert.deepEqual(protocol.sourceGrids.terrain.nativeResolutionMetres, [0.5, 1, 2]);
   assert.equal(protocol.sourceGrids.terrain.resampling, 'none');
@@ -744,7 +744,7 @@ test('spatial protocol preserves native grids and links only the declared replac
     'replacement_solver_grid_declared_sources_remain_native',
   );
   assert.deepEqual(protocol.solverMesh, {
-    state: 'numerical_kernel_fixture_verified_event_binding_blocked',
+    state: 'event_inputs_content_addressed_prediction_freeze_blocked',
     contractId: 'cumbria-public-surface-flow-replacement-v0',
     horizontalCrs: 'EPSG:27700',
     verticalDatum: 'Ordnance Datum Newlyn',
@@ -760,10 +760,7 @@ test('spatial protocol preserves native grids and links only the declared replac
     timeIntegration: 'adaptive_cfl',
     h3Role: 'not_source_or_solver_grid',
     executionAuthorized: false,
-    blockers: [
-      'event_input_binding_not_verified',
-      'prediction_identity_not_frozen',
-    ],
+    blockers: ['prediction_identity_not_frozen'],
   });
 });
 
@@ -782,9 +779,9 @@ test('static solver grids preserve native gaps and the pre-external baseline', (
   );
   assert.equal(
     materialization.receipt.sha256,
-    '8cb59393a9eb368ab9298d0e64c5ae2e4ffbc2a087f40b6ae498ff29a2f251d2',
+    '63fa37941c13cc6a18bb3fed9f9ab1690ae7da34da9963cead2299adc879800c',
   );
-  assert.equal(materialization.inventory.uniqueArtifactCount, 21);
+  assert.equal(materialization.inventory.uniqueArtifactCount, 36);
   assert.equal(materialization.inventory.decodedBytes, 25_725_000);
   const primary = materialization.meshes.find((mesh) => mesh.id === 'mesh-20m');
   assert.deepEqual(
@@ -816,6 +813,57 @@ test('static solver grids preserve native gaps and the pre-external baseline', (
   assert.throws(
     () => assertCumbriaAccessManifest(movedBaseline),
     /solver-grid baseline commit/,
+  );
+});
+
+test('event inputs are bound fail-closed before any event or evaluation run', () => {
+  const manifest = manifestFixture();
+  const grids = manifest.publicBaselineSolverGridMaterialization;
+  const binding = manifest.publicBaselineEventInputBinding;
+
+  assert.equal(
+    grids.correction.defect,
+    'land_cover_parameter_accumulators_initialized_to_nan',
+  );
+  assert.equal(
+    grids.correction.correctedParametersFiniteOnEveryLandCoverValidCell,
+    true,
+  );
+  assert.equal(
+    binding.state,
+    'event_inputs_content_addressed_prediction_freeze_blocked',
+  );
+  assert.deepEqual(binding.sourceReceipts, {
+    solverGrids: grids.receipt.sha256,
+    forcing: manifest.publicBaselineForcingMaterialization.receipt.sha256,
+  });
+  assert.equal(binding.temporalBinding.combinedIntervalCount, 288);
+  assert.equal(binding.temporalBinding.combinedIntervalSeconds, 900);
+  assert.equal(
+    binding.meshes.reduce((sum, mesh) => sum + mesh.mappedValidCellCount, 0),
+    399_523,
+  );
+  assert.equal(
+    binding.meshes.every(
+      (mesh) => mesh.maximumRainfallCoverageDeviationFraction === 0,
+    ),
+    true,
+  );
+  assert.equal(binding.scenarioCount, 9);
+  assert.equal(
+    binding.receipt.sha256,
+    'd0ebae08ebef1a1ca08b83977b9110eedbcf70d9290964c05ae20f8ca022500a',
+  );
+  assert.equal(binding.isolation.solverRuns, 0);
+  assert.equal(binding.isolation.predictionArtifactsCreated, 0);
+  assert.equal(binding.isolation.observedFloodGeometryLoaded, false);
+  assert.equal(binding.isolation.solverExecutionAuthorized, false);
+
+  const leaked = manifestFixture();
+  leaked.publicBaselineEventInputBinding.isolation.observedFloodGeometryLoaded = true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(leaked),
+    /event-input isolation observedFloodGeometryLoaded/,
   );
 });
 

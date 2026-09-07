@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.22.0",
+  "manifestVersion": "0.23.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -318,7 +318,7 @@
   },
   "spatialGridProtocol": {
     "id": "cumbria-spatial-grid-boundary-v0",
-    "state": "numerical_kernel_fixture_verified_event_binding_blocked",
+    "state": "event_inputs_content_addressed_prediction_freeze_blocked",
     "sourceGrids": {
       "terrain": {
         "datasetId": "ea-lidar-dtm-time-stamped",
@@ -468,7 +468,7 @@
       "missingInputPolicy": "missing_or_partial_remains_explicit"
     },
     "solverMesh": {
-      "state": "numerical_kernel_fixture_verified_event_binding_blocked",
+      "state": "event_inputs_content_addressed_prediction_freeze_blocked",
       "contractId": "cumbria-public-surface-flow-replacement-v0",
       "horizontalCrs": "EPSG:27700",
       "verticalDatum": "Ordnance Datum Newlyn",
@@ -484,10 +484,7 @@
       "timeIntegration": "adaptive_cfl",
       "h3Role": "not_source_or_solver_grid",
       "executionAuthorized": false,
-      "blockers": [
-        "event_input_binding_not_verified",
-        "prediction_identity_not_frozen"
-      ]
+      "blockers": ["prediction_identity_not_frozen"]
     }
   },
   "publicBaselineSolverGridMaterialization": {
@@ -504,8 +501,8 @@
       "sha256": "b9db1fbc10cc0aeff5d3a4e24bf1afc5d66226902ecad92ce111f1fcfb60c89b"
     },
     "transformation": {
-      "version": "cumbria-solver-grid-preprocessing-v0.1.0",
-      "scriptSha256": "09a8ba9a4f2c3cd86c2c2d3161e54553344bb29c8b3c76c0f58b01bec3884354",
+      "version": "cumbria-solver-grid-preprocessing-v0.2.0",
+      "scriptSha256": "d86790b1029ebcb9291084a5a22f47e8586eb54a1894c0ed8754b5025179b309",
       "terrainAggregation": "area_weighted_mean_of_complete_native_dtm_coverage",
       "completeNativeTerrainCoverageRequiredPerCell": true,
       "landCoverAggregation": "native_class_footprint_area_weighted_parameter",
@@ -520,17 +517,26 @@
       "landCoverClassGrid": "35214149c6bc51e703c766f6e06b5ddb28955e5aded709105acdf1aa3536d779"
     },
     "receipt": {
-      "fileName": "cumbria-public-baseline-solver-grids.receipt.json",
+      "fileName": "cumbria-public-baseline-solver-grids-v0.2.0.receipt.json",
       "schemaVersion": "cumbria-solver-grid-receipt-v0.1.0",
-      "sha256": "8cb59393a9eb368ab9298d0e64c5ae2e4ffbc2a087f40b6ae498ff29a2f251d2"
+      "sha256": "63fa37941c13cc6a18bb3fed9f9ab1690ae7da34da9963cead2299adc879800c"
     },
     "inventory": {
       "meshCount": 3,
       "artifactDescriptorCount": 39,
-      "uniqueArtifactCount": 21,
-      "descriptorCompressedBytes": 1461693,
-      "physicalCompressedBytes": 1441157,
+      "uniqueArtifactCount": 36,
+      "descriptorCompressedBytes": 2348234,
+      "physicalCompressedBytes": 2342503,
       "decodedBytes": 25725000
+    },
+    "correction": {
+      "supersededReceiptFileName": "cumbria-public-baseline-solver-grids.receipt.json",
+      "supersededReceiptSha256": "8cb59393a9eb368ab9298d0e64c5ae2e4ffbc2a087f40b6ae498ff29a2f251d2",
+      "defect": "land_cover_parameter_accumulators_initialized_to_nan",
+      "effect": "all runoff and Manning parameter artifacts in the superseded receipt encoded NoData despite valid land-cover masks",
+      "detectedBy": "fail_closed_event_input_binding_validation",
+      "disposition": "superseded receipt retained outside Git but forbidden as solver input",
+      "correctedParametersFiniteOnEveryLandCoverValidCell": true
     },
     "meshes": [
       {
@@ -625,6 +631,7 @@
       "imergAccumulation": "fb768f0de5dd2e39df8c32e80655b28e9dfef02d1ed82605eb94012bb244ebf7",
       "solverGrids": "8cb59393a9eb368ab9298d0e64c5ae2e4ffbc2a087f40b6ae498ff29a2f251d2"
     },
+    "solverGridReferenceState": "historical_pre_correction_reference_superseded_by_event_input_binding",
     "imerg": {
       "datasetId": "nasa-imerg-v07-final",
       "product": "GPM_3IMERGHH",
@@ -963,6 +970,138 @@
       "evaluationRuns": 0,
       "eventExecutionAuthorized": false,
       "evaluationReferenceAccessAllowed": false
+    }
+  },
+  "publicBaselineEventInputBinding": {
+    "schemaVersion": "cumbria-event-input-binding-v0.1.0",
+    "state": "event_inputs_content_addressed_prediction_freeze_blocked",
+    "recordedOn": "2026-09-07",
+    "baseline": {
+      "tag": "pre-external-evidence-baseline-v1",
+      "commit": "938b18fb66925e36236ea04a49eefdb2ca9826cb"
+    },
+    "protocol": {
+      "id": "cumbria-public-surface-flow-replacement-v0",
+      "version": "0.1.0",
+      "sha256": "b9db1fbc10cc0aeff5d3a4e24bf1afc5d66226902ecad92ce111f1fcfb60c89b"
+    },
+    "kernel": {
+      "implementationVersion": "cumbria-local-inertial-surface-flow-v0.1.0",
+      "moduleSha256": "f3ee5cd6b303303aeef26d1ea47dfbf5e6d2e1a40b2e4a7518161a470d713358",
+      "fixtureResultSha256": "cd31a9e9cbfb41e44d9619e4a1d9bdd1fc34fa81ce877bbf596772e5c80704c1"
+    },
+    "transformation": {
+      "version": "cumbria-event-input-binding-v0.1.0",
+      "scriptSha256": "e8cfa72faa189f6e1be5931171c44e4d5dd727281efa79b4cb01242fe9667c01",
+      "geometryVersion": "native-footprint-overlap-v0.1.0",
+      "horizontalCrs": "EPSG:27700",
+      "rainfallCoverageToleranceFraction": 0.000001,
+      "riverWeightTolerance": 1e-12,
+      "missingPolicy": "fail_closed_no_zero_substitution"
+    },
+    "sourceReceipts": {
+      "solverGrids": "63fa37941c13cc6a18bb3fed9f9ab1690ae7da34da9963cead2299adc879800c",
+      "forcing": "782eb107578fe34bccba9bc0202d90d06d504ddd63bc03ba301b1ccb3781c38b"
+    },
+    "temporalBinding": {
+      "eventStart": "2015-12-04T00:00:00Z",
+      "eventEndExclusive": "2015-12-07T00:00:00Z",
+      "durationSeconds": 259200,
+      "combinedIntervalSeconds": 900,
+      "combinedIntervalCount": 288,
+      "rainfallSourceIndexRule": "floor(combined_interval_index / 2)",
+      "riverSourceIndexRule": "combined_interval_index",
+      "outputIntervalSeconds": 900,
+      "completeWindowRequired": true
+    },
+    "sourceSemantics": {
+      "rainfall": {
+        "artifactSha256": "69c8ea9bfb18e6b722ff76b9125e44e3bb2df4965cbf09fd9f7d9705d1aac737",
+        "sourceShape": [144, 4, 3],
+        "sourceValueOrder": "time_major_longitude_major_latitude_minor",
+        "sourceIndexRule": "longitude_index * latitude_count + latitude_index",
+        "sourceUnit": "mm_per_30_minute_interval",
+        "kernelRateUnit": "m/s",
+        "rateFormula": "area-weighted native amount_mm / 1000 / 1800 * selected runoff_coefficient",
+        "sourceResolution": "0.1 degree",
+        "h3Used": false
+      },
+      "riverInflow": {
+        "artifactSha256": "9940b1a6af17a5867a6bc1150810699f821c96debc419bcaea396765caf64010",
+        "sourceUnit": "m3/s",
+        "kernelRateUnit": "m3/s per solver cell",
+        "rateFormula": "positive-excess sample_m3_s * frozen footprint valid-area weight",
+        "sourceMeaning": "incremental_event_discharge_proxy_not_total_channel_flow"
+      },
+      "initialCondition": {
+        "waterDepthM": 0,
+        "unitDischargeXM2s": 0,
+        "unitDischargeYM2s": 0,
+        "meaning": "explicit frozen dry-start assumption, not missing evidence"
+      }
+    },
+    "inventory": {
+      "artifactDescriptorCount": 19,
+      "uniqueArtifactCount": 19,
+      "descriptorCompressedBytes": 1097674,
+      "physicalCompressedBytes": 1097674,
+      "decodedBytes": 6555387
+    },
+    "meshes": [
+      {
+        "id": "mesh-20m",
+        "mappedValidCellCount": 75786,
+        "rainfallMappingEntryCount": 76319,
+        "minimumRainfallEntriesPerValidCell": 1,
+        "maximumRainfallEntriesPerValidCell": 4,
+        "maximumRainfallCoverageDeviationFraction": 0,
+        "riverFootprints": [
+          { "sideMetres": 60, "cellCount": 16, "validAreaFraction": 1 },
+          { "sideMetres": 100, "cellCount": 36, "validAreaFraction": 1 },
+          { "sideMetres": 140, "cellCount": 56, "validAreaFraction": 0.95 }
+        ]
+      },
+      {
+        "id": "mesh-10m",
+        "mappedValidCellCount": 305044,
+        "rainfallMappingEntryCount": 306112,
+        "minimumRainfallEntriesPerValidCell": 1,
+        "maximumRainfallEntriesPerValidCell": 4,
+        "maximumRainfallCoverageDeviationFraction": 0,
+        "riverFootprints": [
+          { "sideMetres": 100, "cellCount": 121, "validAreaFraction": 1 }
+        ]
+      },
+      {
+        "id": "mesh-40m",
+        "mappedValidCellCount": 18693,
+        "rainfallMappingEntryCount": 18956,
+        "minimumRainfallEntriesPerValidCell": 1,
+        "maximumRainfallEntriesPerValidCell": 4,
+        "maximumRainfallCoverageDeviationFraction": 0,
+        "riverFootprints": [
+          { "sideMetres": 100, "cellCount": 12, "validAreaFraction": 1 }
+        ]
+      }
+    ],
+    "scenarioCount": 9,
+    "receipt": {
+      "fileName": "cumbria-public-baseline-event-input-binding.receipt.json",
+      "schemaVersion": "cumbria-event-input-binding-receipt-v0.1.0",
+      "sha256": "d0ebae08ebef1a1ca08b83977b9110eedbcf70d9290964c05ae20f8ca022500a"
+    },
+    "isolation": {
+      "observedFloodGeometryLoaded": false,
+      "observedFloodGeometryUsed": false,
+      "evaluationReferenceAccessAllowed": false,
+      "externalOwnerPackageLoaded": false,
+      "h3UsedAsSourceOrSolverGrid": false,
+      "networkRequests": 0,
+      "solverRuns": 0,
+      "evaluationRuns": 0,
+      "predictionArtifactsCreated": 0,
+      "solverExecutionAuthorized": false,
+      "missingValuesSubstitutedWithZero": false
     }
   },
   "hydraulicProtocol": {
@@ -2749,12 +2888,12 @@
     {
       "id": "replacement_solver_contract",
       "state": "passed",
-      "reason": "The public-only experimental replacement solver freezes its 2D local-inertial formulation, primary 20 m and sensitivity meshes, explicit dry-start and free-outflow assumptions, Sheepmount incremental-discharge proxy, CLC runoff and roughness ranges, adaptive CFL rule, mass-balance terms, wetness thresholds and nine scenarios before any observed flood geometry is opened. Its original canonical contract remains immutable; completed grid, forcing and fixture-verification gates are recorded separately, while event execution and evaluation remain blocked."
+      "reason": "The public-only experimental replacement solver freezes its 2D local-inertial formulation, primary 20 m and sensitivity meshes, explicit dry-start and free-outflow assumptions, Sheepmount incremental-discharge proxy, CLC runoff and roughness ranges, adaptive CFL rule, mass-balance terms, wetness thresholds and nine scenarios before any observed flood geometry is opened. Its original canonical contract remains immutable; completed grid, forcing, fixture-verification and event-input-binding gates are recorded separately, while event execution and evaluation remain blocked."
     },
     {
       "id": "solver_grid_materialization",
       "state": "passed",
-      "reason": "The frozen 10 m, 20 m and 40 m meshes now have content-addressed elevation, CLC-derived runoff and Manning parameters, explicit validity masks and a one-cell prediction-exclusion halo. Every solver cell requires complete native DTM coverage; internal NoData remains missing, so only 75,786 of 140,000 primary cells are solver-valid. Land cover covers all three meshes, H3 is not used for routing, and event execution remains blocked pending verified input binding."
+      "reason": "The corrected frozen 10 m, 20 m and 40 m meshes now have content-addressed elevation, finite CLC-derived runoff and Manning parameters, explicit validity masks and a one-cell prediction-exclusion halo. Every solver cell requires complete native DTM coverage; internal NoData remains missing, so only 75,786 of 140,000 primary cells are solver-valid. The superseded NoData parameter receipt is retained but forbidden; H3 is not used for routing, and event execution remains blocked pending runner and prediction-contract freeze."
     },
     {
       "id": "time_varying_forcing_materialization",
@@ -2765,6 +2904,11 @@
       "id": "numerical_kernel_fixture_verification",
       "state": "passed",
       "reason": "The content-addressed Python/NumPy local-inertial kernel passes isolated deterministic fixtures for lake-at-rest equilibrium, conservative rainfall storage, non-negative sloped free outflow, exact source/output time alignment and mandatory failure below the frozen minimum timestep. Missing forcing is rejected rather than converted to zero. The suite reads no Storm Desmond input or observed evaluation geometry, makes no network request or external write, and does not authorize an event run."
+    },
+    {
+      "id": "event_input_binding",
+      "state": "passed",
+      "reason": "The corrected solver grids and complete native forcing are bound to all nine frozen scenarios through content-addressed CSR rainfall overlaps, explicit 900-second temporal indices and valid-area river-footprint weights. The fail-closed binding detected and superseded a NoData parameter-grid defect before any event run. All 399,523 valid mesh cells have complete IMERG coverage; missing, non-finite, negative or identity-mismatched input blocks execution. No prediction or evaluation run has occurred."
     },
     {
       "id": "as_of_event_hydrography",
@@ -2798,9 +2942,9 @@
     }
   ],
   "acquisition": {
-    "state": "numerical_kernel_fixture_verified",
+    "state": "event_inputs_bound_execution_blocked",
     "largeDownloadsAllowed": false,
     "boundedTerrainDownloadsAllowed": true,
-    "nextAction": "Bind the already materialized 10 m, 20 m and 40 m grids and time-varying forcing to the verified kernel through a fail-closed, content-addressed event-input contract. Do not execute Storm Desmond or open either observed flood geometry until that binding and the prediction-freeze procedure are verified."
+    "nextAction": "Freeze the event-runner, stability and mass-balance verification procedure and the exact prediction artifact identity contract before executing Storm Desmond. Do not open either observed flood geometry until a physically admissible prediction is content-addressed and frozen."
   }
 }
