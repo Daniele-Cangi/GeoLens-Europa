@@ -13,7 +13,7 @@ import {
   type CumbriaReplacementSolverProtocol,
 } from './cumbriaReplacementSolver';
 
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.21.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.22.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -401,7 +401,7 @@ export interface CumbriaDtmMaterializationPlan {
 
 export interface CumbriaSpatialGridProtocol {
   readonly id: 'cumbria-spatial-grid-boundary-v0';
-  readonly state: 'time_varying_forcing_materialized_kernel_blocked';
+  readonly state: 'numerical_kernel_fixture_verified_event_binding_blocked';
   readonly sourceGrids: {
     readonly terrain: {
       readonly datasetId: 'ea-lidar-dtm-time-stamped';
@@ -551,7 +551,7 @@ export interface CumbriaSpatialGridProtocol {
     readonly missingInputPolicy: 'missing_or_partial_remains_explicit';
   };
   readonly solverMesh: {
-    readonly state: 'time_varying_forcing_materialized_kernel_blocked';
+    readonly state: 'numerical_kernel_fixture_verified_event_binding_blocked';
     readonly contractId: 'cumbria-public-surface-flow-replacement-v0';
     readonly horizontalCrs: 'EPSG:27700';
     readonly verticalDatum: 'Ordnance Datum Newlyn';
@@ -568,8 +568,7 @@ export interface CumbriaSpatialGridProtocol {
     readonly h3Role: 'not_source_or_solver_grid';
     readonly executionAuthorized: false;
     readonly blockers: readonly [
-      'numerical_kernel_not_fixture_verified',
-      'mass_balance_and_stability_not_verified',
+      'event_input_binding_not_verified',
       'prediction_identity_not_frozen',
     ];
   };
@@ -999,6 +998,62 @@ export interface CumbriaPublicBaselineForcingMaterialization {
   };
 }
 
+export interface CumbriaLocalInertialKernelVerification {
+  readonly schemaVersion: 'cumbria-local-inertial-kernel-verification-v0.1.0';
+  readonly state: 'fixture_verified_event_execution_blocked';
+  readonly verifiedOn: string;
+  readonly baseline: {
+    readonly tag: 'pre-external-evidence-baseline-v1';
+    readonly commit: '938b18fb66925e36236ea04a49eefdb2ca9826cb';
+  };
+  readonly protocol: {
+    readonly id: 'cumbria-public-surface-flow-replacement-v0';
+    readonly sha256: string;
+  };
+  readonly implementation: {
+    readonly version: 'cumbria-local-inertial-surface-flow-v0.1.0';
+    readonly language: 'python_numpy_float64';
+    readonly module: 'surface-flow-engine/surface_flow/local_inertial.py';
+    readonly moduleSha256: string;
+    readonly fixtureModule: 'surface-flow-engine/surface_flow/fixtures.py';
+    readonly fixtureModuleSha256: string;
+    readonly verifier: 'scripts/verify_cumbria_local_inertial_kernel.py';
+    readonly verifierSha256: string;
+    readonly command: 'npm run verify:cumbria-local-inertial-kernel';
+  };
+  readonly fixtureSuite: {
+    readonly version: 'local-inertial-fixtures-v0.1.0';
+    readonly resultSha256: string;
+    readonly cases: readonly [
+      'lake_at_rest_variable_bed',
+      'closed_cell_uniform_rainfall',
+      'sloped_free_outflow',
+      'forcing_and_output_time_alignment',
+      'below_minimum_timestep',
+    ];
+  };
+  readonly verifiedContracts: {
+    readonly lakeAtRest: true;
+    readonly nonNegativeDepth: true;
+    readonly rainfallMassConservation: true;
+    readonly freeOutflowWithoutExternalInflow: true;
+    readonly exactSourceChangeAlignment: true;
+    readonly exactOutputAlignment: true;
+    readonly belowMinimumTimestepFailsClosed: true;
+    readonly missingEvidenceRejected: true;
+  };
+  readonly isolation: {
+    readonly realEventInputsRead: 0;
+    readonly observedEvaluationGeometriesRead: 0;
+    readonly networkCalls: 0;
+    readonly externalWrites: 0;
+    readonly solverEventRuns: 0;
+    readonly evaluationRuns: 0;
+    readonly eventExecutionAuthorized: false;
+    readonly evaluationReferenceAccessAllowed: false;
+  };
+}
+
 export interface CumbriaAccessManifest {
   readonly manifestVersion: typeof CUMBRIA_ACCESS_MANIFEST_VERSION;
   readonly audit: {
@@ -1036,6 +1091,8 @@ export interface CumbriaAccessManifest {
     CumbriaPublicBaselineEnvironmentalMaterialization;
   readonly publicBaselineForcingMaterialization:
     CumbriaPublicBaselineForcingMaterialization;
+  readonly publicBaselineNumericalKernelVerification:
+    CumbriaLocalInertialKernelVerification;
   readonly replacementSolverProtocol: CumbriaReplacementSolverProtocol;
   readonly publicBaselineSolverGridMaterialization:
     CumbriaSolverGridMaterialization;
@@ -1045,7 +1102,7 @@ export interface CumbriaAccessManifest {
   readonly datasets: readonly CumbriaDatasetAudit[];
   readonly gates: readonly CumbriaAccessGate[];
   readonly acquisition: {
-    readonly state: 'time_varying_forcing_materialized';
+    readonly state: 'numerical_kernel_fixture_verified';
     readonly largeDownloadsAllowed: false;
     readonly boundedTerrainDownloadsAllowed: true;
     readonly nextAction: string;
@@ -1297,6 +1354,10 @@ export function assertCumbriaAccessManifest(
     manifest.replacementSolverProtocol,
     manifest.publicBaselineEnvironmentalMaterialization,
     manifest.publicBaselineSolverGridMaterialization,
+  );
+  localInertialKernelVerification(
+    manifest.publicBaselineNumericalKernelVerification,
+    manifest.replacementSolverProtocol,
   );
   blindEvaluationProtocol(manifest.evaluationProtocol, datasetRecords);
 
@@ -2197,6 +2258,11 @@ export function assertCumbriaAccessManifest(
     'passed',
     'time_varying_forcing_materialization',
   );
+  equal(
+    gateStates.get('numerical_kernel_fixture_verification'),
+    'passed',
+    'numerical_kernel_fixture_verification',
+  );
   equal(gateStates.get('as_of_event_defence_state'), 'blocked', 'as_of_event_defence_state');
   equal(gateStates.get('hydraulic_context'), 'blocked', 'hydraulic_context');
   equal(gateStates.get('large_artifact_downloads'), 'blocked', 'large_artifact_downloads');
@@ -2204,7 +2270,7 @@ export function assertCumbriaAccessManifest(
   const acquisition = record(manifest.acquisition, 'acquisition');
   equal(
     acquisition.state,
-    'time_varying_forcing_materialized',
+    'numerical_kernel_fixture_verified',
     'acquisition.state',
   );
   equal(
@@ -2218,6 +2284,146 @@ export function assertCumbriaAccessManifest(
     'acquisition.boundedTerrainDownloadsAllowed',
   );
   nonEmpty(acquisition.nextAction, 'acquisition.nextAction');
+}
+
+function localInertialKernelVerification(
+  value: unknown,
+  replacementProtocolValue: unknown,
+): void {
+  const verification = record(
+    value,
+    'publicBaselineNumericalKernelVerification',
+  );
+  equal(
+    verification.schemaVersion,
+    'cumbria-local-inertial-kernel-verification-v0.1.0',
+    'numerical-kernel verification schema',
+  );
+  equal(
+    verification.state,
+    'fixture_verified_event_execution_blocked',
+    'numerical-kernel verification state',
+  );
+  dateOnly(verification.verifiedOn, 'numerical-kernel verification date');
+
+  const baseline = record(verification.baseline, 'numerical-kernel baseline');
+  equal(
+    baseline.tag,
+    'pre-external-evidence-baseline-v1',
+    'numerical-kernel baseline tag',
+  );
+  equal(
+    baseline.commit,
+    '938b18fb66925e36236ea04a49eefdb2ca9826cb',
+    'numerical-kernel baseline commit',
+  );
+
+  const replacement = record(
+    replacementProtocolValue,
+    'replacementSolverProtocol',
+  );
+  const protocol = record(verification.protocol, 'numerical-kernel protocol');
+  equal(protocol.id, replacement.id, 'numerical-kernel protocol id');
+  equal(
+    sha256(protocol.sha256, 'numerical-kernel protocol SHA-256'),
+    replacement.protocolSha256,
+    'numerical-kernel protocol SHA-256',
+  );
+
+  const implementation = record(
+    verification.implementation,
+    'numerical-kernel implementation',
+  );
+  const implementationExpected: Readonly<Record<string, string>> = {
+    version: 'cumbria-local-inertial-surface-flow-v0.1.0',
+    language: 'python_numpy_float64',
+    module: 'surface-flow-engine/surface_flow/local_inertial.py',
+    moduleSha256: 'f3ee5cd6b303303aeef26d1ea47dfbf5e6d2e1a40b2e4a7518161a470d713358',
+    fixtureModule: 'surface-flow-engine/surface_flow/fixtures.py',
+    fixtureModuleSha256: '06675c821418ad39788a3d8fc6304dae8f4b26fead95502a9d5d3d9e6c196436',
+    verifier: 'scripts/verify_cumbria_local_inertial_kernel.py',
+    verifierSha256: '4c30f509b426af930b1bb2ec66e9f7e00506101424482062187c31b628d94527',
+    command: 'npm run verify:cumbria-local-inertial-kernel',
+  };
+  for (const [field, expected] of Object.entries(implementationExpected)) {
+    equal(implementation[field], expected, `numerical-kernel ${field}`);
+  }
+  for (const field of [
+    'moduleSha256',
+    'fixtureModuleSha256',
+    'verifierSha256',
+  ]) {
+    sha256(implementation[field], `numerical-kernel ${field}`);
+  }
+
+  const fixtureSuite = record(
+    verification.fixtureSuite,
+    'numerical-kernel fixture suite',
+  );
+  equal(
+    fixtureSuite.version,
+    'local-inertial-fixtures-v0.1.0',
+    'numerical-kernel fixture suite version',
+  );
+  equal(
+    sha256(fixtureSuite.resultSha256, 'numerical-kernel fixture result SHA-256'),
+    'cd31a9e9cbfb41e44d9619e4a1d9bdd1fc34fa81ce877bbf596772e5c80704c1',
+    'numerical-kernel fixture result SHA-256',
+  );
+  const cases = stringArray(
+    fixtureSuite.cases,
+    'numerical-kernel fixture cases',
+  );
+  equal(
+    JSON.stringify(cases),
+    JSON.stringify([
+      'lake_at_rest_variable_bed',
+      'closed_cell_uniform_rainfall',
+      'sloped_free_outflow',
+      'forcing_and_output_time_alignment',
+      'below_minimum_timestep',
+    ]),
+    'numerical-kernel fixture cases',
+  );
+
+  const contracts = record(
+    verification.verifiedContracts,
+    'numerical-kernel verified contracts',
+  );
+  for (const field of [
+    'lakeAtRest',
+    'nonNegativeDepth',
+    'rainfallMassConservation',
+    'freeOutflowWithoutExternalInflow',
+    'exactSourceChangeAlignment',
+    'exactOutputAlignment',
+    'belowMinimumTimestepFailsClosed',
+    'missingEvidenceRejected',
+  ]) {
+    equal(contracts[field], true, `numerical-kernel contract ${field}`);
+  }
+
+  const isolation = record(verification.isolation, 'numerical-kernel isolation');
+  for (const field of [
+    'realEventInputsRead',
+    'observedEvaluationGeometriesRead',
+    'networkCalls',
+    'externalWrites',
+    'solverEventRuns',
+    'evaluationRuns',
+  ]) {
+    equal(isolation[field], 0, `numerical-kernel isolation ${field}`);
+  }
+  equal(
+    isolation.eventExecutionAuthorized,
+    false,
+    'numerical-kernel event execution gate',
+  );
+  equal(
+    isolation.evaluationReferenceAccessAllowed,
+    false,
+    'numerical-kernel evaluation access gate',
+  );
 }
 
 function publicBaselineEnvironmentalMaterialization(
@@ -2782,7 +2988,7 @@ function spatialGridProtocol(
   );
   equal(
     protocol.state,
-    'time_varying_forcing_materialized_kernel_blocked',
+    'numerical_kernel_fixture_verified_event_binding_blocked',
     'spatialGridProtocol.state',
   );
 
@@ -3245,7 +3451,7 @@ function spatialGridProtocol(
   const solver = record(protocol.solverMesh, 'spatialGridProtocol.solverMesh');
   equal(
     solver.state,
-    'time_varying_forcing_materialized_kernel_blocked',
+    'numerical_kernel_fixture_verified_event_binding_blocked',
     'solver mesh state',
   );
   const replacement = record(replacementSolverValue, 'replacementSolverProtocol');
@@ -3294,8 +3500,7 @@ function spatialGridProtocol(
   if (
     JSON.stringify(blockers) !==
     JSON.stringify([
-      'numerical_kernel_not_fixture_verified',
-      'mass_balance_and_stability_not_verified',
+      'event_input_binding_not_verified',
       'prediction_identity_not_frozen',
     ])
   ) {
@@ -3524,7 +3729,7 @@ function solverGridMaterialization(
   const solverMesh = record(spatialProtocol.solverMesh, 'spatial solver mesh');
   equal(
     solverMesh.state,
-    'time_varying_forcing_materialized_kernel_blocked',
+    'numerical_kernel_fixture_verified_event_binding_blocked',
     'solver-grid linked mesh state',
   );
   const isolation = record(result.isolation, 'solver-grid isolation');

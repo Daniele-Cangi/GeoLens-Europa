@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.21.0",
+  "manifestVersion": "0.22.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -318,7 +318,7 @@
   },
   "spatialGridProtocol": {
     "id": "cumbria-spatial-grid-boundary-v0",
-    "state": "time_varying_forcing_materialized_kernel_blocked",
+    "state": "numerical_kernel_fixture_verified_event_binding_blocked",
     "sourceGrids": {
       "terrain": {
         "datasetId": "ea-lidar-dtm-time-stamped",
@@ -468,7 +468,7 @@
       "missingInputPolicy": "missing_or_partial_remains_explicit"
     },
     "solverMesh": {
-      "state": "time_varying_forcing_materialized_kernel_blocked",
+      "state": "numerical_kernel_fixture_verified_event_binding_blocked",
       "contractId": "cumbria-public-surface-flow-replacement-v0",
       "horizontalCrs": "EPSG:27700",
       "verticalDatum": "Ordnance Datum Newlyn",
@@ -485,8 +485,7 @@
       "h3Role": "not_source_or_solver_grid",
       "executionAuthorized": false,
       "blockers": [
-        "numerical_kernel_not_fixture_verified",
-        "mass_balance_and_stability_not_verified",
+        "event_input_binding_not_verified",
         "prediction_identity_not_frozen"
       ]
     }
@@ -910,6 +909,61 @@
       ]
     },
     "protocolSha256": "b9db1fbc10cc0aeff5d3a4e24bf1afc5d66226902ecad92ce111f1fcfb60c89b"
+  },
+  "publicBaselineNumericalKernelVerification": {
+    "schemaVersion": "cumbria-local-inertial-kernel-verification-v0.1.0",
+    "state": "fixture_verified_event_execution_blocked",
+    "verifiedOn": "2026-09-04",
+    "baseline": {
+      "tag": "pre-external-evidence-baseline-v1",
+      "commit": "938b18fb66925e36236ea04a49eefdb2ca9826cb"
+    },
+    "protocol": {
+      "id": "cumbria-public-surface-flow-replacement-v0",
+      "sha256": "b9db1fbc10cc0aeff5d3a4e24bf1afc5d66226902ecad92ce111f1fcfb60c89b"
+    },
+    "implementation": {
+      "version": "cumbria-local-inertial-surface-flow-v0.1.0",
+      "language": "python_numpy_float64",
+      "module": "surface-flow-engine/surface_flow/local_inertial.py",
+      "moduleSha256": "f3ee5cd6b303303aeef26d1ea47dfbf5e6d2e1a40b2e4a7518161a470d713358",
+      "fixtureModule": "surface-flow-engine/surface_flow/fixtures.py",
+      "fixtureModuleSha256": "06675c821418ad39788a3d8fc6304dae8f4b26fead95502a9d5d3d9e6c196436",
+      "verifier": "scripts/verify_cumbria_local_inertial_kernel.py",
+      "verifierSha256": "4c30f509b426af930b1bb2ec66e9f7e00506101424482062187c31b628d94527",
+      "command": "npm run verify:cumbria-local-inertial-kernel"
+    },
+    "fixtureSuite": {
+      "version": "local-inertial-fixtures-v0.1.0",
+      "resultSha256": "cd31a9e9cbfb41e44d9619e4a1d9bdd1fc34fa81ce877bbf596772e5c80704c1",
+      "cases": [
+        "lake_at_rest_variable_bed",
+        "closed_cell_uniform_rainfall",
+        "sloped_free_outflow",
+        "forcing_and_output_time_alignment",
+        "below_minimum_timestep"
+      ]
+    },
+    "verifiedContracts": {
+      "lakeAtRest": true,
+      "nonNegativeDepth": true,
+      "rainfallMassConservation": true,
+      "freeOutflowWithoutExternalInflow": true,
+      "exactSourceChangeAlignment": true,
+      "exactOutputAlignment": true,
+      "belowMinimumTimestepFailsClosed": true,
+      "missingEvidenceRejected": true
+    },
+    "isolation": {
+      "realEventInputsRead": 0,
+      "observedEvaluationGeometriesRead": 0,
+      "networkCalls": 0,
+      "externalWrites": 0,
+      "solverEventRuns": 0,
+      "evaluationRuns": 0,
+      "eventExecutionAuthorized": false,
+      "evaluationReferenceAccessAllowed": false
+    }
   },
   "hydraulicProtocol": {
     "id": "carlisle-local-hydraulic-protocol-v0",
@@ -2695,17 +2749,22 @@
     {
       "id": "replacement_solver_contract",
       "state": "passed",
-      "reason": "The public-only experimental replacement solver freezes its 2D local-inertial formulation, primary 20 m and sensitivity meshes, explicit dry-start and free-outflow assumptions, Sheepmount incremental-discharge proxy, CLC runoff and roughness ranges, adaptive CFL rule, mass-balance terms, wetness thresholds and nine scenarios before any observed flood geometry is opened. Its original canonical contract remains immutable; the separate solver-grid gate now records completed static-grid materialization, while time-varying forcing, numerical-kernel verification, solver execution and evaluation remain blocked."
+      "reason": "The public-only experimental replacement solver freezes its 2D local-inertial formulation, primary 20 m and sensitivity meshes, explicit dry-start and free-outflow assumptions, Sheepmount incremental-discharge proxy, CLC runoff and roughness ranges, adaptive CFL rule, mass-balance terms, wetness thresholds and nine scenarios before any observed flood geometry is opened. Its original canonical contract remains immutable; completed grid, forcing and fixture-verification gates are recorded separately, while event execution and evaluation remain blocked."
     },
     {
       "id": "solver_grid_materialization",
       "state": "passed",
-      "reason": "The frozen 10 m, 20 m and 40 m meshes now have content-addressed elevation, CLC-derived runoff and Manning parameters, explicit validity masks and a one-cell prediction-exclusion halo. Every solver cell requires complete native DTM coverage; internal NoData remains missing, so only 75,786 of 140,000 primary cells are solver-valid. Land cover covers all three meshes, H3 is not used for routing, and execution remains blocked by kernel verification."
+      "reason": "The frozen 10 m, 20 m and 40 m meshes now have content-addressed elevation, CLC-derived runoff and Manning parameters, explicit validity masks and a one-cell prediction-exclusion halo. Every solver cell requires complete native DTM coverage; internal NoData remains missing, so only 75,786 of 140,000 primary cells are solver-valid. Land cover covers all three meshes, H3 is not used for routing, and event execution remains blocked pending verified input binding."
     },
     {
       "id": "time_varying_forcing_materialization",
       "state": "passed",
       "reason": "All 144 native half-hour IMERG amount grids and all 288 native 15-minute Sheepmount flow samples are content-addressed for the frozen event window. The IMERG series reproduces the previously pinned 72-hour accumulation exactly under the original Float32 arithmetic. Sheepmount retains observed flow separately from the versioned positive-excess proxy. Missing intervals would block execution, source resolution remains explicit, and no solver or evaluation run has occurred."
+    },
+    {
+      "id": "numerical_kernel_fixture_verification",
+      "state": "passed",
+      "reason": "The content-addressed Python/NumPy local-inertial kernel passes isolated deterministic fixtures for lake-at-rest equilibrium, conservative rainfall storage, non-negative sloped free outflow, exact source/output time alignment and mandatory failure below the frozen minimum timestep. Missing forcing is rejected rather than converted to zero. The suite reads no Storm Desmond input or observed evaluation geometry, makes no network request or external write, and does not authorize an event run."
     },
     {
       "id": "as_of_event_hydrography",
@@ -2739,9 +2798,9 @@
     }
   ],
   "acquisition": {
-    "state": "time_varying_forcing_materialized",
+    "state": "numerical_kernel_fixture_verified",
     "largeDownloadsAllowed": false,
     "boundedTerrainDownloadsAllowed": true,
-    "nextAction": "Implement and fixture-verify the frozen local-inertial numerical kernel, including adaptive-step failure, non-negative state, source-change alignment, stability and complete mass-balance accounting. Do not execute the event or open either observed flood geometry yet."
+    "nextAction": "Bind the already materialized 10 m, 20 m and 40 m grids and time-varying forcing to the verified kernel through a fail-closed, content-addressed event-input contract. Do not execute Storm Desmond or open either observed flood geometry until that binding and the prediction-freeze procedure are verified."
   }
 }
