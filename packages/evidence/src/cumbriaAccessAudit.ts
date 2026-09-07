@@ -13,7 +13,7 @@ import {
   type CumbriaReplacementSolverProtocol,
 } from './cumbriaReplacementSolver';
 
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.23.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.24.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -551,7 +551,7 @@ export interface CumbriaSpatialGridProtocol {
     readonly missingInputPolicy: 'missing_or_partial_remains_explicit';
   };
   readonly solverMesh: {
-    readonly state: 'event_inputs_content_addressed_prediction_freeze_blocked';
+    readonly state: 'event_runner_contract_frozen_authorization_pending';
     readonly contractId: 'cumbria-public-surface-flow-replacement-v0';
     readonly horizontalCrs: 'EPSG:27700';
     readonly verticalDatum: 'Ordnance Datum Newlyn';
@@ -567,7 +567,10 @@ export interface CumbriaSpatialGridProtocol {
     readonly timeIntegration: 'adaptive_cfl';
     readonly h3Role: 'not_source_or_solver_grid';
     readonly executionAuthorized: false;
-    readonly blockers: readonly ['prediction_identity_not_frozen'];
+    readonly blockers: readonly [
+      'clean_git_revision_not_authorized',
+      'prediction_identity_not_frozen',
+    ];
   };
 }
 
@@ -1019,7 +1022,7 @@ export interface CumbriaLocalInertialKernelVerification {
     readonly sha256: string;
   };
   readonly implementation: {
-    readonly version: 'cumbria-local-inertial-surface-flow-v0.1.0';
+    readonly version: 'cumbria-local-inertial-surface-flow-v0.2.0';
     readonly language: 'python_numpy_float64';
     readonly module: 'surface-flow-engine/surface_flow/local_inertial.py';
     readonly moduleSha256: string;
@@ -1063,7 +1066,7 @@ export interface CumbriaLocalInertialKernelVerification {
 }
 
 export interface CumbriaEventInputBinding {
-  readonly schemaVersion: 'cumbria-event-input-binding-v0.1.0';
+  readonly schemaVersion: 'cumbria-event-input-binding-v0.2.0';
   readonly state: 'event_inputs_content_addressed_prediction_freeze_blocked';
   readonly recordedOn: string;
   readonly baseline: {
@@ -1076,12 +1079,12 @@ export interface CumbriaEventInputBinding {
     readonly sha256: string;
   };
   readonly kernel: {
-    readonly implementationVersion: 'cumbria-local-inertial-surface-flow-v0.1.0';
+    readonly implementationVersion: 'cumbria-local-inertial-surface-flow-v0.2.0';
     readonly moduleSha256: string;
     readonly fixtureResultSha256: string;
   };
   readonly transformation: {
-    readonly version: 'cumbria-event-input-binding-v0.1.0';
+    readonly version: 'cumbria-event-input-binding-v0.2.0';
     readonly scriptSha256: string;
     readonly geometryVersion: 'native-footprint-overlap-v0.1.0';
     readonly horizontalCrs: 'EPSG:27700';
@@ -1152,7 +1155,7 @@ export interface CumbriaEventInputBinding {
   }[];
   readonly scenarioCount: 9;
   readonly receipt: {
-    readonly fileName: 'cumbria-public-baseline-event-input-binding.receipt.json';
+    readonly fileName: 'cumbria-public-baseline-event-input-binding-v0.2.0.receipt.json';
     readonly schemaVersion: 'cumbria-event-input-binding-receipt-v0.1.0';
     readonly sha256: string;
   };
@@ -1169,6 +1172,117 @@ export interface CumbriaEventInputBinding {
     readonly solverExecutionAuthorized: false;
     readonly missingValuesSubstitutedWithZero: false;
   };
+}
+
+export interface CumbriaEventRunnerContract {
+  readonly schemaVersion: 'cumbria-event-runner-contract-v0.1.0';
+  readonly state: 'frozen_authorization_not_created';
+  readonly frozenOn: string;
+  readonly baseline: {
+    readonly tag: 'pre-external-evidence-baseline-v1';
+    readonly commit: '938b18fb66925e36236ea04a49eefdb2ca9826cb';
+  };
+  readonly protocol: {
+    readonly id: 'cumbria-public-surface-flow-replacement-v0';
+    readonly version: '0.1.0';
+    readonly sha256: string;
+  };
+  readonly inputReceipts: Readonly<
+    Record<
+      'solverGrids' | 'forcing' | 'eventInputBinding',
+      { readonly fileName: string; readonly sha256: string }
+    >
+  >;
+  readonly runner: {
+    readonly id: 'cumbria-public-event-runner-v0';
+    readonly version: 'cumbria-public-event-runner-v0.1.0';
+    readonly entrypoint: 'scripts/run_cumbria_public_event.py';
+    readonly entrypointSha256: string;
+    readonly kernelVersion: 'cumbria-local-inertial-surface-flow-v0.2.0';
+    readonly kernelModule: 'surface-flow-engine/surface_flow/local_inertial.py';
+    readonly kernelModuleSha256: string;
+    readonly fixtureModule: 'surface-flow-engine/surface_flow/fixtures.py';
+    readonly fixtureModuleSha256: string;
+    readonly fixtureResultSha256: string;
+    readonly forcingMemoryPolicy: 'one_spatial_interval_materialized_at_a_time';
+    readonly outputMemoryPolicy: string;
+  };
+  readonly runtime: {
+    readonly language: 'python_numpy';
+    readonly internalDtype: 'float64';
+    readonly arrayOrder: 'row_major_north_to_south';
+    readonly pythonAndNumpyVersionsRecordedInPredictionReceipt: true;
+    readonly platformRecordedInPredictionReceipt: true;
+  };
+  readonly schedule: {
+    readonly eventStart: string;
+    readonly eventEndExclusive: string;
+    readonly durationSeconds: 259200;
+    readonly forcingIntervalSeconds: 900;
+    readonly forcingIntervalCount: 288;
+    readonly outputIntervalSeconds: 900;
+    readonly outputCount: 288;
+  };
+  readonly numerics: Readonly<Record<string, unknown>>;
+  readonly stability: Readonly<Record<string, unknown>>;
+  readonly massBalance: Readonly<Record<string, unknown>>;
+  readonly authorization: {
+    readonly id: 'cumbria-public-storm-desmond-v0-authorization';
+    readonly fileName: 'cumbria-public-storm-desmond-v0.authorization.json';
+    readonly schemaVersion: 'cumbria-event-run-authorization-v0.1.0';
+    readonly contentAddressAlgorithm: 'sha256';
+    readonly cleanGitTreeRequired: true;
+    readonly gitCommitAndTreeRecorded: true;
+    readonly manifestAndSourceHashesRecorded: true;
+    readonly inputReceiptHashesRecorded: true;
+    readonly authorizationMustPrecedeSolverExecution: true;
+    readonly allowedBranches: readonly ['main', 'codex/geolens-refoundation'];
+  };
+  readonly outputs: Readonly<Record<string, unknown>> & {
+    readonly predictionId: 'cumbria-public-storm-desmond-v0';
+    readonly receiptFileName: 'cumbria-public-storm-desmond-v0.prediction.receipt.json';
+    readonly wetnessThresholdsM: readonly [0.01, 0.05, 0.1, 0.3];
+    readonly missingPredictionTreatedAsDry: false;
+    readonly completeBundleRequiresEveryScenario: true;
+    readonly partialArtifactsAreNotPrediction: true;
+  };
+  readonly scenarioPolicy: {
+    readonly orderedScenarioIds: readonly [
+      'primary-20m',
+      'mesh-10m',
+      'mesh-40m',
+      'runoff-low',
+      'runoff-high',
+      'roughness-low',
+      'roughness-high',
+      'inflow-60m',
+      'inflow-140m',
+    ];
+    readonly primaryScenarioId: 'primary-20m';
+    readonly everyScenarioMustComplete: true;
+    readonly executionOrderIsNotPerformanceRanking: true;
+    readonly bestScenarioSelectionForbidden: true;
+    readonly evaluationDrivenRetuningForbidden: true;
+  };
+  readonly isolation: {
+    readonly observedFloodGeometryLoaded: false;
+    readonly observedFloodGeometryUsed: false;
+    readonly evaluationReferenceAccessAllowed: false;
+    readonly networkRequestsAllowed: false;
+    readonly h3UsedAsSolverGrid: false;
+    readonly missingValuesSubstitutedWithZero: false;
+  };
+  readonly execution: {
+    readonly state: 'blocked_pending_clean_revision_authorization';
+    readonly preflightAllowed: true;
+    readonly authorizationMayBeCreatedAfterMerge: true;
+    readonly solverExecutionAllowed: false;
+    readonly predictionReceiptExists: false;
+    readonly evaluationReferenceAccessAllowed: false;
+    readonly solverRuns: 0;
+    readonly evaluationRuns: 0;
+  };
+  readonly contractSha256: string;
 }
 
 export interface CumbriaAccessManifest {
@@ -1211,6 +1325,7 @@ export interface CumbriaAccessManifest {
   readonly publicBaselineNumericalKernelVerification:
     CumbriaLocalInertialKernelVerification;
   readonly publicBaselineEventInputBinding: CumbriaEventInputBinding;
+  readonly publicBaselineEventRunnerContract: CumbriaEventRunnerContract;
   readonly replacementSolverProtocol: CumbriaReplacementSolverProtocol;
   readonly publicBaselineSolverGridMaterialization:
     CumbriaSolverGridMaterialization;
@@ -1220,7 +1335,7 @@ export interface CumbriaAccessManifest {
   readonly datasets: readonly CumbriaDatasetAudit[];
   readonly gates: readonly CumbriaAccessGate[];
   readonly acquisition: {
-    readonly state: 'event_inputs_bound_execution_blocked';
+    readonly state: 'event_runner_contract_frozen_authorization_pending';
     readonly largeDownloadsAllowed: false;
     readonly boundedTerrainDownloadsAllowed: true;
     readonly nextAction: string;
@@ -1482,6 +1597,14 @@ export function assertCumbriaAccessManifest(
     manifest.replacementSolverProtocol,
     manifest.publicBaselineSolverGridMaterialization,
     manifest.publicBaselineForcingMaterialization,
+    manifest.publicBaselineNumericalKernelVerification,
+  );
+  eventRunnerContract(
+    manifest.publicBaselineEventRunnerContract,
+    manifest.replacementSolverProtocol,
+    manifest.publicBaselineSolverGridMaterialization,
+    manifest.publicBaselineForcingMaterialization,
+    manifest.publicBaselineEventInputBinding,
     manifest.publicBaselineNumericalKernelVerification,
   );
   blindEvaluationProtocol(manifest.evaluationProtocol, datasetRecords);
@@ -2388,6 +2511,8 @@ export function assertCumbriaAccessManifest(
     'passed',
     'numerical_kernel_fixture_verification',
   );
+  equal(gateStates.get('event_input_binding'), 'passed', 'event_input_binding');
+  equal(gateStates.get('event_runner_contract'), 'passed', 'event_runner_contract');
   equal(gateStates.get('as_of_event_defence_state'), 'blocked', 'as_of_event_defence_state');
   equal(gateStates.get('hydraulic_context'), 'blocked', 'hydraulic_context');
   equal(gateStates.get('large_artifact_downloads'), 'blocked', 'large_artifact_downloads');
@@ -2395,7 +2520,7 @@ export function assertCumbriaAccessManifest(
   const acquisition = record(manifest.acquisition, 'acquisition');
   equal(
     acquisition.state,
-    'event_inputs_bound_execution_blocked',
+    'event_runner_contract_frozen_authorization_pending',
     'acquisition.state',
   );
   equal(
@@ -2460,12 +2585,12 @@ function localInertialKernelVerification(
     'numerical-kernel implementation',
   );
   const implementationExpected: Readonly<Record<string, string>> = {
-    version: 'cumbria-local-inertial-surface-flow-v0.1.0',
+    version: 'cumbria-local-inertial-surface-flow-v0.2.0',
     language: 'python_numpy_float64',
     module: 'surface-flow-engine/surface_flow/local_inertial.py',
-    moduleSha256: 'f3ee5cd6b303303aeef26d1ea47dfbf5e6d2e1a40b2e4a7518161a470d713358',
+    moduleSha256: '0423a865b0cbedc64fe141f7a3d7fac7ad7e8e5ad20fe715ea6314469d577677',
     fixtureModule: 'surface-flow-engine/surface_flow/fixtures.py',
-    fixtureModuleSha256: '06675c821418ad39788a3d8fc6304dae8f4b26fead95502a9d5d3d9e6c196436',
+    fixtureModuleSha256: 'f5d1846e5f943467afe298c470efd9b42e5f5d19961f85b940659e21d3ea9a16',
     verifier: 'scripts/verify_cumbria_local_inertial_kernel.py',
     verifierSha256: '4c30f509b426af930b1bb2ec66e9f7e00506101424482062187c31b628d94527',
     command: 'npm run verify:cumbria-local-inertial-kernel',
@@ -2492,7 +2617,7 @@ function localInertialKernelVerification(
   );
   equal(
     sha256(fixtureSuite.resultSha256, 'numerical-kernel fixture result SHA-256'),
-    'cd31a9e9cbfb41e44d9619e4a1d9bdd1fc34fa81ce877bbf596772e5c80704c1',
+    'b7ac171c9b28ab6bf69ff6cb8d3c43d07c102444483d8e883de82739fcd6a423',
     'numerical-kernel fixture result SHA-256',
   );
   const cases = stringArray(
@@ -3576,7 +3701,7 @@ function spatialGridProtocol(
   const solver = record(protocol.solverMesh, 'spatialGridProtocol.solverMesh');
   equal(
     solver.state,
-    'event_inputs_content_addressed_prediction_freeze_blocked',
+    'event_runner_contract_frozen_authorization_pending',
     'solver mesh state',
   );
   const replacement = record(replacementSolverValue, 'replacementSolverProtocol');
@@ -3624,7 +3749,10 @@ function spatialGridProtocol(
   const blockers = stringArray(solver.blockers, 'solver mesh blockers');
   if (
     JSON.stringify(blockers) !==
-    JSON.stringify(['prediction_identity_not_frozen'])
+    JSON.stringify([
+      'clean_git_revision_not_authorized',
+      'prediction_identity_not_frozen',
+    ])
   ) {
     throw new Error('solver mesh blockers drifted');
   }
@@ -3883,7 +4011,7 @@ function solverGridMaterialization(
   const solverMesh = record(spatialProtocol.solverMesh, 'spatial solver mesh');
   equal(
     solverMesh.state,
-    'event_inputs_content_addressed_prediction_freeze_blocked',
+    'event_runner_contract_frozen_authorization_pending',
     'solver-grid linked mesh state',
   );
   const isolation = record(result.isolation, 'solver-grid isolation');
@@ -4130,7 +4258,7 @@ function eventInputBinding(
   kernelVerificationValue: unknown,
 ): void {
   const result = record(value, 'publicBaselineEventInputBinding');
-  equal(result.schemaVersion, 'cumbria-event-input-binding-v0.1.0', 'event-input binding schema');
+  equal(result.schemaVersion, 'cumbria-event-input-binding-v0.2.0', 'event-input binding schema');
   equal(
     result.state,
     'event_inputs_content_addressed_prediction_freeze_blocked',
@@ -4176,8 +4304,8 @@ function eventInputBinding(
 
   const transformation = record(result.transformation, 'event-input transformation');
   for (const [field, expected] of Object.entries({
-    version: 'cumbria-event-input-binding-v0.1.0',
-    scriptSha256: 'e8cfa72faa189f6e1be5931171c44e4d5dd727281efa79b4cb01242fe9667c01',
+    version: 'cumbria-event-input-binding-v0.2.0',
+    scriptSha256: '6b8e71a2ea035abd2c439ac5bfc00e3427ab0e68a838e3541ef131ffb284e137',
     geometryVersion: 'native-footprint-overlap-v0.1.0',
     horizontalCrs: 'EPSG:27700',
     rainfallCoverageToleranceFraction: 0.000001,
@@ -4317,7 +4445,7 @@ function eventInputBinding(
   const receipt = record(result.receipt, 'event-input receipt');
   equal(
     receipt.fileName,
-    'cumbria-public-baseline-event-input-binding.receipt.json',
+    'cumbria-public-baseline-event-input-binding-v0.2.0.receipt.json',
     'event-input receipt file',
   );
   equal(
@@ -4327,7 +4455,7 @@ function eventInputBinding(
   );
   equal(
     sha256(receipt.sha256, 'event-input receipt SHA-256'),
-    'd0ebae08ebef1a1ca08b83977b9110eedbcf70d9290964c05ae20f8ca022500a',
+    '502a1ecad80e0f1877f853967524c13a54d4ce52cddfbefc149873f8591134d4',
     'event-input receipt SHA-256',
   );
 
@@ -4346,6 +4474,315 @@ function eventInputBinding(
   for (const field of ['networkRequests', 'solverRuns', 'evaluationRuns', 'predictionArtifactsCreated']) {
     equal(isolation[field], 0, `event-input isolation ${field}`);
   }
+}
+
+function eventRunnerContract(
+  value: unknown,
+  replacementProtocolValue: unknown,
+  solverGridMaterializationValue: unknown,
+  forcingMaterializationValue: unknown,
+  eventInputBindingValue: unknown,
+  kernelVerificationValue: unknown,
+): void {
+  const contract = record(value, 'publicBaselineEventRunnerContract');
+  equal(
+    contract.schemaVersion,
+    'cumbria-event-runner-contract-v0.1.0',
+    'event-runner contract schema',
+  );
+  equal(
+    contract.state,
+    'frozen_authorization_not_created',
+    'event-runner contract state',
+  );
+  equal(contract.frozenOn, '2026-09-07', 'event-runner frozen date');
+  dateOnly(contract.frozenOn, 'event-runner frozen date');
+
+  const baseline = record(contract.baseline, 'event-runner baseline');
+  equal(baseline.tag, 'pre-external-evidence-baseline-v1', 'event-runner baseline tag');
+  equal(
+    baseline.commit,
+    '938b18fb66925e36236ea04a49eefdb2ca9826cb',
+    'event-runner baseline commit',
+  );
+
+  const replacement = record(replacementProtocolValue, 'replacementSolverProtocol');
+  const protocol = record(contract.protocol, 'event-runner protocol');
+  equal(protocol.id, replacement.id, 'event-runner protocol id');
+  equal(protocol.version, replacement.version, 'event-runner protocol version');
+  equal(
+    sha256(protocol.sha256, 'event-runner protocol SHA-256'),
+    replacement.protocolSha256,
+    'event-runner protocol SHA-256',
+  );
+
+  const inputReceipts = record(contract.inputReceipts, 'event-runner input receipts');
+  const expectedReceipts: ReadonlyArray<readonly [string, unknown, string]> = [
+    [
+      'solverGrids',
+      record(solverGridMaterializationValue, 'solver grids').receipt,
+      'cumbria-public-baseline-solver-grids-v0.2.0.receipt.json',
+    ],
+    [
+      'forcing',
+      record(forcingMaterializationValue, 'forcing').receipt,
+      'cumbria-public-baseline-forcing.receipt.json',
+    ],
+    [
+      'eventInputBinding',
+      record(eventInputBindingValue, 'event-input binding').receipt,
+      'cumbria-public-baseline-event-input-binding-v0.2.0.receipt.json',
+    ],
+  ];
+  for (const [name, sourceValue, expectedFileName] of expectedReceipts) {
+    const declared = record(inputReceipts[name], `event-runner ${name} receipt`);
+    const source = record(sourceValue, `event-runner ${name} source receipt`);
+    equal(declared.fileName, expectedFileName, `event-runner ${name} file`);
+    equal(declared.fileName, source.fileName, `event-runner ${name} source file`);
+    equal(
+      sha256(declared.sha256, `event-runner ${name} SHA-256`),
+      source.sha256,
+      `event-runner ${name} source SHA-256`,
+    );
+  }
+
+  const kernel = record(kernelVerificationValue, 'kernel verification');
+  const implementation = record(kernel.implementation, 'kernel implementation');
+  const fixtureSuite = record(kernel.fixtureSuite, 'kernel fixture suite');
+  const runner = record(contract.runner, 'event-runner implementation');
+  const runnerExpected: Readonly<Record<string, string>> = {
+    id: 'cumbria-public-event-runner-v0',
+    version: 'cumbria-public-event-runner-v0.1.0',
+    entrypoint: 'scripts/run_cumbria_public_event.py',
+    entrypointSha256: 'e790192be69a370302aa73e191415902e414a7650a7557620d0f87f3087119be',
+    kernelVersion: 'cumbria-local-inertial-surface-flow-v0.2.0',
+    kernelModule: 'surface-flow-engine/surface_flow/local_inertial.py',
+    kernelModuleSha256: '0423a865b0cbedc64fe141f7a3d7fac7ad7e8e5ad20fe715ea6314469d577677',
+    fixtureModule: 'surface-flow-engine/surface_flow/fixtures.py',
+    fixtureModuleSha256: 'f5d1846e5f943467afe298c470efd9b42e5f5d19961f85b940659e21d3ea9a16',
+    fixtureResultSha256: 'b7ac171c9b28ab6bf69ff6cb8d3c43d07c102444483d8e883de82739fcd6a423',
+    forcingMemoryPolicy: 'one_spatial_interval_materialized_at_a_time',
+    outputMemoryPolicy:
+      'maximum_and_time_of_maximum_updated_at_each_output_without_snapshot_retention',
+  };
+  for (const [field, expected] of Object.entries(runnerExpected)) {
+    equal(runner[field], expected, `event-runner ${field}`);
+  }
+  for (const field of [
+    'entrypointSha256',
+    'kernelModuleSha256',
+    'fixtureModuleSha256',
+    'fixtureResultSha256',
+  ]) {
+    sha256(runner[field], `event-runner ${field}`);
+  }
+  equal(runner.kernelVersion, implementation.version, 'event-runner kernel version link');
+  equal(runner.kernelModule, implementation.module, 'event-runner kernel module link');
+  equal(
+    runner.kernelModuleSha256,
+    implementation.moduleSha256,
+    'event-runner kernel identity link',
+  );
+  equal(
+    runner.fixtureModuleSha256,
+    implementation.fixtureModuleSha256,
+    'event-runner fixture module identity link',
+  );
+  equal(
+    runner.fixtureResultSha256,
+    fixtureSuite.resultSha256,
+    'event-runner fixture result link',
+  );
+
+  const runtime = record(contract.runtime, 'event-runner runtime');
+  for (const [field, expected] of Object.entries({
+    language: 'python_numpy',
+    internalDtype: 'float64',
+    arrayOrder: 'row_major_north_to_south',
+    pythonAndNumpyVersionsRecordedInPredictionReceipt: true,
+    platformRecordedInPredictionReceipt: true,
+  })) {
+    equal(runtime[field], expected, `event-runner runtime ${field}`);
+  }
+
+  const schedule = record(contract.schedule, 'event-runner schedule');
+  for (const [field, expected] of Object.entries({
+    eventStart: CUMBRIA_EVENT_WINDOW.start,
+    eventEndExclusive: CUMBRIA_EVENT_WINDOW.endExclusive,
+    durationSeconds: 259200,
+    forcingIntervalSeconds: 900,
+    forcingIntervalCount: 288,
+    outputIntervalSeconds: 900,
+    outputCount: 288,
+  })) {
+    equal(schedule[field], expected, `event-runner schedule ${field}`);
+  }
+
+  const numerics = record(contract.numerics, 'event-runner numerics');
+  for (const [field, expected] of Object.entries({
+    gravityMps2: 9.80665,
+    cfl: 0.7,
+    minimumTimeStepSeconds: 0.05,
+    maximumTimeStepSeconds: 5,
+    minimumWetDepthM: 0.001,
+    sourceAndOutputBoundaryAlignmentRequired: true,
+    belowMinimumTimeStepFailsScenario: true,
+    negativeDepthBeyondNumericToleranceFailsScenario: true,
+  })) {
+    equal(numerics[field], expected, `event-runner numerics ${field}`);
+  }
+
+  const stability = record(contract.stability, 'event-runner stability');
+  for (const field of [
+    'timestepHistoryRequiredPerScenario',
+    'finitePositiveTimestepsRequired',
+    'minimumAndMaximumBoundsEnforced',
+    'timestepSumMustEqualDurationSeconds',
+    'allOutputTimesMustMatchSchedule',
+  ]) {
+    equal(stability[field], true, `event-runner stability ${field}`);
+  }
+  equal(stability.timestepSumToleranceSeconds, 0.000001, 'event-runner time tolerance');
+  equal(
+    stability.partialScenarioFailurePolicy,
+    'retain_diagnostics_but_do_not_create_prediction_receipt',
+    'event-runner partial failure policy',
+  );
+
+  const mass = record(contract.massBalance, 'event-runner mass balance');
+  equal(mass.checkedAfterEveryKernelStep, true, 'event-runner per-step mass balance');
+  equal(mass.checkedAtScenarioCompletion, true, 'event-runner final mass balance');
+  equal(mass.absoluteToleranceM3, 0.001, 'event-runner absolute mass tolerance');
+  equal(mass.relativeTolerance, 0.000001, 'event-runner relative mass tolerance');
+  equal(
+    mass.referenceVolume,
+    'initial_plus_rainfall_excess_plus_river_excess_minimum_one_m3',
+    'event-runner mass reference volume',
+  );
+  const requiredTerms = stringArray(mass.requiredTerms, 'event-runner mass terms');
+  equal(requiredTerms.length, 7, 'event-runner mass term count');
+  equal(
+    mass.failurePolicy,
+    'scenario_fails_and_prediction_receipt_is_not_created',
+    'event-runner mass failure policy',
+  );
+
+  const authorization = record(contract.authorization, 'event-runner authorization');
+  for (const [field, expected] of Object.entries({
+    id: 'cumbria-public-storm-desmond-v0-authorization',
+    fileName: 'cumbria-public-storm-desmond-v0.authorization.json',
+    schemaVersion: 'cumbria-event-run-authorization-v0.1.0',
+    contentAddressAlgorithm: 'sha256',
+    cleanGitTreeRequired: true,
+    gitCommitAndTreeRecorded: true,
+    manifestAndSourceHashesRecorded: true,
+    inputReceiptHashesRecorded: true,
+    authorizationMustPrecedeSolverExecution: true,
+  })) {
+    equal(authorization[field], expected, `event-runner authorization ${field}`);
+  }
+  equal(
+    JSON.stringify(stringArray(authorization.allowedBranches, 'event-runner allowed branches')),
+    JSON.stringify(['main', 'codex/geolens-refoundation']),
+    'event-runner allowed branches',
+  );
+
+  const outputs = record(contract.outputs, 'event-runner outputs');
+  for (const [field, expected] of Object.entries({
+    predictionId: 'cumbria-public-storm-desmond-v0',
+    receiptFileName: 'cumbria-public-storm-desmond-v0.prediction.receipt.json',
+    receiptSchemaVersion: 'cumbria-event-prediction-receipt-v0.1.0',
+    artifactPathTemplate: 'predictions/sha256/{sha256}.{semantic}.gz',
+    horizontalCrs: 'EPSG:27700',
+    verticalDatum: 'Ordnance Datum Newlyn',
+    rowOrder: 'north_to_south',
+    depthDtype: 'float64_little_endian',
+    timeOfMaximumDtype: 'uint16_little_endian',
+    wetComparison: 'greater_than_or_equal',
+    missingPredictionTreatedAsDry: false,
+    completeBundleRequiresEveryScenario: true,
+    partialArtifactsAreNotPrediction: true,
+  })) {
+    equal(outputs[field], expected, `event-runner output ${field}`);
+  }
+  equal(outputs.float64NoData, -1.7976931348623157e308, 'event-runner float NoData');
+  equal(outputs.uint16NoData, 65535, 'event-runner u16 NoData');
+  equal(outputs.uint8NoData, 255, 'event-runner u8 NoData');
+  if (
+    JSON.stringify(numericArray(outputs.wetnessThresholdsM, 4, 'event-runner thresholds')) !==
+    JSON.stringify([0.01, 0.05, 0.1, 0.3])
+  ) {
+    throw new Error('event-runner wetness thresholds drifted');
+  }
+  nonEmpty(outputs.timeOfMaximumSemantic, 'event-runner time-of-maximum semantic');
+  nonEmpty(outputs.maximumDepthSemantic, 'event-runner maximum-depth semantic');
+  nonEmpty(outputs.validPredictionMaskSemantic, 'event-runner prediction-mask semantic');
+
+  const scenarioPolicy = record(contract.scenarioPolicy, 'event-runner scenario policy');
+  const orderedIds = stringArray(
+    scenarioPolicy.orderedScenarioIds,
+    'event-runner ordered scenarios',
+  );
+  const expectedIds = [
+    'primary-20m',
+    'mesh-10m',
+    'mesh-40m',
+    'runoff-low',
+    'runoff-high',
+    'roughness-low',
+    'roughness-high',
+    'inflow-60m',
+    'inflow-140m',
+  ];
+  equal(JSON.stringify(orderedIds), JSON.stringify(expectedIds), 'event-runner scenario order');
+  equal(scenarioPolicy.primaryScenarioId, 'primary-20m', 'event-runner primary scenario');
+  for (const field of [
+    'everyScenarioMustComplete',
+    'executionOrderIsNotPerformanceRanking',
+    'bestScenarioSelectionForbidden',
+    'evaluationDrivenRetuningForbidden',
+  ]) {
+    equal(scenarioPolicy[field], true, `event-runner scenario policy ${field}`);
+  }
+
+  const isolation = record(contract.isolation, 'event-runner isolation');
+  for (const field of [
+    'observedFloodGeometryLoaded',
+    'observedFloodGeometryUsed',
+    'evaluationReferenceAccessAllowed',
+    'networkRequestsAllowed',
+    'h3UsedAsSolverGrid',
+    'missingValuesSubstitutedWithZero',
+  ]) {
+    equal(isolation[field], false, `event-runner isolation ${field}`);
+  }
+
+  const execution = record(contract.execution, 'event-runner execution');
+  equal(
+    execution.state,
+    'blocked_pending_clean_revision_authorization',
+    'event-runner execution state',
+  );
+  equal(execution.preflightAllowed, true, 'event-runner preflight');
+  equal(
+    execution.authorizationMayBeCreatedAfterMerge,
+    true,
+    'event-runner post-merge authorization',
+  );
+  for (const field of [
+    'solverExecutionAllowed',
+    'predictionReceiptExists',
+    'evaluationReferenceAccessAllowed',
+  ]) {
+    equal(execution[field], false, `event-runner execution ${field}`);
+  }
+  equal(execution.solverRuns, 0, 'event-runner solver runs');
+  equal(execution.evaluationRuns, 0, 'event-runner evaluation runs');
+  equal(
+    sha256(contract.contractSha256, 'event-runner contract SHA-256'),
+    '802279c17252fbe39f2cf2fc5b6d229369a9a5030b98fdfa6c0993222bb76cee',
+    'event-runner contract SHA-256',
+  );
 }
 
 function forcingArtifact(

@@ -17,7 +17,7 @@ from .local_inertial import (
 )
 
 
-IMPLEMENTATION_VERSION = "cumbria-local-inertial-surface-flow-v0.1.0"
+IMPLEMENTATION_VERSION = "cumbria-local-inertial-surface-flow-v0.2.0"
 FIXTURE_SUITE_VERSION = "local-inertial-fixtures-v0.1.0"
 
 

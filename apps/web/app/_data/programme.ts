@@ -59,14 +59,14 @@ export const programmeRecords: readonly ProgrammeRecord[] = [
     code: 'Case 03',
     title: 'Event-specific public-data replay',
     place: 'Carlisle / Cumbria, United Kingdom',
-    status: 'Event inputs bound and verified',
+    status: 'Event runner contract frozen',
     statusTone: 'evidence-gate',
     established:
-      'A 56 km² Sheepmount–Old Sandsfield reach is fixed without observed flood geometry. Corrected 10 m, 20 m and 40 m grids, 144 IMERG half-hours and 288 Sheepmount intervals are now connected to the verified local-inertial kernel through a fail-closed, content-addressed contract covering all nine frozen scenarios.',
+      'A 56 km² Sheepmount–Old Sandsfield reach is fixed without observed flood geometry. Corrected 10 m, 20 m and 40 m grids, 144 IMERG half-hours and 288 Sheepmount intervals feed nine fixed scenarios. The runner now has frozen stability, mass-balance, NoData and prediction-bundle rules, and its real-data preflight passes without executing the event.',
     openGate:
-      'Ten terrain grids remain explicitly unavailable. The event runner, stability and mass-balance procedure and exact prediction artifact contract are not yet frozen, so Storm Desmond execution and both evaluation references remain sealed.',
+      'Ten terrain grids remain explicitly unavailable. Storm Desmond has not been executed: the runner still requires authorization tied to the clean post-merge Git commit, and both observed flood references remain sealed until a complete prediction exists.',
     nextDecision:
-      'Freeze and verify the event-runner contract before the first Storm Desmond execution; only a physically admissible content-addressed prediction may unlock blind evaluation.',
+      'Authorize the unchanged contract from the clean merged revision, execute all nine scenarios, and freeze the complete content-addressed prediction only if every physical gate passes.',
   },
 ] as const;
 

@@ -39,7 +39,7 @@ test('Cumbria manifest freezes the replacement-solver contract without opening s
   );
   assert.equal(
     manifest.acquisition.state,
-    'event_inputs_bound_execution_blocked',
+    'event_runner_contract_frozen_authorization_pending',
   );
   assert.equal(manifest.acquisition.largeDownloadsAllowed, false);
   assert.equal(manifest.acquisition.boundedTerrainDownloadsAllowed, true);
@@ -198,7 +198,7 @@ test('public baseline terrain materialization records real coverage without zero
   const manifest = manifestFixture();
   const result = manifest.publicBaselineTerrainMaterialization;
 
-  assert.equal(manifest.manifestVersion, '0.23.0');
+  assert.equal(manifest.manifestVersion, '0.24.0');
   assert.equal(result.state, 'terrain_materialized_with_explicit_gaps');
   assert.equal(
     result.protocolSha256,
@@ -402,7 +402,7 @@ test('pre-event terrain selection maps to downloadable archives with explicit ga
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.23.0');
+  assert.equal(manifest.manifestVersion, '0.24.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
@@ -744,7 +744,7 @@ test('spatial protocol preserves native grids and links only the declared replac
     'replacement_solver_grid_declared_sources_remain_native',
   );
   assert.deepEqual(protocol.solverMesh, {
-    state: 'event_inputs_content_addressed_prediction_freeze_blocked',
+    state: 'event_runner_contract_frozen_authorization_pending',
     contractId: 'cumbria-public-surface-flow-replacement-v0',
     horizontalCrs: 'EPSG:27700',
     verticalDatum: 'Ordnance Datum Newlyn',
@@ -760,7 +760,10 @@ test('spatial protocol preserves native grids and links only the declared replac
     timeIntegration: 'adaptive_cfl',
     h3Role: 'not_source_or_solver_grid',
     executionAuthorized: false,
-    blockers: ['prediction_identity_not_frozen'],
+    blockers: [
+      'clean_git_revision_not_authorized',
+      'prediction_identity_not_frozen',
+    ],
   });
 });
 
@@ -852,7 +855,7 @@ test('event inputs are bound fail-closed before any event or evaluation run', ()
   assert.equal(binding.scenarioCount, 9);
   assert.equal(
     binding.receipt.sha256,
-    'd0ebae08ebef1a1ca08b83977b9110eedbcf70d9290964c05ae20f8ca022500a',
+    '502a1ecad80e0f1877f853967524c13a54d4ce52cddfbefc149873f8591134d4',
   );
   assert.equal(binding.isolation.solverRuns, 0);
   assert.equal(binding.isolation.predictionArtifactsCreated, 0);
@@ -864,6 +867,58 @@ test('event inputs are bound fail-closed before any event or evaluation run', ()
   assert.throws(
     () => assertCumbriaAccessManifest(leaked),
     /event-input isolation observedFloodGeometryLoaded/,
+  );
+});
+
+test('event runner contract freezes execution and prediction semantics before authorization', () => {
+  const manifest = manifestFixture();
+  const contract = manifest.publicBaselineEventRunnerContract;
+  const { contractSha256 } = contract;
+
+  assert.equal(contract.state, 'frozen_authorization_not_created');
+  assert.equal(
+    contract.inputReceipts.eventInputBinding.sha256,
+    manifest.publicBaselineEventInputBinding.receipt.sha256,
+  );
+  assert.equal(contract.runner.version, 'cumbria-public-event-runner-v0.1.0');
+  assert.equal(
+    contract.runner.kernelVersion,
+    manifest.publicBaselineNumericalKernelVerification.implementation.version,
+  );
+  assert.equal(
+    contract.runner.forcingMemoryPolicy,
+    'one_spatial_interval_materialized_at_a_time',
+  );
+  assert.equal(contract.schedule.durationSeconds, 259_200);
+  assert.equal(contract.schedule.outputCount, 288);
+  assert.equal(contract.massBalance.checkedAfterEveryKernelStep, true);
+  assert.equal(contract.massBalance.checkedAtScenarioCompletion, true);
+  assert.equal(contract.authorization.cleanGitTreeRequired, true);
+  assert.equal(contract.outputs.completeBundleRequiresEveryScenario, true);
+  assert.equal(contract.outputs.partialArtifactsAreNotPrediction, true);
+  assert.deepEqual(contract.outputs.wetnessThresholdsM, [0.01, 0.05, 0.1, 0.3]);
+  assert.equal(contract.isolation.observedFloodGeometryLoaded, false);
+  assert.equal(contract.execution.solverExecutionAllowed, false);
+  assert.equal(contract.execution.solverRuns, 0);
+  assert.equal(
+    contractSha256,
+    '802279c17252fbe39f2cf2fc5b6d229369a9a5030b98fdfa6c0993222bb76cee',
+  );
+
+  const leakedReference = manifestFixture();
+  leakedReference.publicBaselineEventRunnerContract.isolation.observedFloodGeometryLoaded =
+    true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(leakedReference),
+    /event-runner isolation observedFloodGeometryLoaded/,
+  );
+
+  const prematureExecution = manifestFixture();
+  prematureExecution.publicBaselineEventRunnerContract.execution.solverExecutionAllowed =
+    true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(prematureExecution),
+    /event-runner execution solverExecutionAllowed/,
   );
 });
 
@@ -926,11 +981,11 @@ test('local-inertial kernel is fixture-verified without reading the event or eva
   );
   assert.equal(
     verification.implementation.version,
-    manifest.replacementSolverProtocol.formulation.implementationVersion,
+    'cumbria-local-inertial-surface-flow-v0.2.0',
   );
   assert.equal(
     verification.fixtureSuite.resultSha256,
-    'cd31a9e9cbfb41e44d9619e4a1d9bdd1fc34fa81ce877bbf596772e5c80704c1',
+    'b7ac171c9b28ab6bf69ff6cb8d3c43d07c102444483d8e883de82739fcd6a423',
   );
   assert.deepEqual(verification.isolation, {
     realEventInputsRead: 0,

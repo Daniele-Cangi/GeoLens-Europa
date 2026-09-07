@@ -33,9 +33,11 @@ const manifestPath = path.join(
   'manifest.json',
 );
 const receiptFileName =
+  'cumbria-public-baseline-event-input-binding-v0.2.0.receipt.json';
+const predecessorReceiptFileName =
   'cumbria-public-baseline-event-input-binding.receipt.json';
-const bindingId = 'cumbria-public-event-input-binding-v0';
-const transformationVersion = 'cumbria-event-input-binding-v0.1.0';
+const bindingId = 'cumbria-public-event-input-binding-v1';
+const transformationVersion = 'cumbria-event-input-binding-v0.2.0';
 const geometryVersion = 'native-footprint-overlap-v0.1.0';
 const baselineTag = 'pre-external-evidence-baseline-v1';
 const baselineCommit = '938b18fb66925e36236ea04a49eefdb2ca9826cb';
@@ -346,7 +348,11 @@ export async function runCumbriaEventInputBindingMaterializer(arguments_) {
   );
   const receiptPath = path.join(dataRoot, receiptFileName);
   const previous = await readOptionalJson(receiptPath);
-  const boundAt = previous?.boundAt ?? new Date().toISOString();
+  const predecessor = await readOptionalJson(
+    path.join(dataRoot, predecessorReceiptFileName),
+  );
+  const boundAt =
+    previous?.boundAt ?? predecessor?.boundAt ?? new Date().toISOString();
   const receiptWithoutHash = {
     schemaVersion: 'cumbria-event-input-binding-receipt-v0.1.0',
     bindingId,

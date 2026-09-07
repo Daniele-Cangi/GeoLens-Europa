@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.23.0",
+  "manifestVersion": "0.24.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -468,7 +468,7 @@
       "missingInputPolicy": "missing_or_partial_remains_explicit"
     },
     "solverMesh": {
-      "state": "event_inputs_content_addressed_prediction_freeze_blocked",
+      "state": "event_runner_contract_frozen_authorization_pending",
       "contractId": "cumbria-public-surface-flow-replacement-v0",
       "horizontalCrs": "EPSG:27700",
       "verticalDatum": "Ordnance Datum Newlyn",
@@ -484,7 +484,10 @@
       "timeIntegration": "adaptive_cfl",
       "h3Role": "not_source_or_solver_grid",
       "executionAuthorized": false,
-      "blockers": ["prediction_identity_not_frozen"]
+      "blockers": [
+        "clean_git_revision_not_authorized",
+        "prediction_identity_not_frozen"
+      ]
     }
   },
   "publicBaselineSolverGridMaterialization": {
@@ -930,19 +933,19 @@
       "sha256": "b9db1fbc10cc0aeff5d3a4e24bf1afc5d66226902ecad92ce111f1fcfb60c89b"
     },
     "implementation": {
-      "version": "cumbria-local-inertial-surface-flow-v0.1.0",
+      "version": "cumbria-local-inertial-surface-flow-v0.2.0",
       "language": "python_numpy_float64",
       "module": "surface-flow-engine/surface_flow/local_inertial.py",
-      "moduleSha256": "f3ee5cd6b303303aeef26d1ea47dfbf5e6d2e1a40b2e4a7518161a470d713358",
+      "moduleSha256": "0423a865b0cbedc64fe141f7a3d7fac7ad7e8e5ad20fe715ea6314469d577677",
       "fixtureModule": "surface-flow-engine/surface_flow/fixtures.py",
-      "fixtureModuleSha256": "06675c821418ad39788a3d8fc6304dae8f4b26fead95502a9d5d3d9e6c196436",
+      "fixtureModuleSha256": "f5d1846e5f943467afe298c470efd9b42e5f5d19961f85b940659e21d3ea9a16",
       "verifier": "scripts/verify_cumbria_local_inertial_kernel.py",
       "verifierSha256": "4c30f509b426af930b1bb2ec66e9f7e00506101424482062187c31b628d94527",
       "command": "npm run verify:cumbria-local-inertial-kernel"
     },
     "fixtureSuite": {
       "version": "local-inertial-fixtures-v0.1.0",
-      "resultSha256": "cd31a9e9cbfb41e44d9619e4a1d9bdd1fc34fa81ce877bbf596772e5c80704c1",
+      "resultSha256": "b7ac171c9b28ab6bf69ff6cb8d3c43d07c102444483d8e883de82739fcd6a423",
       "cases": [
         "lake_at_rest_variable_bed",
         "closed_cell_uniform_rainfall",
@@ -973,7 +976,7 @@
     }
   },
   "publicBaselineEventInputBinding": {
-    "schemaVersion": "cumbria-event-input-binding-v0.1.0",
+    "schemaVersion": "cumbria-event-input-binding-v0.2.0",
     "state": "event_inputs_content_addressed_prediction_freeze_blocked",
     "recordedOn": "2026-09-07",
     "baseline": {
@@ -986,13 +989,13 @@
       "sha256": "b9db1fbc10cc0aeff5d3a4e24bf1afc5d66226902ecad92ce111f1fcfb60c89b"
     },
     "kernel": {
-      "implementationVersion": "cumbria-local-inertial-surface-flow-v0.1.0",
-      "moduleSha256": "f3ee5cd6b303303aeef26d1ea47dfbf5e6d2e1a40b2e4a7518161a470d713358",
-      "fixtureResultSha256": "cd31a9e9cbfb41e44d9619e4a1d9bdd1fc34fa81ce877bbf596772e5c80704c1"
+      "implementationVersion": "cumbria-local-inertial-surface-flow-v0.2.0",
+      "moduleSha256": "0423a865b0cbedc64fe141f7a3d7fac7ad7e8e5ad20fe715ea6314469d577677",
+      "fixtureResultSha256": "b7ac171c9b28ab6bf69ff6cb8d3c43d07c102444483d8e883de82739fcd6a423"
     },
     "transformation": {
-      "version": "cumbria-event-input-binding-v0.1.0",
-      "scriptSha256": "e8cfa72faa189f6e1be5931171c44e4d5dd727281efa79b4cb01242fe9667c01",
+      "version": "cumbria-event-input-binding-v0.2.0",
+      "scriptSha256": "6b8e71a2ea035abd2c439ac5bfc00e3427ab0e68a838e3541ef131ffb284e137",
       "geometryVersion": "native-footprint-overlap-v0.1.0",
       "horizontalCrs": "EPSG:27700",
       "rainfallCoverageToleranceFraction": 0.000001,
@@ -1086,9 +1089,9 @@
     ],
     "scenarioCount": 9,
     "receipt": {
-      "fileName": "cumbria-public-baseline-event-input-binding.receipt.json",
+      "fileName": "cumbria-public-baseline-event-input-binding-v0.2.0.receipt.json",
       "schemaVersion": "cumbria-event-input-binding-receipt-v0.1.0",
-      "sha256": "d0ebae08ebef1a1ca08b83977b9110eedbcf70d9290964c05ae20f8ca022500a"
+      "sha256": "502a1ecad80e0f1877f853967524c13a54d4ce52cddfbefc149873f8591134d4"
     },
     "isolation": {
       "observedFloodGeometryLoaded": false,
@@ -1103,6 +1106,171 @@
       "solverExecutionAuthorized": false,
       "missingValuesSubstitutedWithZero": false
     }
+  },
+  "publicBaselineEventRunnerContract": {
+    "schemaVersion": "cumbria-event-runner-contract-v0.1.0",
+    "state": "frozen_authorization_not_created",
+    "frozenOn": "2026-09-07",
+    "baseline": {
+      "tag": "pre-external-evidence-baseline-v1",
+      "commit": "938b18fb66925e36236ea04a49eefdb2ca9826cb"
+    },
+    "protocol": {
+      "id": "cumbria-public-surface-flow-replacement-v0",
+      "version": "0.1.0",
+      "sha256": "b9db1fbc10cc0aeff5d3a4e24bf1afc5d66226902ecad92ce111f1fcfb60c89b"
+    },
+    "inputReceipts": {
+      "solverGrids": {
+        "fileName": "cumbria-public-baseline-solver-grids-v0.2.0.receipt.json",
+        "sha256": "63fa37941c13cc6a18bb3fed9f9ab1690ae7da34da9963cead2299adc879800c"
+      },
+      "forcing": {
+        "fileName": "cumbria-public-baseline-forcing.receipt.json",
+        "sha256": "782eb107578fe34bccba9bc0202d90d06d504ddd63bc03ba301b1ccb3781c38b"
+      },
+      "eventInputBinding": {
+        "fileName": "cumbria-public-baseline-event-input-binding-v0.2.0.receipt.json",
+        "sha256": "502a1ecad80e0f1877f853967524c13a54d4ce52cddfbefc149873f8591134d4"
+      }
+    },
+    "runner": {
+      "id": "cumbria-public-event-runner-v0",
+      "version": "cumbria-public-event-runner-v0.1.0",
+      "entrypoint": "scripts/run_cumbria_public_event.py",
+      "entrypointSha256": "e790192be69a370302aa73e191415902e414a7650a7557620d0f87f3087119be",
+      "kernelVersion": "cumbria-local-inertial-surface-flow-v0.2.0",
+      "kernelModule": "surface-flow-engine/surface_flow/local_inertial.py",
+      "kernelModuleSha256": "0423a865b0cbedc64fe141f7a3d7fac7ad7e8e5ad20fe715ea6314469d577677",
+      "fixtureModule": "surface-flow-engine/surface_flow/fixtures.py",
+      "fixtureModuleSha256": "f5d1846e5f943467afe298c470efd9b42e5f5d19961f85b940659e21d3ea9a16",
+      "fixtureResultSha256": "b7ac171c9b28ab6bf69ff6cb8d3c43d07c102444483d8e883de82739fcd6a423",
+      "forcingMemoryPolicy": "one_spatial_interval_materialized_at_a_time",
+      "outputMemoryPolicy": "maximum_and_time_of_maximum_updated_at_each_output_without_snapshot_retention"
+    },
+    "runtime": {
+      "language": "python_numpy",
+      "internalDtype": "float64",
+      "arrayOrder": "row_major_north_to_south",
+      "pythonAndNumpyVersionsRecordedInPredictionReceipt": true,
+      "platformRecordedInPredictionReceipt": true
+    },
+    "schedule": {
+      "eventStart": "2015-12-04T00:00:00Z",
+      "eventEndExclusive": "2015-12-07T00:00:00Z",
+      "durationSeconds": 259200,
+      "forcingIntervalSeconds": 900,
+      "forcingIntervalCount": 288,
+      "outputIntervalSeconds": 900,
+      "outputCount": 288
+    },
+    "numerics": {
+      "gravityMps2": 9.80665,
+      "cfl": 0.7,
+      "minimumTimeStepSeconds": 0.05,
+      "maximumTimeStepSeconds": 5,
+      "minimumWetDepthM": 0.001,
+      "sourceAndOutputBoundaryAlignmentRequired": true,
+      "belowMinimumTimeStepFailsScenario": true,
+      "negativeDepthBeyondNumericToleranceFailsScenario": true
+    },
+    "stability": {
+      "timestepHistoryRequiredPerScenario": true,
+      "finitePositiveTimestepsRequired": true,
+      "minimumAndMaximumBoundsEnforced": true,
+      "timestepSumMustEqualDurationSeconds": true,
+      "timestepSumToleranceSeconds": 0.000001,
+      "allOutputTimesMustMatchSchedule": true,
+      "partialScenarioFailurePolicy": "retain_diagnostics_but_do_not_create_prediction_receipt"
+    },
+    "massBalance": {
+      "checkedAfterEveryKernelStep": true,
+      "checkedAtScenarioCompletion": true,
+      "absoluteToleranceM3": 0.001,
+      "relativeTolerance": 0.000001,
+      "referenceVolume": "initial_plus_rainfall_excess_plus_river_excess_minimum_one_m3",
+      "requiredTerms": [
+        "initial_volume_m3",
+        "rainfall_excess_input_m3",
+        "river_excess_input_m3",
+        "boundary_outflow_m3",
+        "final_storage_m3",
+        "residual_m3",
+        "tolerance_m3"
+      ],
+      "failurePolicy": "scenario_fails_and_prediction_receipt_is_not_created"
+    },
+    "authorization": {
+      "id": "cumbria-public-storm-desmond-v0-authorization",
+      "fileName": "cumbria-public-storm-desmond-v0.authorization.json",
+      "schemaVersion": "cumbria-event-run-authorization-v0.1.0",
+      "contentAddressAlgorithm": "sha256",
+      "cleanGitTreeRequired": true,
+      "gitCommitAndTreeRecorded": true,
+      "manifestAndSourceHashesRecorded": true,
+      "inputReceiptHashesRecorded": true,
+      "authorizationMustPrecedeSolverExecution": true,
+      "allowedBranches": ["main", "codex/geolens-refoundation"]
+    },
+    "outputs": {
+      "predictionId": "cumbria-public-storm-desmond-v0",
+      "receiptFileName": "cumbria-public-storm-desmond-v0.prediction.receipt.json",
+      "receiptSchemaVersion": "cumbria-event-prediction-receipt-v0.1.0",
+      "artifactPathTemplate": "predictions/sha256/{sha256}.{semantic}.gz",
+      "horizontalCrs": "EPSG:27700",
+      "verticalDatum": "Ordnance Datum Newlyn",
+      "rowOrder": "north_to_south",
+      "depthDtype": "float64_little_endian",
+      "timeOfMaximumDtype": "uint16_little_endian",
+      "timeOfMaximumSemantic": "output_interval_index_with_zero_as_initial_state_and_65535_as_missing",
+      "maximumDepthSemantic": "maximum_surface_water_depth_over_frozen_event_window",
+      "validPredictionMaskSemantic": "solver_valid_cells_excluding_one_cell_missing_terrain_halo",
+      "float64NoData": -1.7976931348623157e308,
+      "uint16NoData": 65535,
+      "uint8NoData": 255,
+      "wetnessThresholdsM": [0.01, 0.05, 0.1, 0.3],
+      "wetComparison": "greater_than_or_equal",
+      "missingPredictionTreatedAsDry": false,
+      "completeBundleRequiresEveryScenario": true,
+      "partialArtifactsAreNotPrediction": true
+    },
+    "scenarioPolicy": {
+      "orderedScenarioIds": [
+        "primary-20m",
+        "mesh-10m",
+        "mesh-40m",
+        "runoff-low",
+        "runoff-high",
+        "roughness-low",
+        "roughness-high",
+        "inflow-60m",
+        "inflow-140m"
+      ],
+      "primaryScenarioId": "primary-20m",
+      "everyScenarioMustComplete": true,
+      "executionOrderIsNotPerformanceRanking": true,
+      "bestScenarioSelectionForbidden": true,
+      "evaluationDrivenRetuningForbidden": true
+    },
+    "isolation": {
+      "observedFloodGeometryLoaded": false,
+      "observedFloodGeometryUsed": false,
+      "evaluationReferenceAccessAllowed": false,
+      "networkRequestsAllowed": false,
+      "h3UsedAsSolverGrid": false,
+      "missingValuesSubstitutedWithZero": false
+    },
+    "execution": {
+      "state": "blocked_pending_clean_revision_authorization",
+      "preflightAllowed": true,
+      "authorizationMayBeCreatedAfterMerge": true,
+      "solverExecutionAllowed": false,
+      "predictionReceiptExists": false,
+      "evaluationReferenceAccessAllowed": false,
+      "solverRuns": 0,
+      "evaluationRuns": 0
+    },
+    "contractSha256": "802279c17252fbe39f2cf2fc5b6d229369a9a5030b98fdfa6c0993222bb76cee"
   },
   "hydraulicProtocol": {
     "id": "carlisle-local-hydraulic-protocol-v0",
@@ -2911,6 +3079,11 @@
       "reason": "The corrected solver grids and complete native forcing are bound to all nine frozen scenarios through content-addressed CSR rainfall overlaps, explicit 900-second temporal indices and valid-area river-footprint weights. The fail-closed binding detected and superseded a NoData parameter-grid defect before any event run. All 399,523 valid mesh cells have complete IMERG coverage; missing, non-finite, negative or identity-mismatched input blocks execution. No prediction or evaluation run has occurred."
     },
     {
+      "id": "event_runner_contract",
+      "state": "passed",
+      "reason": "The event runner, lazy forcing construction, streaming maximum-depth aggregation, exact 900-second outputs, CFL bounds, per-step and final mass balance, nine-scenario completion rule, NoData encodings and prediction artifact schema are frozen before execution. A separate content-addressed authorization must bind a clean Git commit and tree after merge; until then no Storm Desmond run or prediction receipt is allowed."
+    },
+    {
       "id": "as_of_event_hydrography",
       "state": "blocked",
       "reason": "WFD River Water Bodies Cycle 1 provides 16 event-valid river-context features, but it is a 1:50,000 WFD subset rather than a complete channel or hydraulic network; current OS Open Rivers remains context-only."
@@ -2942,9 +3115,9 @@
     }
   ],
   "acquisition": {
-    "state": "event_inputs_bound_execution_blocked",
+    "state": "event_runner_contract_frozen_authorization_pending",
     "largeDownloadsAllowed": false,
     "boundedTerrainDownloadsAllowed": true,
-    "nextAction": "Freeze the event-runner, stability and mass-balance verification procedure and the exact prediction artifact identity contract before executing Storm Desmond. Do not open either observed flood geometry until a physically admissible prediction is content-addressed and frozen."
+    "nextAction": "After merge, create the content-addressed execution authorization from a clean Git commit and tree, then run all nine frozen Storm Desmond scenarios. Do not open either observed flood geometry unless every scenario passes stability and mass balance and the complete prediction receipt is content-addressed."
   }
 }
