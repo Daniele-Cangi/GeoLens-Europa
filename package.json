@@ -39,6 +39,7 @@
     "materialize:cumbria-solver-grids": "npm run build --workspace=@geo-lens/evidence && node scripts/materialize-cumbria-solver-grids.mjs",
     "materialize:cumbria-forcing": "python scripts/materialize_cumbria_forcing.py",
     "materialize:cumbria-event-input-binding": "npm run build --workspace=@geo-lens/evidence && node scripts/materialize-cumbria-event-input-binding.mjs",
+    "preflight:cumbria-event-run": "python scripts/run_cumbria_public_event.py",
     "prepare:cumbria-model-request": "npm run build --workspace=@geo-lens/evidence && node scripts/prepare-cumbria-model-request.mjs",
     "plan:cumbria-dtm-materialization": "npm run build --workspace=@geo-lens/evidence && node scripts/plan-cumbria-dtm-materialization.mjs",
     "plan:cumbria-spatial-grid": "npm run build --workspace=@geo-lens/evidence && node scripts/plan-cumbria-spatial-grid.mjs",

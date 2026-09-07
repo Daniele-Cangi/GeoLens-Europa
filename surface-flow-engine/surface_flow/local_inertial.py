@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
-from typing import Sequence
+from typing import Callable, Sequence
 
 import numpy as np
 from numpy.typing import NDArray
@@ -104,16 +104,32 @@ def _validate_parameters(parameters: LocalInertialParameters) -> None:
         raise LocalInertialError("min_timestep_s cannot exceed max_timestep_s")
 
 
-def _validate_forcing(
-    forcing: Sequence[ForcingInterval],
-    duration_s: float,
+def _prepare_forcing_frame(
+    frame: ForcingInterval,
     shape: tuple[int, int],
     valid: BoolArray,
-) -> tuple[tuple[ForcingInterval, FloatArray, FloatArray], ...]:
+) -> tuple[FloatArray, FloatArray]:
+    rain = _as_grid(frame.rainfall_rate_m_s, shape, "rainfall_rate_m_s")
+    river = _as_grid(frame.river_inflow_m3_s, shape, "river_inflow_m3_s")
+    for name, grid in (("rainfall_rate_m_s", rain), ("river_inflow_m3_s", river)):
+        if np.any(~np.isfinite(grid[valid])):
+            raise LocalInertialError(f"{name} contains missing or non-finite evidence")
+        if np.any(grid[valid] < 0.0):
+            raise LocalInertialError(f"{name} cannot be negative")
+        if np.any(np.nan_to_num(grid[~valid], nan=0.0) != 0.0):
+            raise LocalInertialError(f"{name} must be zero outside valid terrain")
+        grid[~valid] = 0.0
+    return rain, river
+
+
+def _validate_forcing_schedule(
+    forcing: Sequence[ForcingInterval],
+    duration_s: float,
+) -> tuple[tuple[float, float], ...]:
     if not forcing:
         raise LocalInertialError("at least one forcing interval is required")
 
-    prepared: list[tuple[ForcingInterval, FloatArray, FloatArray]] = []
+    schedule: list[tuple[float, float]] = []
     cursor = 0.0
     for index, frame in enumerate(forcing):
         if not math.isfinite(frame.start_s) or abs(frame.start_s - cursor) > _TIME_TOLERANCE_S:
@@ -123,23 +139,12 @@ def _validate_forcing(
         if not math.isfinite(frame.end_s) or frame.end_s <= frame.start_s:
             raise LocalInertialError(f"forcing interval {index} has an invalid end time")
 
-        rain = _as_grid(frame.rainfall_rate_m_s, shape, "rainfall_rate_m_s")
-        river = _as_grid(frame.river_inflow_m3_s, shape, "river_inflow_m3_s")
-        for name, grid in (("rainfall_rate_m_s", rain), ("river_inflow_m3_s", river)):
-            if np.any(~np.isfinite(grid[valid])):
-                raise LocalInertialError(f"{name} contains missing or non-finite evidence")
-            if np.any(grid[valid] < 0.0):
-                raise LocalInertialError(f"{name} cannot be negative")
-            if np.any(np.nan_to_num(grid[~valid], nan=0.0) != 0.0):
-                raise LocalInertialError(f"{name} must be zero outside valid terrain")
-            grid[~valid] = 0.0
-
-        prepared.append((frame, rain, river))
+        schedule.append((frame.start_s, frame.end_s))
         cursor = frame.end_s
 
     if abs(cursor - duration_s) > _TIME_TOLERANCE_S:
         raise LocalInertialError("forcing intervals must cover the complete simulation duration")
-    return tuple(prepared)
+    return tuple(schedule)
 
 
 def _internal_face_discharge(
@@ -324,6 +329,8 @@ def run_local_inertial(
     parameters: LocalInertialParameters,
     *,
     initial_depth_m: FloatArray | None = None,
+    retain_depth_snapshots: bool = True,
+    output_observer: Callable[[float, FloatArray], None] | None = None,
 ) -> LocalInertialResult:
     """Run the frozen local-inertial kernel on a regular square grid.
 
@@ -361,7 +368,7 @@ def run_local_inertial(
             raise LocalInertialError("initial_depth_m must be finite and non-negative")
     depth[~valid] = np.nan
 
-    prepared_forcing = _validate_forcing(forcing, duration_s, shape, valid)
+    forcing_schedule = _validate_forcing_schedule(forcing, duration_s)
     rows, columns = shape
     qx = np.zeros((rows, columns + 1), dtype=np.float64)
     qy = np.zeros((rows + 1, columns), dtype=np.float64)
@@ -373,16 +380,32 @@ def run_local_inertial(
 
     current_time_s = 0.0
     frame_index = 0
+    active_frame_index = -1
+    rain_rate: FloatArray | None = None
+    river_rate: FloatArray | None = None
     next_output_s = min(output_interval_s, duration_s)
     output_times: list[float] = []
     snapshots: list[FloatArray] = []
     timestep_history: list[float] = []
 
     while current_time_s < duration_s - _TIME_TOLERANCE_S:
-        frame, rain_rate, river_rate = prepared_forcing[frame_index]
-        if current_time_s >= frame.end_s - _TIME_TOLERANCE_S:
+        frame_start_s, frame_end_s = forcing_schedule[frame_index]
+        if current_time_s >= frame_end_s - _TIME_TOLERANCE_S:
             frame_index += 1
             continue
+
+        if active_frame_index != frame_index:
+            frame = forcing[frame_index]
+            if (
+                abs(frame.start_s - frame_start_s) > _TIME_TOLERANCE_S
+                or abs(frame.end_s - frame_end_s) > _TIME_TOLERANCE_S
+            ):
+                raise LocalInertialError("forcing schedule changed during execution")
+            rain_rate, river_rate = _prepare_forcing_frame(frame, shape, valid)
+            active_frame_index = frame_index
+
+        if rain_rate is None or river_rate is None:
+            raise LocalInertialError("forcing frame was not prepared")
 
         stable_limit_s = _stable_timestep(depth, valid, parameters)
         if stable_limit_s < parameters.min_timestep_s - _TIME_TOLERANCE_S:
@@ -391,7 +414,7 @@ def run_local_inertial(
                 f"{parameters.min_timestep_s:.9f}s"
             )
 
-        segment_end_s = min(frame.end_s, next_output_s, duration_s)
+        segment_end_s = min(frame_end_s, next_output_s, duration_s)
         remaining_s = segment_end_s - current_time_s
         step_count = max(1, math.ceil((remaining_s - _TIME_TOLERANCE_S) / stable_limit_s))
         timestep_s = remaining_s / step_count
@@ -462,7 +485,12 @@ def run_local_inertial(
 
         if abs(current_time_s - next_output_s) <= _TIME_TOLERANCE_S:
             output_times.append(current_time_s)
-            snapshots.append(depth.copy())
+            if output_observer is not None:
+                readonly_depth = depth.view()
+                readonly_depth.flags.writeable = False
+                output_observer(current_time_s, readonly_depth)
+            if retain_depth_snapshots:
+                snapshots.append(depth.copy())
             next_output_s = min(next_output_s + output_interval_s, duration_s)
 
     final_storage_m3 = float(np.sum(depth[valid]) * cell_area_m2)
