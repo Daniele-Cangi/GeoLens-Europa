@@ -32,9 +32,9 @@ const manifestPath = path.join(
   'manifest.json',
 );
 const receiptFileName =
-  'cumbria-public-baseline-solver-grids.receipt.json';
-const materializationId = 'cumbria-public-solver-grids-v0';
-const transformationVersion = 'cumbria-solver-grid-preprocessing-v0.1.0';
+  'cumbria-public-baseline-solver-grids-v0.2.0.receipt.json';
+const materializationId = 'cumbria-public-solver-grids-v1';
+const transformationVersion = 'cumbria-solver-grid-preprocessing-v0.2.0';
 const baselineTag = 'pre-external-evidence-baseline-v1';
 const baselineCommit = '938b18fb66925e36236ea04a49eefdb2ca9826cb';
 const floatNoData = -3.4028234663852886e38;
@@ -474,12 +474,6 @@ function createMeshStates(meshes) {
     };
     state.elevationM.fill(Number.NaN);
     state.dominantClcClass.fill(-1);
-    for (const values of Object.values(state.runoffCoefficient)) {
-      values.fill(Number.NaN);
-    }
-    for (const values of Object.values(state.manningN)) {
-      values.fill(Number.NaN);
-    }
     return state;
   });
 }
@@ -613,6 +607,10 @@ function materializeLandCover(
     for (let index = 0; index < meshState.cellCount; index += 1) {
       const totalAreaM2 = meshState.clcCoverageAreaM2[index];
       if (Math.abs(totalAreaM2 - targetAreaM2) > tolerance) {
+        for (const parameterSet of ['low', 'primary', 'high']) {
+          meshState.runoffCoefficient[parameterSet][index] = Number.NaN;
+          meshState.manningN[parameterSet][index] = Number.NaN;
+        }
         continue;
       }
       let classCount = 0;

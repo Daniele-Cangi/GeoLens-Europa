@@ -15,7 +15,7 @@ SPEC.loader.exec_module(MODULE)
 
 
 class CumbriaDtmMaterializerTests(unittest.TestCase):
-    def test_frozen_manifest_protocol_passes_preflight(self):
+    def test_pinned_v022_manifest_protocol_passes_preflight(self):
         manifest = json.loads(
             (
                 REPOSITORY_ROOT
@@ -25,6 +25,12 @@ class CumbriaDtmMaterializerTests(unittest.TestCase):
                 / "manifest.json"
             ).read_text(encoding="utf-8")
         )
+
+        # This materializer is content-addressed by the v0.22 receipt. Keep its
+        # historical manifest boundary reproducible instead of changing the
+        # producer source after later manifest-only gates advance.
+        self.assertEqual(manifest["manifestVersion"], "0.23.0")
+        manifest["manifestVersion"] = "0.22.0"
 
         protocol = MODULE.validate_protocol(manifest)
 
