@@ -3,7 +3,8 @@
 
 The default mode is read-only preflight. ``--freeze`` writes only an execution
 authorization tied to a clean Git revision and verified input receipts.
-``--execute`` requires that authorization before running every frozen scenario.
+``--execute`` requires that authorization, writes one verified checkpoint after
+each completed scenario and resumes only from a contiguous checkpoint prefix.
 Observed flood geometry is never referenced by this module.
 """
 
@@ -17,6 +18,7 @@ import gzip
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import platform
 import subprocess
@@ -40,8 +42,6 @@ from surface_flow.local_inertial import (  # noqa: E402
 MANIFEST_PATH = (
     REPOSITORY_ROOT / "tests" / "ground-truth" / "cumbria-2015" / "manifest.json"
 )
-AUTHORIZATION_FILE = "cumbria-public-storm-desmond-v0.authorization.json"
-PREDICTION_RECEIPT_FILE = "cumbria-public-storm-desmond-v0.prediction.receipt.json"
 FLOAT64_NODATA = -np.finfo(np.float64).max
 UINT16_NODATA = np.iinfo(np.uint16).max
 UINT8_NODATA = np.iinfo(np.uint8).max
@@ -215,8 +215,8 @@ def preflight(data_root: Path) -> dict[str, Any]:
     root = ensure_external_data_root(data_root)
     manifest_source = MANIFEST_PATH.read_bytes()
     manifest = json.loads(manifest_source)
-    if manifest.get("manifestVersion") != "0.24.0":
-        raise EventRunnerError("Cumbria event runner requires manifest v0.24.0")
+    if manifest.get("manifestVersion") != "0.25.0":
+        raise EventRunnerError("Cumbria event runner requires manifest v0.25.0")
     contract = manifest["publicBaselineEventRunnerContract"]
     identity = contract_sha256(contract)
 
@@ -320,7 +320,7 @@ def authorization_payload(context: dict[str, Any]) -> dict[str, Any]:
     contract = context["contract"]
     git_identity = clean_git_identity(contract)
     return {
-        "schemaVersion": "cumbria-event-run-authorization-v0.1.0",
+        "schemaVersion": contract["authorization"]["schemaVersion"],
         "authorizationId": contract["authorization"]["id"],
         "authorizedAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "state": "authorized_not_executed",
@@ -355,20 +355,26 @@ def write_exclusive_json(path: Path, payload: dict[str, Any]) -> None:
         if path.read_text(encoding="utf-8") != serialized:
             raise EventRunnerError(f"Existing {path.name} differs from frozen output")
         return
-    path.write_text(serialized, encoding="utf-8", newline="\n")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f"{path.name}.{platform.node()}.{os.getpid()}.tmp")
+    try:
+        temporary.write_text(serialized, encoding="utf-8", newline="\n")
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def freeze_authorization(context: dict[str, Any]) -> dict[str, Any]:
     payload = authorization_payload(context)
     authorization = dict(payload)
     authorization["authorizationSha256"] = sha256_json(payload)
-    target = context["root"] / AUTHORIZATION_FILE
+    target = context["root"] / context["contract"]["authorization"]["fileName"]
     write_exclusive_json(target, authorization)
     return authorization
 
 
 def read_authorization(context: dict[str, Any]) -> dict[str, Any]:
-    target = context["root"] / AUTHORIZATION_FILE
+    target = context["root"] / context["contract"]["authorization"]["fileName"]
     if not target.is_file():
         raise EventRunnerError("Frozen event-run authorization is missing")
     authorization = json.loads(target.read_text(encoding="utf-8"))
@@ -753,16 +759,291 @@ def run_scenario(context: dict[str, Any], scenario: dict[str, Any]) -> dict[str,
     }
 
 
+def scenario_checkpoint_path(
+    context: dict[str, Any], scenario_index: int, scenario: dict[str, Any]
+) -> Path:
+    policy = context["contract"]["checkpoints"]
+    relative = policy["fileNameTemplate"].format(
+        checkpointDirectory=policy["directory"],
+        scenarioIndex=scenario_index + 1,
+        scenarioId=scenario["scenarioId"],
+    )
+    return resolve_artifact_path(context["root"], relative)
+
+
+def checkpoint_array(
+    context: dict[str, Any],
+    descriptor: dict[str, Any],
+    dtype: str,
+    shape: tuple[int, ...],
+) -> np.ndarray:
+    decoded = verify_artifact(context["root"], descriptor, {})
+    array = np.frombuffer(decoded, dtype=np.dtype(dtype))
+    if array.size != math.prod(shape):
+        raise EventRunnerError("Scenario checkpoint artifact shape drifted")
+    return array.reshape(shape)
+
+
+def validate_scenario_result(
+    context: dict[str, Any], scenario: dict[str, Any], result: dict[str, Any]
+) -> None:
+    for field in (
+        "scenarioId",
+        "meshId",
+        "runoffParameterSet",
+        "roughnessParameterSet",
+        "inflowFootprintSideMetres",
+    ):
+        if result.get(field) != scenario[field]:
+            raise EventRunnerError(f"Scenario checkpoint {field} drifted")
+    schedule = context["contract"]["schedule"]
+    if result.get("outputCount") != schedule["outputCount"]:
+        raise EventRunnerError("Scenario checkpoint output count drifted")
+
+    timestep = result.get("timestep")
+    if not isinstance(timestep, dict) or not isinstance(timestep.get("count"), int):
+        raise EventRunnerError("Scenario checkpoint timestep summary is invalid")
+    timestep_values = [
+        timestep.get("minimumSeconds"),
+        timestep.get("maximumSeconds"),
+        timestep.get("sumSeconds"),
+    ]
+    if timestep["count"] <= 0 or any(
+        not isinstance(value, (int, float)) or not math.isfinite(value)
+        for value in timestep_values
+    ):
+        raise EventRunnerError("Scenario checkpoint timestep summary is invalid")
+    numerics = context["contract"]["numerics"]
+    if (
+        timestep["minimumSeconds"]
+        < numerics["minimumTimeStepSeconds"] - TIME_TOLERANCE_S
+        or timestep["maximumSeconds"]
+        > numerics["maximumTimeStepSeconds"] + TIME_TOLERANCE_S
+        or abs(timestep["sumSeconds"] - schedule["durationSeconds"])
+        > context["contract"]["stability"]["timestepSumToleranceSeconds"]
+    ):
+        raise EventRunnerError("Scenario checkpoint stability contract failed")
+
+    mass = result.get("massBalance")
+    mass_fields = (
+        "initialVolumeM3",
+        "rainfallExcessInputM3",
+        "riverExcessInputM3",
+        "boundaryOutflowM3",
+        "finalStorageM3",
+        "residualM3",
+        "toleranceM3",
+    )
+    if not isinstance(mass, dict) or mass.get("passed") is not True:
+        raise EventRunnerError("Scenario checkpoint mass-balance state is invalid")
+    if any(
+        not isinstance(mass.get(field), (int, float))
+        or not math.isfinite(mass[field])
+        for field in mass_fields
+    ):
+        raise EventRunnerError("Scenario checkpoint mass-balance terms are invalid")
+    recomputed_residual = (
+        mass["initialVolumeM3"]
+        + mass["rainfallExcessInputM3"]
+        + mass["riverExcessInputM3"]
+        - mass["boundaryOutflowM3"]
+        - mass["finalStorageM3"]
+    )
+    if (
+        mass["toleranceM3"] < 0
+        or abs(mass["residualM3"]) > mass["toleranceM3"]
+        or not math.isclose(
+            recomputed_residual,
+            mass["residualM3"],
+            rel_tol=1e-12,
+            abs_tol=1e-6,
+        )
+    ):
+        raise EventRunnerError("Scenario checkpoint mass-balance contract failed")
+
+    solver_mesh = find_mesh(context["solverReceipt"], scenario["meshId"])
+    shape = (solver_mesh["height"], solver_mesh["width"])
+    eligible = (
+        array_from_descriptor(
+            context,
+            solver_mesh["artifacts"]["predictionEligibleMask"],
+            "u1",
+            shape,
+        )
+        == 1
+    )
+    if result.get("predictionEligibleCellCount") != int(np.count_nonzero(eligible)):
+        raise EventRunnerError("Scenario checkpoint eligible-cell count drifted")
+
+    artifacts = result.get("artifacts")
+    wet_keys = [
+        "wetMask" + str(threshold).replace("0.", "") + "m"
+        for threshold in context["contract"]["outputs"]["wetnessThresholdsM"]
+    ]
+    expected_keys = {
+        "maximumDepthM",
+        "timeOfMaximumIndex",
+        "finalDepthM",
+        "validPredictionMask",
+        *wet_keys,
+    }
+    if not isinstance(artifacts, dict) or set(artifacts) != expected_keys:
+        raise EventRunnerError("Scenario checkpoint artifact set drifted")
+
+    maximum = checkpoint_array(context, artifacts["maximumDepthM"], "<f8", shape)
+    final = checkpoint_array(context, artifacts["finalDepthM"], "<f8", shape)
+    time_of_maximum = checkpoint_array(
+        context, artifacts["timeOfMaximumIndex"], "<u2", shape
+    )
+    prediction_mask = checkpoint_array(
+        context, artifacts["validPredictionMask"], "u1", shape
+    )
+    if not np.array_equal(prediction_mask, eligible.astype("u1")):
+        raise EventRunnerError("Scenario checkpoint prediction mask drifted")
+    if (
+        np.any(maximum[~eligible] != FLOAT64_NODATA)
+        or np.any(final[~eligible] != FLOAT64_NODATA)
+        or np.any(time_of_maximum[~eligible] != UINT16_NODATA)
+        or np.any(~np.isfinite(maximum[eligible]))
+        or np.any(maximum[eligible] < 0)
+        or np.any(~np.isfinite(final[eligible]))
+        or np.any(final[eligible] < 0)
+        or np.any(time_of_maximum[eligible] > schedule["outputCount"])
+    ):
+        raise EventRunnerError("Scenario checkpoint output arrays are invalid")
+    observed_maximum = float(np.max(maximum[eligible], initial=0.0))
+    reported_maximum = result.get("maximumPredictedDepthM")
+    if (
+        not isinstance(reported_maximum, (int, float))
+        or not math.isfinite(reported_maximum)
+        or not math.isclose(
+            reported_maximum,
+            observed_maximum,
+            rel_tol=0,
+            abs_tol=0,
+        )
+    ):
+        raise EventRunnerError("Scenario checkpoint maximum depth drifted")
+    for threshold, key in zip(
+        context["contract"]["outputs"]["wetnessThresholdsM"], wet_keys
+    ):
+        wet = checkpoint_array(context, artifacts[key], "u1", shape)
+        expected_wet = np.full(shape, UINT8_NODATA, dtype="u1")
+        expected_wet[eligible] = (maximum[eligible] >= threshold).astype("u1")
+        if not np.array_equal(wet, expected_wet):
+            raise EventRunnerError(f"Scenario checkpoint wet mask drifted: {threshold:g} m")
+
+
+def checkpoint_payload(
+    context: dict[str, Any],
+    authorization: dict[str, Any],
+    scenario_index: int,
+    scenario: dict[str, Any],
+    result: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "schemaVersion": context["contract"]["checkpoints"]["schemaVersion"],
+        "checkpointId": (
+            f"{context['contract']['outputs']['predictionId']}:{scenario['scenarioId']}"
+        ),
+        "state": "scenario_complete_prediction_incomplete",
+        "authorizationSha256": authorization["authorizationSha256"],
+        "contractSha256": context["contractSha256"],
+        "manifestSha256": context["manifestSha256"],
+        "git": authorization["git"],
+        "inputReceiptSha256": authorization["inputReceiptSha256"],
+        "orderedScenarioIds": context["contract"]["scenarioPolicy"][
+            "orderedScenarioIds"
+        ],
+        "scenarioIndex": scenario_index,
+        "scenarioBinding": scenario,
+        "scenarioBindingSha256": sha256_json(scenario),
+        "result": result,
+        "isolation": {
+            "observedFloodGeometryLoaded": False,
+            "evaluationReferenceAccessAllowed": False,
+            "networkRequests": 0,
+            "evaluationRuns": 0,
+            "checkpointIsPrediction": False,
+        },
+    }
+
+
+def write_scenario_checkpoint(
+    context: dict[str, Any],
+    authorization: dict[str, Any],
+    scenario_index: int,
+    scenario: dict[str, Any],
+    result: dict[str, Any],
+) -> dict[str, Any]:
+    validate_scenario_result(context, scenario, result)
+    payload = checkpoint_payload(
+        context, authorization, scenario_index, scenario, result
+    )
+    checkpoint = dict(payload)
+    checkpoint["checkpointSha256"] = sha256_json(payload)
+    write_exclusive_json(
+        scenario_checkpoint_path(context, scenario_index, scenario), checkpoint
+    )
+    return checkpoint
+
+
+def read_scenario_checkpoint(
+    context: dict[str, Any],
+    authorization: dict[str, Any],
+    scenario_index: int,
+    scenario: dict[str, Any],
+) -> dict[str, Any]:
+    target = scenario_checkpoint_path(context, scenario_index, scenario)
+    checkpoint = json.loads(target.read_text(encoding="utf-8"))
+    identity = checkpoint.pop("checkpointSha256", None)
+    if not isinstance(identity, str) or sha256_json(checkpoint) != identity:
+        raise EventRunnerError(f"Scenario checkpoint identity is invalid: {scenario['scenarioId']}")
+    result = checkpoint.get("result")
+    if not isinstance(result, dict):
+        raise EventRunnerError("Scenario checkpoint result is missing")
+    expected = checkpoint_payload(
+        context, authorization, scenario_index, scenario, result
+    )
+    if checkpoint != expected:
+        raise EventRunnerError(f"Scenario checkpoint binding drifted: {scenario['scenarioId']}")
+    validate_scenario_result(context, scenario, result)
+    return result
+
+
 def execute(context: dict[str, Any]) -> dict[str, Any]:
     authorization = read_authorization(context)
     scenarios = context["bindingReceipt"]["scenarioBindings"]
-    results = [run_scenario(context, scenario) for scenario in scenarios]
+    checkpoint_paths = [
+        scenario_checkpoint_path(context, index, scenario)
+        for index, scenario in enumerate(scenarios)
+    ]
+    checkpoint_presence = [path.is_file() for path in checkpoint_paths]
+    first_missing = next(
+        (index for index, present in enumerate(checkpoint_presence) if not present),
+        len(checkpoint_presence),
+    )
+    if any(checkpoint_presence[first_missing + 1 :]):
+        raise EventRunnerError("Scenario checkpoints must form one contiguous prefix")
+
+    results: list[dict[str, Any]] = []
+    for index, scenario in enumerate(scenarios):
+        if index < first_missing:
+            result = read_scenario_checkpoint(
+                context, authorization, index, scenario
+            )
+        else:
+            result = run_scenario(context, scenario)
+            write_scenario_checkpoint(
+                context, authorization, index, scenario, result
+            )
+        results.append(result)
     if [item["scenarioId"] for item in results] != context["contract"]["scenarioPolicy"][
         "orderedScenarioIds"
     ]:
         raise EventRunnerError("Not every frozen scenario completed in order")
     receipt_payload = {
-        "schemaVersion": "cumbria-event-prediction-receipt-v0.1.0",
+        "schemaVersion": context["contract"]["outputs"]["receiptSchemaVersion"],
         "predictionId": context["contract"]["outputs"]["predictionId"],
         "state": "prediction_frozen_evaluation_still_sealed",
         "authorizationSha256": authorization["authorizationSha256"],
@@ -789,13 +1070,16 @@ def execute(context: dict[str, Any]) -> dict[str, Any]:
     }
     receipt = dict(receipt_payload)
     receipt["receiptSha256"] = sha256_json(receipt_payload)
-    write_exclusive_json(context["root"] / PREDICTION_RECEIPT_FILE, receipt)
+    write_exclusive_json(
+        context["root"] / context["contract"]["outputs"]["receiptFileName"],
+        receipt,
+    )
     return receipt
 
 
 def public_summary(context: dict[str, Any], mode: str, result: dict[str, Any] | None) -> dict[str, Any]:
     return {
-        "schemaVersion": "cumbria-event-runner-status-v0.1.0",
+        "schemaVersion": "cumbria-event-runner-status-v0.2.0",
         "mode": mode,
         "state": (
             "preflight_verified_execution_not_authorized"
@@ -808,6 +1092,7 @@ def public_summary(context: dict[str, Any], mode: str, result: dict[str, Any] | 
         "artifactDescriptorCount": context["artifactDescriptorCount"],
         "uniqueArtifactCount": context["uniqueArtifactCount"],
         "scenarioCount": len(context["contract"]["scenarioPolicy"]["orderedScenarioIds"]),
+        "restartFromVerifiedCheckpointAllowed": True,
         "observedFloodGeometryLoaded": False,
         "evaluationReferenceAccessAllowed": False,
         "solverRuns": 0 if mode != "execute" else len(result["scenarios"]),
