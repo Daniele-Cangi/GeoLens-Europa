@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 import numpy as np
 
@@ -19,6 +20,128 @@ SPEC.loader.exec_module(MODULE)
 
 
 class CumbriaEventRunnerTests(unittest.TestCase):
+    def artifact_descriptor(
+        self, root: Path, relative: str, decoded: bytes
+    ) -> dict[str, object]:
+        compressed = gzip.compress(decoded, compresslevel=9, mtime=0)
+        target = root / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(compressed)
+        return {
+            "relativePath": relative,
+            "bytes": len(compressed),
+            "decodedBytes": len(decoded),
+            "sha256": MODULE.sha256_bytes(compressed),
+            "contentSha256": MODULE.sha256_bytes(decoded),
+            "encoding": "fixture",
+        }
+
+    def checkpoint_fixture(
+        self, root: Path
+    ) -> tuple[dict[str, object], dict[str, object], dict[str, object], dict[str, object]]:
+        scenario = {
+            "scenarioId": "primary-20m",
+            "meshId": "mesh-fixture",
+            "runoffParameterSet": "primary",
+            "roughnessParameterSet": "primary",
+            "inflowFootprintSideMetres": 100,
+        }
+        eligible = np.array([[1, 0]], dtype="u1")
+        maximum = np.array([[0.2, MODULE.FLOAT64_NODATA]], dtype="<f8")
+        final = np.array([[0.1, MODULE.FLOAT64_NODATA]], dtype="<f8")
+        time_of_maximum = np.array([[1, MODULE.UINT16_NODATA]], dtype="<u2")
+        artifacts = {
+            "maximumDepthM": self.artifact_descriptor(
+                root, "predictions/maximum.gz", maximum.tobytes()
+            ),
+            "timeOfMaximumIndex": self.artifact_descriptor(
+                root, "predictions/time.gz", time_of_maximum.tobytes()
+            ),
+            "finalDepthM": self.artifact_descriptor(
+                root, "predictions/final.gz", final.tobytes()
+            ),
+            "validPredictionMask": self.artifact_descriptor(
+                root, "predictions/valid.gz", eligible.tobytes()
+            ),
+        }
+        for threshold in (0.01, 0.05, 0.1, 0.3):
+            wet = np.array(
+                [[int(maximum[0, 0] >= threshold), MODULE.UINT8_NODATA]],
+                dtype="u1",
+            )
+            key = "wetMask" + str(threshold).replace("0.", "") + "m"
+            artifacts[key] = self.artifact_descriptor(
+                root, f"predictions/{key}.gz", wet.tobytes()
+            )
+        eligible_descriptor = self.artifact_descriptor(
+            root, "solver-inputs/eligible.gz", eligible.tobytes()
+        )
+        context = {
+            "root": root,
+            "contractSha256": "a" * 64,
+            "manifestSha256": "b" * 64,
+            "decodedArtifacts": {},
+            "solverReceipt": {
+                "meshes": [
+                    {
+                        "id": "mesh-fixture",
+                        "height": 1,
+                        "width": 2,
+                        "artifacts": {
+                            "predictionEligibleMask": eligible_descriptor,
+                        },
+                    }
+                ]
+            },
+            "contract": {
+                "checkpoints": {
+                    "schemaVersion": "cumbria-event-scenario-checkpoint-v0.1.0",
+                    "directory": "prediction-checkpoints/prediction-v0",
+                    "fileNameTemplate": "{checkpointDirectory}/{scenarioIndex:02d}-{scenarioId}.checkpoint.json",
+                },
+                "outputs": {
+                    "predictionId": "prediction-v0",
+                    "wetnessThresholdsM": [0.01, 0.05, 0.1, 0.3],
+                },
+                "scenarioPolicy": {"orderedScenarioIds": ["primary-20m"]},
+                "schedule": {"outputCount": 2, "durationSeconds": 10.0},
+                "numerics": {
+                    "minimumTimeStepSeconds": 0.05,
+                    "maximumTimeStepSeconds": 5.0,
+                },
+                "stability": {"timestepSumToleranceSeconds": 1e-6},
+            },
+        }
+        authorization = {
+            "authorizationSha256": "c" * 64,
+            "git": {"commit": "d" * 40, "tree": "e" * 40, "branch": "main"},
+            "inputReceiptSha256": {"eventInputBinding": "f" * 64},
+        }
+        result = {
+            **scenario,
+            "outputCount": 2,
+            "timestep": {
+                "count": 2,
+                "minimumSeconds": 5.0,
+                "maximumSeconds": 5.0,
+                "sumSeconds": 10.0,
+            },
+            "massBalance": {
+                "initialVolumeM3": 0.0,
+                "rainfallExcessInputM3": 10.0,
+                "riverExcessInputM3": 0.0,
+                "boundaryOutflowM3": 4.0,
+                "finalStorageM3": 6.0,
+                "residualM3": 0.0,
+                "toleranceM3": 0.001,
+                "passed": True,
+            },
+            "predictionEligibleCellCount": 1,
+            "maximumPredictedDepthM": 0.2,
+            "artifacts": artifacts,
+        }
+        return context, authorization, scenario, result
+
     def test_default_cli_mode_is_read_only_preflight(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             options = MODULE.parse_arguments(["--data-root", directory])
@@ -122,6 +245,124 @@ class CumbriaEventRunnerTests(unittest.TestCase):
         contract["scenarioCount"] = 8
         with self.assertRaisesRegex(MODULE.EventRunnerError, "contract SHA-256"):
             MODULE.contract_sha256(contract)
+
+    def test_checkpoint_round_trip_is_authorization_bound_and_verified(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            context, authorization, scenario, result = self.checkpoint_fixture(
+                Path(directory)
+            )
+            checkpoint = MODULE.write_scenario_checkpoint(
+                context, authorization, 0, scenario, result
+            )
+            restored = MODULE.read_scenario_checkpoint(
+                context, authorization, 0, scenario
+            )
+
+        self.assertEqual(restored, result)
+        self.assertEqual(
+            checkpoint["checkpointSha256"],
+            MODULE.sha256_json(
+                {key: value for key, value in checkpoint.items() if key != "checkpointSha256"}
+            ),
+        )
+
+    def test_checkpoint_rejects_artifact_byte_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            context, authorization, scenario, result = self.checkpoint_fixture(root)
+            MODULE.write_scenario_checkpoint(context, authorization, 0, scenario, result)
+            target = root / result["artifacts"]["maximumDepthM"]["relativePath"]
+            target.write_bytes(b"drift")
+
+            with self.assertRaisesRegex(MODULE.EventRunnerError, "byte count drifted"):
+                MODULE.read_scenario_checkpoint(context, authorization, 0, scenario)
+
+    def test_execute_rejects_non_contiguous_checkpoint_sequence(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            scenarios = [
+                {"scenarioId": "first"},
+                {"scenarioId": "second"},
+            ]
+            context = {
+                "root": root,
+                "bindingReceipt": {"scenarioBindings": scenarios},
+                "contract": {
+                    "authorization": {"fileName": "authorization.json"},
+                    "checkpoints": {
+                        "directory": "checkpoints",
+                        "fileNameTemplate": "{checkpointDirectory}/{scenarioIndex:02d}-{scenarioId}.checkpoint.json",
+                    },
+                },
+            }
+            second = MODULE.scenario_checkpoint_path(context, 1, scenarios[1])
+            second.parent.mkdir(parents=True)
+            second.write_text("{}", encoding="utf-8")
+
+            with mock.patch.object(MODULE, "read_authorization", return_value={}):
+                with self.assertRaisesRegex(MODULE.EventRunnerError, "contiguous prefix"):
+                    MODULE.execute(context)
+
+    def test_execute_reuses_verified_prefix_and_runs_only_missing_suffix(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            scenarios = [
+                {"scenarioId": "first"},
+                {"scenarioId": "second"},
+            ]
+            context = {
+                "root": root,
+                "contractSha256": "a" * 64,
+                "manifestSha256": "b" * 64,
+                "bindingReceipt": {"scenarioBindings": scenarios},
+                "contract": {
+                    "checkpoints": {
+                        "directory": "checkpoints",
+                        "fileNameTemplate": "{checkpointDirectory}/{scenarioIndex:02d}-{scenarioId}.checkpoint.json",
+                    },
+                    "scenarioPolicy": {"orderedScenarioIds": ["first", "second"]},
+                    "outputs": {
+                        "predictionId": "prediction-v0",
+                        "receiptFileName": "prediction.json",
+                        "receiptSchemaVersion": "prediction-receipt-v0",
+                    },
+                },
+            }
+            first_path = MODULE.scenario_checkpoint_path(context, 0, scenarios[0])
+            first_path.parent.mkdir(parents=True)
+            first_path.write_text("{}", encoding="utf-8")
+            authorization = {
+                "authorizationSha256": "c" * 64,
+                "git": {"commit": "d" * 40},
+                "inputReceiptSha256": {"binding": "e" * 64},
+            }
+            first_result = {"scenarioId": "first"}
+            second_result = {"scenarioId": "second"}
+
+            with (
+                mock.patch.object(
+                    MODULE, "read_authorization", return_value=authorization
+                ),
+                mock.patch.object(
+                    MODULE, "read_scenario_checkpoint", return_value=first_result
+                ) as read_checkpoint,
+                mock.patch.object(
+                    MODULE, "run_scenario", return_value=second_result
+                ) as run_scenario,
+                mock.patch.object(MODULE, "write_scenario_checkpoint") as write_checkpoint,
+                mock.patch.object(MODULE, "write_exclusive_json") as write_receipt,
+            ):
+                receipt = MODULE.execute(context)
+
+        read_checkpoint.assert_called_once_with(
+            context, authorization, 0, scenarios[0]
+        )
+        run_scenario.assert_called_once_with(context, scenarios[1])
+        write_checkpoint.assert_called_once_with(
+            context, authorization, 1, scenarios[1], second_result
+        )
+        write_receipt.assert_called_once()
+        self.assertEqual(receipt["scenarios"], [first_result, second_result])
 
 
 if __name__ == "__main__":

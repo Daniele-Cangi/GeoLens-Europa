@@ -29,7 +29,7 @@ class CumbriaDtmMaterializerTests(unittest.TestCase):
         # This materializer is content-addressed by the v0.22 receipt. Keep its
         # historical manifest boundary reproducible instead of changing the
         # producer source after later manifest-only gates advance.
-        self.assertEqual(manifest["manifestVersion"], "0.24.0")
+        self.assertEqual(manifest["manifestVersion"], "0.25.0")
         manifest["manifestVersion"] = "0.22.0"
 
         protocol = MODULE.validate_protocol(manifest)

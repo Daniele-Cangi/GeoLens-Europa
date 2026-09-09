@@ -13,7 +13,7 @@ import {
   type CumbriaReplacementSolverProtocol,
 } from './cumbriaReplacementSolver';
 
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.24.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.25.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -1175,7 +1175,7 @@ export interface CumbriaEventInputBinding {
 }
 
 export interface CumbriaEventRunnerContract {
-  readonly schemaVersion: 'cumbria-event-runner-contract-v0.1.0';
+  readonly schemaVersion: 'cumbria-event-runner-contract-v0.2.0';
   readonly state: 'frozen_authorization_not_created';
   readonly frozenOn: string;
   readonly baseline: {
@@ -1195,7 +1195,7 @@ export interface CumbriaEventRunnerContract {
   >;
   readonly runner: {
     readonly id: 'cumbria-public-event-runner-v0';
-    readonly version: 'cumbria-public-event-runner-v0.1.0';
+    readonly version: 'cumbria-public-event-runner-v0.2.0';
     readonly entrypoint: 'scripts/run_cumbria_public_event.py';
     readonly entrypointSha256: string;
     readonly kernelVersion: 'cumbria-local-inertial-surface-flow-v0.2.0';
@@ -1228,8 +1228,8 @@ export interface CumbriaEventRunnerContract {
   readonly massBalance: Readonly<Record<string, unknown>>;
   readonly authorization: {
     readonly id: 'cumbria-public-storm-desmond-v0-authorization';
-    readonly fileName: 'cumbria-public-storm-desmond-v0.authorization.json';
-    readonly schemaVersion: 'cumbria-event-run-authorization-v0.1.0';
+    readonly fileName: 'cumbria-public-storm-desmond-v0.authorization-v0.2.json';
+    readonly schemaVersion: 'cumbria-event-run-authorization-v0.2.0';
     readonly contentAddressAlgorithm: 'sha256';
     readonly cleanGitTreeRequired: true;
     readonly gitCommitAndTreeRecorded: true;
@@ -1237,6 +1237,21 @@ export interface CumbriaEventRunnerContract {
     readonly inputReceiptHashesRecorded: true;
     readonly authorizationMustPrecedeSolverExecution: true;
     readonly allowedBranches: readonly ['main', 'codex/geolens-refoundation'];
+  };
+  readonly checkpoints: {
+    readonly schemaVersion: 'cumbria-event-scenario-checkpoint-v0.1.0';
+    readonly directory: 'prediction-checkpoints/cumbria-public-storm-desmond-v0';
+    readonly fileNameTemplate: '{checkpointDirectory}/{scenarioIndex:02d}-{scenarioId}.checkpoint.json';
+    readonly writePolicy: 'atomic_after_scenario_artifacts_verified';
+    readonly reusePolicy: 'contiguous_authorization_bound_prefix_only';
+    readonly authorizationIdentityRequired: true;
+    readonly gitAndManifestIdentityRequired: true;
+    readonly inputReceiptIdentityRequired: true;
+    readonly scenarioBindingIdentityRequired: true;
+    readonly artifactByteAndContentVerificationRequired: true;
+    readonly stabilityAndMassBalanceVerificationRequired: true;
+    readonly partialCheckpointRejected: true;
+    readonly checkpointIsPrediction: false;
   };
   readonly outputs: Readonly<Record<string, unknown>> & {
     readonly predictionId: 'cumbria-public-storm-desmond-v0';
@@ -1279,6 +1294,8 @@ export interface CumbriaEventRunnerContract {
     readonly solverExecutionAllowed: false;
     readonly predictionReceiptExists: false;
     readonly evaluationReferenceAccessAllowed: false;
+    readonly scenarioCheckpointingRequired: true;
+    readonly restartFromVerifiedCheckpointAllowed: true;
     readonly solverRuns: 0;
     readonly evaluationRuns: 0;
   };
@@ -4487,7 +4504,7 @@ function eventRunnerContract(
   const contract = record(value, 'publicBaselineEventRunnerContract');
   equal(
     contract.schemaVersion,
-    'cumbria-event-runner-contract-v0.1.0',
+    'cumbria-event-runner-contract-v0.2.0',
     'event-runner contract schema',
   );
   equal(
@@ -4495,7 +4512,7 @@ function eventRunnerContract(
     'frozen_authorization_not_created',
     'event-runner contract state',
   );
-  equal(contract.frozenOn, '2026-09-07', 'event-runner frozen date');
+  equal(contract.frozenOn, '2026-09-09', 'event-runner frozen date');
   dateOnly(contract.frozenOn, 'event-runner frozen date');
 
   const baseline = record(contract.baseline, 'event-runner baseline');
@@ -4552,9 +4569,9 @@ function eventRunnerContract(
   const runner = record(contract.runner, 'event-runner implementation');
   const runnerExpected: Readonly<Record<string, string>> = {
     id: 'cumbria-public-event-runner-v0',
-    version: 'cumbria-public-event-runner-v0.1.0',
+    version: 'cumbria-public-event-runner-v0.2.0',
     entrypoint: 'scripts/run_cumbria_public_event.py',
-    entrypointSha256: 'e790192be69a370302aa73e191415902e414a7650a7557620d0f87f3087119be',
+    entrypointSha256: '36ad47f1344f92f2e8549329665d0f95ff60a4353769f832172a873a37e6afdd',
     kernelVersion: 'cumbria-local-inertial-surface-flow-v0.2.0',
     kernelModule: 'surface-flow-engine/surface_flow/local_inertial.py',
     kernelModuleSha256: '0423a865b0cbedc64fe141f7a3d7fac7ad7e8e5ad20fe715ea6314469d577677',
@@ -4670,8 +4687,8 @@ function eventRunnerContract(
   const authorization = record(contract.authorization, 'event-runner authorization');
   for (const [field, expected] of Object.entries({
     id: 'cumbria-public-storm-desmond-v0-authorization',
-    fileName: 'cumbria-public-storm-desmond-v0.authorization.json',
-    schemaVersion: 'cumbria-event-run-authorization-v0.1.0',
+    fileName: 'cumbria-public-storm-desmond-v0.authorization-v0.2.json',
+    schemaVersion: 'cumbria-event-run-authorization-v0.2.0',
     contentAddressAlgorithm: 'sha256',
     cleanGitTreeRequired: true,
     gitCommitAndTreeRecorded: true,
@@ -4687,11 +4704,31 @@ function eventRunnerContract(
     'event-runner allowed branches',
   );
 
+  const checkpoints = record(contract.checkpoints, 'event-runner checkpoints');
+  for (const [field, expected] of Object.entries({
+    schemaVersion: 'cumbria-event-scenario-checkpoint-v0.1.0',
+    directory: 'prediction-checkpoints/cumbria-public-storm-desmond-v0',
+    fileNameTemplate:
+      '{checkpointDirectory}/{scenarioIndex:02d}-{scenarioId}.checkpoint.json',
+    writePolicy: 'atomic_after_scenario_artifacts_verified',
+    reusePolicy: 'contiguous_authorization_bound_prefix_only',
+    authorizationIdentityRequired: true,
+    gitAndManifestIdentityRequired: true,
+    inputReceiptIdentityRequired: true,
+    scenarioBindingIdentityRequired: true,
+    artifactByteAndContentVerificationRequired: true,
+    stabilityAndMassBalanceVerificationRequired: true,
+    partialCheckpointRejected: true,
+    checkpointIsPrediction: false,
+  })) {
+    equal(checkpoints[field], expected, `event-runner checkpoint ${field}`);
+  }
+
   const outputs = record(contract.outputs, 'event-runner outputs');
   for (const [field, expected] of Object.entries({
     predictionId: 'cumbria-public-storm-desmond-v0',
     receiptFileName: 'cumbria-public-storm-desmond-v0.prediction.receipt.json',
-    receiptSchemaVersion: 'cumbria-event-prediction-receipt-v0.1.0',
+    receiptSchemaVersion: 'cumbria-event-prediction-receipt-v0.2.0',
     artifactPathTemplate: 'predictions/sha256/{sha256}.{semantic}.gz',
     horizontalCrs: 'EPSG:27700',
     verticalDatum: 'Ordnance Datum Newlyn',
@@ -4779,8 +4816,18 @@ function eventRunnerContract(
   equal(execution.solverRuns, 0, 'event-runner solver runs');
   equal(execution.evaluationRuns, 0, 'event-runner evaluation runs');
   equal(
+    execution.scenarioCheckpointingRequired,
+    true,
+    'event-runner scenario checkpointing',
+  );
+  equal(
+    execution.restartFromVerifiedCheckpointAllowed,
+    true,
+    'event-runner restart from checkpoint',
+  );
+  equal(
     sha256(contract.contractSha256, 'event-runner contract SHA-256'),
-    '802279c17252fbe39f2cf2fc5b6d229369a9a5030b98fdfa6c0993222bb76cee',
+    'b9f2b9d9f91557b4cd62f35875fa2b16d3ebf8fe5e536416cf2d9bcb0dae23b9',
     'event-runner contract SHA-256',
   );
 }

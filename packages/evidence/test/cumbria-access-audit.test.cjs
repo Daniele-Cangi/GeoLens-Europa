@@ -198,7 +198,7 @@ test('public baseline terrain materialization records real coverage without zero
   const manifest = manifestFixture();
   const result = manifest.publicBaselineTerrainMaterialization;
 
-  assert.equal(manifest.manifestVersion, '0.24.0');
+  assert.equal(manifest.manifestVersion, '0.25.0');
   assert.equal(result.state, 'terrain_materialized_with_explicit_gaps');
   assert.equal(
     result.protocolSha256,
@@ -402,7 +402,7 @@ test('pre-event terrain selection maps to downloadable archives with explicit ga
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.24.0');
+  assert.equal(manifest.manifestVersion, '0.25.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
@@ -880,7 +880,7 @@ test('event runner contract freezes execution and prediction semantics before au
     contract.inputReceipts.eventInputBinding.sha256,
     manifest.publicBaselineEventInputBinding.receipt.sha256,
   );
-  assert.equal(contract.runner.version, 'cumbria-public-event-runner-v0.1.0');
+  assert.equal(contract.runner.version, 'cumbria-public-event-runner-v0.2.0');
   assert.equal(
     contract.runner.kernelVersion,
     manifest.publicBaselineNumericalKernelVerification.implementation.version,
@@ -896,13 +896,20 @@ test('event runner contract freezes execution and prediction semantics before au
   assert.equal(contract.authorization.cleanGitTreeRequired, true);
   assert.equal(contract.outputs.completeBundleRequiresEveryScenario, true);
   assert.equal(contract.outputs.partialArtifactsAreNotPrediction, true);
+  assert.equal(contract.checkpoints.checkpointIsPrediction, false);
+  assert.equal(
+    contract.checkpoints.reusePolicy,
+    'contiguous_authorization_bound_prefix_only',
+  );
+  assert.equal(contract.execution.scenarioCheckpointingRequired, true);
+  assert.equal(contract.execution.restartFromVerifiedCheckpointAllowed, true);
   assert.deepEqual(contract.outputs.wetnessThresholdsM, [0.01, 0.05, 0.1, 0.3]);
   assert.equal(contract.isolation.observedFloodGeometryLoaded, false);
   assert.equal(contract.execution.solverExecutionAllowed, false);
   assert.equal(contract.execution.solverRuns, 0);
   assert.equal(
     contractSha256,
-    '802279c17252fbe39f2cf2fc5b6d229369a9a5030b98fdfa6c0993222bb76cee',
+    'b9f2b9d9f91557b4cd62f35875fa2b16d3ebf8fe5e536416cf2d9bcb0dae23b9',
   );
 
   const leakedReference = manifestFixture();
