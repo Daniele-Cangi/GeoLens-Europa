@@ -2,6 +2,7 @@ import copy
 import hashlib
 import importlib.util
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 
@@ -53,6 +54,7 @@ class CumbriaBlindEvaluationTests(unittest.TestCase):
 
     def test_execution_stays_blocked_without_a_pinned_executor_authorization(self):
         manifest = MODULE.json.loads(MODULE.MANIFEST_PATH.read_text(encoding="utf-8"))
+        manifest.pop("evaluationExecutionAuthorization")
         with self.assertRaisesRegex(ValueError, "has not been authorized"):
             MODULE.validate_execution_authorization(manifest, "0" * 64)
 
@@ -76,6 +78,18 @@ class CumbriaBlindEvaluationTests(unittest.TestCase):
         manifest["evaluationExecutionAuthorization"]["referenceReceiptSha256"] = "1" * 64
         with self.assertRaisesRegex(ValueError, "authorization drifted"):
             MODULE.validate_execution_authorization(manifest, executor_sha256)
+
+    def test_current_authorization_matches_the_frozen_git_blob(self):
+        manifest = MODULE.json.loads(MODULE.MANIFEST_PATH.read_text(encoding="utf-8"))
+        frozen_commit = manifest["evaluationExecutionAuthorization"]["executor"][
+            "frozenCommit"
+        ]
+        source = subprocess.check_output(
+            ["git", "show", f"{frozen_commit}:{MODULE.EXECUTOR_RELATIVE_PATH}"],
+            cwd=MODULE.REPOSITORY_ROOT,
+        )
+        executor_sha256 = hashlib.sha256(source).hexdigest()
+        MODULE.validate_execution_authorization(manifest, executor_sha256)
 
     def test_exact_match_has_perfect_overlap_and_zero_boundary_distance(self):
         self.predicted[12:16, 12:16] = 1

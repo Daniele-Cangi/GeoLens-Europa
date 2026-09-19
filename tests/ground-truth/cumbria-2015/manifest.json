@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.28.0",
+  "manifestVersion": "0.29.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -1927,6 +1927,27 @@
     },
     "nextGate": "evaluate_each_reference_independently"
   },
+  "evaluationExecutionAuthorization": {
+    "schemaVersion": "cumbria-blind-evaluation-execution-authorization-v0.1.0",
+    "state": "authorized_for_single_blind_evaluation",
+    "recordedOn": "2026-09-19",
+    "protocolSha256": "1a135785bef1121e542952fd8ee90d6eed86908d19864d381985fbfd2f8a1dd0",
+    "predictionReceiptSha256": "f2a3a7489699a70a6d5c770633bdc9f789184ca26cb8190c85a1d28d40495dc6",
+    "referenceReceiptSha256": "fae2cadba3675bff4191da5829e8bf64d71ffc028a9c6899c9e865f97b6debe0",
+    "executor": {
+      "relativePath": "scripts/evaluate_cumbria_blind_prediction.py",
+      "sha256": "7cc63485c59ca3f4716f056ae3f5420f180e55fad62af6dfb006631e11e06373",
+      "frozenCommit": "efe7a053d0e1c97baad8b571f809ddfe46078457"
+    },
+    "isolation": {
+      "predictionArtifactsLoaded": false,
+      "referenceArtifactsLoaded": false,
+      "filesWritten": 0,
+      "evaluationRuns": 0,
+      "networkRequests": 0
+    },
+    "nextGate": "execute_once_and_record_all_predeclared_metrics"
+  },
   "modelAccessRequest": {
     "id": "cumbria-carlisle-pre-event-model-products-5-6-7-v0",
     "state": "sent_awaiting_response",
@@ -3450,15 +3471,20 @@
       "reason": "EA, EMSR147 initial and EMSR147 monitoring were independently transformed with pinned coordinate operations, clipped only to the previously frozen domain and rasterized by 20 m cell-centre semantics. Receipt fae2cadba3675bff4191da5829e8bf64d71ffc028a9c6899c9e865f97b6debe0 binds separate wet and coverage geometry plus masks; no prediction artifact or metric was loaded."
     },
     {
+      "id": "blind_evaluation_execution_authorization",
+      "state": "passed",
+      "reason": "The reviewed evaluator revision efe7a05 and its exact Git-blob SHA-256 are bound to the frozen protocol, prediction receipt and normalized-reference receipt. Authorization records zero loaded artifacts, writes, network requests and evaluation runs; the next action is the single deterministic blind comparison without retuning."
+    },
+    {
       "id": "large_artifact_downloads",
       "state": "blocked",
       "reason": "Unbounded or full-envelope artifact acquisition remains blocked. The only authorized bounded references have been acquired and hashed; no other geography or post-hoc reference may be added to alter the model, domain, mesh or wetness threshold."
     }
   ],
   "acquisition": {
-    "state": "evaluation_references_normalized_evaluation_pending",
+    "state": "blind_evaluation_executor_authorized_run_pending",
     "largeDownloadsAllowed": false,
     "boundedTerrainDownloadsAllowed": true,
-    "nextAction": "Evaluate the frozen primary prediction independently against EA, EMSR147 initial and EMSR147 monitoring with the six predeclared metrics. Do not combine references, change the 0.05 m wetness threshold, select a best scenario or retune any model input."
+    "nextAction": "Execute the authorized evaluator once against EA, EMSR147 initial and EMSR147 monitoring, retain all six predeclared metrics separately and record the result without retuning."
   }
 }

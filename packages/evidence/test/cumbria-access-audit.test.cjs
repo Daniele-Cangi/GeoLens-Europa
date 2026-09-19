@@ -39,7 +39,7 @@ test('Cumbria manifest freezes the replacement-solver contract without opening s
   );
   assert.equal(
     manifest.acquisition.state,
-    'evaluation_references_normalized_evaluation_pending',
+    'blind_evaluation_executor_authorized_run_pending',
   );
   assert.equal(manifest.acquisition.largeDownloadsAllowed, false);
   assert.equal(manifest.acquisition.boundedTerrainDownloadsAllowed, true);
@@ -198,7 +198,7 @@ test('public baseline terrain materialization records real coverage without zero
   const manifest = manifestFixture();
   const result = manifest.publicBaselineTerrainMaterialization;
 
-  assert.equal(manifest.manifestVersion, '0.28.0');
+  assert.equal(manifest.manifestVersion, '0.29.0');
   assert.equal(result.state, 'terrain_materialized_with_explicit_gaps');
   assert.equal(
     result.protocolSha256,
@@ -473,13 +473,37 @@ test('evaluation references are independently normalized before metrics run', ()
   );
 });
 
+test('blind evaluation executor is byte-pinned before any metric runs', () => {
+  const manifest = manifestFixture();
+  const authorization = manifest.evaluationExecutionAuthorization;
+
+  assert.equal(
+    authorization.executor.sha256,
+    '7cc63485c59ca3f4716f056ae3f5420f180e55fad62af6dfb006631e11e06373',
+  );
+  assert.equal(
+    authorization.executor.frozenCommit,
+    'efe7a053d0e1c97baad8b571f809ddfe46078457',
+  );
+  assert.equal(authorization.isolation.predictionArtifactsLoaded, false);
+  assert.equal(authorization.isolation.referenceArtifactsLoaded, false);
+  assert.equal(authorization.isolation.evaluationRuns, 0);
+
+  const drifted = manifestFixture();
+  drifted.evaluationExecutionAuthorization.executor.sha256 = '0'.repeat(64);
+  assert.throws(
+    () => assertCumbriaAccessManifest(drifted),
+    /evaluation executor SHA-256/,
+  );
+});
+
 test('pre-event terrain selection maps to downloadable archives with explicit gaps', () => {
   const manifest = manifestFixture();
   const lidar = manifest.datasets.find(
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.28.0');
+  assert.equal(manifest.manifestVersion, '0.29.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
