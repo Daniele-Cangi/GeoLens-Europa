@@ -39,7 +39,7 @@ test('Cumbria manifest freezes the replacement-solver contract without opening s
   );
   assert.equal(
     manifest.acquisition.state,
-    'event_runner_contract_frozen_authorization_pending',
+    'prediction_frozen_reference_acquisition_pending',
   );
   assert.equal(manifest.acquisition.largeDownloadsAllowed, false);
   assert.equal(manifest.acquisition.boundedTerrainDownloadsAllowed, true);
@@ -198,7 +198,7 @@ test('public baseline terrain materialization records real coverage without zero
   const manifest = manifestFixture();
   const result = manifest.publicBaselineTerrainMaterialization;
 
-  assert.equal(manifest.manifestVersion, '0.25.0');
+  assert.equal(manifest.manifestVersion, '0.26.0');
   assert.equal(result.state, 'terrain_materialized_with_explicit_gaps');
   assert.equal(
     result.protocolSha256,
@@ -309,7 +309,7 @@ test('post-event flood geometry cannot leak into input or calibration', () => {
   );
 });
 
-test('blind evaluation protocol remains sealed until the prediction is frozen', () => {
+test('blind evaluation protocol freezes the prediction before reference access', () => {
   const manifest = manifestFixture();
   const protocol = manifest.evaluationProtocol;
   const { protocolSha256, ...hashPayload } = protocol;
@@ -319,9 +319,21 @@ test('blind evaluation protocol remains sealed until the prediction is frozen', 
     protocol.claimBoundary,
     'retrospective_historical_replay_not_operational_forecast',
   );
-  assert.equal(protocol.predictionFreeze.state, 'missing');
-  assert.equal(protocol.predictionFreeze.predictionArtifactSha256, null);
-  assert.equal(protocol.predictionFreeze.evaluationDomain.state, 'missing');
+  assert.equal(protocol.predictionFreeze.state, 'frozen');
+  assert.equal(
+    protocol.predictionFreeze.predictionReceipt.sha256,
+    'f2a3a7489699a70a6d5c770633bdc9f789184ca26cb8190c85a1d28d40495dc6',
+  );
+  assert.equal(
+    protocol.predictionFreeze.predictionArtifactSha256,
+    protocol.predictionFreeze.wetnessCriterion.artifact.sha256,
+  );
+  assert.equal(protocol.predictionFreeze.wetnessCriterion.threshold, 0.05);
+  assert.equal(protocol.predictionFreeze.wetnessCriterion.scenarioId, 'primary-20m');
+  assert.equal(protocol.predictionFreeze.evaluationDomain.state, 'frozen');
+  assert.equal(protocol.predictionFreeze.evaluationDomain.meshId, 'mesh-20m');
+  assert.equal(protocol.predictionFreeze.evaluationDomain.cellSizeMetres, 20);
+  assert.equal(protocol.predictionFreeze.evaluationDomain.validPredictionCellCount, 73502);
   assert.equal(
     protocol.predictionFreeze.evaluationDomain.observedGeometryMayDefineDomain,
     false,
@@ -335,6 +347,7 @@ test('blind evaluation protocol remains sealed until the prediction is frozen', 
   assert.equal(protocol.referenceSeal.archivesDownloaded, false);
   assert.equal(protocol.referenceSeal.separateComparisons, true);
   assert.equal(protocol.referenceSeal.combineReferences, false);
+  assert.equal(protocol.referenceSeal.referenceAccessAuthorizedAfterMerge, true);
   assert.deepEqual(
     protocol.metrics.map((metric) => metric.id),
     [
@@ -355,7 +368,7 @@ test('blind evaluation protocol remains sealed until the prediction is frozen', 
     protocol.comparisonPolicy.missingPredictionCoverage,
     'block_evaluation',
   );
-  assert.equal(protocol.execution.state, 'blocked');
+  assert.equal(protocol.execution.state, 'blocked_reference_geometry_sealed');
   assert.equal(protocol.execution.networkRequests, 0);
   assert.equal(protocol.execution.filesWritten, 0);
   assert.equal(protocol.execution.evaluationRuns, 0);
@@ -402,7 +415,7 @@ test('pre-event terrain selection maps to downloadable archives with explicit ga
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.25.0');
+  assert.equal(manifest.manifestVersion, '0.26.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
