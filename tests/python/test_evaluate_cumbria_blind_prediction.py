@@ -1,6 +1,8 @@
 import copy
+import hashlib
 import importlib.util
 from pathlib import Path
+import tempfile
 import unittest
 
 import numpy as np
@@ -41,6 +43,39 @@ class CumbriaBlindEvaluationTests(unittest.TestCase):
         changed["evaluationProtocol"]["metrics"][0]["unit"] = "percent"
         with self.assertRaisesRegex(ValueError, "contract drifted"):
             MODULE.validate_manifest(changed)
+
+    def test_normalization_linkage_drift_is_rejected_before_artifacts_open(self):
+        manifest = MODULE.json.loads(MODULE.MANIFEST_PATH.read_text(encoding="utf-8"))
+        changed = copy.deepcopy(manifest)
+        changed["evaluationReferenceNormalization"]["sourceReceiptSha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "contract drifted"):
+            MODULE.validate_manifest(changed)
+
+    def test_execution_stays_blocked_without_a_pinned_executor_authorization(self):
+        manifest = MODULE.json.loads(MODULE.MANIFEST_PATH.read_text(encoding="utf-8"))
+        with self.assertRaisesRegex(ValueError, "has not been authorized"):
+            MODULE.validate_execution_authorization(manifest, "0" * 64)
+
+    def test_execution_authorization_binds_every_external_identity_and_executor_byte(self):
+        executor_sha256 = hashlib.sha256(MODULE_PATH.read_bytes()).hexdigest()
+        manifest = {
+            "evaluationExecutionAuthorization": {
+                "schemaVersion": MODULE.AUTHORIZATION_SCHEMA,
+                "state": "authorized_for_single_blind_evaluation",
+                "protocolSha256": MODULE.PROTOCOL_SHA256,
+                "predictionReceiptSha256": MODULE.PREDICTION_RECEIPT_SHA256,
+                "referenceReceiptSha256": MODULE.REFERENCE_RECEIPT_SHA256,
+                "executor": {
+                    "relativePath": MODULE.EXECUTOR_RELATIVE_PATH,
+                    "sha256": executor_sha256,
+                    "frozenCommit": "0" * 40,
+                },
+            }
+        }
+        MODULE.validate_execution_authorization(manifest, executor_sha256)
+        manifest["evaluationExecutionAuthorization"]["referenceReceiptSha256"] = "1" * 64
+        with self.assertRaisesRegex(ValueError, "authorization drifted"):
+            MODULE.validate_execution_authorization(manifest, executor_sha256)
 
     def test_exact_match_has_perfect_overlap_and_zero_boundary_distance(self):
         self.predicted[12:16, 12:16] = 1
@@ -95,6 +130,15 @@ class CumbriaBlindEvaluationTests(unittest.TestCase):
         self.assertEqual(result["metrics"]["boundary_distance_p95"]["value"], 40)
         self.assertEqual(result["metrics"]["boundary_distance_p95"]["sampleCount"], 8)
 
+    def test_boundary_distance_does_not_treat_unknown_neighbors_as_dry(self):
+        wet = np.zeros_like(self.valid, dtype=bool)
+        known = np.zeros_like(self.valid, dtype=bool)
+        wet[12, 12] = True
+        known[12, 12] = True
+        known[12, 13] = True
+        segments = MODULE.boundary_segments(wet, known)
+        self.assertEqual(len(segments), 1)
+
     def test_missing_prediction_inside_frozen_domain_blocks_evaluation(self):
         self.predicted[12, 12] = MODULE.NO_DATA
         with self.assertRaisesRegex(ValueError, "missing inside the frozen evaluation domain"):
@@ -114,6 +158,21 @@ class CumbriaBlindEvaluationTests(unittest.TestCase):
                 self.reference,
                 self.coverage,
             )
+
+    def test_receipt_write_is_idempotent_and_durable(self):
+        receipt = {"schemaVersion": MODULE.OUTPUT_SCHEMA, "receiptSha256": "0" * 64}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "evaluation-references").mkdir()
+            MODULE.write_receipt(root, receipt)
+            path = root / "evaluation-references" / MODULE.OUTPUT_RECEIPT_NAME
+            expected = (MODULE.json.dumps(receipt, indent=2, ensure_ascii=False) + "\n").encode(
+                "utf-8"
+            )
+            self.assertEqual(path.read_bytes(), expected)
+            MODULE.write_receipt(root, receipt)
+            with self.assertRaisesRegex(ValueError, "receipt drifted"):
+                MODULE.write_receipt(root, {**receipt, "receiptSha256": "1" * 64})
 
     def test_empty_wet_denominators_are_explicitly_undefined(self):
         result = MODULE.evaluate_reference(
