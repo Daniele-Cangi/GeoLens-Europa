@@ -13,7 +13,7 @@ import {
   type CumbriaReplacementSolverProtocol,
 } from './cumbriaReplacementSolver';
 
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.31.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.32.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -1609,6 +1609,32 @@ export interface CumbriaBlindEvaluationDiagnostics {
   readonly role: 'diagnostic_visualization_not_model_input_or_new_evaluation';
 }
 
+export interface CumbriaBlindEvaluationFailureInventory {
+  readonly schemaVersion: 'cumbria-blind-evaluation-failure-inventory-v0.1.0';
+  readonly state: 'materialized_from_frozen_artifacts';
+  readonly recordedOn: string;
+  readonly receiptSha256: string;
+  readonly evaluationReceiptSha256: string;
+  readonly diagnosticReceiptSha256: string;
+  readonly solverGridReceiptSha256: string;
+  readonly depthThresholdsMetres: readonly [0.05, 0.1, 0.3];
+  readonly comparisonSummaries: readonly Record<string, unknown>[];
+  readonly environmentAgencyLeadingFalsePositiveClasses: readonly Record<
+    string,
+    unknown
+  >[];
+  readonly isolation: {
+    readonly newEvaluationMetrics: false;
+    readonly modelRetuned: false;
+    readonly scenarioRankedOrSelected: false;
+    readonly thresholdChanged: false;
+    readonly networkRequests: 0;
+    readonly evaluationRuns: 0;
+  };
+  readonly interpretation: string;
+  readonly role: 'post_evaluation_failure_inventory_not_model_input_or_model_selection';
+}
+
 export interface CumbriaAccessManifest {
   readonly manifestVersion: typeof CUMBRIA_ACCESS_MANIFEST_VERSION;
   readonly audit: {
@@ -1659,6 +1685,7 @@ export interface CumbriaAccessManifest {
   readonly evaluationExecutionAuthorization: CumbriaEvaluationExecutionAuthorization;
   readonly evaluationRun: CumbriaBlindEvaluationRun;
   readonly evaluationDiagnostics: CumbriaBlindEvaluationDiagnostics;
+  readonly failureInventory: CumbriaBlindEvaluationFailureInventory;
   readonly modelAccessRequest: CumbriaModelAccessRequest;
   readonly modelDeliveryIntakeProtocol: CumbriaModelDeliveryIntakeProtocol;
   readonly datasets: readonly CumbriaDatasetAudit[];
@@ -1961,6 +1988,12 @@ export function assertCumbriaAccessManifest(
   blindEvaluationDiagnostics(
     manifest.evaluationDiagnostics,
     manifest.evaluationRun,
+  );
+  blindEvaluationFailureInventory(
+    manifest.failureInventory,
+    manifest.evaluationRun,
+    manifest.evaluationDiagnostics,
+    manifest.publicBaselineSolverGridMaterialization,
   );
 
   const imergFacts = record(
@@ -2894,6 +2927,11 @@ export function assertCumbriaAccessManifest(
     gateStates.get('blind_evaluation_diagnostics'),
     'passed',
     'blind_evaluation_diagnostics',
+  );
+  equal(
+    gateStates.get('blind_evaluation_failure_inventory'),
+    'passed',
+    'blind_evaluation_failure_inventory',
   );
 
   const acquisition = record(manifest.acquisition, 'acquisition');
@@ -6531,6 +6569,110 @@ function blindEvaluationDiagnostics(
     diagnostics.role,
     'diagnostic_visualization_not_model_input_or_new_evaluation',
     'evaluation diagnostics role',
+  );
+}
+
+function blindEvaluationFailureInventory(
+  value: unknown,
+  runValue: unknown,
+  diagnosticsValue: unknown,
+  solverGridValue: unknown,
+): void {
+  const inventory = record(value, 'failureInventory');
+  equal(
+    inventory.schemaVersion,
+    'cumbria-blind-evaluation-failure-inventory-v0.1.0',
+    'failure inventory schema',
+  );
+  equal(
+    inventory.state,
+    'materialized_from_frozen_artifacts',
+    'failure inventory state',
+  );
+  dateOnly(inventory.recordedOn, 'failure inventory date');
+  equal(
+    sha256(inventory.receiptSha256, 'failure inventory receipt SHA-256'),
+    '73d4eb08f14e7fb6e7fcee7c7ebda9a2bc768f521979076f77d2fc42dc00d508',
+    'failure inventory receipt SHA-256',
+  );
+  equal(
+    inventory.evaluationReceiptSha256,
+    record(record(runValue, 'evaluationRun').receipt, 'evaluationRun.receipt').sha256,
+    'failure inventory evaluation receipt',
+  );
+  equal(
+    inventory.diagnosticReceiptSha256,
+    record(diagnosticsValue, 'evaluationDiagnostics').receiptSha256,
+    'failure inventory diagnostic receipt',
+  );
+  equal(
+    inventory.solverGridReceiptSha256,
+    record(
+      record(solverGridValue, 'publicBaselineSolverGridMaterialization').receipt,
+      'publicBaselineSolverGridMaterialization.receipt',
+    ).sha256,
+    'failure inventory solver-grid receipt',
+  );
+  if (
+    JSON.stringify(numericArray(inventory.depthThresholdsMetres, 3, 'failure inventory depth thresholds')) !==
+    JSON.stringify([0.05, 0.1, 0.3])
+  ) {
+    throw new Error('Failure inventory depth thresholds drifted');
+  }
+  const expectedSummaries = [
+    ['ea-recorded-flood-outlines-carlisle-2015', 13517, 10593, 0.7836798106088629, 4602, 0.3404601612783902],
+    ['copernicus-emsr147-carlisle-initial', 14154, 11191, 0.7906598841316942, 5123, 0.3619471527483397],
+    ['copernicus-emsr147-carlisle-monitoring-01', 13888, 11019, 0.7934187788018433, 5090, 0.3665034562211982],
+  ];
+  const actualSummaries = array(
+    inventory.comparisonSummaries,
+    'failure inventory comparison summaries',
+  ).map((entry, index) => {
+    const summary = record(entry, `failure inventory comparison ${index}`);
+    return [
+      summary.referenceId,
+      summary.falsePositiveCellCount,
+      summary.falsePositiveAtOrAbove10cmCellCount,
+      summary.falsePositiveAtOrAbove10cmFraction,
+      summary.falsePositiveAtOrAbove30cmCellCount,
+      summary.falsePositiveAtOrAbove30cmFraction,
+    ];
+  });
+  if (JSON.stringify(actualSummaries) !== JSON.stringify(expectedSummaries)) {
+    throw new Error('Failure inventory comparison summaries drifted');
+  }
+  const expectedClasses = [
+    [231, 'pastures', 5890],
+    [211, 'non-irrigated arable land', 3334],
+    [421, 'salt marshes', 1226],
+    [112, 'discontinuous urban fabric', 1124],
+  ];
+  const actualClasses = array(
+    inventory.environmentAgencyLeadingFalsePositiveClasses,
+    'failure inventory leading CLC classes',
+  ).map((entry, index) => {
+    const value = record(entry, `failure inventory CLC class ${index}`);
+    return [value.classCode, value.label, value.cellCount];
+  });
+  if (JSON.stringify(actualClasses) !== JSON.stringify(expectedClasses)) {
+    throw new Error('Failure inventory leading CLC classes drifted');
+  }
+  const isolation = record(inventory.isolation, 'failureInventory.isolation');
+  equal(isolation.newEvaluationMetrics, false, 'failure inventory new metrics');
+  equal(isolation.modelRetuned, false, 'failure inventory model retuning');
+  equal(
+    isolation.scenarioRankedOrSelected,
+    false,
+    'failure inventory scenario selection',
+  );
+  equal(isolation.thresholdChanged, false, 'failure inventory threshold change');
+  equal(isolation.networkRequests, 0, 'failure inventory network requests');
+  equal(isolation.evaluationRuns, 0, 'failure inventory evaluation runs');
+  nonEmpty(inventory.interpretation, 'failure inventory interpretation');
+  equal(
+    inventory.role,
+    'post_evaluation_failure_inventory_not_model_input_or_model_selection',
+    'failure inventory role',
   );
 }
 
