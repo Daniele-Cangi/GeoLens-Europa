@@ -50,6 +50,7 @@
     "materialize:cumbria-evaluation-references": "python scripts/materialize_cumbria_evaluation_references.py",
     "materialize:cumbria-evaluation-masks": "python scripts/materialize_cumbria_evaluation_masks.py",
     "evaluate:cumbria-blind-prediction": "python scripts/evaluate_cumbria_blind_prediction.py",
+    "materialize:cumbria-evaluation-diagnostics": "python scripts/materialize_cumbria_evaluation_diagnostics.py",
     "materialize:emilia-inputs": "npm run build --workspace=@geo-lens/evidence && npm run build --workspace=@geo-lens/providers && node scripts/materialize-emilia-bounded-inputs.mjs",
     "materialize:emilia-xdbtr": "python scripts/materialize_emilia_xdbtr_masks.py",
     "materialize:emilia-imerg-cache": "python scripts/materialize_emilia_imerg_cache.py",

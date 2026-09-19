@@ -13,7 +13,7 @@ import {
   type CumbriaReplacementSolverProtocol,
 } from './cumbriaReplacementSolver';
 
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.30.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.31.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -1575,6 +1575,40 @@ export interface CumbriaBlindEvaluationRun {
   readonly nextGate: 'analyze_failure_without_retuning_frozen_baseline';
 }
 
+export interface CumbriaBlindEvaluationDiagnostics {
+  readonly schemaVersion: 'cumbria-blind-evaluation-diagnostics-v0.1.0';
+  readonly state: 'materialized_from_frozen_result';
+  readonly recordedOn: string;
+  readonly evaluationReceiptSha256: string;
+  readonly receiptSha256: string;
+  readonly render: {
+    readonly mediaType: 'image/svg+xml';
+    readonly bytes: 43852;
+    readonly sha256: string;
+  };
+  readonly publicationImage: {
+    readonly relativePath: 'docs/screenshots/cumbria-blind-evaluation.png';
+    readonly mediaType: 'image/png';
+    readonly bytes: 68286;
+    readonly sha256: string;
+  };
+  readonly categoryEncoding: {
+    readonly truePositive: 1;
+    readonly falsePositive: 2;
+    readonly falseNegative: 3;
+    readonly knownDryAgreement: 0;
+    readonly outsideEvaluation: 255;
+  };
+  readonly isolation: {
+    readonly metricsRecomputed: false;
+    readonly modelRetuned: false;
+    readonly thresholdChanged: false;
+    readonly networkRequests: 0;
+    readonly evaluationRuns: 0;
+  };
+  readonly role: 'diagnostic_visualization_not_model_input_or_new_evaluation';
+}
+
 export interface CumbriaAccessManifest {
   readonly manifestVersion: typeof CUMBRIA_ACCESS_MANIFEST_VERSION;
   readonly audit: {
@@ -1624,6 +1658,7 @@ export interface CumbriaAccessManifest {
   readonly evaluationReferenceNormalization: CumbriaEvaluationReferenceNormalization;
   readonly evaluationExecutionAuthorization: CumbriaEvaluationExecutionAuthorization;
   readonly evaluationRun: CumbriaBlindEvaluationRun;
+  readonly evaluationDiagnostics: CumbriaBlindEvaluationDiagnostics;
   readonly modelAccessRequest: CumbriaModelAccessRequest;
   readonly modelDeliveryIntakeProtocol: CumbriaModelDeliveryIntakeProtocol;
   readonly datasets: readonly CumbriaDatasetAudit[];
@@ -1922,6 +1957,10 @@ export function assertCumbriaAccessManifest(
     manifest.evaluationExecutionAuthorization,
     manifest.evaluationReferenceNormalization,
     manifest.evaluationProtocol,
+  );
+  blindEvaluationDiagnostics(
+    manifest.evaluationDiagnostics,
+    manifest.evaluationRun,
   );
 
   const imergFacts = record(
@@ -2850,6 +2889,11 @@ export function assertCumbriaAccessManifest(
     gateStates.get('blind_evaluation_run'),
     'passed',
     'blind_evaluation_run',
+  );
+  equal(
+    gateStates.get('blind_evaluation_diagnostics'),
+    'passed',
+    'blind_evaluation_diagnostics',
   );
 
   const acquisition = record(manifest.acquisition, 'acquisition');
@@ -6414,6 +6458,79 @@ function blindEvaluationRun(
     run.nextGate,
     'analyze_failure_without_retuning_frozen_baseline',
     'evaluation run next gate',
+  );
+}
+
+function blindEvaluationDiagnostics(
+  value: unknown,
+  runValue: unknown,
+): void {
+  const diagnostics = record(value, 'evaluationDiagnostics');
+  const run = record(runValue, 'evaluationRun');
+  equal(
+    diagnostics.schemaVersion,
+    'cumbria-blind-evaluation-diagnostics-v0.1.0',
+    'evaluation diagnostics schema',
+  );
+  equal(
+    diagnostics.state,
+    'materialized_from_frozen_result',
+    'evaluation diagnostics state',
+  );
+  dateOnly(diagnostics.recordedOn, 'evaluation diagnostics date');
+  equal(
+    diagnostics.evaluationReceiptSha256,
+    record(run.receipt, 'evaluationRun.receipt').sha256,
+    'diagnostic evaluation receipt SHA-256',
+  );
+  equal(
+    sha256(diagnostics.receiptSha256, 'diagnostic receipt SHA-256'),
+    'edccd01df0467fb6e3a9d0302ae4869f1d46269aa48901a866f854ca7d0dc721',
+    'diagnostic receipt SHA-256',
+  );
+  const render = record(diagnostics.render, 'evaluationDiagnostics.render');
+  equal(render.mediaType, 'image/svg+xml', 'diagnostic render media type');
+  equal(render.bytes, 43852, 'diagnostic render bytes');
+  equal(
+    sha256(render.sha256, 'diagnostic render SHA-256'),
+    '384506982b9edb2c44f7c69b7e134726f3c6c8a1edc9102327f6997edb161b3e',
+    'diagnostic render SHA-256',
+  );
+  const publication = record(
+    diagnostics.publicationImage,
+    'evaluationDiagnostics.publicationImage',
+  );
+  equal(
+    publication.relativePath,
+    'docs/screenshots/cumbria-blind-evaluation.png',
+    'diagnostic publication path',
+  );
+  equal(publication.mediaType, 'image/png', 'diagnostic publication media type');
+  equal(publication.bytes, 68286, 'diagnostic publication bytes');
+  equal(
+    sha256(publication.sha256, 'diagnostic publication SHA-256'),
+    '4d374162fed93626ec33b6e77396f9378a78759cbad42dbc28e00b70cd10fc82',
+    'diagnostic publication SHA-256',
+  );
+  const categories = record(
+    diagnostics.categoryEncoding,
+    'evaluationDiagnostics.categoryEncoding',
+  );
+  equal(categories.truePositive, 1, 'diagnostic true-positive code');
+  equal(categories.falsePositive, 2, 'diagnostic false-positive code');
+  equal(categories.falseNegative, 3, 'diagnostic false-negative code');
+  equal(categories.knownDryAgreement, 0, 'diagnostic dry-agreement code');
+  equal(categories.outsideEvaluation, 255, 'diagnostic outside-evaluation code');
+  const isolation = record(diagnostics.isolation, 'evaluationDiagnostics.isolation');
+  equal(isolation.metricsRecomputed, false, 'diagnostic metric recomputation');
+  equal(isolation.modelRetuned, false, 'diagnostic model retuning');
+  equal(isolation.thresholdChanged, false, 'diagnostic threshold change');
+  equal(isolation.networkRequests, 0, 'diagnostic network requests');
+  equal(isolation.evaluationRuns, 0, 'diagnostic evaluation runs');
+  equal(
+    diagnostics.role,
+    'diagnostic_visualization_not_model_input_or_new_evaluation',
+    'evaluation diagnostics role',
   );
 }
 
