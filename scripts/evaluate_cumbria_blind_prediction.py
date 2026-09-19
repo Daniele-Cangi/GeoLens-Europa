@@ -22,6 +22,7 @@ PREDICTION_RECEIPT_NAME = "cumbria-public-storm-desmond-v0.prediction.receipt.js
 REFERENCE_RECEIPT_NAME = "cumbria-evaluation-reference-masks-v0.receipt.json"
 OUTPUT_RECEIPT_NAME = "cumbria-blind-evaluation-v0.receipt.json"
 OUTPUT_SCHEMA = "cumbria-blind-evaluation-receipt-v0.1.0"
+OUTPUT_RECEIPT_SHA256 = "610bae9d7e31978e3565a5e04e779bde9e1dc5236e200a0699cf8db9c118ffa2"
 AUTHORIZATION_SCHEMA = "cumbria-blind-evaluation-execution-authorization-v0.1.0"
 EXECUTOR_RELATIVE_PATH = "scripts/evaluate_cumbria_blind_prediction.py"
 PROTOCOL_SHA256 = "1a135785bef1121e542952fd8ee90d6eed86908d19864d381985fbfd2f8a1dd0"
@@ -531,6 +532,90 @@ def write_receipt(data_root: Path, receipt: dict[str, Any]) -> None:
         temporary.replace(path)
 
 
+def validate_recorded_run(manifest: dict[str, Any], receipt: dict[str, Any]) -> None:
+    run = manifest.get("evaluationRun", {})
+    recorded_receipt = run.get("receipt", {})
+    if (
+        run.get("schemaVersion") != "cumbria-blind-evaluation-run-v0.1.0"
+        or run.get("state") != "completed_negative_baseline_retained"
+        or recorded_receipt.get("fileName") != OUTPUT_RECEIPT_NAME
+        or recorded_receipt.get("schemaVersion") != OUTPUT_SCHEMA
+        or recorded_receipt.get("sha256") != OUTPUT_RECEIPT_SHA256
+        or receipt.get("schemaVersion") != OUTPUT_SCHEMA
+        or receipt.get("receiptSha256") != OUTPUT_RECEIPT_SHA256
+        or receipt.get("protocolSha256") != run.get("protocolSha256")
+        or receipt.get("predictionReceiptSha256") != run.get("predictionReceiptSha256")
+        or receipt.get("referenceReceiptSha256") != run.get("referenceReceiptSha256")
+        or receipt.get("evaluationRevision") != run.get("evaluationRevision")
+    ):
+        raise ValueError("Recorded Cumbria blind-evaluation identity drifted")
+
+    grid = receipt.get("grid", {})
+    recorded_grid = run.get("grid", {})
+    prediction = receipt.get("prediction", {})
+    recorded_prediction = run.get("prediction", {})
+    if (
+        grid.get("horizontalCrs") != recorded_grid.get("horizontalCrs")
+        or grid.get("cellSizeMetres") != recorded_grid.get("cellSizeMetres")
+        or prediction.get("scenarioId") != recorded_prediction.get("scenarioId")
+        or prediction.get("wetnessThresholdM") != recorded_prediction.get("wetnessThresholdM")
+    ):
+        raise ValueError("Recorded Cumbria blind-evaluation grid or prediction drifted")
+
+    comparisons = receipt.get("comparisons", [])
+    recorded_comparisons = run.get("comparisons", [])
+    if len(comparisons) != len(recorded_comparisons):
+        raise ValueError("Recorded Cumbria blind-evaluation comparison count drifted")
+    for index, (comparison, recorded) in enumerate(zip(comparisons, recorded_comparisons)):
+        coverage = comparison.get("coverage", {})
+        contingency = comparison.get("contingency", {})
+        metrics = comparison.get("metrics", {})
+        expected_metrics = {
+            "intersectionOverUnion": metrics.get("intersection_over_union", {}).get("value"),
+            "areaPrecision": metrics.get("area_precision", {}).get("value"),
+            "areaRecall": metrics.get("area_recall", {}).get("value"),
+            "falsePositiveAreaM2": metrics.get("false_positive_area", {}).get("value"),
+            "falseNegativeAreaM2": metrics.get("false_negative_area", {}).get("value"),
+            "boundaryDistanceP95M": metrics.get("boundary_distance_p95", {}).get("value"),
+        }
+        if (
+            comparison.get("referenceId") != recorded.get("referenceId")
+            or coverage.get("frozenEvaluationCellCount")
+            != recorded_grid.get("frozenEvaluationCellCount")
+            or coverage.get("evaluatedCellCount") != recorded.get("evaluatedCellCount")
+            or coverage.get("excludedMissingObservedCoverageCellCount") != 0
+            or coverage.get("missingPredictionCoverageCellCount") != 0
+            or contingency.get("observedWetCellCount") != recorded.get("observedWetCellCount")
+            or contingency.get("intersectionCellCount") != recorded.get("intersectionCellCount")
+            or contingency.get("unionCellCount") != recorded.get("unionCellCount")
+            or contingency.get("falsePositiveCellCount") != recorded.get("falsePositiveCellCount")
+            or contingency.get("falseNegativeCellCount") != recorded.get("falseNegativeCellCount")
+            or contingency.get("predictedWetCellCount")
+            != recorded_prediction.get("predictedWetCellCount")
+            or expected_metrics != recorded.get("metrics")
+        ):
+            raise ValueError(f"Recorded Cumbria blind-evaluation comparison {index} drifted")
+
+    if receipt.get("isolation") != {
+        "referencesCombined": False,
+        "thresholdChanged": False,
+        "modelRetuned": False,
+        "scenarioSelectedAfterReferenceAccess": False,
+        "networkRequests": 0,
+        "evaluationRuns": 1,
+    } or receipt.get("isolation") != run.get("isolation"):
+        raise ValueError("Recorded Cumbria blind-evaluation isolation drifted")
+
+
+def check_recorded_receipt(data_root: Path, manifest: dict[str, Any]) -> dict[str, Any]:
+    receipt = read_json_with_identity(
+        data_root / "evaluation-references" / OUTPUT_RECEIPT_NAME,
+        OUTPUT_RECEIPT_SHA256,
+    )
+    validate_recorded_run(manifest, receipt)
+    return receipt
+
+
 def plan() -> dict[str, Any]:
     return {
         "schemaVersion": OUTPUT_SCHEMA,
@@ -551,7 +636,9 @@ def plan() -> dict[str, Any]:
 def main(arguments: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", required=True)
-    parser.add_argument("--execute", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--execute", action="store_true")
+    mode.add_argument("--check", action="store_true")
     options = parser.parse_args(arguments)
     data_root = ensure_external_data_root(Path(options.data_root), REPOSITORY_ROOT)
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
@@ -562,6 +649,9 @@ def main(arguments: list[str] | None = None) -> int:
         result = build_receipt(data_root, revision)
         write_receipt(data_root, result)
         mode = "execute"
+    elif options.check:
+        result = check_recorded_receipt(data_root, manifest)
+        mode = "check"
     else:
         result = plan()
         mode = "dry_run"
