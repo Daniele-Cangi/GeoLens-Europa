@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.27.0",
+  "manifestVersion": "0.28.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -1675,7 +1675,7 @@
   },
   "evaluationReferenceAcquisition": {
     "schemaVersion": "cumbria-evaluation-reference-acquisition-v0.1.0",
-    "state": "content_addressed_normalization_pending",
+    "state": "content_addressed_normalization_complete",
     "recordedOn": "2026-09-19",
     "predictionFreeze": {
       "mergeCommit": "df33838ba7774a736ebe17aec7e6c9aee01e1827",
@@ -1752,7 +1752,180 @@
       "evaluationExecuted": false,
       "referencesCombined": false
     },
-    "nextGate": "normalize_and_rasterize_each_reference_independently"
+    "nextGate": "evaluate_each_reference_independently"
+  },
+  "evaluationReferenceNormalization": {
+    "schemaVersion": "cumbria-evaluation-reference-normalization-v0.1.0",
+    "state": "content_addressed_evaluation_pending",
+    "recordedOn": "2026-09-19",
+    "sourceReceiptSha256": "b9bf772af4a356de533edb26c005dd318e36d889ad44fdaeb51586c989adffbf",
+    "predictionReceiptSha256": "f2a3a7489699a70a6d5c770633bdc9f789184ca26cb8190c85a1d28d40495dc6",
+    "protocolSha256": "1a135785bef1121e542952fd8ee90d6eed86908d19864d381985fbfd2f8a1dd0",
+    "materializationRevision": {
+      "commit": "7161a53bf0a1823858d40705855e4ae7651c1a6c",
+      "tree": "030bab43e8ad3d0d8c099c8faa52a4e4fa68eac2"
+    },
+    "receipt": {
+      "fileName": "cumbria-evaluation-reference-masks-v0.receipt.json",
+      "schemaVersion": "cumbria-evaluation-reference-mask-receipt-v0.1.0",
+      "sha256": "fae2cadba3675bff4191da5829e8bf64d71ffc028a9c6899c9e865f97b6debe0",
+      "referenceCount": 3,
+      "artifactDescriptorCount": 12,
+      "uniqueArtifactCount": 8,
+      "uniquePhysicalBytes": 293619
+    },
+    "transformation": {
+      "id": "cumbria-evaluation-reference-normalization-v0.1.0",
+      "sourceToTargetCrs": "authority-axis-order disabled; x/y order fixed; pyproj always_xy=True",
+      "coordinateOperations": [
+        {
+          "sourceCrs": "EPSG:32630",
+          "targetCrs": "EPSG:27700",
+          "accuracyMetres": 2,
+          "definitionSha256": "e757b943df227401ea110453a6a3490680c1ec56207655d40afa08c8c12895d6"
+        },
+        {
+          "sourceCrs": "EPSG:4326",
+          "targetCrs": "EPSG:27700",
+          "accuracyMetres": 2,
+          "definitionSha256": "65681e121a414745d4e92c9e24afd8a1ffda9cdd42ef4e1df41692c18e7c5d3c"
+        }
+      ],
+      "geometryNormalization": "valid source polygons transformed to EPSG:27700, clipped only to the frozen domain, canonicalized and serialized as little-endian 2D WKB",
+      "rasterization": "20 m cell-centre intersects test on the frozen north-to-south grid",
+      "maskEncoding": "u8: 1 mapped flooded, 0 within reference coverage but not mapped flooded, 255 missing reference coverage"
+    },
+    "grid": {
+      "horizontalCrs": "EPSG:27700",
+      "bounds": [332000, 556000, 340000, 563000],
+      "originUpperLeft": [332000, 563000],
+      "cellSizeMetres": 20,
+      "width": 400,
+      "height": 350,
+      "rowOrder": "north_to_south"
+    },
+    "references": [
+      {
+        "id": "ea-recorded-flood-outlines-carlisle-2015",
+        "sourceSha256": "e2ad395a39441a077cf3585e3cce09a49454922798dba483a31fe71fabef78c0",
+        "sourceCrs": "EPSG:4326",
+        "coverageBasis": "complete selected event record within the frozen domain; zero means not included in the recorded outline, not proof of physical dryness",
+        "geometry": {
+          "areaM2": 1326780.9618288623,
+          "bounds": [338102.49320733466, 556000, 340000, 557358.175848998],
+          "bytes": 5365,
+          "sha256": "0eb5d43fda827d6fd57a66eddfc0e753b53c40f89a310e837b75f55eae18d628"
+        },
+        "coverage": {
+          "areaM2": 56000000,
+          "bytes": 93,
+          "sha256": "abeec8e7b4e6cdac9115a88e499be7669ae1c8fb4c8932dee37c5d3dda61db77"
+        },
+        "referenceMask": {
+          "bytes": 473,
+          "sha256": "f9e5bfee086ad3d6ff33f07eda906b86d05a1d20796b535ac4d26d96db33c10a",
+          "contentBytes": 140000,
+          "contentSha256": "dd7294b76d05971e41ee44273ebaf03761ffebacb1357b00764dee2b4573f0be"
+        },
+        "coverageMask": {
+          "bytes": 171,
+          "sha256": "44c7d27a229dde46a2efded0944570f6c421f15083b4076d59619e7a17812281",
+          "contentBytes": 140000,
+          "contentSha256": "1915162556e1bafca0421506e8fd1373c8ebea219ca17ef6895c8e3da10cfd97"
+        },
+        "statistics": {
+          "cellCount": 140000,
+          "coverageCellCount": 140000,
+          "missingCoverageCellCount": 0,
+          "wetCellCount": 3314,
+          "referenceNotWetCellCount": 136686,
+          "centerSampledWetAreaM2": 1325600
+        }
+      },
+      {
+        "id": "copernicus-emsr147-carlisle-initial",
+        "sourceSha256": "5524efba986082b901bf27fc7ecde0cf6af91fea393b36bfa6bcf6a959448049",
+        "sourceCrs": "EPSG:32630",
+        "coverageBasis": "publisher area_of_interest polygon",
+        "geometry": {
+          "areaM2": 387467.3048627438,
+          "bounds": [332127.8580895307, 556361.4234641929, 339935.3452654458, 563000],
+          "bytes": 92762,
+          "sha256": "716c89034ff919b3c24140916feaf80729e348899fbbe4c6120aad5fd90ea848"
+        },
+        "coverage": {
+          "areaM2": 56000000,
+          "bytes": 93,
+          "sha256": "abeec8e7b4e6cdac9115a88e499be7669ae1c8fb4c8932dee37c5d3dda61db77"
+        },
+        "referenceMask": {
+          "bytes": 891,
+          "sha256": "2e845c7c6d54dc2c27bc3f98fa66000b737a6dfc656fbc90b0bdd1414f8bb818",
+          "contentBytes": 140000,
+          "contentSha256": "97a2692ae272cdcd5023c9605fc1eeb49f547473ca8e50c17a9728f14c0b3694"
+        },
+        "coverageMask": {
+          "bytes": 171,
+          "sha256": "44c7d27a229dde46a2efded0944570f6c421f15083b4076d59619e7a17812281",
+          "contentBytes": 140000,
+          "contentSha256": "1915162556e1bafca0421506e8fd1373c8ebea219ca17ef6895c8e3da10cfd97"
+        },
+        "statistics": {
+          "cellCount": 140000,
+          "coverageCellCount": 140000,
+          "missingCoverageCellCount": 0,
+          "wetCellCount": 988,
+          "referenceNotWetCellCount": 139012,
+          "centerSampledWetAreaM2": 395200
+        }
+      },
+      {
+        "id": "copernicus-emsr147-carlisle-monitoring-01",
+        "sourceSha256": "b58b6e047d8e1066fffcf3aa09fafa4b975cd7eedccda22d8df8c4971d509cfb",
+        "sourceCrs": "EPSG:32630",
+        "coverageBasis": "publisher area_of_interest polygon",
+        "geometry": {
+          "areaM2": 1325166.625648596,
+          "bounds": [332000, 556356.3440129138, 339935.3452654458, 563000],
+          "bytes": 192032,
+          "sha256": "f9add705851ecb7a08b9fb9dc0243bd28d3948f5d69359b1bfec354a31ce1a69"
+        },
+        "coverage": {
+          "areaM2": 56000000,
+          "bytes": 93,
+          "sha256": "abeec8e7b4e6cdac9115a88e499be7669ae1c8fb4c8932dee37c5d3dda61db77"
+        },
+        "referenceMask": {
+          "bytes": 1832,
+          "sha256": "456b97ed3808a6b8e4358987407f455dde521fde8b70a967a284b56f7bf7d697",
+          "contentBytes": 140000,
+          "contentSha256": "3c8c6a4fcf7284a6005658681373ccf6aada5c7a4357470ccbdfa0bdc2cbaab8"
+        },
+        "coverageMask": {
+          "bytes": 171,
+          "sha256": "44c7d27a229dde46a2efded0944570f6c421f15083b4076d59619e7a17812281",
+          "contentBytes": 140000,
+          "contentSha256": "1915162556e1bafca0421506e8fd1373c8ebea219ca17ef6895c8e3da10cfd97"
+        },
+        "statistics": {
+          "cellCount": 140000,
+          "coverageCellCount": 140000,
+          "missingCoverageCellCount": 0,
+          "wetCellCount": 3336,
+          "referenceNotWetCellCount": 136664,
+          "centerSampledWetAreaM2": 1334400
+        }
+      }
+    ],
+    "isolation": {
+      "referencesCombined": false,
+      "predictionArtifactsLoaded": false,
+      "modelInput": false,
+      "calibration": false,
+      "evaluationExecuted": false,
+      "networkRequests": 0
+    },
+    "nextGate": "evaluate_each_reference_independently"
   },
   "modelAccessRequest": {
     "id": "cumbria-carlisle-pre-event-model-products-5-6-7-v0",
@@ -3273,8 +3446,8 @@
     },
     {
       "id": "evaluation_reference_normalization",
-      "state": "blocked",
-      "reason": "The raw evaluation references are acquired but have not been normalized, clipped or rasterized onto the frozen 20 m evaluation grid. EA, EMSR147 initial and EMSR147 monitoring must produce separate content-addressed masks before any metric runs."
+      "state": "passed",
+      "reason": "EA, EMSR147 initial and EMSR147 monitoring were independently transformed with pinned coordinate operations, clipped only to the previously frozen domain and rasterized by 20 m cell-centre semantics. Receipt fae2cadba3675bff4191da5829e8bf64d71ffc028a9c6899c9e865f97b6debe0 binds separate wet and coverage geometry plus masks; no prediction artifact or metric was loaded."
     },
     {
       "id": "large_artifact_downloads",
@@ -3283,9 +3456,9 @@
     }
   ],
   "acquisition": {
-    "state": "evaluation_references_acquired_normalization_pending",
+    "state": "evaluation_references_normalized_evaluation_pending",
     "largeDownloadsAllowed": false,
     "boundedTerrainDownloadsAllowed": true,
-    "nextAction": "Normalize and rasterize the Environment Agency outline, EMSR147 initial delineation and EMSR147 monitoring delineation independently on the frozen 20 m EPSG:27700 grid. Preserve missing coverage and run no metrics until all three masks and their transformations are content-addressed."
+    "nextAction": "Evaluate the frozen primary prediction independently against EA, EMSR147 initial and EMSR147 monitoring with the six predeclared metrics. Do not combine references, change the 0.05 m wetness threshold, select a best scenario or retune any model input."
   }
 }

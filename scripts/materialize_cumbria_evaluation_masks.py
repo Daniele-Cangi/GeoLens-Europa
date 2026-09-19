@@ -28,6 +28,7 @@ MANIFEST_PATH = REPOSITORY_ROOT / "tests" / "ground-truth" / "cumbria-2015" / "m
 SOURCE_RECEIPT_NAME = "cumbria-evaluation-references-v0.receipt.json"
 OUTPUT_RECEIPT_NAME = "cumbria-evaluation-reference-masks-v0.receipt.json"
 OUTPUT_SCHEMA = "cumbria-evaluation-reference-mask-receipt-v0.1.0"
+OUTPUT_RECEIPT_SHA256 = "fae2cadba3675bff4191da5829e8bf64d71ffc028a9c6899c9e865f97b6debe0"
 SOURCE_RECEIPT_SHA256 = "b9bf772af4a356de533edb26c005dd318e36d889ad44fdaeb51586c989adffbf"
 PROTOCOL_SHA256 = "1a135785bef1121e542952fd8ee90d6eed86908d19864d381985fbfd2f8a1dd0"
 PREDICTION_RECEIPT_SHA256 = "f2a3a7489699a70a6d5c770633bdc9f789184ca26cb8190c85a1d28d40495dc6"
@@ -125,7 +126,16 @@ def validate_manifest(manifest: dict[str, Any]) -> None:
         raise ValueError("Prediction receipt identity drifted")
     if acquisition.get("receipt", {}).get("sha256") != SOURCE_RECEIPT_SHA256:
         raise ValueError("Evaluation-reference source receipt identity drifted")
-    if acquisition.get("nextGate") != "normalize_and_rasterize_each_reference_independently":
+    next_gate = acquisition.get("nextGate")
+    if next_gate == "normalize_and_rasterize_each_reference_independently":
+        return
+    normalization = manifest.get("evaluationReferenceNormalization", {})
+    if (
+        next_gate != "evaluate_each_reference_independently"
+        or acquisition.get("state") != "content_addressed_normalization_complete"
+        or normalization.get("receipt", {}).get("sha256") != OUTPUT_RECEIPT_SHA256
+        or normalization.get("nextGate") != "evaluate_each_reference_independently"
+    ):
         raise ValueError("Evaluation-reference normalization gate drifted")
 
 

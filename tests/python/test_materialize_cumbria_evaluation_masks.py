@@ -15,7 +15,7 @@ SPEC.loader.exec_module(MODULE)
 
 
 class CumbriaEvaluationMaskMaterializerTests(unittest.TestCase):
-    def test_current_manifest_authorizes_only_the_frozen_normalization_gate(self):
+    def test_current_manifest_preserves_the_completed_normalization_gate(self):
         manifest = MODULE.json.loads(MODULE.MANIFEST_PATH.read_text(encoding="utf-8"))
         MODULE.validate_manifest(manifest)
 

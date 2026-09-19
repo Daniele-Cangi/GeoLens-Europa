@@ -39,7 +39,7 @@ test('Cumbria manifest freezes the replacement-solver contract without opening s
   );
   assert.equal(
     manifest.acquisition.state,
-    'evaluation_references_acquired_normalization_pending',
+    'evaluation_references_normalized_evaluation_pending',
   );
   assert.equal(manifest.acquisition.largeDownloadsAllowed, false);
   assert.equal(manifest.acquisition.boundedTerrainDownloadsAllowed, true);
@@ -198,7 +198,7 @@ test('public baseline terrain materialization records real coverage without zero
   const manifest = manifestFixture();
   const result = manifest.publicBaselineTerrainMaterialization;
 
-  assert.equal(manifest.manifestVersion, '0.27.0');
+  assert.equal(manifest.manifestVersion, '0.28.0');
   assert.equal(result.state, 'terrain_materialized_with_explicit_gaps');
   assert.equal(
     result.protocolSha256,
@@ -413,7 +413,7 @@ test('evaluation references are content-addressed after prediction freeze withou
   const manifest = manifestFixture();
   const acquisition = manifest.evaluationReferenceAcquisition;
 
-  assert.equal(acquisition.state, 'content_addressed_normalization_pending');
+  assert.equal(acquisition.state, 'content_addressed_normalization_complete');
   assert.equal(
     acquisition.predictionFreeze.mergeCommit,
     'df33838ba7774a736ebe17aec7e6c9aee01e1827',
@@ -439,13 +439,47 @@ test('evaluation references are content-addressed after prediction freeze withou
   assert.equal(acquisition.isolation.referencesCombined, false);
 });
 
+test('evaluation references are independently normalized before metrics run', () => {
+  const manifest = manifestFixture();
+  const normalization = manifest.evaluationReferenceNormalization;
+
+  assert.equal(
+    normalization.receipt.sha256,
+    'fae2cadba3675bff4191da5829e8bf64d71ffc028a9c6899c9e865f97b6debe0',
+  );
+  assert.equal(normalization.receipt.referenceCount, 3);
+  assert.deepEqual(
+    normalization.references.map((reference) => [
+      reference.id,
+      reference.statistics.wetCellCount,
+      reference.statistics.missingCoverageCellCount,
+    ]),
+    [
+      ['ea-recorded-flood-outlines-carlisle-2015', 3314, 0],
+      ['copernicus-emsr147-carlisle-initial', 988, 0],
+      ['copernicus-emsr147-carlisle-monitoring-01', 3336, 0],
+    ],
+  );
+  assert.equal(normalization.isolation.referencesCombined, false);
+  assert.equal(normalization.isolation.predictionArtifactsLoaded, false);
+  assert.equal(normalization.isolation.evaluationExecuted, false);
+
+  const collapsedMissing = manifestFixture();
+  collapsedMissing.evaluationReferenceNormalization.references[0].statistics.missingCoverageCellCount =
+    1;
+  assert.throws(
+    () => assertCumbriaAccessManifest(collapsedMissing),
+    /missing cells/,
+  );
+});
+
 test('pre-event terrain selection maps to downloadable archives with explicit gaps', () => {
   const manifest = manifestFixture();
   const lidar = manifest.datasets.find(
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.27.0');
+  assert.equal(manifest.manifestVersion, '0.28.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
@@ -1664,7 +1698,7 @@ test('model delivery intake is ready without claiming a received package', () =>
   );
 });
 
-test('terrain identity passes while bulk acquisition remains physically gated', () => {
+test('terrain and evaluation identities pass while bulk acquisition remains gated', () => {
   const manifest = manifestFixture();
   const gates = new Map(
     manifest.gates.map((gate) => [gate.id, gate.state]),
@@ -1682,7 +1716,7 @@ test('terrain identity passes while bulk acquisition remains physically gated', 
   assert.equal(gates.get('as_of_event_defence_state'), 'blocked');
   assert.equal(gates.get('hydraulic_context'), 'blocked');
   assert.equal(gates.get('evaluation_geometry_identity'), 'passed');
-  assert.equal(gates.get('evaluation_reference_normalization'), 'blocked');
+  assert.equal(gates.get('evaluation_reference_normalization'), 'passed');
   assert.equal(gates.get('large_artifact_downloads'), 'blocked');
   assert.equal(gates.get('evaluation_withholding'), 'passed');
 });
