@@ -198,7 +198,7 @@ test('public baseline terrain materialization records real coverage without zero
   const manifest = manifestFixture();
   const result = manifest.publicBaselineTerrainMaterialization;
 
-  assert.equal(manifest.manifestVersion, '0.30.0');
+  assert.equal(manifest.manifestVersion, '0.31.0');
   assert.equal(result.state, 'terrain_materialized_with_explicit_gaps');
   assert.equal(
     result.protocolSha256,
@@ -556,13 +556,69 @@ test('single blind evaluation retains the negative baseline without retuning', (
   );
 });
 
+test('blind-evaluation diagnostics visualize the frozen result without rerunning it', () => {
+  const manifest = manifestFixture();
+  const diagnostics = manifest.evaluationDiagnostics;
+
+  assert.equal(
+    diagnostics.evaluationReceiptSha256,
+    manifest.evaluationRun.receipt.sha256,
+  );
+  assert.equal(
+    diagnostics.receiptSha256,
+    'edccd01df0467fb6e3a9d0302ae4869f1d46269aa48901a866f854ca7d0dc721',
+  );
+  assert.equal(
+    diagnostics.publicationImage.sha256,
+    '4d374162fed93626ec33b6e77396f9378a78759cbad42dbc28e00b70cd10fc82',
+  );
+  const publicationPath = path.join(
+    __dirname,
+    '..',
+    '..',
+    '..',
+    diagnostics.publicationImage.relativePath,
+  );
+  const publicationImage = readFileSync(publicationPath);
+  assert.equal(publicationImage.byteLength, diagnostics.publicationImage.bytes);
+  assert.equal(
+    createHash('sha256').update(publicationImage).digest('hex'),
+    diagnostics.publicationImage.sha256,
+  );
+  assert.deepEqual(diagnostics.isolation, {
+    metricsRecomputed: false,
+    modelRetuned: false,
+    thresholdChanged: false,
+    networkRequests: 0,
+    evaluationRuns: 0,
+  });
+  assert.equal(
+    diagnostics.role,
+    'diagnostic_visualization_not_model_input_or_new_evaluation',
+  );
+
+  const recomputed = manifestFixture();
+  recomputed.evaluationDiagnostics.isolation.metricsRecomputed = true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(recomputed),
+    /diagnostic metric recomputation/,
+  );
+
+  const replacedImage = manifestFixture();
+  replacedImage.evaluationDiagnostics.publicationImage.sha256 = '0'.repeat(64);
+  assert.throws(
+    () => assertCumbriaAccessManifest(replacedImage),
+    /diagnostic publication SHA-256/,
+  );
+});
+
 test('pre-event terrain selection maps to downloadable archives with explicit gaps', () => {
   const manifest = manifestFixture();
   const lidar = manifest.datasets.find(
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.30.0');
+  assert.equal(manifest.manifestVersion, '0.31.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {

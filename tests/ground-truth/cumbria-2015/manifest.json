@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.30.0",
+  "manifestVersion": "0.31.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -2043,6 +2043,39 @@
     },
     "nextGate": "analyze_failure_without_retuning_frozen_baseline"
   },
+  "evaluationDiagnostics": {
+    "schemaVersion": "cumbria-blind-evaluation-diagnostics-v0.1.0",
+    "state": "materialized_from_frozen_result",
+    "recordedOn": "2026-09-19",
+    "evaluationReceiptSha256": "610bae9d7e31978e3565a5e04e779bde9e1dc5236e200a0699cf8db9c118ffa2",
+    "receiptSha256": "edccd01df0467fb6e3a9d0302ae4869f1d46269aa48901a866f854ca7d0dc721",
+    "render": {
+      "mediaType": "image/svg+xml",
+      "bytes": 43852,
+      "sha256": "384506982b9edb2c44f7c69b7e134726f3c6c8a1edc9102327f6997edb161b3e"
+    },
+    "publicationImage": {
+      "relativePath": "docs/screenshots/cumbria-blind-evaluation.png",
+      "mediaType": "image/png",
+      "bytes": 68286,
+      "sha256": "4d374162fed93626ec33b6e77396f9378a78759cbad42dbc28e00b70cd10fc82"
+    },
+    "categoryEncoding": {
+      "truePositive": 1,
+      "falsePositive": 2,
+      "falseNegative": 3,
+      "knownDryAgreement": 0,
+      "outsideEvaluation": 255
+    },
+    "isolation": {
+      "metricsRecomputed": false,
+      "modelRetuned": false,
+      "thresholdChanged": false,
+      "networkRequests": 0,
+      "evaluationRuns": 0
+    },
+    "role": "diagnostic_visualization_not_model_input_or_new_evaluation"
+  },
   "modelAccessRequest": {
     "id": "cumbria-carlisle-pre-event-model-products-5-6-7-v0",
     "state": "sent_awaiting_response",
@@ -3574,6 +3607,11 @@
       "id": "blind_evaluation_run",
       "state": "passed",
       "reason": "The single authorized evaluation ran from merged commit 0f4518b and wrote external receipt 610bae9d7e31978e3565a5e04e779bde9e1dc5236e200a0699cf8db9c118ffa2. All three references were evaluated separately with the six frozen metrics. The retained negative baseline shows low spatial agreement and large false-positive area; no threshold, scenario or model parameter was changed."
+    },
+    {
+      "id": "blind_evaluation_diagnostics",
+      "state": "passed",
+      "reason": "A presentation-only diagnostic render classifies every frozen-grid cell as true positive, false positive, false negative, known dry agreement or outside evaluation. Receipt edccd01df0467fb6e3a9d0302ae4869f1d46269aa48901a866f854ca7d0dc721 binds the render to the completed evaluation without recomputing metrics, rerunning evaluation or changing the model."
     },
     {
       "id": "large_artifact_downloads",
