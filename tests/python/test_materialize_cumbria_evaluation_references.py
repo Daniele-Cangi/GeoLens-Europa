@@ -69,9 +69,16 @@ class CumbriaEvaluationReferenceMaterializerTests(unittest.TestCase):
     def test_data_root_rejects_repository_and_organization_onedrive(self):
         with self.assertRaisesRegex(ValueError, "outside the Git repository"):
             MODULE.ensure_external_data_root(REPOSITORY_ROOT / "data", REPOSITORY_ROOT)
+        organization_onedrive = (
+            Path(REPOSITORY_ROOT.anchor)
+            / "Users"
+            / "example"
+            / "OneDrive - Example Org"
+            / "cumbria"
+        )
         with self.assertRaisesRegex(ValueError, "outside OneDrive"):
             MODULE.ensure_external_data_root(
-                Path("C:/Users/example/OneDrive - Example Org/cumbria"),
+                organization_onedrive,
                 REPOSITORY_ROOT,
             )
 
