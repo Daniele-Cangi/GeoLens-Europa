@@ -1,5 +1,8 @@
 import importlib.util
+import copy
+import json
 from pathlib import Path
+import tempfile
 import unittest
 
 import numpy as np
@@ -18,6 +21,47 @@ class CumbriaEvaluationMaskMaterializerTests(unittest.TestCase):
     def test_current_manifest_preserves_the_completed_normalization_gate(self):
         manifest = MODULE.json.loads(MODULE.MANIFEST_PATH.read_text(encoding="utf-8"))
         MODULE.validate_manifest(manifest)
+
+    def test_completed_gate_rejects_stale_or_malformed_manifest_linkage(self):
+        manifest = json.loads(MODULE.MANIFEST_PATH.read_text(encoding="utf-8"))
+        mutations = [
+            ("schema", lambda value: value["evaluationReferenceNormalization"].__setitem__("schemaVersion", "stale")),
+            ("source", lambda value: value["evaluationReferenceNormalization"].__setitem__("sourceReceiptSha256", "0" * 64)),
+            ("prediction", lambda value: value["evaluationReferenceNormalization"].__setitem__("predictionReceiptSha256", "0" * 64)),
+            ("protocol", lambda value: value["evaluationReferenceNormalization"].__setitem__("protocolSha256", "0" * 64)),
+            ("revision", lambda value: value["evaluationReferenceNormalization"]["materializationRevision"].__setitem__("commit", "0" * 40)),
+        ]
+        for label, mutate in mutations:
+            with self.subTest(label=label):
+                changed = copy.deepcopy(manifest)
+                mutate(changed)
+                with self.assertRaisesRegex(ValueError, "normalization gate drifted"):
+                    MODULE.validate_manifest(changed)
+
+    def test_check_rejects_a_self_rehashed_unpinned_receipt(self):
+        manifest = json.loads(MODULE.MANIFEST_PATH.read_text(encoding="utf-8"))
+        recorded = {
+            "schemaVersion": MODULE.OUTPUT_SCHEMA,
+            "receiptSha256": None,
+            "materializationRevision": {
+                "commit": "0" * 40,
+                "tree": "0" * 40,
+            },
+        }
+        recorded["receiptSha256"] = MODULE.canonical_identity(
+            recorded,
+            "receiptSha256",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            data_root = Path(directory)
+            receipt_directory = data_root / "evaluation-references"
+            receipt_directory.mkdir(parents=True)
+            (receipt_directory / MODULE.OUTPUT_RECEIPT_NAME).write_text(
+                json.dumps(recorded),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "pinned manifest identity"):
+                MODULE.check(data_root, manifest)
 
     def test_dry_run_opens_no_reference_and_runs_no_evaluation(self):
         result = MODULE.plan()

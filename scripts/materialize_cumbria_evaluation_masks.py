@@ -28,11 +28,14 @@ MANIFEST_PATH = REPOSITORY_ROOT / "tests" / "ground-truth" / "cumbria-2015" / "m
 SOURCE_RECEIPT_NAME = "cumbria-evaluation-references-v0.receipt.json"
 OUTPUT_RECEIPT_NAME = "cumbria-evaluation-reference-masks-v0.receipt.json"
 OUTPUT_SCHEMA = "cumbria-evaluation-reference-mask-receipt-v0.1.0"
+NORMALIZATION_SCHEMA = "cumbria-evaluation-reference-normalization-v0.1.0"
 OUTPUT_RECEIPT_SHA256 = "fae2cadba3675bff4191da5829e8bf64d71ffc028a9c6899c9e865f97b6debe0"
 SOURCE_RECEIPT_SHA256 = "b9bf772af4a356de533edb26c005dd318e36d889ad44fdaeb51586c989adffbf"
 PROTOCOL_SHA256 = "1a135785bef1121e542952fd8ee90d6eed86908d19864d381985fbfd2f8a1dd0"
 PREDICTION_RECEIPT_SHA256 = "f2a3a7489699a70a6d5c770633bdc9f789184ca26cb8190c85a1d28d40495dc6"
 PREDICTION_FREEZE_MERGE = "df33838ba7774a736ebe17aec7e6c9aee01e1827"
+MATERIALIZATION_COMMIT = "7161a53bf0a1823858d40705855e4ae7651c1a6c"
+MATERIALIZATION_TREE = "030bab43e8ad3d0d8c099c8faa52a4e4fa68eac2"
 GRID = {
     "horizontalCrs": "EPSG:27700",
     "bounds": [332000, 556000, 340000, 563000],
@@ -130,10 +133,22 @@ def validate_manifest(manifest: dict[str, Any]) -> None:
     if next_gate == "normalize_and_rasterize_each_reference_independently":
         return
     normalization = manifest.get("evaluationReferenceNormalization", {})
+    normalization_receipt = normalization.get("receipt", {})
+    normalization_revision = normalization.get("materializationRevision", {})
     if (
         next_gate != "evaluate_each_reference_independently"
         or acquisition.get("state") != "content_addressed_normalization_complete"
-        or normalization.get("receipt", {}).get("sha256") != OUTPUT_RECEIPT_SHA256
+        or normalization.get("schemaVersion") != NORMALIZATION_SCHEMA
+        or normalization.get("state") != "content_addressed_evaluation_pending"
+        or normalization.get("sourceReceiptSha256") != SOURCE_RECEIPT_SHA256
+        or normalization.get("predictionReceiptSha256") != PREDICTION_RECEIPT_SHA256
+        or normalization.get("protocolSha256") != PROTOCOL_SHA256
+        or normalization_revision.get("commit") != MATERIALIZATION_COMMIT
+        or normalization_revision.get("tree") != MATERIALIZATION_TREE
+        or normalization_receipt.get("fileName") != OUTPUT_RECEIPT_NAME
+        or normalization_receipt.get("schemaVersion") != OUTPUT_SCHEMA
+        or normalization_receipt.get("sha256") != OUTPUT_RECEIPT_SHA256
+        or normalization_receipt.get("referenceCount") != len(SOURCE_SPECS)
         or normalization.get("nextGate") != "evaluate_each_reference_independently"
     ):
         raise ValueError("Evaluation-reference normalization gate drifted")
@@ -424,13 +439,31 @@ def write_receipt(data_root: Path, receipt: dict[str, Any]) -> None:
         temporary.replace(path)
 
 
-def check(data_root: Path) -> dict[str, Any]:
+def check(data_root: Path, manifest: dict[str, Any]) -> dict[str, Any]:
     path = data_root / "evaluation-references" / OUTPUT_RECEIPT_NAME
     recorded = json.loads(path.read_text(encoding="utf-8"))
     if recorded.get("schemaVersion") != OUTPUT_SCHEMA:
         raise ValueError("Evaluation-mask receipt schema drifted")
+    manifest_receipt_sha256 = (
+        manifest.get("evaluationReferenceNormalization", {})
+        .get("receipt", {})
+        .get("sha256")
+    )
+    if (
+        recorded.get("receiptSha256") != OUTPUT_RECEIPT_SHA256
+        or manifest_receipt_sha256 != OUTPUT_RECEIPT_SHA256
+    ):
+        raise ValueError("Evaluation-mask receipt does not match the pinned manifest identity")
     if canonical_identity(recorded, "receiptSha256") != recorded.get("receiptSha256"):
         raise ValueError("Evaluation-mask receipt identity drifted")
+    if (
+        recorded.get("sourceReceiptSha256") != SOURCE_RECEIPT_SHA256
+        or recorded.get("predictionReceiptSha256") != PREDICTION_RECEIPT_SHA256
+        or recorded.get("protocolSha256") != PROTOCOL_SHA256
+        or recorded.get("materializationRevision")
+        != {"commit": MATERIALIZATION_COMMIT, "tree": MATERIALIZATION_TREE}
+    ):
+        raise ValueError("Evaluation-mask receipt linkage drifted")
     recomputed = build_receipt(data_root, execute=False)
     recomputed["materializationRevision"] = recorded.get("materializationRevision")
     recomputed["receiptSha256"] = canonical_identity(recomputed, "receiptSha256")
@@ -481,14 +514,15 @@ def main(arguments: list[str] | None = None) -> int:
     mode.add_argument("--check", action="store_true")
     options = parser.parse_args(arguments)
     data_root = ensure_external_data_root(Path(options.data_root), REPOSITORY_ROOT)
-    validate_manifest(json.loads(MANIFEST_PATH.read_text(encoding="utf-8")))
+    manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    validate_manifest(manifest)
     if options.execute:
         assert_execution_revision()
         result = build_receipt(data_root, execute=True)
         write_receipt(data_root, result)
         mode_name = "execute"
     elif options.check:
-        result = check(data_root)
+        result = check(data_root, manifest)
         mode_name = "check"
     else:
         result = plan()
