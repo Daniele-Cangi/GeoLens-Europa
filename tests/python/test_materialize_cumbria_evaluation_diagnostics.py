@@ -57,6 +57,32 @@ class CumbriaEvaluationDiagnosticTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "coverage and missing state disagree"):
             MODULE.classify(predicted, valid, observed, coverage)
 
+    def test_invalid_encodings_and_domain_mismatch_fail_closed(self):
+        for index, label in enumerate(
+            (
+                "Prediction mask",
+                "Valid-prediction mask",
+                "Reference mask",
+                "Reference-coverage mask",
+            )
+        ):
+            arrays = list(self.arrays())
+            arrays[index][0, 0] = 2
+            with self.assertRaisesRegex(ValueError, label):
+                MODULE.classify(*arrays)
+
+        predicted, valid, observed, coverage = self.arrays()
+        coverage[0, 0] = 0
+        observed[0, 0] = MODULE.evaluation.NO_DATA
+        predicted[0, 0] = MODULE.evaluation.NO_DATA
+        with self.assertRaisesRegex(ValueError, "Prediction is missing"):
+            MODULE.classify(predicted, valid, observed, coverage)
+
+        predicted, valid, observed, coverage = self.arrays()
+        predicted[2, 2] = 0
+        with self.assertRaisesRegex(ValueError, "frozen diagnostic domain"):
+            MODULE.classify(predicted, valid, observed, coverage)
+
     def test_png_and_svg_are_deterministic_and_self_contained(self):
         categories = MODULE.classify(*self.arrays())
         png = MODULE.png_bytes(categories)

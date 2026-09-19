@@ -5,6 +5,7 @@ import base64
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import struct
 import sys
@@ -61,11 +62,26 @@ def classify(
         == (evaluation.GRID["height"], evaluation.GRID["width"])
     ):
         raise ValueError("Cumbria diagnostic arrays must match the frozen grid")
-    known = (valid_prediction == 1) & (coverage == 1)
-    if np.any(known & (predicted == evaluation.NO_DATA)):
+    evaluation.validate_binary_mask(predicted, "Prediction mask", allow_missing=True)
+    evaluation.validate_binary_mask(
+        valid_prediction,
+        "Valid-prediction mask",
+        allow_missing=False,
+    )
+    evaluation.validate_binary_mask(observed, "Reference mask", allow_missing=True)
+    evaluation.validate_binary_mask(
+        coverage,
+        "Reference-coverage mask",
+        allow_missing=False,
+    )
+    valid_domain = valid_prediction == 1
+    if np.any(predicted[valid_domain] == evaluation.NO_DATA):
         raise ValueError("Prediction is missing inside the diagnostic domain")
+    if np.any(predicted[~valid_domain] != evaluation.NO_DATA):
+        raise ValueError("Prediction does not match the frozen diagnostic domain")
     if np.any((coverage == 0) != (observed == evaluation.NO_DATA)):
         raise ValueError("Reference coverage and missing state disagree")
+    known = valid_domain & (coverage == 1)
     result = np.full(predicted.shape, evaluation.NO_DATA, dtype=np.uint8)
     predicted_wet = predicted == 1
     observed_wet = observed == 1
@@ -235,7 +251,10 @@ def write_exact(path: Path, payload: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if not path.exists():
         temporary = path.with_suffix(path.suffix + ".tmp")
-        temporary.write_bytes(payload)
+        with temporary.open("wb") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
         temporary.replace(path)
 
 
