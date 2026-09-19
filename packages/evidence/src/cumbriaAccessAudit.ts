@@ -13,7 +13,7 @@ import {
   type CumbriaReplacementSolverProtocol,
 } from './cumbriaReplacementSolver';
 
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.25.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.26.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -735,10 +735,20 @@ export interface CumbriaHydraulicBoundaryProtocol {
   };
 }
 
+export interface CumbriaPredictionArtifactDescriptor {
+  readonly relativePath: string;
+  readonly sha256: string;
+  readonly contentSha256: string;
+  readonly bytes: number;
+  readonly decodedBytes: number;
+  readonly encoding: string;
+  readonly noData?: number;
+}
+
 export interface CumbriaBlindEvaluationProtocol {
   readonly id: 'carlisle-blind-inundation-evaluation-v0';
-  readonly version: '0.1.0';
-  readonly state: 'frozen_reference_sealed_execution_blocked';
+  readonly version: '0.2.0';
+  readonly state: 'prediction_frozen_reference_sealed_evaluation_blocked';
   readonly frozenOn: string;
   readonly validationMode: 'blind_hindcast';
   readonly claimBoundary: 'retrospective_historical_replay_not_operational_forecast';
@@ -747,24 +757,59 @@ export interface CumbriaBlindEvaluationProtocol {
     readonly endExclusive: string;
   };
   readonly predictionFreeze: {
-    readonly state: 'missing';
+    readonly state: 'frozen';
     readonly contentAddressAlgorithm: 'sha256';
-    readonly predictionArtifactSha256: null;
-    readonly codeRevision: null;
-    readonly modelVersion: null;
-    readonly transformationVersions: null;
+    readonly predictionReceipt: {
+      readonly fileName: 'cumbria-public-storm-desmond-v0.prediction.receipt.json';
+      readonly schemaVersion: 'cumbria-event-prediction-receipt-v0.2.0';
+      readonly sha256: string;
+      readonly bytes: number;
+      readonly sourceManifestVersion: '0.25.0';
+      readonly sourceManifestSha256: string;
+      readonly authorizationSha256: string;
+      readonly contractSha256: string;
+    };
+    readonly predictionArtifactSha256: string;
+    readonly predictionArtifactContentSha256: string;
+    readonly codeRevision: {
+      readonly branch: 'codex/geolens-refoundation';
+      readonly commit: string;
+      readonly tree: string;
+    };
+    readonly modelVersion: 'cumbria-local-inertial-surface-flow-v0.2.0';
+    readonly transformationVersions: {
+      readonly eventRunner: 'cumbria-public-event-runner-v0.2.0';
+      readonly solverGridPreprocessing: 'cumbria-solver-grid-preprocessing-v0.2.0';
+      readonly forcing: 'cumbria-time-varying-forcing-v0.1.0';
+      readonly eventInputBinding: 'cumbria-event-input-binding-v0.2.0';
+    };
     readonly wetnessCriterion: {
-      readonly state: 'missing';
-      readonly requirement: string;
+      readonly state: 'frozen';
+      readonly scenarioId: 'primary-20m';
+      readonly statistic: 'maximum_surface_water_depth_over_event';
+      readonly comparison: 'greater_than_or_equal';
+      readonly threshold: 0.05;
+      readonly unit: 'm';
+      readonly artifact: CumbriaPredictionArtifactDescriptor;
     };
     readonly evaluationDomain: {
-      readonly state: 'missing';
-      readonly horizontalCrsRequired: 'EPSG:27700';
-      readonly artifactSha256: null;
+      readonly state: 'frozen';
+      readonly horizontalCrs: 'EPSG:27700';
+      readonly bounds: readonly [332000, 556000, 340000, 563000];
+      readonly originUpperLeft: readonly [332000, 563000];
+      readonly rowOrder: 'north_to_south';
+      readonly meshId: 'mesh-20m';
+      readonly cellSizeMetres: 20;
+      readonly width: 400;
+      readonly height: 350;
+      readonly validPredictionCellCount: 73502;
+      readonly maskSemantic: 'solver_valid_cells_excluding_one_cell_missing_terrain_halo';
+      readonly artifact: CumbriaPredictionArtifactDescriptor;
       readonly observedGeometryMayDefineDomain: false;
       readonly h3MayDefineHydraulicMesh: false;
     };
     readonly requiredBeforeReferenceAccess: readonly string[];
+    readonly requirementsSatisfied: readonly string[];
   };
   readonly referenceSeal: {
     readonly state: 'sealed_not_loaded';
@@ -778,6 +823,7 @@ export interface CumbriaBlindEvaluationProtocol {
     readonly artifactReceipts: null;
     readonly separateComparisons: true;
     readonly combineReferences: false;
+    readonly referenceAccessAuthorizedAfterMerge: true;
   };
   readonly metrics: readonly {
     readonly id: string;
@@ -805,7 +851,7 @@ export interface CumbriaBlindEvaluationProtocol {
     readonly metricRemovalAfterReferenceAccess: false;
   };
   readonly execution: {
-    readonly state: 'blocked';
+    readonly state: 'blocked_reference_geometry_sealed';
     readonly networkRequests: 0;
     readonly filesWritten: 0;
     readonly evaluationRuns: 0;
@@ -1352,7 +1398,7 @@ export interface CumbriaAccessManifest {
   readonly datasets: readonly CumbriaDatasetAudit[];
   readonly gates: readonly CumbriaAccessGate[];
   readonly acquisition: {
-    readonly state: 'event_runner_contract_frozen_authorization_pending';
+    readonly state: 'prediction_frozen_reference_acquisition_pending';
     readonly largeDownloadsAllowed: false;
     readonly boundedTerrainDownloadsAllowed: true;
     readonly nextAction: string;
@@ -2537,7 +2583,7 @@ export function assertCumbriaAccessManifest(
   const acquisition = record(manifest.acquisition, 'acquisition');
   equal(
     acquisition.state,
-    'event_runner_contract_frozen_authorization_pending',
+    'prediction_frozen_reference_acquisition_pending',
     'acquisition.state',
   );
   equal(
@@ -4867,13 +4913,13 @@ function blindEvaluationProtocol(
     'carlisle-blind-inundation-evaluation-v0',
     'evaluationProtocol.id',
   );
-  equal(protocol.version, '0.1.0', 'evaluationProtocol.version');
+  equal(protocol.version, '0.2.0', 'evaluationProtocol.version');
   equal(
     protocol.state,
-    'frozen_reference_sealed_execution_blocked',
+    'prediction_frozen_reference_sealed_evaluation_blocked',
     'evaluationProtocol.state',
   );
-  equal(protocol.frozenOn, '2026-09-02', 'evaluationProtocol.frozenOn');
+  equal(protocol.frozenOn, '2026-09-19', 'evaluationProtocol.frozenOn');
   dateOnly(protocol.frozenOn, 'evaluationProtocol.frozenOn');
   equal(
     protocol.validationMode,
@@ -4898,24 +4944,78 @@ function blindEvaluationProtocol(
     protocol.predictionFreeze,
     'evaluationProtocol.predictionFreeze',
   );
-  equal(prediction.state, 'missing', 'evaluationProtocol.predictionFreeze.state');
+  equal(prediction.state, 'frozen', 'evaluationProtocol.predictionFreeze.state');
   equal(
     prediction.contentAddressAlgorithm,
     'sha256',
     'evaluationProtocol.predictionFreeze.contentAddressAlgorithm',
   );
-  for (const field of [
-    'predictionArtifactSha256',
-    'codeRevision',
-    'modelVersion',
-    'transformationVersions',
-  ]) {
-    equal(
-      prediction[field],
-      null,
-      `evaluationProtocol.predictionFreeze.${field}`,
-    );
-  }
+  const predictionReceipt = record(
+    prediction.predictionReceipt,
+    'evaluationProtocol.predictionFreeze.predictionReceipt',
+  );
+  const expectedPredictionReceipt: Readonly<Record<string, unknown>> = {
+    fileName: 'cumbria-public-storm-desmond-v0.prediction.receipt.json',
+    schemaVersion: 'cumbria-event-prediction-receipt-v0.2.0',
+    sha256: 'f2a3a7489699a70a6d5c770633bdc9f789184ca26cb8190c85a1d28d40495dc6',
+    bytes: 47572,
+    sourceManifestVersion: '0.25.0',
+    sourceManifestSha256:
+      'f43632afaca8d9a86a4c3a7cdb955519b6ca89f170f27dcd0f772f75bcf19fab',
+    authorizationSha256:
+      '7feda0564923260c2996f292ec4ae82b52a6cd7a17b32aaca805a90816a4ab44',
+    contractSha256:
+      'b9f2b9d9f91557b4cd62f35875fa2b16d3ebf8fe5e536416cf2d9bcb0dae23b9',
+  };
+  equal(
+    JSON.stringify(predictionReceipt),
+    JSON.stringify(expectedPredictionReceipt),
+    'evaluationProtocol.predictionFreeze.predictionReceipt',
+  );
+  equal(
+    prediction.predictionArtifactSha256,
+    'dffe515490e25f371095547f4b6e90f93b5744252bf4a82948b846099a17575f',
+    'evaluationProtocol.predictionFreeze.predictionArtifactSha256',
+  );
+  equal(
+    prediction.predictionArtifactContentSha256,
+    'f535a3a8fc2bd5b96afc4f2feb59c1a285a4776e2314385f9133c6a3f50da45e',
+    'evaluationProtocol.predictionFreeze.predictionArtifactContentSha256',
+  );
+  const revision = record(
+    prediction.codeRevision,
+    'evaluationProtocol.predictionFreeze.codeRevision',
+  );
+  const expectedRevision = {
+    branch: 'codex/geolens-refoundation',
+    commit: '1cab9bfccbfecd0818ed7f8e7b8735bd4b437bb1',
+    tree: '91065ade3d0cf8a3b5e972f23554234eb52caf66',
+  };
+  equal(
+    JSON.stringify(revision),
+    JSON.stringify(expectedRevision),
+    'evaluationProtocol.predictionFreeze.codeRevision',
+  );
+  equal(
+    prediction.modelVersion,
+    'cumbria-local-inertial-surface-flow-v0.2.0',
+    'evaluationProtocol.predictionFreeze.modelVersion',
+  );
+  const transformations = record(
+    prediction.transformationVersions,
+    'evaluationProtocol.predictionFreeze.transformationVersions',
+  );
+  const expectedTransformations = {
+    eventRunner: 'cumbria-public-event-runner-v0.2.0',
+    solverGridPreprocessing: 'cumbria-solver-grid-preprocessing-v0.2.0',
+    forcing: 'cumbria-time-varying-forcing-v0.1.0',
+    eventInputBinding: 'cumbria-event-input-binding-v0.2.0',
+  };
+  equal(
+    JSON.stringify(transformations),
+    JSON.stringify(expectedTransformations),
+    'evaluationProtocol.predictionFreeze.transformationVersions',
+  );
 
   const wetness = record(
     prediction.wetnessCriterion,
@@ -4923,12 +5023,34 @@ function blindEvaluationProtocol(
   );
   equal(
     wetness.state,
-    'missing',
+    'frozen',
     'evaluationProtocol.predictionFreeze.wetnessCriterion.state',
   );
-  nonEmpty(
-    wetness.requirement,
-    'evaluationProtocol.predictionFreeze.wetnessCriterion.requirement',
+  const expectedWetness = {
+    state: 'frozen',
+    scenarioId: 'primary-20m',
+    statistic: 'maximum_surface_water_depth_over_event',
+    comparison: 'greater_than_or_equal',
+    threshold: 0.05,
+    unit: 'm',
+    artifact: {
+      bytes: 7055,
+      contentSha256:
+        'f535a3a8fc2bd5b96afc4f2feb59c1a285a4776e2314385f9133c6a3f50da45e',
+      decodedBytes: 140000,
+      encoding:
+        'gzip-compressed u8 (0 dry, 1 wet, 255 missing), row-major north-to-south',
+      noData: 255,
+      relativePath:
+        'predictions/sha256/dffe515490e25f371095547f4b6e90f93b5744252bf4a82948b846099a17575f.wet-at-0.05m-mask-u8.gz',
+      sha256:
+        'dffe515490e25f371095547f4b6e90f93b5744252bf4a82948b846099a17575f',
+    },
+  };
+  equal(
+    JSON.stringify(wetness),
+    JSON.stringify(expectedWetness),
+    'evaluationProtocol.predictionFreeze.wetnessCriterion',
   );
 
   const domain = record(
@@ -4937,18 +5059,39 @@ function blindEvaluationProtocol(
   );
   equal(
     domain.state,
-    'missing',
+    'frozen',
     'evaluationProtocol.predictionFreeze.evaluationDomain.state',
   );
+  const expectedDomain = {
+    state: 'frozen',
+    horizontalCrs: 'EPSG:27700',
+    bounds: [332000, 556000, 340000, 563000],
+    originUpperLeft: [332000, 563000],
+    rowOrder: 'north_to_south',
+    meshId: 'mesh-20m',
+    cellSizeMetres: 20,
+    width: 400,
+    height: 350,
+    validPredictionCellCount: 73502,
+    maskSemantic: 'solver_valid_cells_excluding_one_cell_missing_terrain_halo',
+    artifact: {
+      bytes: 1478,
+      contentSha256:
+        '2a834b1d5dc477fe51f401f517e7178dd180ccd2eb08356d8d2a2543f31180e8',
+      decodedBytes: 140000,
+      encoding: 'gzip-compressed u8, row-major north-to-south',
+      relativePath:
+        'predictions/sha256/2273498b8cacfaace9245ae4f4f20a57077ad45758826919843e8837af338230.valid-prediction-mask-u8.gz',
+      sha256:
+        '2273498b8cacfaace9245ae4f4f20a57077ad45758826919843e8837af338230',
+    },
+    observedGeometryMayDefineDomain: false,
+    h3MayDefineHydraulicMesh: false,
+  };
   equal(
-    domain.horizontalCrsRequired,
-    'EPSG:27700',
-    'evaluationProtocol.predictionFreeze.evaluationDomain.horizontalCrsRequired',
-  );
-  equal(
-    domain.artifactSha256,
-    null,
-    'evaluationProtocol.predictionFreeze.evaluationDomain.artifactSha256',
+    JSON.stringify(domain),
+    JSON.stringify(expectedDomain),
+    'evaluationProtocol.predictionFreeze.evaluationDomain',
   );
   equal(
     domain.observedGeometryMayDefineDomain,
@@ -4979,6 +5122,16 @@ function blindEvaluationProtocol(
     JSON.stringify(expectedFreezeRequirements)
   ) {
     throw new Error('Blind evaluation prediction-freeze requirements drifted');
+  }
+  const requirementsSatisfied = stringArray(
+    prediction.requirementsSatisfied,
+    'evaluationProtocol.predictionFreeze.requirementsSatisfied',
+  );
+  if (
+    JSON.stringify(requirementsSatisfied) !==
+    JSON.stringify(expectedFreezeRequirements)
+  ) {
+    throw new Error('Blind evaluation satisfied requirements drifted');
   }
 
   const referenceSeal = record(
@@ -5039,6 +5192,11 @@ function blindEvaluationProtocol(
     referenceSeal.combineReferences,
     false,
     'evaluationProtocol.referenceSeal.combineReferences',
+  );
+  equal(
+    referenceSeal.referenceAccessAuthorizedAfterMerge,
+    true,
+    'evaluationProtocol.referenceSeal.referenceAccessAuthorizedAfterMerge',
   );
 
   const metrics = array(protocol.metrics, 'evaluationProtocol.metrics').map(
@@ -5103,7 +5261,11 @@ function blindEvaluationProtocol(
   }
 
   const execution = record(protocol.execution, 'evaluationProtocol.execution');
-  equal(execution.state, 'blocked', 'evaluationProtocol.execution.state');
+  equal(
+    execution.state,
+    'blocked_reference_geometry_sealed',
+    'evaluationProtocol.execution.state',
+  );
   equal(execution.networkRequests, 0, 'evaluationProtocol.execution.networkRequests');
   equal(execution.filesWritten, 0, 'evaluationProtocol.execution.filesWritten');
   equal(execution.evaluationRuns, 0, 'evaluationProtocol.execution.evaluationRuns');
@@ -5111,13 +5273,7 @@ function blindEvaluationProtocol(
     execution.blockers,
     'evaluationProtocol.execution.blockers',
   );
-  const expectedBlockers = [
-    'hydraulic_execution_blocked',
-    'prediction_artifact_missing',
-    'prediction_semantics_missing',
-    'evaluation_domain_missing',
-    'reference_geometry_sealed',
-  ];
+  const expectedBlockers = ['reference_geometry_sealed'];
   if (JSON.stringify(blockers) !== JSON.stringify(expectedBlockers)) {
     throw new Error('Blind evaluation execution blockers drifted');
   }
