@@ -59,15 +59,16 @@ export const programmeRecords: readonly ProgrammeRecord[] = [
     code: 'Case 03',
     title: 'Event-specific public-data replay',
     place: 'Carlisle / Cumbria, United Kingdom',
-    status: 'Event runner contract frozen',
-    statusTone: 'evidence-gate',
+    status: 'Negative baseline retained',
+    statusTone: 'screening',
     established:
-      'A 56 km² Sheepmount–Old Sandsfield reach is fixed without observed flood geometry. Corrected 10 m, 20 m and 40 m grids, 144 IMERG half-hours and 288 Sheepmount intervals feed nine fixed scenarios. The runner now has frozen stability, mass-balance, NoData and prediction-bundle rules, and its real-data preflight passes without executing the event.',
+      'All nine frozen scenarios completed before the independent flood references were opened. The retained comparison shows low overlap and large false-positive area.',
     openGate:
-      'Ten terrain grids remain explicitly unavailable. Storm Desmond has not been executed: the runner still requires authorization tied to the clean post-merge Git commit, and both observed flood references remain sealed until a complete prediction exists.',
+      'Event-valid channel geometry, boundary and initial state, December 2015 defence controls and source-term placement remain unresolved.',
     nextDecision:
-      'Authorize the unchanged contract from the clean merged revision, execute all nine scenarios, and freeze the complete content-addressed prediction only if every physical gate passes.',
+      'Keep Carlisle frozen; require independent fixture evidence and a new holdout before making any future validation claim.',
+    href: '/cases/cumbria-2015',
   },
 ] as const;
 
-export const programmeUpdatedAt = '7 September 2026';
+export const programmeUpdatedAt = '19 September 2026';

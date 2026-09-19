@@ -116,7 +116,8 @@ export default function ProgrammePage() {
           <p>
             Cumbria was selected for the evidence it can support, not for name
             recognition. Source qualification remains separate from model
-            adaptation and from the sealed evaluation references.
+            adaptation. The evaluation references were opened only after the
+            prediction freeze and now remain diagnostic-only.
           </p>
         </div>
         <ol>
@@ -138,10 +139,10 @@ export default function ProgrammePage() {
           <h2>The programme is waiting for evidence, not standing still.</h2>
         </div>
         <p>
-          Amsterdam and Emilia-Romagna remain open evidence gates. In parallel,
-          GeoLens is advancing the Cumbria public-only baseline while awaiting
-          optional owner evidence. No open case is allowed to convert an absent
-          dataset into a valid-looking result.
+          Amsterdam and Emilia-Romagna remain open evidence gates. Cumbria has
+          completed its public-only test and retains the negative outcome while
+          awaiting optional owner evidence. No case is allowed to convert an
+          absent dataset into a valid-looking result.
         </p>
         <div className="site-actions">
           <Link className="site-primary-action" href="/cases">

@@ -147,10 +147,50 @@ export const researchCases = {
       'Assess depression conditioning, river stage, breaches and embankments as explicit model additions—not hidden calibration.',
     ],
   },
+  cumbria: {
+    slug: 'cumbria-2015',
+    code: 'Case 03',
+    place: 'Carlisle, Cumbria, United Kingdom',
+    programme: 'Public-data flood hindcast',
+    title: 'A completed blind test that the model did not pass',
+    status: 'Negative baseline retained · physics frozen',
+    statusTone: 'research',
+    period: 'Storm Desmond · 4–7 December 2015',
+    question:
+      'Can a public-only, predeclared surface-flow model reproduce independently mapped flooding without seeing the answer first?',
+    summary:
+      'Nine frozen Storm Desmond scenarios were completed before three official flood references were opened. The comparison found limited overlap and substantial overprediction.',
+    metrics: [
+      { label: 'Frozen scenarios', value: '9 / 9', note: 'No best-case selection' },
+      { label: 'Primary computation grid', value: '20 m', note: '73,502 evaluation cells' },
+      { label: 'EA outline IoU', value: '0.0547', note: 'Low spatial agreement' },
+      { label: 'Predicted wet area', value: '5.743 km²', note: 'Substantially overpredicted' },
+    ],
+    evidence: [
+      { source: 'NASA GPM IMERG Final V07', role: '144 half-hour precipitation grids', state: 'Real retrospective evidence' },
+      { source: 'Environment Agency LiDAR + hydrology', role: 'Pre-event terrain and Sheepmount flow', state: 'Real evidence with explicit gaps' },
+      { source: 'CORINE Land Cover 2012', role: 'Runoff and roughness parameters', state: 'Real proxy evidence' },
+      { source: 'EA flood outline + Copernicus EMSR147', role: 'Three independent comparison masks', state: 'Evaluation only' },
+    ],
+    resultTitle: 'The public-only model overlaps real flooding but spreads water far too widely.',
+    result:
+      'The primary prediction marks 14,357 cells wet. Against the Environment Agency outline, IoU is 0.0547 and precision 0.0585. False-positive area exceeds 5.4 km² for every reference, and most false positives remain above 10 cm. GeoLens records this as a failed hypothesis, not as a validated flood model.',
+    boundaries: [
+      'The run is an experimental surface-flow hindcast, not the official Carlisle hydraulic model.',
+      'Missing channel sections, historical boundary state and December 2015 defence controls remain missing.',
+      'The opened Carlisle references may diagnose failure but cannot calibrate or accept a revision.',
+    ],
+    nextSteps: [
+      'Keep the original result visible and prevent another Carlisle evaluation run.',
+      'Admit a physics revision only after event-valid evidence and an independent deterministic fixture exist.',
+      'Use a new event or area as the holdout for any future validation claim.',
+    ],
+  },
 } as const satisfies Record<string, ResearchCase>;
 
 export const researchCaseList = [
   researchCases.trento,
   researchCases.amsterdam,
   researchCases.emilia,
+  researchCases.cumbria,
 ] as const;

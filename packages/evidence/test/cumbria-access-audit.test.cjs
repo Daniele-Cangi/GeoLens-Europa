@@ -6,6 +6,7 @@ const path = require('node:path');
 
 const {
   assertCumbriaAccessManifest,
+  CUMBRIA_2015_BENCHMARK,
   CUMBRIA_EVENT_WINDOW,
   createCumbriaDtmMaterializationPlan,
   cumbriaReplacementSolverProtocolSha256,
@@ -25,6 +26,78 @@ const manifestPath = path.join(
 function manifestFixture() {
   return JSON.parse(readFileSync(manifestPath, 'utf8'));
 }
+
+test('API-safe Cumbria snapshot remains aligned with the frozen negative result', () => {
+  const manifest = manifestFixture();
+  const snapshot = CUMBRIA_2015_BENCHMARK;
+
+  assert.equal(snapshot.manifestVersion, manifest.manifestVersion);
+  assert.equal(snapshot.state, manifest.evaluationRun.state);
+  assert.deepEqual(snapshot.event, {
+    windowStart: manifest.event.windowStart,
+    windowEndExclusive: manifest.event.windowEndExclusive,
+  });
+  assert.deepEqual(snapshot.spatial.bounds, manifest.publicBaselineProtocol.domain.bounds);
+  assert.equal(
+    snapshot.spatial.frozenEvaluationCells,
+    manifest.evaluationRun.grid.frozenEvaluationCellCount,
+  );
+  assert.equal(
+    snapshot.prediction.receiptSha256,
+    manifest.evaluationRun.predictionReceiptSha256,
+  );
+  assert.equal(
+    snapshot.prediction.predictedWetCells,
+    manifest.evaluationRun.prediction.predictedWetCellCount,
+  );
+  assert.equal(
+    snapshot.forcing.imerg.samples,
+    manifest.publicBaselineForcingMaterialization.imerg.sampleCount,
+  );
+  assert.equal(
+    snapshot.forcing.sheepmount.samples,
+    manifest.publicBaselineForcingMaterialization.sheepmount.sampleCount,
+  );
+  assert.equal(
+    snapshot.forcing.sheepmount.maximumObservedM3s,
+    manifest.publicBaselineForcingMaterialization.sheepmount.maximumObservedM3s,
+  );
+  assert.deepEqual(
+    snapshot.comparisons.map((comparison) => comparison.referenceId),
+    manifest.evaluationRun.comparisons.map((comparison) => comparison.referenceId),
+  );
+  snapshot.comparisons.forEach((comparison, index) => {
+    const recorded = manifest.evaluationRun.comparisons[index];
+    assert.equal(comparison.intersectionOverUnion, recorded.metrics.intersectionOverUnion);
+    assert.equal(comparison.falsePositiveAreaM2, recorded.metrics.falsePositiveAreaM2);
+  });
+  const atLeast10cm = manifest.failureInventory.comparisonSummaries.map(
+    (comparison) => comparison.falsePositiveAtOrAbove10cmFraction,
+  );
+  const atLeast30cm = manifest.failureInventory.comparisonSummaries.map(
+    (comparison) => comparison.falsePositiveAtOrAbove30cmFraction,
+  );
+  assert.deepEqual(snapshot.diagnosis.falsePositiveAtOrAbove10cmRange, [
+    Math.min(...atLeast10cm),
+    Math.max(...atLeast10cm),
+  ]);
+  assert.deepEqual(snapshot.diagnosis.falsePositiveAtOrAbove30cmRange, [
+    Math.min(...atLeast30cm),
+    Math.max(...atLeast30cm),
+  ]);
+  assert.equal(snapshot.revisionGate.state, manifest.physicsRevisionGate.state);
+  assert.equal(
+    snapshot.revisionGate.carlisleRevisionRunAllowed,
+    manifest.physicsRevisionGate.authorization.carlisleRevisionRunAllowed,
+  );
+  assert.deepEqual(
+    snapshot.revisionGate.hypotheses.map(({ id, status }) => ({ id, status })),
+    manifest.physicsRevisionGate.hypotheses.map(({ id, status }) => ({ id, status })),
+  );
+  assert.equal(snapshot.claims.forbidden.includes('validated_flood_model'), true);
+  assert.equal(JSON.stringify(snapshot).includes('relativePath'), false);
+  assert.equal(JSON.stringify(snapshot).includes('evaluationGeometry'), false);
+});
 
 test('Cumbria manifest freezes the replacement-solver contract without opening solver access', () => {
   const manifest = manifestFixture();

@@ -16,6 +16,7 @@ const routes = [
   '/cases/trento',
   '/cases/amsterdam',
   '/cases/emilia-romagna-2023',
+  '/cases/cumbria-2015',
   '/about',
   '/proof-zero',
 ] as const;

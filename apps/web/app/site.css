@@ -1634,7 +1634,7 @@
 
 .case-comparison {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   margin-top: 60px;
   border-top: 2px solid var(--site-navy);
   border-left: 1px solid var(--site-line);
@@ -2277,6 +2277,26 @@
   padding: 112px max(24px, calc((100vw - 1320px) / 2));
   border-top: 1px solid #c5d2dc;
   background: var(--site-blue-pale);
+}
+
+.cumbria-diagnostic figure {
+  margin: 2rem 0 0;
+  border: 1px solid rgba(31, 54, 47, 0.18);
+  background: #eef1ed;
+  overflow: hidden;
+}
+
+.cumbria-diagnostic img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.cumbria-diagnostic figcaption {
+  padding: 0.9rem 1rem;
+  color: var(--site-muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
 }
 
 .emilia-inspector-heading,

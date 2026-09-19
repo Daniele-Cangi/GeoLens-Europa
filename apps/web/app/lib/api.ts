@@ -1,4 +1,5 @@
 import type {
+  CumbriaBenchmarkSnapshot,
   EmiliaRomagnaBenchmarkSnapshot,
   EmiliaRomagnaMapManifest,
 } from '@geo-lens/evidence';
@@ -6,6 +7,7 @@ import type {
 import { PROOF_ZERO_NETWORK } from './fixture';
 
 export type { EmiliaRomagnaBenchmarkSnapshot } from '@geo-lens/evidence';
+export type { CumbriaBenchmarkSnapshot } from '@geo-lens/evidence';
 export type { EmiliaRomagnaMapManifest } from '@geo-lens/evidence';
 
 export type EvidenceStatus =
@@ -970,6 +972,29 @@ export async function getEmiliaRomagnaBenchmark(
   }
 
   return body as EmiliaRomagnaBenchmarkSnapshot;
+}
+
+export async function getCumbriaBenchmark(
+  signal?: AbortSignal,
+): Promise<CumbriaBenchmarkSnapshot> {
+  const response = await fetch(
+    `${API_URL}/api/benchmarks/cumbria-2015`,
+    {
+      method: 'GET',
+      cache: 'no-store',
+      signal,
+    },
+  );
+  const body = (await response.json()) as CumbriaBenchmarkSnapshot | ApiError;
+
+  if (!response.ok) {
+    const error = body as ApiError;
+    throw new Error(
+      error.error ?? `GeoLens API returned HTTP ${response.status}`,
+    );
+  }
+
+  return body as CumbriaBenchmarkSnapshot;
 }
 
 export async function getEmiliaRomagnaMapManifest(

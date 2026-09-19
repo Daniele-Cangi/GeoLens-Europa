@@ -71,7 +71,7 @@ GeoLens has two complementary operational proofs and two historical benchmark pr
 | Trento Proof 0 | The complete software chain works from real environmental inputs to a downstream result | Evidence composition, deterministic runoff, catchment aggregation, network propagation, provenance and mass balance | The small drainage network is a deterministic fixture, not surveyed municipal infrastructure |
 | Amsterdam observed proof | GeoLens can read real Waternet pipes and nodes and derive a real, non-zero surface runoff source | Observed topology, elevation-based direction states, real rainfall/terrain/land cover and an inspectable surface contribution | No owner-published surface-to-pipe attachment has yet been found, so sewer propagation is deliberately blocked |
 | Emilia-Romagna 2023 | A simple terrain-only concentration hypothesis was tested against an independent observed flood extent and did not perform better than chance | A reproducible historical benchmark, withheld evaluation data and honest negative evidence | A conditioned replay requires discharge, boundary, breach and terrain/channel evidence that is not currently available |
-| Cumbria 2015 | A small public-only River Eden experiment can advance without waiting for the official archived model | The 56 km² domain, corrected computation grids, complete forcing and the verified local-inertial kernel are now connected by one content-addressed, fail-closed event-input contract | Terrain gaps remain explicit; the runner, stability/mass-balance gate and prediction identity must be frozen before any Storm Desmond run or evaluation |
+| Cumbria 2015 | Nine frozen Storm Desmond scenarios were tested once against three independently opened flood references and showed low agreement with substantial overprediction | A restart-safe real-data run, mass balance, frozen prediction, blind evaluation, diagnostic map and retained negative result | Four physical hypotheses remain evidence-blocked; Carlisle cannot be retuned or rerun for validation, and a new holdout is required for any future validation claim |
 
 ## Why development is deliberately constrained now
 
@@ -79,7 +79,7 @@ GeoLens is not paused. Its expansion is frozen while two independent external-ev
 
 The annotated Git tag `pre-external-evidence-baseline-v1` identifies commit `938b18fb66925e36236ea04a49eefdb2ca9826cb`. It records what GeoLens was before either requested package arrived. The tag is intentionally separate from the public release line.
 
-Work can continue on the Cumbria gates that were already declared: event-runner and prediction-contract freeze, stability and mass-balance verification, event execution, prediction freeze and blind evaluation. Package integrity checks, minimal format/CRS/unit/schema adapters, tests, security, reproducibility and interface work can also continue.
+The declared Cumbria execution and blind-evaluation gates are complete. Work can continue on package integrity checks, minimal format/CRS/unit/schema adapters, tests, security, reproducibility and interface inspection. Scientific revisions remain blocked until event-valid evidence and an independently merged deterministic fixture exist.
 
 What cannot happen is equally important. GeoLens will not add a new country or benchmark merely because data are available, anticipate the contents of an agency delivery, or select parameters and thresholds after seeing the expected answer. If the frozen baseline performs poorly, that result remains part of the record. A scientifically revised model may follow only as a separately versioned experiment shown beside the original result.
 
@@ -495,6 +495,7 @@ Default local endpoints:
 - Emilia-Romagna map manifest: http://localhost:3003/api/benchmarks/emilia-romagna-2023/map-manifest
 - ARPAE hydraulic evidence intake: http://localhost:3003/api/benchmarks/emilia-romagna-2023/hydraulic-evidence-intake
 - Cumbria model evidence intake: http://localhost:3003/api/benchmarks/cumbria-2015/model-evidence-intake
+- Cumbria retained benchmark: http://localhost:3003/api/benchmarks/cumbria-2015
 
 The root launcher starts services in dependency order and waits for their health gates. The first uncached IMERG acquisition can take several minutes.
 
@@ -531,6 +532,8 @@ The companion GET /api/infrastructure/amsterdam-waternet/attachment-intake expos
 ### Cumbria model-delivery intake
 
 GET /api/benchmarks/cumbria-2015/model-evidence-intake exposes the current Environment Agency Products 5/6/7 delivery state. It currently reports `missing`, ten explicit component records, blocked hydraulic-context assessment and blocked replay eligibility. The endpoint contains no external archive path or evaluation geometry. When a structurally valid receipt is eventually registered, it still cannot promote the delivery automatically: component review and a later physical-gate decision remain separate operations.
+
+GET /api/benchmarks/cumbria-2015 exposes the publication-safe retained result: event and grid identity, forcing counts, frozen prediction, three separate comparison records, failure diagnosis and the post-evaluation physics gate. It contains no source arrays, local paths or evaluation geometry and cannot execute or reopen the evaluation.
 
 ### Emilia-Romagna historical benchmark
 
