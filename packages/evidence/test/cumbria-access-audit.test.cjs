@@ -198,7 +198,7 @@ test('public baseline terrain materialization records real coverage without zero
   const manifest = manifestFixture();
   const result = manifest.publicBaselineTerrainMaterialization;
 
-  assert.equal(manifest.manifestVersion, '0.31.0');
+  assert.equal(manifest.manifestVersion, '0.32.0');
   assert.equal(result.state, 'terrain_materialized_with_explicit_gaps');
   assert.equal(
     result.protocolSha256,
@@ -612,13 +612,58 @@ test('blind-evaluation diagnostics visualize the frozen result without rerunning
   );
 });
 
+test('failure inventory uses only frozen depth thresholds and CLC classes', () => {
+  const manifest = manifestFixture();
+  const inventory = manifest.failureInventory;
+
+  assert.equal(
+    inventory.receiptSha256,
+    '73d4eb08f14e7fb6e7fcee7c7ebda9a2bc768f521979076f77d2fc42dc00d508',
+  );
+  assert.deepEqual(inventory.depthThresholdsMetres, [0.05, 0.1, 0.3]);
+  assert.deepEqual(
+    inventory.comparisonSummaries.map((summary) => [
+      summary.referenceId,
+      summary.falsePositiveAtOrAbove10cmCellCount,
+      summary.falsePositiveAtOrAbove30cmCellCount,
+    ]),
+    [
+      ['ea-recorded-flood-outlines-carlisle-2015', 10593, 4602],
+      ['copernicus-emsr147-carlisle-initial', 11191, 5123],
+      ['copernicus-emsr147-carlisle-monitoring-01', 11019, 5090],
+    ],
+  );
+  assert.deepEqual(inventory.isolation, {
+    newEvaluationMetrics: false,
+    modelRetuned: false,
+    scenarioRankedOrSelected: false,
+    thresholdChanged: false,
+    networkRequests: 0,
+    evaluationRuns: 0,
+  });
+
+  const ranked = manifestFixture();
+  ranked.failureInventory.isolation.scenarioRankedOrSelected = true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(ranked),
+    /failure inventory scenario selection/,
+  );
+
+  const changedThreshold = manifestFixture();
+  changedThreshold.failureInventory.depthThresholdsMetres[0] = 0.04;
+  assert.throws(
+    () => assertCumbriaAccessManifest(changedThreshold),
+    /depth thresholds drifted/,
+  );
+});
+
 test('pre-event terrain selection maps to downloadable archives with explicit gaps', () => {
   const manifest = manifestFixture();
   const lidar = manifest.datasets.find(
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.31.0');
+  assert.equal(manifest.manifestVersion, '0.32.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {

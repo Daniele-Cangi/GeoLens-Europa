@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.31.0",
+  "manifestVersion": "0.32.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -2076,6 +2076,58 @@
     },
     "role": "diagnostic_visualization_not_model_input_or_new_evaluation"
   },
+  "failureInventory": {
+    "schemaVersion": "cumbria-blind-evaluation-failure-inventory-v0.1.0",
+    "state": "materialized_from_frozen_artifacts",
+    "recordedOn": "2026-09-19",
+    "receiptSha256": "73d4eb08f14e7fb6e7fcee7c7ebda9a2bc768f521979076f77d2fc42dc00d508",
+    "evaluationReceiptSha256": "610bae9d7e31978e3565a5e04e779bde9e1dc5236e200a0699cf8db9c118ffa2",
+    "diagnosticReceiptSha256": "edccd01df0467fb6e3a9d0302ae4869f1d46269aa48901a866f854ca7d0dc721",
+    "solverGridReceiptSha256": "63fa37941c13cc6a18bb3fed9f9ab1690ae7da34da9963cead2299adc879800c",
+    "depthThresholdsMetres": [0.05, 0.1, 0.3],
+    "comparisonSummaries": [
+      {
+        "referenceId": "ea-recorded-flood-outlines-carlisle-2015",
+        "falsePositiveCellCount": 13517,
+        "falsePositiveAtOrAbove10cmCellCount": 10593,
+        "falsePositiveAtOrAbove10cmFraction": 0.7836798106088629,
+        "falsePositiveAtOrAbove30cmCellCount": 4602,
+        "falsePositiveAtOrAbove30cmFraction": 0.3404601612783902
+      },
+      {
+        "referenceId": "copernicus-emsr147-carlisle-initial",
+        "falsePositiveCellCount": 14154,
+        "falsePositiveAtOrAbove10cmCellCount": 11191,
+        "falsePositiveAtOrAbove10cmFraction": 0.7906598841316942,
+        "falsePositiveAtOrAbove30cmCellCount": 5123,
+        "falsePositiveAtOrAbove30cmFraction": 0.3619471527483397
+      },
+      {
+        "referenceId": "copernicus-emsr147-carlisle-monitoring-01",
+        "falsePositiveCellCount": 13888,
+        "falsePositiveAtOrAbove10cmCellCount": 11019,
+        "falsePositiveAtOrAbove10cmFraction": 0.7934187788018433,
+        "falsePositiveAtOrAbove30cmCellCount": 5090,
+        "falsePositiveAtOrAbove30cmFraction": 0.3665034562211982
+      }
+    ],
+    "environmentAgencyLeadingFalsePositiveClasses": [
+      { "classCode": 231, "label": "pastures", "cellCount": 5890 },
+      { "classCode": 211, "label": "non-irrigated arable land", "cellCount": 3334 },
+      { "classCode": 421, "label": "salt marshes", "cellCount": 1226 },
+      { "classCode": 112, "label": "discontinuous urban fabric", "cellCount": 1124 }
+    ],
+    "isolation": {
+      "newEvaluationMetrics": false,
+      "modelRetuned": false,
+      "scenarioRankedOrSelected": false,
+      "thresholdChanged": false,
+      "networkRequests": 0,
+      "evaluationRuns": 0
+    },
+    "interpretation": "The false-positive excess is not confined to the 5-10 cm fringe: 78-79% remains at or above 10 cm and 34-37% remains at or above 30 cm across all three references. Counts span multiple CLC classes and are descriptive only; they do not establish land-cover causality or authorize tuning.",
+    "role": "post_evaluation_failure_inventory_not_model_input_or_model_selection"
+  },
   "modelAccessRequest": {
     "id": "cumbria-carlisle-pre-event-model-products-5-6-7-v0",
     "state": "sent_awaiting_response",
@@ -3612,6 +3664,11 @@
       "id": "blind_evaluation_diagnostics",
       "state": "passed",
       "reason": "A presentation-only diagnostic render classifies every frozen-grid cell as true positive, false positive, false negative, known dry agreement or outside evaluation. Receipt edccd01df0467fb6e3a9d0302ae4869f1d46269aa48901a866f854ca7d0dc721 binds the render to the completed evaluation without recomputing metrics, rerunning evaluation or changing the model."
+    },
+    {
+      "id": "blind_evaluation_failure_inventory",
+      "state": "passed",
+      "reason": "Receipt 73d4eb08f14e7fb6e7fcee7c7ebda9a2bc768f521979076f77d2fc42dc00d508 stratifies the retained error only by the three predeclared depth thresholds and pre-event CLC classes. It computes no new evaluation metric, ranks no scenario, changes no threshold and authorizes no model change."
     },
     {
       "id": "large_artifact_downloads",
