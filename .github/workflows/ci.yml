@@ -55,12 +55,15 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: nasa-precip-engine/requirements.txt
+          cache-dependency-path: |
+            nasa-precip-engine/requirements.txt
+            requirements-benchmark.txt
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
+          python -m pip install -r ../requirements-benchmark.txt
 
       - name: Compile Python sources
         run: python -m compileall -q src tests
