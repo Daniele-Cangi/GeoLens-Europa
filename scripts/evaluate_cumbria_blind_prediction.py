@@ -24,6 +24,7 @@ OUTPUT_RECEIPT_NAME = "cumbria-blind-evaluation-v0.receipt.json"
 OUTPUT_SCHEMA = "cumbria-blind-evaluation-receipt-v0.1.0"
 OUTPUT_RECEIPT_SHA256 = "610bae9d7e31978e3565a5e04e779bde9e1dc5236e200a0699cf8db9c118ffa2"
 AUTHORIZATION_SCHEMA = "cumbria-blind-evaluation-execution-authorization-v0.1.0"
+PHYSICS_REVISION_GATE_SCHEMA = "cumbria-physics-revision-gate-v0.1.0"
 EXECUTOR_RELATIVE_PATH = "scripts/evaluate_cumbria_blind_prediction.py"
 PROTOCOL_SHA256 = "1a135785bef1121e542952fd8ee90d6eed86908d19864d381985fbfd2f8a1dd0"
 PREDICTION_RECEIPT_SHA256 = "f2a3a7489699a70a6d5c770633bdc9f789184ca26cb8190c85a1d28d40495dc6"
@@ -128,6 +129,32 @@ def validate_execution_authorization(
     return authorization
 
 
+def assert_post_evaluation_execution_blocked(manifest: dict[str, Any]) -> None:
+    gate = manifest.get("physicsRevisionGate")
+    if not isinstance(gate, dict):
+        raise ValueError("Cumbria physics revision gate is missing")
+    authorization = gate.get("authorization")
+    if (
+        gate.get("schemaVersion") != PHYSICS_REVISION_GATE_SCHEMA
+        or gate.get("state") != "frozen_no_revision_authorized"
+        or authorization
+        != {
+            "solverRevisionAllowed": False,
+            "carlisleRevisionRunAllowed": False,
+            "validationClaimAllowed": False,
+            "blockingReason": (
+                "All four physical hypotheses lack required event-valid evidence; "
+                "the opened Carlisle references are diagnostic only and cannot "
+                "authorize or accept a revision."
+            ),
+        }
+    ):
+        raise ValueError("Cumbria physics revision gate drifted")
+    raise ValueError(
+        "Cumbria physics revision gate blocks another Carlisle evaluation execution"
+    )
+
+
 def first_revision_with_executor_identity(executor_sha256: str) -> str:
     revisions = subprocess.check_output(
         ["git", "log", "--reverse", "--format=%H", "--", EXECUTOR_RELATIVE_PATH],
@@ -145,6 +172,7 @@ def first_revision_with_executor_identity(executor_sha256: str) -> str:
 
 
 def assert_execution_revision(manifest: dict[str, Any]) -> dict[str, str]:
+    assert_post_evaluation_execution_blocked(manifest)
     if subprocess.check_output(
         ["git", "status", "--porcelain"], cwd=REPOSITORY_ROOT, text=True
     ).strip():

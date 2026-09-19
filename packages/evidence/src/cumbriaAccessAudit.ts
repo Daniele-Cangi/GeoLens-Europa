@@ -13,7 +13,7 @@ import {
   type CumbriaReplacementSolverProtocol,
 } from './cumbriaReplacementSolver';
 
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.32.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.33.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -1635,6 +1635,27 @@ export interface CumbriaBlindEvaluationFailureInventory {
   readonly role: 'post_evaluation_failure_inventory_not_model_input_or_model_selection';
 }
 
+export interface CumbriaPhysicsRevisionGate {
+  readonly schemaVersion: 'cumbria-physics-revision-gate-v0.1.0';
+  readonly state: 'frozen_no_revision_authorized';
+  readonly recordedOn: string;
+  readonly baselineBindings: Readonly<Record<string, string>>;
+  readonly sameEventReferencePolicy: {
+    readonly status: 'opened_after_baseline_freeze';
+    readonly permittedUses: readonly string[];
+    readonly forbiddenUses: readonly string[];
+    readonly mayAuthorizeRevision: false;
+  };
+  readonly hypotheses: readonly Record<string, unknown>[];
+  readonly experimentAdmission: Readonly<Record<string, boolean>>;
+  readonly authorization: {
+    readonly solverRevisionAllowed: false;
+    readonly carlisleRevisionRunAllowed: false;
+    readonly validationClaimAllowed: false;
+    readonly blockingReason: string;
+  };
+}
+
 export interface CumbriaAccessManifest {
   readonly manifestVersion: typeof CUMBRIA_ACCESS_MANIFEST_VERSION;
   readonly audit: {
@@ -1686,6 +1707,7 @@ export interface CumbriaAccessManifest {
   readonly evaluationRun: CumbriaBlindEvaluationRun;
   readonly evaluationDiagnostics: CumbriaBlindEvaluationDiagnostics;
   readonly failureInventory: CumbriaBlindEvaluationFailureInventory;
+  readonly physicsRevisionGate: CumbriaPhysicsRevisionGate;
   readonly modelAccessRequest: CumbriaModelAccessRequest;
   readonly modelDeliveryIntakeProtocol: CumbriaModelDeliveryIntakeProtocol;
   readonly datasets: readonly CumbriaDatasetAudit[];
@@ -1994,6 +2016,12 @@ export function assertCumbriaAccessManifest(
     manifest.evaluationRun,
     manifest.evaluationDiagnostics,
     manifest.publicBaselineSolverGridMaterialization,
+  );
+  physicsRevisionGate(
+    manifest.physicsRevisionGate,
+    manifest.evaluationRun,
+    manifest.failureInventory,
+    manifest.evaluationProtocol,
   );
 
   const imergFacts = record(
@@ -2932,6 +2960,11 @@ export function assertCumbriaAccessManifest(
     gateStates.get('blind_evaluation_failure_inventory'),
     'passed',
     'blind_evaluation_failure_inventory',
+  );
+  equal(
+    gateStates.get('post_evaluation_physics_revision_gate'),
+    'passed',
+    'post_evaluation_physics_revision_gate',
   );
 
   const acquisition = record(manifest.acquisition, 'acquisition');
@@ -6674,6 +6707,178 @@ function blindEvaluationFailureInventory(
     'post_evaluation_failure_inventory_not_model_input_or_model_selection',
     'failure inventory role',
   );
+}
+
+function physicsRevisionGate(
+  value: unknown,
+  runValue: unknown,
+  inventoryValue: unknown,
+  protocolValue: unknown,
+): void {
+  const gate = record(value, 'physicsRevisionGate');
+  equal(
+    gate.schemaVersion,
+    'cumbria-physics-revision-gate-v0.1.0',
+    'physics revision gate schema',
+  );
+  equal(
+    gate.state,
+    'frozen_no_revision_authorized',
+    'physics revision gate state',
+  );
+  dateOnly(gate.recordedOn, 'physics revision gate date');
+  const bindings = record(
+    gate.baselineBindings,
+    'physicsRevisionGate.baselineBindings',
+  );
+  const protocol = record(protocolValue, 'evaluationProtocol');
+  const predictionFreeze = record(
+    protocol.predictionFreeze,
+    'evaluationProtocol.predictionFreeze',
+  );
+  equal(
+    bindings.predictionReceiptSha256,
+    record(
+      predictionFreeze.predictionReceipt,
+      'evaluationProtocol.predictionFreeze.predictionReceipt',
+    ).sha256,
+    'physics revision prediction receipt',
+  );
+  equal(
+    bindings.evaluationReceiptSha256,
+    record(record(runValue, 'evaluationRun').receipt, 'evaluationRun.receipt').sha256,
+    'physics revision evaluation receipt',
+  );
+  equal(
+    bindings.failureInventoryReceiptSha256,
+    record(inventoryValue, 'failureInventory').receiptSha256,
+    'physics revision failure inventory receipt',
+  );
+  const referencePolicy = record(
+    gate.sameEventReferencePolicy,
+    'physicsRevisionGate.sameEventReferencePolicy',
+  );
+  equal(
+    referencePolicy.status,
+    'opened_after_baseline_freeze',
+    'physics revision reference state',
+  );
+  const expectedPermittedUses = [
+    'failure_diagnosis',
+    'transparent_non_blind_comparison',
+  ];
+  if (
+    JSON.stringify(
+      stringArray(referencePolicy.permittedUses, 'physics revision permitted uses'),
+    ) !== JSON.stringify(expectedPermittedUses)
+  ) {
+    throw new Error('Physics revision permitted reference uses drifted');
+  }
+  const expectedForbiddenUses = [
+    'calibration',
+    'threshold_selection',
+    'scenario_selection',
+    'acceptance_test',
+    'blind_validation_claim',
+  ];
+  if (
+    JSON.stringify(
+      stringArray(referencePolicy.forbiddenUses, 'physics revision forbidden uses'),
+    ) !== JSON.stringify(expectedForbiddenUses)
+  ) {
+    throw new Error('Physics revision forbidden reference uses drifted');
+  }
+  equal(
+    referencePolicy.mayAuthorizeRevision,
+    false,
+    'same-event reference revision authority',
+  );
+  const expectedHypotheses = [
+    [
+      'channel_conveyance_representation',
+      ['event_valid_channel_geometry', 'cross_sections', 'channel_roughness', 'channel_floodplain_coupling_definition'],
+      'mass_conserving_channel_and_floodplain_exchange',
+    ],
+    [
+      'boundary_and_initial_state',
+      ['old_sandsfield_boundary_definition', 'boundary_time_series', 'initial_channel_stage', 'initial_floodplain_state'],
+      'boundary_driven_backwater_and_initial_state',
+    ],
+    [
+      'defence_and_control_state',
+      ['as_of_event_defence_geometry', 'crest_levels_and_vertical_datum', 'as_of_event_condition', 'floodgate_state'],
+      'overtopping_and_blocked_flow_control',
+    ],
+    [
+      'source_term_placement',
+      ['historical_boundary_mapping', 'upstream_hydrograph_assignment', 'initial_baseflow_or_stage', 'double_counting_exclusion'],
+      'boundary_source_placement_and_volume_conservation',
+    ],
+  ] as const;
+  const actualHypotheses = array(
+    gate.hypotheses,
+    'physics revision hypotheses',
+  ).map((entry, index) => {
+    const hypothesis = record(entry, `physics revision hypothesis ${index}`);
+    equal(
+      hypothesis.status,
+      'unconfirmed_evidence_blocked',
+      `physics revision hypothesis ${index} status`,
+    );
+    nonEmpty(hypothesis.statement, `physics revision hypothesis ${index} statement`);
+    nonEmpty(
+      hypothesis.forbiddenShortcut,
+      `physics revision hypothesis ${index} forbidden shortcut`,
+    );
+    return [
+      hypothesis.id,
+      stringArray(
+        hypothesis.requiredEvidence,
+        `physics revision hypothesis ${index} evidence`,
+      ),
+      hypothesis.fixtureBeforeCarlisle,
+    ];
+  });
+  if (JSON.stringify(actualHypotheses) !== JSON.stringify(expectedHypotheses)) {
+    throw new Error('Physics revision hypotheses drifted');
+  }
+  const admission = record(
+    gate.experimentAdmission,
+    'physicsRevisionGate.experimentAdmission',
+  );
+  for (const field of [
+    'newEvidenceContentAddressedBeforeUse',
+    'temporalLineageAndUnitsVerifiedBeforeUse',
+    'hypothesisAndAcceptanceTestMergedBeforeExecution',
+    'deterministicFixtureRequiredBeforeCarlisle',
+    'sameEventReferencesExcludedFromAcceptance',
+    'newHoldoutRequiredForValidationClaim',
+    'allPredeclaredScenariosReported',
+    'originalBaselineRetainedSideBySide',
+  ]) {
+    equal(admission[field], true, `physics revision admission ${field}`);
+  }
+  equal(
+    admission.singleFactorCausalityClaimAllowed,
+    false,
+    'physics revision causality claim',
+  );
+  const authorization = record(
+    gate.authorization,
+    'physicsRevisionGate.authorization',
+  );
+  equal(authorization.solverRevisionAllowed, false, 'solver revision authorization');
+  equal(
+    authorization.carlisleRevisionRunAllowed,
+    false,
+    'Carlisle revision-run authorization',
+  );
+  equal(
+    authorization.validationClaimAllowed,
+    false,
+    'physics revision validation claim',
+  );
+  nonEmpty(authorization.blockingReason, 'physics revision blocking reason');
 }
 
 function modelAccessRequest(value: unknown): void {

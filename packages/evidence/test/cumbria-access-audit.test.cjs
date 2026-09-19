@@ -198,7 +198,7 @@ test('public baseline terrain materialization records real coverage without zero
   const manifest = manifestFixture();
   const result = manifest.publicBaselineTerrainMaterialization;
 
-  assert.equal(manifest.manifestVersion, '0.32.0');
+  assert.equal(manifest.manifestVersion, '0.33.0');
   assert.equal(result.state, 'terrain_materialized_with_explicit_gaps');
   assert.equal(
     result.protocolSha256,
@@ -657,13 +657,59 @@ test('failure inventory uses only frozen depth thresholds and CLC classes', () =
   );
 });
 
+test('post-evaluation physics hypotheses cannot authorize retrospective tuning', () => {
+  const manifest = manifestFixture();
+  const gate = manifest.physicsRevisionGate;
+
+  assert.equal(gate.state, 'frozen_no_revision_authorized');
+  assert.deepEqual(
+    gate.hypotheses.map((hypothesis) => [hypothesis.id, hypothesis.status]),
+    [
+      ['channel_conveyance_representation', 'unconfirmed_evidence_blocked'],
+      ['boundary_and_initial_state', 'unconfirmed_evidence_blocked'],
+      ['defence_and_control_state', 'unconfirmed_evidence_blocked'],
+      ['source_term_placement', 'unconfirmed_evidence_blocked'],
+    ],
+  );
+  assert.deepEqual(gate.sameEventReferencePolicy.permittedUses, [
+    'failure_diagnosis',
+    'transparent_non_blind_comparison',
+  ]);
+  assert.equal(
+    gate.sameEventReferencePolicy.forbiddenUses.includes('acceptance_test'),
+    true,
+  );
+  assert.deepEqual(gate.authorization, {
+    solverRevisionAllowed: false,
+    carlisleRevisionRunAllowed: false,
+    validationClaimAllowed: false,
+    blockingReason:
+      'All four physical hypotheses lack required event-valid evidence; the opened Carlisle references are diagnostic only and cannot authorize or accept a revision.',
+  });
+
+  const retrospectivelyAuthorized = manifestFixture();
+  retrospectivelyAuthorized.physicsRevisionGate.authorization.carlisleRevisionRunAllowed =
+    true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(retrospectivelyAuthorized),
+    /Carlisle revision-run authorization/,
+  );
+
+  const promotedHypothesis = manifestFixture();
+  promotedHypothesis.physicsRevisionGate.hypotheses[0].status = 'confirmed';
+  assert.throws(
+    () => assertCumbriaAccessManifest(promotedHypothesis),
+    /hypothesis 0 status/,
+  );
+});
+
 test('pre-event terrain selection maps to downloadable archives with explicit gaps', () => {
   const manifest = manifestFixture();
   const lidar = manifest.datasets.find(
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.32.0');
+  assert.equal(manifest.manifestVersion, '0.33.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {

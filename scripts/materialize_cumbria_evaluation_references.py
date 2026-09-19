@@ -104,9 +104,9 @@ def ensure_external_data_root(data_root: Path, repository_root: Path) -> Path:
 
 
 def validate_manifest(manifest: dict[str, Any]) -> None:
-    if manifest.get("manifestVersion") not in {"0.26.0", "0.27.0", "0.28.0", "0.29.0", "0.30.0", "0.31.0", "0.32.0"}:
+    if manifest.get("manifestVersion") not in {"0.26.0", "0.27.0", "0.28.0", "0.29.0", "0.30.0", "0.31.0", "0.32.0", "0.33.0"}:
         raise ValueError(
-            "Cumbria reference acquisition requires manifest v0.26.0 through v0.32.0"
+            "Cumbria reference acquisition requires manifest v0.26.0 through v0.33.0"
         )
     protocol = manifest.get("evaluationProtocol", {})
     if protocol.get("protocolSha256") != PROTOCOL_SHA256:
@@ -124,7 +124,7 @@ def validate_manifest(manifest: dict[str, Any]) -> None:
         "copernicus-emsr147-carlisle",
     ]:
         raise ValueError("Evaluation reference identities drifted")
-    if manifest.get("manifestVersion") in {"0.27.0", "0.28.0", "0.29.0", "0.30.0", "0.31.0", "0.32.0"}:
+    if manifest.get("manifestVersion") in {"0.27.0", "0.28.0", "0.29.0", "0.30.0", "0.31.0", "0.32.0", "0.33.0"}:
         recorded = manifest.get("evaluationReferenceAcquisition", {})
         if recorded.get("receipt", {}).get("sha256") != (
             "b9bf772af4a356de533edb26c005dd318e36d889ad44fdaeb51586c989adffbf"
