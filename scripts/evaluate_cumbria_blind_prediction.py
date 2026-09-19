@@ -4,12 +4,14 @@ import argparse
 import gzip
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
 from typing import Any
 
 import numpy as np
+import shapely
 from shapely import linestrings, points
 from shapely.strtree import STRtree
 
@@ -20,9 +22,15 @@ PREDICTION_RECEIPT_NAME = "cumbria-public-storm-desmond-v0.prediction.receipt.js
 REFERENCE_RECEIPT_NAME = "cumbria-evaluation-reference-masks-v0.receipt.json"
 OUTPUT_RECEIPT_NAME = "cumbria-blind-evaluation-v0.receipt.json"
 OUTPUT_SCHEMA = "cumbria-blind-evaluation-receipt-v0.1.0"
+AUTHORIZATION_SCHEMA = "cumbria-blind-evaluation-execution-authorization-v0.1.0"
+EXECUTOR_RELATIVE_PATH = "scripts/evaluate_cumbria_blind_prediction.py"
 PROTOCOL_SHA256 = "1a135785bef1121e542952fd8ee90d6eed86908d19864d381985fbfd2f8a1dd0"
 PREDICTION_RECEIPT_SHA256 = "f2a3a7489699a70a6d5c770633bdc9f789184ca26cb8190c85a1d28d40495dc6"
 REFERENCE_RECEIPT_SHA256 = "fae2cadba3675bff4191da5829e8bf64d71ffc028a9c6899c9e865f97b6debe0"
+SOURCE_RECEIPT_SHA256 = "b9bf772af4a356de533edb26c005dd318e36d889ad44fdaeb51586c989adffbf"
+NORMALIZATION_SCHEMA = "cumbria-evaluation-reference-normalization-v0.1.0"
+NORMALIZATION_COMMIT = "7161a53bf0a1823858d40705855e4ae7651c1a6c"
+NORMALIZATION_TREE = "030bab43e8ad3d0d8c099c8faa52a4e4fa68eac2"
 PREDICTION_ARTIFACT_SHA256 = "dffe515490e25f371095547f4b6e90f93b5744252bf4a82948b846099a17575f"
 PREDICTION_CONTENT_SHA256 = "f535a3a8fc2bd5b96afc4f2feb59c1a285a4776e2314385f9133c6a3f50da45e"
 VALID_MASK_SHA256 = "2273498b8cacfaace9245ae4f4f20a57077ad45758826919843e8837af338230"
@@ -85,11 +93,53 @@ def ensure_external_data_root(data_root: Path, repository_root: Path) -> Path:
     return resolved
 
 
-def assert_clean_execution_revision() -> dict[str, str]:
+def validate_execution_authorization(
+    manifest: dict[str, Any],
+    executor_sha256: str,
+) -> dict[str, Any]:
+    authorization = manifest.get("evaluationExecutionAuthorization")
+    if not isinstance(authorization, dict):
+        raise ValueError("Blind evaluation execution has not been authorized")
+    executor = authorization.get("executor", {})
+    if (
+        authorization.get("schemaVersion") != AUTHORIZATION_SCHEMA
+        or authorization.get("state") != "authorized_for_single_blind_evaluation"
+        or authorization.get("protocolSha256") != PROTOCOL_SHA256
+        or authorization.get("predictionReceiptSha256") != PREDICTION_RECEIPT_SHA256
+        or authorization.get("referenceReceiptSha256") != REFERENCE_RECEIPT_SHA256
+        or executor.get("relativePath") != EXECUTOR_RELATIVE_PATH
+        or executor.get("sha256") != executor_sha256
+        or not isinstance(executor.get("frozenCommit"), str)
+        or len(executor["frozenCommit"]) != 40
+    ):
+        raise ValueError("Blind evaluation execution authorization drifted")
+    return authorization
+
+
+def assert_execution_revision(manifest: dict[str, Any]) -> dict[str, str]:
     if subprocess.check_output(
         ["git", "status", "--porcelain"], cwd=REPOSITORY_ROOT, text=True
     ).strip():
         raise ValueError("Blind evaluation requires a clean Git worktree")
+    current_executor = subprocess.check_output(
+        ["git", "show", f"HEAD:{EXECUTOR_RELATIVE_PATH}"],
+        cwd=REPOSITORY_ROOT,
+    )
+    executor_sha256 = sha256_bytes(current_executor)
+    authorization = validate_execution_authorization(manifest, executor_sha256)
+    frozen_commit = authorization["executor"]["frozenCommit"]
+    if subprocess.run(
+        ["git", "merge-base", "--is-ancestor", frozen_commit, "HEAD"],
+        cwd=REPOSITORY_ROOT,
+        check=False,
+    ).returncode != 0:
+        raise ValueError("Authorized blind-evaluation revision is not an ancestor of HEAD")
+    historical_executor = subprocess.check_output(
+        ["git", "show", f"{frozen_commit}:{EXECUTOR_RELATIVE_PATH}"],
+        cwd=REPOSITORY_ROOT,
+    )
+    if sha256_bytes(historical_executor) != executor_sha256:
+        raise ValueError("Authorized historical blind-evaluation executor drifted")
     return {
         "commit": subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=REPOSITORY_ROOT, text=True
@@ -103,6 +153,8 @@ def assert_clean_execution_revision() -> dict[str, str]:
 def validate_manifest(manifest: dict[str, Any]) -> None:
     protocol = manifest.get("evaluationProtocol", {})
     normalization = manifest.get("evaluationReferenceNormalization", {})
+    normalization_receipt = normalization.get("receipt", {})
+    normalization_revision = normalization.get("materializationRevision", {})
     metrics = tuple(metric.get("id") for metric in protocol.get("metrics", []))
     if (
         protocol.get("protocolSha256") != PROTOCOL_SHA256
@@ -123,7 +175,19 @@ def validate_manifest(manifest: dict[str, Any]) -> None:
         != "block_evaluation"
         or protocol.get("comparisonPolicy", {}).get("referenceDisagreement")
         != "report_separately_no_union_or_intersection"
-        or normalization.get("receipt", {}).get("sha256") != REFERENCE_RECEIPT_SHA256
+        or normalization.get("schemaVersion") != NORMALIZATION_SCHEMA
+        or normalization.get("state") != "content_addressed_evaluation_pending"
+        or normalization.get("sourceReceiptSha256") != SOURCE_RECEIPT_SHA256
+        or normalization.get("predictionReceiptSha256") != PREDICTION_RECEIPT_SHA256
+        or normalization.get("protocolSha256") != PROTOCOL_SHA256
+        or normalization_revision.get("commit") != NORMALIZATION_COMMIT
+        or normalization_revision.get("tree") != NORMALIZATION_TREE
+        or normalization_receipt.get("fileName") != REFERENCE_RECEIPT_NAME
+        or normalization_receipt.get("schemaVersion")
+        != "cumbria-evaluation-reference-mask-receipt-v0.1.0"
+        or normalization_receipt.get("sha256") != REFERENCE_RECEIPT_SHA256
+        or normalization_receipt.get("referenceCount") != len(REFERENCE_IDS)
+        or normalization.get("grid") != GRID
         or normalization.get("nextGate") != "evaluate_each_reference_independently"
     ):
         raise ValueError("Cumbria blind-evaluation contract drifted")
@@ -166,23 +230,31 @@ def validate_binary_mask(mask: np.ndarray, label: str, *, allow_missing: bool) -
         raise ValueError(f"{label} contains values outside its frozen encoding")
 
 
-def boundary_segments(mask: np.ndarray) -> np.ndarray:
-    north = np.zeros_like(mask, dtype=bool)
-    south = np.zeros_like(mask, dtype=bool)
-    west = np.zeros_like(mask, dtype=bool)
-    east = np.zeros_like(mask, dtype=bool)
-    north[1:, :] = mask[:-1, :]
-    south[:-1, :] = mask[1:, :]
-    west[:, 1:] = mask[:, :-1]
-    east[:, :-1] = mask[:, 1:]
+def boundary_segments(mask: np.ndarray, known: np.ndarray) -> np.ndarray:
+    north_wet = np.zeros_like(mask, dtype=bool)
+    south_wet = np.zeros_like(mask, dtype=bool)
+    west_wet = np.zeros_like(mask, dtype=bool)
+    east_wet = np.zeros_like(mask, dtype=bool)
+    north_known = np.zeros_like(known, dtype=bool)
+    south_known = np.zeros_like(known, dtype=bool)
+    west_known = np.zeros_like(known, dtype=bool)
+    east_known = np.zeros_like(known, dtype=bool)
+    north_wet[1:, :] = mask[:-1, :]
+    south_wet[:-1, :] = mask[1:, :]
+    west_wet[:, 1:] = mask[:, :-1]
+    east_wet[:, :-1] = mask[:, 1:]
+    north_known[1:, :] = known[:-1, :]
+    south_known[:-1, :] = known[1:, :]
+    west_known[:, 1:] = known[:, :-1]
+    east_known[:, :-1] = known[:, 1:]
     x0, y_top = GRID["originUpperLeft"]
     size = GRID["cellSizeMetres"]
     segments: list[list[list[float]]] = []
     for edge_mask, edge in (
-        (mask & ~north, "north"),
-        (mask & ~south, "south"),
-        (mask & ~west, "west"),
-        (mask & ~east, "east"),
+        (mask & north_known & ~north_wet, "north"),
+        (mask & south_known & ~south_wet, "south"),
+        (mask & west_known & ~west_wet, "west"),
+        (mask & east_known & ~east_wet, "east"),
     ):
         for row, column in np.argwhere(edge_mask):
             left = x0 + int(column) * size
@@ -213,9 +285,13 @@ def directed_boundary_distances(source: np.ndarray, target: np.ndarray) -> np.nd
     return np.asarray(distances, dtype=np.float64)
 
 
-def boundary_distance_p95(predicted: np.ndarray, observed: np.ndarray) -> dict[str, Any]:
-    predicted_segments = boundary_segments(predicted)
-    observed_segments = boundary_segments(observed)
+def boundary_distance_p95(
+    predicted: np.ndarray,
+    observed: np.ndarray,
+    known: np.ndarray,
+) -> dict[str, Any]:
+    predicted_segments = boundary_segments(predicted, known)
+    observed_segments = boundary_segments(observed, known)
     if len(predicted_segments) == 0 or len(observed_segments) == 0:
         return {
             "value": None,
@@ -312,7 +388,11 @@ def evaluate_reference(
                 "value": false_negative_count * CELL_AREA_M2,
                 "unit": "m2",
             },
-            "boundary_distance_p95": boundary_distance_p95(predicted, observed),
+            "boundary_distance_p95": boundary_distance_p95(
+                predicted,
+                observed,
+                evaluation_mask,
+            ),
         },
     }
 
@@ -378,10 +458,15 @@ def build_receipt(data_root: Path, revision: dict[str, str]) -> dict[str, Any]:
         },
         "metricOperationalization": {
             "area": "20 m cell counts multiplied by 400 m2 inside the frozen prediction domain and observed coverage",
-            "boundary": "each exposed 20 m wet-cell edge contributes one midpoint; directed midpoint-to-nearest-opposite-edge distances are pooled symmetrically",
+            "boundary": "each wet-to-known-dry 20 m cell edge contributes one midpoint; edges adjacent to excluded or unknown cells are suppressed; directed midpoint-to-nearest-opposite-edge distances are pooled symmetrically",
             "percentile": "NumPy percentile 95 with linear interpolation",
             "missingObservedCoverage": "excluded and reported, never interpreted as dry",
             "missingPredictionCoverage": "blocks evaluation",
+        },
+        "runtime": {
+            "numpy": np.__version__,
+            "shapely": shapely.__version__,
+            "geos": shapely.geos_version_string,
         },
         "comparisons": comparisons,
         "isolation": {
@@ -404,7 +489,10 @@ def write_receipt(data_root: Path, receipt: dict[str, Any]) -> None:
         raise ValueError("Existing blind-evaluation receipt drifted")
     if not path.exists():
         temporary = path.with_suffix(path.suffix + ".tmp")
-        temporary.write_bytes(encoded)
+        with temporary.open("wb") as stream:
+            stream.write(encoded)
+            stream.flush()
+            os.fsync(stream.fileno())
         temporary.replace(path)
 
 
@@ -434,7 +522,7 @@ def main(arguments: list[str] | None = None) -> int:
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     validate_manifest(manifest)
     if options.execute:
-        result = build_receipt(data_root, assert_clean_execution_revision())
+        result = build_receipt(data_root, assert_execution_revision(manifest))
         write_receipt(data_root, result)
         mode = "execute"
     else:
