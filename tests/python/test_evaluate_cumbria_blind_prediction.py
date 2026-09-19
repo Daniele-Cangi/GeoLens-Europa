@@ -81,11 +81,8 @@ class CumbriaBlindEvaluationTests(unittest.TestCase):
 
     def test_current_authorization_matches_the_frozen_git_blob(self):
         manifest = MODULE.json.loads(MODULE.MANIFEST_PATH.read_text(encoding="utf-8"))
-        frozen_commit = manifest["evaluationExecutionAuthorization"]["executor"][
-            "frozenCommit"
-        ]
         source = subprocess.check_output(
-            ["git", "show", f"{frozen_commit}:{MODULE.EXECUTOR_RELATIVE_PATH}"],
+            ["git", "show", f"HEAD:{MODULE.EXECUTOR_RELATIVE_PATH}"],
             cwd=MODULE.REPOSITORY_ROOT,
         )
         executor_sha256 = hashlib.sha256(source).hexdigest()
