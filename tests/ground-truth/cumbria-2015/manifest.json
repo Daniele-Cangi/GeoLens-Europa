@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.32.0",
+  "manifestVersion": "0.33.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -2128,6 +2128,73 @@
     "interpretation": "The false-positive excess is not confined to the 5-10 cm fringe: 78-79% remains at or above 10 cm and 34-37% remains at or above 30 cm across all three references. Counts span multiple CLC classes and are descriptive only; they do not establish land-cover causality or authorize tuning.",
     "role": "post_evaluation_failure_inventory_not_model_input_or_model_selection"
   },
+  "physicsRevisionGate": {
+    "schemaVersion": "cumbria-physics-revision-gate-v0.1.0",
+    "state": "frozen_no_revision_authorized",
+    "recordedOn": "2026-09-19",
+    "baselineBindings": {
+      "predictionReceiptSha256": "f2a3a7489699a70a6d5c770633bdc9f789184ca26cb8190c85a1d28d40495dc6",
+      "evaluationReceiptSha256": "610bae9d7e31978e3565a5e04e779bde9e1dc5236e200a0699cf8db9c118ffa2",
+      "failureInventoryReceiptSha256": "73d4eb08f14e7fb6e7fcee7c7ebda9a2bc768f521979076f77d2fc42dc00d508"
+    },
+    "sameEventReferencePolicy": {
+      "status": "opened_after_baseline_freeze",
+      "permittedUses": ["failure_diagnosis", "transparent_non_blind_comparison"],
+      "forbiddenUses": ["calibration", "threshold_selection", "scenario_selection", "acceptance_test", "blind_validation_claim"],
+      "mayAuthorizeRevision": false
+    },
+    "hypotheses": [
+      {
+        "id": "channel_conveyance_representation",
+        "status": "unconfirmed_evidence_blocked",
+        "statement": "Missing event-valid channel geometry, sections, roughness and channel-floodplain coupling may materially distort conveyance and overbank exchange.",
+        "requiredEvidence": ["event_valid_channel_geometry", "cross_sections", "channel_roughness", "channel_floodplain_coupling_definition"],
+        "forbiddenShortcut": "Current hydrography or terrain depressions cannot be promoted to December 2015 hydraulic channel geometry.",
+        "fixtureBeforeCarlisle": "mass_conserving_channel_and_floodplain_exchange"
+      },
+      {
+        "id": "boundary_and_initial_state",
+        "status": "unconfirmed_evidence_blocked",
+        "statement": "The free-outflow downstream edge and dry initial surface may misrepresent the historical downstream control and initial hydraulic state.",
+        "requiredEvidence": ["old_sandsfield_boundary_definition", "boundary_time_series", "initial_channel_stage", "initial_floodplain_state"],
+        "forbiddenShortcut": "No zero stage, dry channel or station-to-boundary equivalence may be invented.",
+        "fixtureBeforeCarlisle": "boundary_driven_backwater_and_initial_state"
+      },
+      {
+        "id": "defence_and_control_state",
+        "status": "unconfirmed_evidence_blocked",
+        "statement": "Missing December 2015 defence crests, conditions and floodgate state may alter where water crosses or remains confined.",
+        "requiredEvidence": ["as_of_event_defence_geometry", "crest_levels_and_vertical_datum", "as_of_event_condition", "floodgate_state"],
+        "forbiddenShortcut": "Current AIMS assets and post-event narrative cannot become event geometry or crest values.",
+        "fixtureBeforeCarlisle": "overtopping_and_blocked_flow_control"
+      },
+      {
+        "id": "source_term_placement",
+        "status": "unconfirmed_evidence_blocked",
+        "statement": "The positive-excess Sheepmount proxy may misplace river volume when compared with mapped upstream boundaries and an explicit initial baseflow state.",
+        "requiredEvidence": ["historical_boundary_mapping", "upstream_hydrograph_assignment", "initial_baseflow_or_stage", "double_counting_exclusion"],
+        "forbiddenShortcut": "The Sheepmount proxy and owner boundary inflows may not coexist without an explicit non-overlap proof.",
+        "fixtureBeforeCarlisle": "boundary_source_placement_and_volume_conservation"
+      }
+    ],
+    "experimentAdmission": {
+      "newEvidenceContentAddressedBeforeUse": true,
+      "temporalLineageAndUnitsVerifiedBeforeUse": true,
+      "hypothesisAndAcceptanceTestMergedBeforeExecution": true,
+      "deterministicFixtureRequiredBeforeCarlisle": true,
+      "sameEventReferencesExcludedFromAcceptance": true,
+      "newHoldoutRequiredForValidationClaim": true,
+      "allPredeclaredScenariosReported": true,
+      "originalBaselineRetainedSideBySide": true,
+      "singleFactorCausalityClaimAllowed": false
+    },
+    "authorization": {
+      "solverRevisionAllowed": false,
+      "carlisleRevisionRunAllowed": false,
+      "validationClaimAllowed": false,
+      "blockingReason": "All four physical hypotheses lack required event-valid evidence; the opened Carlisle references are diagnostic only and cannot authorize or accept a revision."
+    }
+  },
   "modelAccessRequest": {
     "id": "cumbria-carlisle-pre-event-model-products-5-6-7-v0",
     "state": "sent_awaiting_response",
@@ -3671,6 +3738,11 @@
       "reason": "Receipt 73d4eb08f14e7fb6e7fcee7c7ebda9a2bc768f521979076f77d2fc42dc00d508 stratifies the retained error only by the three predeclared depth thresholds and pre-event CLC classes. It computes no new evaluation metric, ranks no scenario, changes no threshold and authorizes no model change."
     },
     {
+      "id": "post_evaluation_physics_revision_gate",
+      "state": "passed",
+      "reason": "Four unconfirmed physical hypotheses now have explicit evidence requirements, forbidden shortcuts and independent fixture prerequisites. The opened Carlisle references remain diagnostic only; no solver revision, Carlisle rerun or validation claim is authorized."
+    },
+    {
       "id": "large_artifact_downloads",
       "state": "blocked",
       "reason": "Unbounded or full-envelope artifact acquisition remains blocked. The only authorized bounded references have been acquired and hashed; no other geography or post-hoc reference may be added to alter the model, domain, mesh or wetness threshold."
@@ -3680,6 +3752,6 @@
     "state": "blind_evaluation_complete_negative_baseline_retained",
     "largeDownloadsAllowed": false,
     "boundedTerrainDownloadsAllowed": true,
-    "nextAction": "Analyze the retained failure modes without changing or replacing the frozen baseline; any revised model must be a separately versioned experiment reported beside this result."
+    "nextAction": "Keep Carlisle physics frozen until one hypothesis receives content-addressed event-valid evidence and a merged independent fixture protocol; the opened references cannot accept the revision."
   }
 }
