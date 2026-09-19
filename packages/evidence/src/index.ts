@@ -1,6 +1,7 @@
 export * from './benchmark';
 export * from './arpaeHydraulicIntake';
 export * from './cumbriaAccessAudit';
+export * from './cumbriaBenchmark';
 export * from './cumbriaModelIntake';
 export * from './cumbriaPublicBaseline';
 export * from './cumbriaReplacementSolver';

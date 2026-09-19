@@ -14,8 +14,8 @@ export default function CasesPage() {
     <main>
       <PageIntro
         section="Research cases"
-        title="Three cases. Three different evidence boundaries."
-        lede="The GeoLens programme separates a complete transformation proof, an observed urban-infrastructure proof and an independently evaluated historical replay."
+        title="Four cases. Four different evidence boundaries."
+        lede="The GeoLens programme separates a complete transformation proof, observed urban infrastructure and two independently evaluated historical experiments."
       />
       <section className="page-section cases-overview">
         <div className="section-heading-row">
@@ -26,6 +26,7 @@ export default function CasesPage() {
           <div><span>Case 00</span><strong>Completeness</strong><p>Can the full evidence-to-network chain close?</p></div>
           <div><span>Case 01</span><strong>Infrastructure truth</strong><p>Can the system stop before inventing attachment?</p></div>
           <div><span>Case 02</span><strong>Independent reality</strong><p>Does a frozen hypothesis agree with observed extent?</p></div>
+          <div><span>Case 03</span><strong>Scientific falsification</strong><p>Can a negative result remain useful without retrospective tuning?</p></div>
         </div>
       </section>
       <section className="cases-record-section">

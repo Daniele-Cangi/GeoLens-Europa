@@ -1,5 +1,6 @@
 import compress from '@fastify/compress';
 import {
+  CUMBRIA_2015_BENCHMARK,
   CUMBRIA_MODEL_EVIDENCE_INTAKE,
   EMILIA_ARPAE_HYDRAULIC_EVIDENCE_INTAKE,
   EMILIA_ROMAGNA_2023_BENCHMARK,
@@ -167,6 +168,8 @@ export function buildGeoLensApi(
         'GET /api/benchmarks/emilia-romagna-2023/hydraulic-evidence-intake',
       cumbriaModelEvidenceIntake:
         'GET /api/benchmarks/cumbria-2015/model-evidence-intake',
+      cumbriaHistoricalBenchmark:
+        'GET /api/benchmarks/cumbria-2015',
       proofZero: 'POST /api/proof-zero/run',
     },
   }));
@@ -205,6 +208,18 @@ export function buildGeoLensApi(
         )
         .code(200)
         .send(EMILIA_ARPAE_HYDRAULIC_EVIDENCE_INTAKE),
+  );
+
+  server.get(
+    '/api/benchmarks/cumbria-2015',
+    async (_request, reply) =>
+      reply
+        .header(
+          'cache-control',
+          'public, max-age=300, stale-while-revalidate=86400',
+        )
+        .code(200)
+        .send(CUMBRIA_2015_BENCHMARK),
   );
 
   server.get(

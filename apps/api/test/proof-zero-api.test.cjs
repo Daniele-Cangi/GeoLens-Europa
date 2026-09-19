@@ -523,6 +523,10 @@ test('API identity exposes health, Proof 0 and observed infrastructure', async (
     root.endpoints.cumbriaModelEvidenceIntake,
     'GET /api/benchmarks/cumbria-2015/model-evidence-intake',
   );
+  assert.equal(
+    root.endpoints.cumbriaHistoricalBenchmark,
+    'GET /api/benchmarks/cumbria-2015',
+  );
   assert.equal(JSON.stringify(root).includes('ai'), false);
   assert.equal(JSON.stringify(root).includes('mineral'), false);
   assert.equal(health.coreRequiresAi, false);
@@ -666,6 +670,35 @@ test('API exposes the Cumbria model delivery as explicitly missing', async (cont
   assert.equal(serialized.includes('deliveryReference'), false);
   assert.equal(serialized.includes('observedEventGeometry'), false);
   assert.equal(serialized.includes('evaluationGeometry'), false);
+});
+
+test('API exposes the frozen Cumbria negative benchmark without reopening evaluation', async (context) => {
+  const server = buildTestServer();
+  context.after(() => server.close());
+
+  const response = await server.inject({
+    method: 'GET',
+    url: '/api/benchmarks/cumbria-2015',
+  });
+  const body = response.json();
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(
+    response.headers['cache-control'],
+    'public, max-age=300, stale-while-revalidate=86400',
+  );
+  assert.equal(body.manifestVersion, '0.33.0');
+  assert.equal(body.state, 'completed_negative_baseline_retained');
+  assert.equal(body.prediction.scenarioCount, 9);
+  assert.equal(body.prediction.selectionOccurredAfterReferenceAccess, false);
+  assert.equal(body.comparisons.length, 3);
+  assert.equal(body.revisionGate.solverRevisionAllowed, false);
+  assert.equal(body.revisionGate.carlisleRevisionRunAllowed, false);
+  assert.equal(body.revisionGate.validationClaimAllowed, false);
+  assert.equal(body.revisionGate.hypotheses.length, 4);
+  assert.ok(body.claims.forbidden.includes('validated_flood_model'));
+  assert.equal(JSON.stringify(body).includes('relativePath'), false);
+  assert.equal(JSON.stringify(body).includes('evaluationGeometry'), false);
 });
 
 test('API exposes only publication-safe Emilia map layers', async (context) => {
