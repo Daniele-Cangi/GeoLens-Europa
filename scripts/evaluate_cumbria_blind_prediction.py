@@ -101,6 +101,7 @@ def validate_execution_authorization(
     if not isinstance(authorization, dict):
         raise ValueError("Blind evaluation execution has not been authorized")
     executor = authorization.get("executor", {})
+    isolation = authorization.get("isolation", {})
     if (
         authorization.get("schemaVersion") != AUTHORIZATION_SCHEMA
         or authorization.get("state") != "authorized_for_single_blind_evaluation"
@@ -111,9 +112,35 @@ def validate_execution_authorization(
         or executor.get("sha256") != executor_sha256
         or not isinstance(executor.get("frozenCommit"), str)
         or len(executor["frozenCommit"]) != 40
+        or isolation
+        != {
+            "predictionArtifactsLoaded": False,
+            "referenceArtifactsLoaded": False,
+            "filesWritten": 0,
+            "evaluationRuns": 0,
+            "networkRequests": 0,
+        }
+        or authorization.get("nextGate")
+        != "execute_once_and_record_all_predeclared_metrics"
     ):
         raise ValueError("Blind evaluation execution authorization drifted")
     return authorization
+
+
+def first_revision_with_executor_identity(executor_sha256: str) -> str:
+    revisions = subprocess.check_output(
+        ["git", "log", "--reverse", "--format=%H", "--", EXECUTOR_RELATIVE_PATH],
+        cwd=REPOSITORY_ROOT,
+        text=True,
+    ).splitlines()
+    for revision in revisions:
+        source = subprocess.check_output(
+            ["git", "show", f"{revision}:{EXECUTOR_RELATIVE_PATH}"],
+            cwd=REPOSITORY_ROOT,
+        )
+        if sha256_bytes(source) == executor_sha256:
+            return revision
+    raise ValueError("Authorized blind-evaluation executor identity is absent from Git history")
 
 
 def assert_execution_revision(manifest: dict[str, Any]) -> dict[str, str]:
@@ -128,6 +155,8 @@ def assert_execution_revision(manifest: dict[str, Any]) -> dict[str, str]:
     executor_sha256 = sha256_bytes(current_executor)
     authorization = validate_execution_authorization(manifest, executor_sha256)
     frozen_commit = authorization["executor"]["frozenCommit"]
+    if first_revision_with_executor_identity(executor_sha256) != frozen_commit:
+        raise ValueError("Blind-evaluation frozen commit does not identify the reviewed executor revision")
     if subprocess.run(
         ["git", "merge-base", "--is-ancestor", frozen_commit, "HEAD"],
         cwd=REPOSITORY_ROOT,
@@ -148,6 +177,12 @@ def assert_execution_revision(manifest: dict[str, Any]) -> dict[str, str]:
             ["git", "rev-parse", "HEAD^{tree}"], cwd=REPOSITORY_ROOT, text=True
         ).strip(),
     }
+
+
+def assert_output_absent(data_root: Path) -> None:
+    path = data_root / "evaluation-references" / OUTPUT_RECEIPT_NAME
+    if path.exists():
+        raise ValueError("Blind evaluation has already been executed for this external package")
 
 
 def validate_manifest(manifest: dict[str, Any]) -> None:
@@ -522,7 +557,9 @@ def main(arguments: list[str] | None = None) -> int:
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     validate_manifest(manifest)
     if options.execute:
-        result = build_receipt(data_root, assert_execution_revision(manifest))
+        revision = assert_execution_revision(manifest)
+        assert_output_absent(data_root)
+        result = build_receipt(data_root, revision)
         write_receipt(data_root, result)
         mode = "execute"
     else:

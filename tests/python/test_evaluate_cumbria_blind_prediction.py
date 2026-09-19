@@ -2,6 +2,7 @@ import copy
 import hashlib
 import importlib.util
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 
@@ -53,6 +54,7 @@ class CumbriaBlindEvaluationTests(unittest.TestCase):
 
     def test_execution_stays_blocked_without_a_pinned_executor_authorization(self):
         manifest = MODULE.json.loads(MODULE.MANIFEST_PATH.read_text(encoding="utf-8"))
+        manifest.pop("evaluationExecutionAuthorization")
         with self.assertRaisesRegex(ValueError, "has not been authorized"):
             MODULE.validate_execution_authorization(manifest, "0" * 64)
 
@@ -70,12 +72,43 @@ class CumbriaBlindEvaluationTests(unittest.TestCase):
                     "sha256": executor_sha256,
                     "frozenCommit": "0" * 40,
                 },
+                "isolation": {
+                    "predictionArtifactsLoaded": False,
+                    "referenceArtifactsLoaded": False,
+                    "filesWritten": 0,
+                    "evaluationRuns": 0,
+                    "networkRequests": 0,
+                },
+                "nextGate": "execute_once_and_record_all_predeclared_metrics",
             }
         }
         MODULE.validate_execution_authorization(manifest, executor_sha256)
         manifest["evaluationExecutionAuthorization"]["referenceReceiptSha256"] = "1" * 64
         with self.assertRaisesRegex(ValueError, "authorization drifted"):
             MODULE.validate_execution_authorization(manifest, executor_sha256)
+
+    def test_execution_authorization_requires_zero_prior_operations(self):
+        manifest = MODULE.json.loads(MODULE.MANIFEST_PATH.read_text(encoding="utf-8"))
+        changed = copy.deepcopy(manifest)
+        changed["evaluationExecutionAuthorization"]["isolation"]["evaluationRuns"] = 1
+        with self.assertRaisesRegex(ValueError, "authorization drifted"):
+            MODULE.validate_execution_authorization(
+                changed,
+                changed["evaluationExecutionAuthorization"]["executor"]["sha256"],
+            )
+
+    def test_current_authorization_matches_the_frozen_git_blob(self):
+        manifest = MODULE.json.loads(MODULE.MANIFEST_PATH.read_text(encoding="utf-8"))
+        source = subprocess.check_output(
+            ["git", "show", f"HEAD:{MODULE.EXECUTOR_RELATIVE_PATH}"],
+            cwd=MODULE.REPOSITORY_ROOT,
+        )
+        executor_sha256 = hashlib.sha256(source).hexdigest()
+        authorization = MODULE.validate_execution_authorization(manifest, executor_sha256)
+        self.assertEqual(
+            MODULE.first_revision_with_executor_identity(executor_sha256),
+            authorization["executor"]["frozenCommit"],
+        )
 
     def test_exact_match_has_perfect_overlap_and_zero_boundary_distance(self):
         self.predicted[12:16, 12:16] = 1
@@ -173,6 +206,15 @@ class CumbriaBlindEvaluationTests(unittest.TestCase):
             MODULE.write_receipt(root, receipt)
             with self.assertRaisesRegex(ValueError, "receipt drifted"):
                 MODULE.write_receipt(root, {**receipt, "receiptSha256": "1" * 64})
+
+    def test_existing_receipt_consumes_the_single_execution_gate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "evaluation-references").mkdir()
+            MODULE.assert_output_absent(root)
+            (root / "evaluation-references" / MODULE.OUTPUT_RECEIPT_NAME).write_bytes(b"result")
+            with self.assertRaisesRegex(ValueError, "already been executed"):
+                MODULE.assert_output_absent(root)
 
     def test_empty_wet_denominators_are_explicitly_undefined(self):
         result = MODULE.evaluate_reference(

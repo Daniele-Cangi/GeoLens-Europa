@@ -13,7 +13,7 @@ import {
   type CumbriaReplacementSolverProtocol,
 } from './cumbriaReplacementSolver';
 
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.28.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.29.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -1493,6 +1493,28 @@ export interface CumbriaEvaluationReferenceNormalization {
   readonly nextGate: 'evaluate_each_reference_independently';
 }
 
+export interface CumbriaEvaluationExecutionAuthorization {
+  readonly schemaVersion: 'cumbria-blind-evaluation-execution-authorization-v0.1.0';
+  readonly state: 'authorized_for_single_blind_evaluation';
+  readonly recordedOn: string;
+  readonly protocolSha256: string;
+  readonly predictionReceiptSha256: string;
+  readonly referenceReceiptSha256: string;
+  readonly executor: {
+    readonly relativePath: 'scripts/evaluate_cumbria_blind_prediction.py';
+    readonly sha256: string;
+    readonly frozenCommit: '5d34bc1d8109a7a3ea3f8300ab3810c81c8fa745';
+  };
+  readonly isolation: {
+    readonly predictionArtifactsLoaded: false;
+    readonly referenceArtifactsLoaded: false;
+    readonly filesWritten: 0;
+    readonly evaluationRuns: 0;
+    readonly networkRequests: 0;
+  };
+  readonly nextGate: 'execute_once_and_record_all_predeclared_metrics';
+}
+
 export interface CumbriaAccessManifest {
   readonly manifestVersion: typeof CUMBRIA_ACCESS_MANIFEST_VERSION;
   readonly audit: {
@@ -1540,12 +1562,13 @@ export interface CumbriaAccessManifest {
   readonly evaluationProtocol: CumbriaBlindEvaluationProtocol;
   readonly evaluationReferenceAcquisition: CumbriaEvaluationReferenceAcquisition;
   readonly evaluationReferenceNormalization: CumbriaEvaluationReferenceNormalization;
+  readonly evaluationExecutionAuthorization: CumbriaEvaluationExecutionAuthorization;
   readonly modelAccessRequest: CumbriaModelAccessRequest;
   readonly modelDeliveryIntakeProtocol: CumbriaModelDeliveryIntakeProtocol;
   readonly datasets: readonly CumbriaDatasetAudit[];
   readonly gates: readonly CumbriaAccessGate[];
   readonly acquisition: {
-    readonly state: 'evaluation_references_normalized_evaluation_pending';
+    readonly state: 'blind_evaluation_executor_authorized_run_pending';
     readonly largeDownloadsAllowed: false;
     readonly boundedTerrainDownloadsAllowed: true;
     readonly nextAction: string;
@@ -1826,6 +1849,11 @@ export function assertCumbriaAccessManifest(
   evaluationReferenceNormalization(
     manifest.evaluationReferenceNormalization,
     manifest.evaluationReferenceAcquisition,
+    manifest.evaluationProtocol,
+  );
+  evaluationExecutionAuthorization(
+    manifest.evaluationExecutionAuthorization,
+    manifest.evaluationReferenceNormalization,
     manifest.evaluationProtocol,
   );
 
@@ -2746,11 +2774,16 @@ export function assertCumbriaAccessManifest(
     'passed',
     'evaluation_reference_normalization',
   );
+  equal(
+    gateStates.get('blind_evaluation_execution_authorization'),
+    'passed',
+    'blind_evaluation_execution_authorization',
+  );
 
   const acquisition = record(manifest.acquisition, 'acquisition');
   equal(
     acquisition.state,
-    'evaluation_references_normalized_evaluation_pending',
+    'blind_evaluation_executor_authorized_run_pending',
     'acquisition.state',
   );
   equal(
@@ -6009,6 +6042,92 @@ function evaluationReferenceNormalization(
     normalization.nextGate,
     'evaluate_each_reference_independently',
     'normalization next gate',
+  );
+}
+
+function evaluationExecutionAuthorization(
+  value: unknown,
+  normalizationValue: unknown,
+  protocolValue: unknown,
+): void {
+  const authorization = record(
+    value,
+    'evaluationExecutionAuthorization',
+  );
+  equal(
+    authorization.schemaVersion,
+    'cumbria-blind-evaluation-execution-authorization-v0.1.0',
+    'evaluation execution authorization schema',
+  );
+  equal(
+    authorization.state,
+    'authorized_for_single_blind_evaluation',
+    'evaluation execution authorization state',
+  );
+  dateOnly(
+    authorization.recordedOn,
+    'evaluation execution authorization date',
+  );
+  const protocol = record(protocolValue, 'evaluationProtocol');
+  const predictionReceipt = record(
+    record(protocol.predictionFreeze, 'evaluationProtocol.predictionFreeze')
+      .predictionReceipt,
+    'evaluationProtocol.predictionFreeze.predictionReceipt',
+  );
+  const normalization = record(
+    normalizationValue,
+    'evaluationReferenceNormalization',
+  );
+  equal(
+    authorization.protocolSha256,
+    protocol.protocolSha256,
+    'evaluation authorization protocol SHA-256',
+  );
+  equal(
+    authorization.predictionReceiptSha256,
+    predictionReceipt.sha256,
+    'evaluation authorization prediction receipt SHA-256',
+  );
+  equal(
+    authorization.referenceReceiptSha256,
+    record(
+      normalization.receipt,
+      'evaluationReferenceNormalization.receipt',
+    ).sha256,
+    'evaluation authorization reference receipt SHA-256',
+  );
+  const executor = record(
+    authorization.executor,
+    'evaluationExecutionAuthorization.executor',
+  );
+  equal(
+    executor.relativePath,
+    'scripts/evaluate_cumbria_blind_prediction.py',
+    'evaluation executor path',
+  );
+  equal(
+    sha256(executor.sha256, 'evaluation executor SHA-256'),
+    'f029baef594f8710fef9d79f1efadd8eae27586e6f371b9e57a39151128ae4f6',
+    'evaluation executor SHA-256',
+  );
+  equal(
+    executor.frozenCommit,
+    '5d34bc1d8109a7a3ea3f8300ab3810c81c8fa745',
+    'evaluation executor frozen commit',
+  );
+  const isolation = record(
+    authorization.isolation,
+    'evaluationExecutionAuthorization.isolation',
+  );
+  equal(isolation.predictionArtifactsLoaded, false, 'authorization prediction loading');
+  equal(isolation.referenceArtifactsLoaded, false, 'authorization reference loading');
+  equal(isolation.filesWritten, 0, 'authorization files written');
+  equal(isolation.evaluationRuns, 0, 'authorization evaluation runs');
+  equal(isolation.networkRequests, 0, 'authorization network requests');
+  equal(
+    authorization.nextGate,
+    'execute_once_and_record_all_predeclared_metrics',
+    'evaluation authorization next gate',
   );
 }
 
