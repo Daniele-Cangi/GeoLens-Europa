@@ -39,7 +39,7 @@ test('Cumbria manifest freezes the replacement-solver contract without opening s
   );
   assert.equal(
     manifest.acquisition.state,
-    'blind_evaluation_executor_authorized_run_pending',
+    'blind_evaluation_complete_negative_baseline_retained',
   );
   assert.equal(manifest.acquisition.largeDownloadsAllowed, false);
   assert.equal(manifest.acquisition.boundedTerrainDownloadsAllowed, true);
@@ -198,7 +198,7 @@ test('public baseline terrain materialization records real coverage without zero
   const manifest = manifestFixture();
   const result = manifest.publicBaselineTerrainMaterialization;
 
-  assert.equal(manifest.manifestVersion, '0.29.0');
+  assert.equal(manifest.manifestVersion, '0.30.0');
   assert.equal(result.state, 'terrain_materialized_with_explicit_gaps');
   assert.equal(
     result.protocolSha256,
@@ -497,13 +497,72 @@ test('blind evaluation executor is byte-pinned before any metric runs', () => {
   );
 });
 
+test('single blind evaluation retains the negative baseline without retuning', () => {
+  const manifest = manifestFixture();
+  const run = manifest.evaluationRun;
+
+  assert.equal(run.state, 'completed_negative_baseline_retained');
+  assert.equal(
+    run.receipt.sha256,
+    '610bae9d7e31978e3565a5e04e779bde9e1dc5236e200a0699cf8db9c118ffa2',
+  );
+  assert.equal(run.evaluationRevision.commit, '0f4518bb89fcad6e2b5398d11ffa273aa444738f');
+  assert.equal(run.prediction.predictedWetCellCount, 14357);
+  assert.deepEqual(
+    run.comparisons.map((comparison) => [
+      comparison.referenceId,
+      comparison.metrics.intersectionOverUnion,
+      comparison.metrics.areaPrecision,
+      comparison.metrics.areaRecall,
+    ]),
+    [
+      [
+        'ea-recorded-flood-outlines-carlisle-2015',
+        0.05465547530743705,
+        0.05850804485616772,
+        0.4535637149028078,
+      ],
+      [
+        'copernicus-emsr147-carlisle-initial',
+        0.013998069231830092,
+        0.014139444173573866,
+        0.5833333333333334,
+      ],
+      [
+        'copernicus-emsr147-carlisle-monitoring-01',
+        0.030334389754867085,
+        0.03266699171136031,
+        0.29815638906548,
+      ],
+    ],
+  );
+  assert.equal(run.isolation.evaluationRuns, 1);
+  assert.equal(run.isolation.modelRetuned, false);
+  assert.equal(run.interpretation.classification, 'negative_baseline');
+  assert.equal(run.interpretation.validatedFloodModel, false);
+
+  const improvedAfterTheFact = manifestFixture();
+  improvedAfterTheFact.evaluationRun.comparisons[0].metrics.intersectionOverUnion = 0.9;
+  assert.throws(
+    () => assertCumbriaAccessManifest(improvedAfterTheFact),
+    /IoU 0/,
+  );
+
+  const hiddenRetuning = manifestFixture();
+  hiddenRetuning.evaluationRun.isolation.modelRetuned = true;
+  assert.throws(
+    () => assertCumbriaAccessManifest(hiddenRetuning),
+    /evaluation model retuned/,
+  );
+});
+
 test('pre-event terrain selection maps to downloadable archives with explicit gaps', () => {
   const manifest = manifestFixture();
   const lidar = manifest.datasets.find(
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.29.0');
+  assert.equal(manifest.manifestVersion, '0.30.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {

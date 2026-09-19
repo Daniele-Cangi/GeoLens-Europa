@@ -34,9 +34,13 @@ class CumbriaBlindEvaluationTests(unittest.TestCase):
         self.assertEqual(result["referenceArtifactsLoaded"], 0)
         self.assertEqual(result["evaluationRuns"], 0)
 
-    def test_current_manifest_preserves_the_pending_evaluation_contract(self):
+    def test_current_manifest_preserves_the_completed_evaluation_contract(self):
         manifest = MODULE.json.loads(MODULE.MANIFEST_PATH.read_text(encoding="utf-8"))
         MODULE.validate_manifest(manifest)
+        self.assertEqual(
+            manifest["evaluationRun"]["state"],
+            "completed_negative_baseline_retained",
+        )
 
     def test_manifest_protocol_drift_is_rejected_even_if_recorded_hash_is_unchanged(self):
         manifest = MODULE.json.loads(MODULE.MANIFEST_PATH.read_text(encoding="utf-8"))
@@ -99,16 +103,83 @@ class CumbriaBlindEvaluationTests(unittest.TestCase):
 
     def test_current_authorization_matches_the_frozen_git_blob(self):
         manifest = MODULE.json.loads(MODULE.MANIFEST_PATH.read_text(encoding="utf-8"))
+        authorization = manifest["evaluationExecutionAuthorization"]
         source = subprocess.check_output(
-            ["git", "show", f"HEAD:{MODULE.EXECUTOR_RELATIVE_PATH}"],
+            [
+                "git",
+                "show",
+                f"{authorization['executor']['frozenCommit']}:{MODULE.EXECUTOR_RELATIVE_PATH}",
+            ],
             cwd=MODULE.REPOSITORY_ROOT,
         )
         executor_sha256 = hashlib.sha256(source).hexdigest()
-        authorization = MODULE.validate_execution_authorization(manifest, executor_sha256)
+        MODULE.validate_execution_authorization(manifest, executor_sha256)
         self.assertEqual(
             MODULE.first_revision_with_executor_identity(executor_sha256),
             authorization["executor"]["frozenCommit"],
         )
+
+    def test_recorded_negative_result_is_verified_without_recomputing_metrics(self):
+        manifest = MODULE.json.loads(MODULE.MANIFEST_PATH.read_text(encoding="utf-8"))
+        run = manifest["evaluationRun"]
+        receipt = {
+            "schemaVersion": MODULE.OUTPUT_SCHEMA,
+            "receiptSha256": MODULE.OUTPUT_RECEIPT_SHA256,
+            "protocolSha256": run["protocolSha256"],
+            "predictionReceiptSha256": run["predictionReceiptSha256"],
+            "referenceReceiptSha256": run["referenceReceiptSha256"],
+            "evaluationRevision": run["evaluationRevision"],
+            "grid": {
+                "horizontalCrs": run["grid"]["horizontalCrs"],
+                "cellSizeMetres": run["grid"]["cellSizeMetres"],
+            },
+            "prediction": {
+                "scenarioId": run["prediction"]["scenarioId"],
+                "wetnessThresholdM": run["prediction"]["wetnessThresholdM"],
+            },
+            "comparisons": [],
+            "isolation": run["isolation"],
+        }
+        for recorded in run["comparisons"]:
+            receipt["comparisons"].append(
+                {
+                    "referenceId": recorded["referenceId"],
+                    "coverage": {
+                        "frozenEvaluationCellCount": run["grid"]["frozenEvaluationCellCount"],
+                        "evaluatedCellCount": recorded["evaluatedCellCount"],
+                        "excludedMissingObservedCoverageCellCount": 0,
+                        "missingPredictionCoverageCellCount": 0,
+                    },
+                    "contingency": {
+                        "predictedWetCellCount": run["prediction"]["predictedWetCellCount"],
+                        "observedWetCellCount": recorded["observedWetCellCount"],
+                        "intersectionCellCount": recorded["intersectionCellCount"],
+                        "unionCellCount": recorded["unionCellCount"],
+                        "falsePositiveCellCount": recorded["falsePositiveCellCount"],
+                        "falseNegativeCellCount": recorded["falseNegativeCellCount"],
+                    },
+                    "metrics": {
+                        "intersection_over_union": {
+                            "value": recorded["metrics"]["intersectionOverUnion"]
+                        },
+                        "area_precision": {"value": recorded["metrics"]["areaPrecision"]},
+                        "area_recall": {"value": recorded["metrics"]["areaRecall"]},
+                        "false_positive_area": {
+                            "value": recorded["metrics"]["falsePositiveAreaM2"]
+                        },
+                        "false_negative_area": {
+                            "value": recorded["metrics"]["falseNegativeAreaM2"]
+                        },
+                        "boundary_distance_p95": {
+                            "value": recorded["metrics"]["boundaryDistanceP95M"]
+                        },
+                    },
+                }
+            )
+        MODULE.validate_recorded_run(manifest, receipt)
+        receipt["comparisons"][0]["metrics"]["intersection_over_union"]["value"] = 0.9
+        with self.assertRaisesRegex(ValueError, "comparison 0 drifted"):
+            MODULE.validate_recorded_run(manifest, receipt)
 
     def test_exact_match_has_perfect_overlap_and_zero_boundary_distance(self):
         self.predicted[12:16, 12:16] = 1

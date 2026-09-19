@@ -13,7 +13,7 @@ import {
   type CumbriaReplacementSolverProtocol,
 } from './cumbriaReplacementSolver';
 
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.29.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.30.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -1515,6 +1515,66 @@ export interface CumbriaEvaluationExecutionAuthorization {
   readonly nextGate: 'execute_once_and_record_all_predeclared_metrics';
 }
 
+export interface CumbriaBlindEvaluationRun {
+  readonly schemaVersion: 'cumbria-blind-evaluation-run-v0.1.0';
+  readonly state: 'completed_negative_baseline_retained';
+  readonly recordedOn: string;
+  readonly receipt: {
+    readonly fileName: 'cumbria-blind-evaluation-v0.receipt.json';
+    readonly schemaVersion: 'cumbria-blind-evaluation-receipt-v0.1.0';
+    readonly sha256: string;
+  };
+  readonly protocolSha256: string;
+  readonly predictionReceiptSha256: string;
+  readonly referenceReceiptSha256: string;
+  readonly evaluationRevision: {
+    readonly commit: '0f4518bb89fcad6e2b5398d11ffa273aa444738f';
+    readonly tree: 'ac6890dac1da2fd5db108e9ee2641ee5e7c9f7d4';
+  };
+  readonly grid: {
+    readonly horizontalCrs: 'EPSG:27700';
+    readonly cellSizeMetres: 20;
+    readonly frozenEvaluationCellCount: 73502;
+  };
+  readonly prediction: {
+    readonly scenarioId: 'primary-20m';
+    readonly wetnessThresholdM: 0.05;
+    readonly predictedWetCellCount: 14357;
+    readonly predictedWetAreaM2: 5742800;
+  };
+  readonly comparisons: readonly {
+    readonly referenceId: string;
+    readonly evaluatedCellCount: number;
+    readonly observedWetCellCount: number;
+    readonly intersectionCellCount: number;
+    readonly unionCellCount: number;
+    readonly falsePositiveCellCount: number;
+    readonly falseNegativeCellCount: number;
+    readonly metrics: {
+      readonly intersectionOverUnion: number;
+      readonly areaPrecision: number;
+      readonly areaRecall: number;
+      readonly falsePositiveAreaM2: number;
+      readonly falseNegativeAreaM2: number;
+      readonly boundaryDistanceP95M: number;
+    };
+  }[];
+  readonly isolation: {
+    readonly referencesCombined: false;
+    readonly thresholdChanged: false;
+    readonly modelRetuned: false;
+    readonly scenarioSelectedAfterReferenceAccess: false;
+    readonly networkRequests: 0;
+    readonly evaluationRuns: 1;
+  };
+  readonly interpretation: {
+    readonly classification: 'negative_baseline';
+    readonly summary: string;
+    readonly validatedFloodModel: false;
+  };
+  readonly nextGate: 'analyze_failure_without_retuning_frozen_baseline';
+}
+
 export interface CumbriaAccessManifest {
   readonly manifestVersion: typeof CUMBRIA_ACCESS_MANIFEST_VERSION;
   readonly audit: {
@@ -1563,12 +1623,13 @@ export interface CumbriaAccessManifest {
   readonly evaluationReferenceAcquisition: CumbriaEvaluationReferenceAcquisition;
   readonly evaluationReferenceNormalization: CumbriaEvaluationReferenceNormalization;
   readonly evaluationExecutionAuthorization: CumbriaEvaluationExecutionAuthorization;
+  readonly evaluationRun: CumbriaBlindEvaluationRun;
   readonly modelAccessRequest: CumbriaModelAccessRequest;
   readonly modelDeliveryIntakeProtocol: CumbriaModelDeliveryIntakeProtocol;
   readonly datasets: readonly CumbriaDatasetAudit[];
   readonly gates: readonly CumbriaAccessGate[];
   readonly acquisition: {
-    readonly state: 'blind_evaluation_executor_authorized_run_pending';
+    readonly state: 'blind_evaluation_complete_negative_baseline_retained';
     readonly largeDownloadsAllowed: false;
     readonly boundedTerrainDownloadsAllowed: true;
     readonly nextAction: string;
@@ -1852,6 +1913,12 @@ export function assertCumbriaAccessManifest(
     manifest.evaluationProtocol,
   );
   evaluationExecutionAuthorization(
+    manifest.evaluationExecutionAuthorization,
+    manifest.evaluationReferenceNormalization,
+    manifest.evaluationProtocol,
+  );
+  blindEvaluationRun(
+    manifest.evaluationRun,
     manifest.evaluationExecutionAuthorization,
     manifest.evaluationReferenceNormalization,
     manifest.evaluationProtocol,
@@ -2779,11 +2846,16 @@ export function assertCumbriaAccessManifest(
     'passed',
     'blind_evaluation_execution_authorization',
   );
+  equal(
+    gateStates.get('blind_evaluation_run'),
+    'passed',
+    'blind_evaluation_run',
+  );
 
   const acquisition = record(manifest.acquisition, 'acquisition');
   equal(
     acquisition.state,
-    'blind_evaluation_executor_authorized_run_pending',
+    'blind_evaluation_complete_negative_baseline_retained',
     'acquisition.state',
   );
   equal(
@@ -6128,6 +6200,220 @@ function evaluationExecutionAuthorization(
     authorization.nextGate,
     'execute_once_and_record_all_predeclared_metrics',
     'evaluation authorization next gate',
+  );
+}
+
+function blindEvaluationRun(
+  value: unknown,
+  authorizationValue: unknown,
+  normalizationValue: unknown,
+  protocolValue: unknown,
+): void {
+  const run = record(value, 'evaluationRun');
+  equal(
+    run.schemaVersion,
+    'cumbria-blind-evaluation-run-v0.1.0',
+    'evaluation run schema',
+  );
+  equal(
+    run.state,
+    'completed_negative_baseline_retained',
+    'evaluation run state',
+  );
+  dateOnly(run.recordedOn, 'evaluation run date');
+
+  const receipt = record(run.receipt, 'evaluationRun.receipt');
+  equal(
+    receipt.fileName,
+    'cumbria-blind-evaluation-v0.receipt.json',
+    'evaluation run receipt file',
+  );
+  equal(
+    receipt.schemaVersion,
+    'cumbria-blind-evaluation-receipt-v0.1.0',
+    'evaluation run receipt schema',
+  );
+  equal(
+    sha256(receipt.sha256, 'evaluation run receipt SHA-256'),
+    '610bae9d7e31978e3565a5e04e779bde9e1dc5236e200a0699cf8db9c118ffa2',
+    'evaluation run receipt SHA-256',
+  );
+
+  const authorization = record(
+    authorizationValue,
+    'evaluationExecutionAuthorization',
+  );
+  const normalization = record(
+    normalizationValue,
+    'evaluationReferenceNormalization',
+  );
+  const protocol = record(protocolValue, 'evaluationProtocol');
+  equal(
+    run.protocolSha256,
+    authorization.protocolSha256,
+    'evaluation run protocol SHA-256',
+  );
+  equal(
+    run.predictionReceiptSha256,
+    authorization.predictionReceiptSha256,
+    'evaluation run prediction receipt SHA-256',
+  );
+  equal(
+    run.referenceReceiptSha256,
+    record(normalization.receipt, 'evaluationReferenceNormalization.receipt').sha256,
+    'evaluation run reference receipt SHA-256',
+  );
+  equal(
+    run.referenceReceiptSha256,
+    authorization.referenceReceiptSha256,
+    'evaluation authorization/run reference receipt SHA-256',
+  );
+  equal(
+    run.protocolSha256,
+    protocol.protocolSha256,
+    'evaluation protocol/run SHA-256',
+  );
+
+  const revision = record(run.evaluationRevision, 'evaluationRun.evaluationRevision');
+  equal(
+    revision.commit,
+    '0f4518bb89fcad6e2b5398d11ffa273aa444738f',
+    'evaluation run commit',
+  );
+  equal(
+    revision.tree,
+    'ac6890dac1da2fd5db108e9ee2641ee5e7c9f7d4',
+    'evaluation run tree',
+  );
+
+  const grid = record(run.grid, 'evaluationRun.grid');
+  equal(grid.horizontalCrs, 'EPSG:27700', 'evaluation run CRS');
+  equal(grid.cellSizeMetres, 20, 'evaluation run cell size');
+  equal(
+    grid.frozenEvaluationCellCount,
+    73502,
+    'evaluation run frozen cell count',
+  );
+
+  const prediction = record(run.prediction, 'evaluationRun.prediction');
+  equal(prediction.scenarioId, 'primary-20m', 'evaluation run prediction scenario');
+  equal(prediction.wetnessThresholdM, 0.05, 'evaluation run wetness threshold');
+  equal(prediction.predictedWetCellCount, 14357, 'evaluation predicted wet cells');
+  equal(prediction.predictedWetAreaM2, 5742800, 'evaluation predicted wet area');
+
+  const expected = [
+    {
+      id: 'ea-recorded-flood-outlines-carlisle-2015',
+      observed: 1852,
+      intersection: 840,
+      union: 15369,
+      falsePositive: 13517,
+      falseNegative: 1012,
+      iou: 0.05465547530743705,
+      precision: 0.05850804485616772,
+      recall: 0.4535637149028078,
+      falsePositiveArea: 5406800,
+      falseNegativeArea: 404800,
+      boundaryP95: 7446.356155841063,
+    },
+    {
+      id: 'copernicus-emsr147-carlisle-initial',
+      observed: 348,
+      intersection: 203,
+      union: 14502,
+      falsePositive: 14154,
+      falseNegative: 145,
+      iou: 0.013998069231830092,
+      precision: 0.014139444173573866,
+      recall: 0.5833333333333334,
+      falsePositiveArea: 5661600,
+      falseNegativeArea: 58000,
+      boundaryP95: 2370.8184215220977,
+    },
+    {
+      id: 'copernicus-emsr147-carlisle-monitoring-01',
+      observed: 1573,
+      intersection: 469,
+      union: 15461,
+      falsePositive: 13888,
+      falseNegative: 1104,
+      iou: 0.030334389754867085,
+      precision: 0.03266699171136031,
+      recall: 0.29815638906548,
+      falsePositiveArea: 5555200,
+      falseNegativeArea: 441600,
+      boundaryP95: 2271.8229307355004,
+    },
+  ] as const;
+  const comparisons = array(run.comparisons, 'evaluationRun.comparisons');
+  equal(comparisons.length, expected.length, 'evaluation comparison count');
+  for (const [index, expectedComparison] of expected.entries()) {
+    const comparison = record(
+      comparisons[index],
+      `evaluationRun.comparisons[${index}]`,
+    );
+    equal(comparison.referenceId, expectedComparison.id, `evaluation reference ${index}`);
+    equal(comparison.evaluatedCellCount, 73502, `evaluation cells ${index}`);
+    equal(comparison.observedWetCellCount, expectedComparison.observed, `observed wet cells ${index}`);
+    equal(comparison.intersectionCellCount, expectedComparison.intersection, `intersection cells ${index}`);
+    equal(comparison.unionCellCount, expectedComparison.union, `union cells ${index}`);
+    equal(comparison.falsePositiveCellCount, expectedComparison.falsePositive, `false-positive cells ${index}`);
+    equal(comparison.falseNegativeCellCount, expectedComparison.falseNegative, `false-negative cells ${index}`);
+    const intersectionCellCount = integer(
+      comparison.intersectionCellCount,
+      `intersection cells ${index}`,
+    );
+    const falsePositiveCellCount = integer(
+      comparison.falsePositiveCellCount,
+      `false-positive cells ${index}`,
+    );
+    const falseNegativeCellCount = integer(
+      comparison.falseNegativeCellCount,
+      `false-negative cells ${index}`,
+    );
+    const observedWetCellCount = integer(
+      comparison.observedWetCellCount,
+      `observed wet cells ${index}`,
+    );
+    const metrics = record(comparison.metrics, `evaluationRun.comparisons[${index}].metrics`);
+    equal(metrics.intersectionOverUnion, expectedComparison.iou, `IoU ${index}`);
+    equal(metrics.areaPrecision, expectedComparison.precision, `precision ${index}`);
+    equal(metrics.areaRecall, expectedComparison.recall, `recall ${index}`);
+    equal(metrics.falsePositiveAreaM2, expectedComparison.falsePositiveArea, `false-positive area ${index}`);
+    equal(metrics.falseNegativeAreaM2, expectedComparison.falseNegativeArea, `false-negative area ${index}`);
+    equal(metrics.boundaryDistanceP95M, expectedComparison.boundaryP95, `boundary p95 ${index}`);
+    equal(
+      intersectionCellCount + falsePositiveCellCount,
+      prediction.predictedWetCellCount,
+      `predicted wet cell accounting ${index}`,
+    );
+    equal(
+      intersectionCellCount + falseNegativeCellCount,
+      observedWetCellCount,
+      `observed wet cell accounting ${index}`,
+    );
+  }
+
+  const isolation = record(run.isolation, 'evaluationRun.isolation');
+  equal(isolation.referencesCombined, false, 'evaluation references combined');
+  equal(isolation.thresholdChanged, false, 'evaluation threshold changed');
+  equal(isolation.modelRetuned, false, 'evaluation model retuned');
+  equal(
+    isolation.scenarioSelectedAfterReferenceAccess,
+    false,
+    'evaluation post-reference scenario selection',
+  );
+  equal(isolation.networkRequests, 0, 'evaluation network requests');
+  equal(isolation.evaluationRuns, 1, 'evaluation run count');
+
+  const interpretation = record(run.interpretation, 'evaluationRun.interpretation');
+  equal(interpretation.classification, 'negative_baseline', 'evaluation classification');
+  nonEmpty(interpretation.summary, 'evaluation interpretation');
+  equal(interpretation.validatedFloodModel, false, 'validated flood model claim');
+  equal(
+    run.nextGate,
+    'analyze_failure_without_retuning_frozen_baseline',
+    'evaluation run next gate',
   );
 }
 

@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.29.0",
+  "manifestVersion": "0.30.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -1948,6 +1948,101 @@
     },
     "nextGate": "execute_once_and_record_all_predeclared_metrics"
   },
+  "evaluationRun": {
+    "schemaVersion": "cumbria-blind-evaluation-run-v0.1.0",
+    "state": "completed_negative_baseline_retained",
+    "recordedOn": "2026-09-19",
+    "receipt": {
+      "fileName": "cumbria-blind-evaluation-v0.receipt.json",
+      "schemaVersion": "cumbria-blind-evaluation-receipt-v0.1.0",
+      "sha256": "610bae9d7e31978e3565a5e04e779bde9e1dc5236e200a0699cf8db9c118ffa2"
+    },
+    "protocolSha256": "1a135785bef1121e542952fd8ee90d6eed86908d19864d381985fbfd2f8a1dd0",
+    "predictionReceiptSha256": "f2a3a7489699a70a6d5c770633bdc9f789184ca26cb8190c85a1d28d40495dc6",
+    "referenceReceiptSha256": "fae2cadba3675bff4191da5829e8bf64d71ffc028a9c6899c9e865f97b6debe0",
+    "evaluationRevision": {
+      "commit": "0f4518bb89fcad6e2b5398d11ffa273aa444738f",
+      "tree": "ac6890dac1da2fd5db108e9ee2641ee5e7c9f7d4"
+    },
+    "grid": {
+      "horizontalCrs": "EPSG:27700",
+      "cellSizeMetres": 20,
+      "frozenEvaluationCellCount": 73502
+    },
+    "prediction": {
+      "scenarioId": "primary-20m",
+      "wetnessThresholdM": 0.05,
+      "predictedWetCellCount": 14357,
+      "predictedWetAreaM2": 5742800
+    },
+    "comparisons": [
+      {
+        "referenceId": "ea-recorded-flood-outlines-carlisle-2015",
+        "evaluatedCellCount": 73502,
+        "observedWetCellCount": 1852,
+        "intersectionCellCount": 840,
+        "unionCellCount": 15369,
+        "falsePositiveCellCount": 13517,
+        "falseNegativeCellCount": 1012,
+        "metrics": {
+          "intersectionOverUnion": 0.05465547530743705,
+          "areaPrecision": 0.05850804485616772,
+          "areaRecall": 0.4535637149028078,
+          "falsePositiveAreaM2": 5406800,
+          "falseNegativeAreaM2": 404800,
+          "boundaryDistanceP95M": 7446.356155841063
+        }
+      },
+      {
+        "referenceId": "copernicus-emsr147-carlisle-initial",
+        "evaluatedCellCount": 73502,
+        "observedWetCellCount": 348,
+        "intersectionCellCount": 203,
+        "unionCellCount": 14502,
+        "falsePositiveCellCount": 14154,
+        "falseNegativeCellCount": 145,
+        "metrics": {
+          "intersectionOverUnion": 0.013998069231830092,
+          "areaPrecision": 0.014139444173573866,
+          "areaRecall": 0.5833333333333334,
+          "falsePositiveAreaM2": 5661600,
+          "falseNegativeAreaM2": 58000,
+          "boundaryDistanceP95M": 2370.8184215220977
+        }
+      },
+      {
+        "referenceId": "copernicus-emsr147-carlisle-monitoring-01",
+        "evaluatedCellCount": 73502,
+        "observedWetCellCount": 1573,
+        "intersectionCellCount": 469,
+        "unionCellCount": 15461,
+        "falsePositiveCellCount": 13888,
+        "falseNegativeCellCount": 1104,
+        "metrics": {
+          "intersectionOverUnion": 0.030334389754867085,
+          "areaPrecision": 0.03266699171136031,
+          "areaRecall": 0.29815638906548,
+          "falsePositiveAreaM2": 5555200,
+          "falseNegativeAreaM2": 441600,
+          "boundaryDistanceP95M": 2271.8229307355004
+        }
+      }
+    ],
+    "isolation": {
+      "referencesCombined": false,
+      "thresholdChanged": false,
+      "modelRetuned": false,
+      "scenarioSelectedAfterReferenceAccess": false,
+      "networkRequests": 0,
+      "evaluationRuns": 1
+    },
+    "interpretation": {
+      "classification": "negative_baseline",
+      "summary": "The frozen public-data model overlaps parts of every independent reference but greatly overpredicts wet area and has poor spatial agreement. This result is retained without retuning or threshold changes.",
+      "validatedFloodModel": false
+    },
+    "nextGate": "analyze_failure_without_retuning_frozen_baseline"
+  },
   "modelAccessRequest": {
     "id": "cumbria-carlisle-pre-event-model-products-5-6-7-v0",
     "state": "sent_awaiting_response",
@@ -3473,7 +3568,12 @@
     {
       "id": "blind_evaluation_execution_authorization",
       "state": "passed",
-      "reason": "The reviewed evaluator revision 5d34bc1 and its exact Git-blob SHA-256 are bound to the frozen protocol, prediction receipt and normalized-reference receipt. Authorization records zero loaded artifacts, writes, network requests and evaluation runs; the next action is the single deterministic blind comparison without retuning."
+      "reason": "The reviewed evaluator revision 5d34bc1 and its exact source-byte SHA-256 are bound to the frozen protocol, prediction receipt and normalized-reference receipt. Authorization records zero loaded artifacts, writes, network requests and evaluation runs; the authorization was consumed by the single deterministic blind comparison without retuning."
+    },
+    {
+      "id": "blind_evaluation_run",
+      "state": "passed",
+      "reason": "The single authorized evaluation ran from merged commit 0f4518b and wrote external receipt 610bae9d7e31978e3565a5e04e779bde9e1dc5236e200a0699cf8db9c118ffa2. All three references were evaluated separately with the six frozen metrics. The retained negative baseline shows low spatial agreement and large false-positive area; no threshold, scenario or model parameter was changed."
     },
     {
       "id": "large_artifact_downloads",
@@ -3482,9 +3582,9 @@
     }
   ],
   "acquisition": {
-    "state": "blind_evaluation_executor_authorized_run_pending",
+    "state": "blind_evaluation_complete_negative_baseline_retained",
     "largeDownloadsAllowed": false,
     "boundedTerrainDownloadsAllowed": true,
-    "nextAction": "Execute the authorized evaluator once against EA, EMSR147 initial and EMSR147 monitoring, retain all six predeclared metrics separately and record the result without retuning."
+    "nextAction": "Analyze the retained failure modes without changing or replacing the frozen baseline; any revised model must be a separately versioned experiment reported beside this result."
   }
 }
