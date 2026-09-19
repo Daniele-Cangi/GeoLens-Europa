@@ -13,7 +13,7 @@ import {
   type CumbriaReplacementSolverProtocol,
 } from './cumbriaReplacementSolver';
 
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.27.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.28.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -1350,7 +1350,7 @@ export interface CumbriaEventRunnerContract {
 
 export interface CumbriaEvaluationReferenceAcquisition {
   readonly schemaVersion: 'cumbria-evaluation-reference-acquisition-v0.1.0';
-  readonly state: 'content_addressed_normalization_pending';
+  readonly state: 'content_addressed_normalization_complete';
   readonly recordedOn: string;
   readonly predictionFreeze: {
     readonly mergeCommit: 'df33838ba7774a736ebe17aec7e6c9aee01e1827';
@@ -1400,7 +1400,97 @@ export interface CumbriaEvaluationReferenceAcquisition {
     readonly evaluationExecuted: false;
     readonly referencesCombined: false;
   };
-  readonly nextGate: 'normalize_and_rasterize_each_reference_independently';
+  readonly nextGate: 'evaluate_each_reference_independently';
+}
+
+export interface CumbriaEvaluationReferenceNormalization {
+  readonly schemaVersion: 'cumbria-evaluation-reference-normalization-v0.1.0';
+  readonly state: 'content_addressed_evaluation_pending';
+  readonly recordedOn: string;
+  readonly sourceReceiptSha256: string;
+  readonly predictionReceiptSha256: string;
+  readonly protocolSha256: string;
+  readonly materializationRevision: {
+    readonly commit: '7161a53bf0a1823858d40705855e4ae7651c1a6c';
+    readonly tree: '030bab43e8ad3d0d8c099c8faa52a4e4fa68eac2';
+  };
+  readonly receipt: {
+    readonly fileName: 'cumbria-evaluation-reference-masks-v0.receipt.json';
+    readonly schemaVersion: 'cumbria-evaluation-reference-mask-receipt-v0.1.0';
+    readonly sha256: string;
+    readonly referenceCount: 3;
+    readonly artifactDescriptorCount: 12;
+    readonly uniqueArtifactCount: 8;
+    readonly uniquePhysicalBytes: 293619;
+  };
+  readonly transformation: {
+    readonly id: 'cumbria-evaluation-reference-normalization-v0.1.0';
+    readonly sourceToTargetCrs: string;
+    readonly coordinateOperations: readonly {
+      readonly sourceCrs: 'EPSG:32630' | 'EPSG:4326';
+      readonly targetCrs: 'EPSG:27700';
+      readonly accuracyMetres: 2;
+      readonly definitionSha256: string;
+    }[];
+    readonly geometryNormalization: string;
+    readonly rasterization: string;
+    readonly maskEncoding: string;
+  };
+  readonly grid: {
+    readonly horizontalCrs: 'EPSG:27700';
+    readonly bounds: readonly [332000, 556000, 340000, 563000];
+    readonly originUpperLeft: readonly [332000, 563000];
+    readonly cellSizeMetres: 20;
+    readonly width: 400;
+    readonly height: 350;
+    readonly rowOrder: 'north_to_south';
+  };
+  readonly references: readonly {
+    readonly id: string;
+    readonly sourceSha256: string;
+    readonly sourceCrs: 'EPSG:32630' | 'EPSG:4326';
+    readonly coverageBasis: string;
+    readonly geometry: {
+      readonly areaM2: number;
+      readonly bounds: readonly [number, number, number, number];
+      readonly bytes: number;
+      readonly sha256: string;
+    };
+    readonly coverage: {
+      readonly areaM2: number;
+      readonly bytes: number;
+      readonly sha256: string;
+    };
+    readonly referenceMask: {
+      readonly bytes: number;
+      readonly sha256: string;
+      readonly contentBytes: 140000;
+      readonly contentSha256: string;
+    };
+    readonly coverageMask: {
+      readonly bytes: number;
+      readonly sha256: string;
+      readonly contentBytes: 140000;
+      readonly contentSha256: string;
+    };
+    readonly statistics: {
+      readonly cellCount: 140000;
+      readonly coverageCellCount: number;
+      readonly missingCoverageCellCount: number;
+      readonly wetCellCount: number;
+      readonly referenceNotWetCellCount: number;
+      readonly centerSampledWetAreaM2: number;
+    };
+  }[];
+  readonly isolation: {
+    readonly referencesCombined: false;
+    readonly predictionArtifactsLoaded: false;
+    readonly modelInput: false;
+    readonly calibration: false;
+    readonly evaluationExecuted: false;
+    readonly networkRequests: 0;
+  };
+  readonly nextGate: 'evaluate_each_reference_independently';
 }
 
 export interface CumbriaAccessManifest {
@@ -1449,12 +1539,13 @@ export interface CumbriaAccessManifest {
     CumbriaSolverGridMaterialization;
   readonly evaluationProtocol: CumbriaBlindEvaluationProtocol;
   readonly evaluationReferenceAcquisition: CumbriaEvaluationReferenceAcquisition;
+  readonly evaluationReferenceNormalization: CumbriaEvaluationReferenceNormalization;
   readonly modelAccessRequest: CumbriaModelAccessRequest;
   readonly modelDeliveryIntakeProtocol: CumbriaModelDeliveryIntakeProtocol;
   readonly datasets: readonly CumbriaDatasetAudit[];
   readonly gates: readonly CumbriaAccessGate[];
   readonly acquisition: {
-    readonly state: 'evaluation_references_acquired_normalization_pending';
+    readonly state: 'evaluation_references_normalized_evaluation_pending';
     readonly largeDownloadsAllowed: false;
     readonly boundedTerrainDownloadsAllowed: true;
     readonly nextAction: string;
@@ -1731,6 +1822,11 @@ export function assertCumbriaAccessManifest(
     manifest.evaluationReferenceAcquisition,
     manifest.evaluationProtocol,
     datasetRecords,
+  );
+  evaluationReferenceNormalization(
+    manifest.evaluationReferenceNormalization,
+    manifest.evaluationReferenceAcquisition,
+    manifest.evaluationProtocol,
   );
 
   const imergFacts = record(
@@ -2647,14 +2743,14 @@ export function assertCumbriaAccessManifest(
   );
   equal(
     gateStates.get('evaluation_reference_normalization'),
-    'blocked',
+    'passed',
     'evaluation_reference_normalization',
   );
 
   const acquisition = record(manifest.acquisition, 'acquisition');
   equal(
     acquisition.state,
-    'evaluation_references_acquired_normalization_pending',
+    'evaluation_references_normalized_evaluation_pending',
     'acquisition.state',
   );
   equal(
@@ -5371,7 +5467,7 @@ function evaluationReferenceAcquisition(
   );
   equal(
     acquisition.state,
-    'content_addressed_normalization_pending',
+    'content_addressed_normalization_complete',
     'evaluation-reference acquisition state',
   );
   dateOnly(acquisition.recordedOn, 'evaluation-reference acquisition date');
@@ -5573,8 +5669,346 @@ function evaluationReferenceAcquisition(
   }
   equal(
     acquisition.nextGate,
-    'normalize_and_rasterize_each_reference_independently',
+    'evaluate_each_reference_independently',
     'evaluation-reference next gate',
+  );
+}
+
+function evaluationReferenceNormalization(
+  value: unknown,
+  acquisitionValue: unknown,
+  protocolValue: unknown,
+): void {
+  const normalization = record(
+    value,
+    'evaluationReferenceNormalization',
+  );
+  equal(
+    normalization.schemaVersion,
+    'cumbria-evaluation-reference-normalization-v0.1.0',
+    'evaluation-reference normalization schema',
+  );
+  equal(
+    normalization.state,
+    'content_addressed_evaluation_pending',
+    'evaluation-reference normalization state',
+  );
+  dateOnly(
+    normalization.recordedOn,
+    'evaluation-reference normalization date',
+  );
+
+  const acquisition = record(
+    acquisitionValue,
+    'evaluationReferenceAcquisition',
+  );
+  const protocol = record(protocolValue, 'evaluationProtocol');
+  const predictionReceipt = record(
+    record(protocol.predictionFreeze, 'evaluationProtocol.predictionFreeze')
+      .predictionReceipt,
+    'evaluationProtocol.predictionFreeze.predictionReceipt',
+  );
+  equal(
+    normalization.sourceReceiptSha256,
+    record(acquisition.receipt, 'evaluationReferenceAcquisition.receipt').sha256,
+    'normalization source receipt SHA-256',
+  );
+  equal(
+    normalization.predictionReceiptSha256,
+    predictionReceipt.sha256,
+    'normalization prediction receipt SHA-256',
+  );
+  equal(
+    normalization.protocolSha256,
+    protocol.protocolSha256,
+    'normalization protocol SHA-256',
+  );
+
+  const revision = record(
+    normalization.materializationRevision,
+    'evaluationReferenceNormalization.materializationRevision',
+  );
+  equal(
+    revision.commit,
+    '7161a53bf0a1823858d40705855e4ae7651c1a6c',
+    'normalization materialization commit',
+  );
+  equal(
+    revision.tree,
+    '030bab43e8ad3d0d8c099c8faa52a4e4fa68eac2',
+    'normalization materialization tree',
+  );
+
+  const receipt = record(
+    normalization.receipt,
+    'evaluationReferenceNormalization.receipt',
+  );
+  equal(
+    receipt.fileName,
+    'cumbria-evaluation-reference-masks-v0.receipt.json',
+    'normalization receipt filename',
+  );
+  equal(
+    receipt.schemaVersion,
+    'cumbria-evaluation-reference-mask-receipt-v0.1.0',
+    'normalization receipt schema',
+  );
+  equal(
+    sha256(receipt.sha256, 'normalization receipt SHA-256'),
+    'fae2cadba3675bff4191da5829e8bf64d71ffc028a9c6899c9e865f97b6debe0',
+    'normalization receipt SHA-256',
+  );
+  equal(receipt.referenceCount, 3, 'normalization reference count');
+  equal(receipt.artifactDescriptorCount, 12, 'normalization artifact descriptors');
+  equal(receipt.uniqueArtifactCount, 8, 'normalization unique artifacts');
+  equal(receipt.uniquePhysicalBytes, 293619, 'normalization unique bytes');
+
+  const transformation = record(
+    normalization.transformation,
+    'evaluationReferenceNormalization.transformation',
+  );
+  equal(
+    transformation.id,
+    'cumbria-evaluation-reference-normalization-v0.1.0',
+    'normalization transformation id',
+  );
+  nonEmpty(
+    transformation.sourceToTargetCrs,
+    'normalization coordinate ordering',
+  );
+  nonEmpty(
+    transformation.geometryNormalization,
+    'normalization geometry rule',
+  );
+  equal(
+    transformation.rasterization,
+    '20 m cell-centre intersects test on the frozen north-to-south grid',
+    'normalization rasterization rule',
+  );
+  equal(
+    transformation.maskEncoding,
+    'u8: 1 mapped flooded, 0 within reference coverage but not mapped flooded, 255 missing reference coverage',
+    'normalization mask encoding',
+  );
+  const expectedOperations = [
+    [
+      'EPSG:32630',
+      'e757b943df227401ea110453a6a3490680c1ec56207655d40afa08c8c12895d6',
+    ],
+    [
+      'EPSG:4326',
+      '65681e121a414745d4e92c9e24afd8a1ffda9cdd42ef4e1df41692c18e7c5d3c',
+    ],
+  ] as const;
+  const operations = array(
+    transformation.coordinateOperations,
+    'normalization coordinate operations',
+  );
+  equal(operations.length, 2, 'normalization coordinate operation count');
+  for (const [index, expected] of expectedOperations.entries()) {
+    const operation = record(
+      operations[index],
+      `normalization coordinate operation ${index}`,
+    );
+    equal(operation.sourceCrs, expected[0], `coordinate operation ${index} source`);
+    equal(operation.targetCrs, 'EPSG:27700', `coordinate operation ${index} target`);
+    equal(operation.accuracyMetres, 2, `coordinate operation ${index} accuracy`);
+    equal(
+      sha256(operation.definitionSha256, `coordinate operation ${index} definition`),
+      expected[1],
+      `coordinate operation ${index} definition`,
+    );
+  }
+
+  const grid = record(normalization.grid, 'evaluationReferenceNormalization.grid');
+  equal(grid.horizontalCrs, 'EPSG:27700', 'normalization grid CRS');
+  equal(
+    JSON.stringify(numericArray(grid.bounds, 4, 'normalization grid bounds')),
+    JSON.stringify([332000, 556000, 340000, 563000]),
+    'normalization grid bounds',
+  );
+  equal(
+    JSON.stringify(
+      numericArray(grid.originUpperLeft, 2, 'normalization grid origin'),
+    ),
+    JSON.stringify([332000, 563000]),
+    'normalization grid origin',
+  );
+  equal(grid.cellSizeMetres, 20, 'normalization grid cell size');
+  equal(grid.width, 400, 'normalization grid width');
+  equal(grid.height, 350, 'normalization grid height');
+  equal(grid.rowOrder, 'north_to_south', 'normalization grid row order');
+
+  const expectedReferences = [
+    {
+      id: 'ea-recorded-flood-outlines-carlisle-2015',
+      sourceSha256:
+        'e2ad395a39441a077cf3585e3cce09a49454922798dba483a31fe71fabef78c0',
+      sourceCrs: 'EPSG:4326',
+      geometrySha256:
+        '0eb5d43fda827d6fd57a66eddfc0e753b53c40f89a310e837b75f55eae18d628',
+      geometryBytes: 5365,
+      maskSha256:
+        'f9e5bfee086ad3d6ff33f07eda906b86d05a1d20796b535ac4d26d96db33c10a',
+      maskContentSha256:
+        'dd7294b76d05971e41ee44273ebaf03761ffebacb1357b00764dee2b4573f0be',
+      maskBytes: 473,
+      wetCellCount: 3314,
+      notWetCellCount: 136686,
+      wetAreaM2: 1325600,
+    },
+    {
+      id: 'copernicus-emsr147-carlisle-initial',
+      sourceSha256:
+        '5524efba986082b901bf27fc7ecde0cf6af91fea393b36bfa6bcf6a959448049',
+      sourceCrs: 'EPSG:32630',
+      geometrySha256:
+        '716c89034ff919b3c24140916feaf80729e348899fbbe4c6120aad5fd90ea848',
+      geometryBytes: 92762,
+      maskSha256:
+        '2e845c7c6d54dc2c27bc3f98fa66000b737a6dfc656fbc90b0bdd1414f8bb818',
+      maskContentSha256:
+        '97a2692ae272cdcd5023c9605fc1eeb49f547473ca8e50c17a9728f14c0b3694',
+      maskBytes: 891,
+      wetCellCount: 988,
+      notWetCellCount: 139012,
+      wetAreaM2: 395200,
+    },
+    {
+      id: 'copernicus-emsr147-carlisle-monitoring-01',
+      sourceSha256:
+        'b58b6e047d8e1066fffcf3aa09fafa4b975cd7eedccda22d8df8c4971d509cfb',
+      sourceCrs: 'EPSG:32630',
+      geometrySha256:
+        'f9add705851ecb7a08b9fb9dc0243bd28d3948f5d69359b1bfec354a31ce1a69',
+      geometryBytes: 192032,
+      maskSha256:
+        '456b97ed3808a6b8e4358987407f455dde521fde8b70a967a284b56f7bf7d697',
+      maskContentSha256:
+        '3c8c6a4fcf7284a6005658681373ccf6aada5c7a4357470ccbdfa0bdc2cbaab8',
+      maskBytes: 1832,
+      wetCellCount: 3336,
+      notWetCellCount: 136664,
+      wetAreaM2: 1334400,
+    },
+  ] as const;
+  const references = array(
+    normalization.references,
+    'evaluationReferenceNormalization.references',
+  );
+  equal(references.length, 3, 'normalization reference count');
+  const sharedCoverageSha256 =
+    'abeec8e7b4e6cdac9115a88e499be7669ae1c8fb4c8932dee37c5d3dda61db77';
+  const sharedCoverageMaskSha256 =
+    '44c7d27a229dde46a2efded0944570f6c421f15083b4076d59619e7a17812281';
+  const sharedCoverageMaskContentSha256 =
+    '1915162556e1bafca0421506e8fd1373c8ebea219ca17ef6895c8e3da10cfd97';
+  for (const [index, expected] of expectedReferences.entries()) {
+    const reference = record(references[index], `normalized reference ${index}`);
+    equal(reference.id, expected.id, `normalized reference ${index} id`);
+    equal(
+      sha256(reference.sourceSha256, `normalized reference ${index} source`),
+      expected.sourceSha256,
+      `normalized reference ${index} source`,
+    );
+    equal(reference.sourceCrs, expected.sourceCrs, `normalized reference ${index} CRS`);
+    nonEmpty(reference.coverageBasis, `normalized reference ${index} coverage basis`);
+    const geometry = record(reference.geometry, `normalized reference ${index} geometry`);
+    equal(geometry.bytes, expected.geometryBytes, `normalized reference ${index} geometry bytes`);
+    equal(
+      sha256(geometry.sha256, `normalized reference ${index} geometry SHA-256`),
+      expected.geometrySha256,
+      `normalized reference ${index} geometry SHA-256`,
+    );
+    numericArray(geometry.bounds, 4, `normalized reference ${index} bounds`);
+    if (finite(geometry.areaM2, `normalized reference ${index} area`) <= 0) {
+      throw new Error(`Normalized reference ${index} area must be positive`);
+    }
+    const coverage = record(reference.coverage, `normalized reference ${index} coverage`);
+    equal(coverage.areaM2, 56000000, `normalized reference ${index} coverage area`);
+    equal(coverage.bytes, 93, `normalized reference ${index} coverage bytes`);
+    equal(
+      sha256(coverage.sha256, `normalized reference ${index} coverage SHA-256`),
+      sharedCoverageSha256,
+      `normalized reference ${index} coverage SHA-256`,
+    );
+    const mask = record(reference.referenceMask, `normalized reference ${index} mask`);
+    equal(mask.bytes, expected.maskBytes, `normalized reference ${index} mask bytes`);
+    equal(mask.contentBytes, 140000, `normalized reference ${index} mask content bytes`);
+    equal(
+      sha256(mask.sha256, `normalized reference ${index} mask SHA-256`),
+      expected.maskSha256,
+      `normalized reference ${index} mask SHA-256`,
+    );
+    equal(
+      sha256(mask.contentSha256, `normalized reference ${index} mask content SHA-256`),
+      expected.maskContentSha256,
+      `normalized reference ${index} mask content SHA-256`,
+    );
+    const coverageMask = record(
+      reference.coverageMask,
+      `normalized reference ${index} coverage mask`,
+    );
+    equal(coverageMask.bytes, 171, `normalized reference ${index} coverage mask bytes`);
+    equal(coverageMask.contentBytes, 140000, `normalized reference ${index} coverage mask content bytes`);
+    equal(
+      sha256(coverageMask.sha256, `normalized reference ${index} coverage mask SHA-256`),
+      sharedCoverageMaskSha256,
+      `normalized reference ${index} coverage mask SHA-256`,
+    );
+    equal(
+      sha256(
+        coverageMask.contentSha256,
+        `normalized reference ${index} coverage mask content SHA-256`,
+      ),
+      sharedCoverageMaskContentSha256,
+      `normalized reference ${index} coverage mask content SHA-256`,
+    );
+    const statistics = record(
+      reference.statistics,
+      `normalized reference ${index} statistics`,
+    );
+    equal(statistics.cellCount, 140000, `normalized reference ${index} cells`);
+    equal(statistics.coverageCellCount, 140000, `normalized reference ${index} coverage cells`);
+    equal(statistics.missingCoverageCellCount, 0, `normalized reference ${index} missing cells`);
+    equal(statistics.wetCellCount, expected.wetCellCount, `normalized reference ${index} wet cells`);
+    equal(
+      statistics.referenceNotWetCellCount,
+      expected.notWetCellCount,
+      `normalized reference ${index} not-wet cells`,
+    );
+    equal(
+      statistics.centerSampledWetAreaM2,
+      expected.wetAreaM2,
+      `normalized reference ${index} sampled area`,
+    );
+    equal(
+      Number(statistics.wetCellCount) +
+        Number(statistics.referenceNotWetCellCount) +
+        Number(statistics.missingCoverageCellCount),
+      140000,
+      `normalized reference ${index} state partition`,
+    );
+  }
+
+  const isolation = record(
+    normalization.isolation,
+    'evaluationReferenceNormalization.isolation',
+  );
+  for (const field of [
+    'referencesCombined',
+    'predictionArtifactsLoaded',
+    'modelInput',
+    'calibration',
+    'evaluationExecuted',
+  ]) {
+    equal(isolation[field], false, `normalization isolation ${field}`);
+  }
+  equal(isolation.networkRequests, 0, 'normalization network requests');
+  equal(
+    normalization.nextGate,
+    'evaluate_each_reference_independently',
+    'normalization next gate',
   );
 }
 
