@@ -1,5 +1,5 @@
 {
-  "manifestVersion": "0.26.0",
+  "manifestVersion": "0.27.0",
   "audit": {
     "id": "cumbria-2015-carlisle-data-access-audit",
     "state": "metadata_verified",
@@ -1673,6 +1673,87 @@
     },
     "protocolSha256": "1a135785bef1121e542952fd8ee90d6eed86908d19864d381985fbfd2f8a1dd0"
   },
+  "evaluationReferenceAcquisition": {
+    "schemaVersion": "cumbria-evaluation-reference-acquisition-v0.1.0",
+    "state": "content_addressed_normalization_pending",
+    "recordedOn": "2026-09-19",
+    "predictionFreeze": {
+      "mergeCommit": "df33838ba7774a736ebe17aec7e6c9aee01e1827",
+      "protocolSha256": "1a135785bef1121e542952fd8ee90d6eed86908d19864d381985fbfd2f8a1dd0",
+      "predictionReceiptSha256": "f2a3a7489699a70a6d5c770633bdc9f789184ca26cb8190c85a1d28d40495dc6"
+    },
+    "acquisitionRevision": {
+      "commit": "4e4d303ac007c077b283e364e38f8421c637bbb8",
+      "tree": "7f8f3b30dc644ccb0c45a587e187bd2a8e4abef4"
+    },
+    "selection": {
+      "rule": "provider event group 4175 intersecting the frozen prediction domain; no prediction value or geometry participates in selection",
+      "frozenDomainBng": [332000, 556000, 340000, 563000],
+      "providerQueryBboxWgs84": [-3.0634070957129724, 54.89408798666897, -2.9370369857492205, 54.958009472698436],
+      "eaEventGroupId": 4175,
+      "eaFeatureIds": ["Recorded_Flood_Outlines.26355"],
+      "copernicusProductIds": [
+        "EMSR147_01CARLISLE_DELINEATION_OVERVIEW_v1",
+        "EMSR147_01CARLISLE_DELINEATION_OVERVIEW-MONIT01_v1"
+      ]
+    },
+    "receipt": {
+      "fileName": "cumbria-evaluation-references-v0.receipt.json",
+      "schemaVersion": "cumbria-evaluation-reference-receipt-v0.1.0",
+      "sha256": "b9bf772af4a356de533edb26c005dd318e36d889ad44fdaeb51586c989adffbf",
+      "sourceCount": 3,
+      "totalSourceBytes": 5715266
+    },
+    "sources": [
+      {
+        "id": "ea-recorded-flood-outlines-carlisle-2015",
+        "datasetId": "ea-recorded-flood-outlines",
+        "bytes": 53114,
+        "sha256": "e2ad395a39441a077cf3585e3cce09a49454922798dba483a31fe71fabef78c0",
+        "relativePath": "evaluation-references/sources/sha256/e2ad395a39441a077cf3585e3cce09a49454922798dba483a31fe71fabef78c0.geojson",
+        "format": "geojson",
+        "selectedLayer": "Recorded_Flood_Outlines event group 4175",
+        "featureCount": 1,
+        "sourceDates": ["2015-12-05", "2015-12-07"]
+      },
+      {
+        "id": "copernicus-emsr147-carlisle-initial",
+        "datasetId": "copernicus-emsr147-carlisle",
+        "bytes": 2040503,
+        "sha256": "5524efba986082b901bf27fc7ecde0cf6af91fea393b36bfa6bcf6a959448049",
+        "relativePath": "evaluation-references/sources/sha256/5524efba986082b901bf27fc7ecde0cf6af91fea393b36bfa6bcf6a959448049.zip",
+        "format": "zip",
+        "selectedLayer": "EMSR147_01CARLISLE_01DELINEATION_v1_50000_crisis_information_poly",
+        "featureCount": 228,
+        "sourceDates": ["20151207"]
+      },
+      {
+        "id": "copernicus-emsr147-carlisle-monitoring-01",
+        "datasetId": "copernicus-emsr147-carlisle",
+        "bytes": 3621649,
+        "sha256": "b58b6e047d8e1066fffcf3aa09fafa4b975cd7eedccda22d8df8c4971d509cfb",
+        "relativePath": "evaluation-references/sources/sha256/b58b6e047d8e1066fffcf3aa09fafa4b975cd7eedccda22d8df8c4971d509cfb.zip",
+        "format": "zip",
+        "selectedLayer": "EMSR147_01CARLISLE_01DELINEATION_MONIT01_v1_50000_crisis_information_poly",
+        "featureCount": 495,
+        "sourceDates": ["20151207", "20151210"]
+      }
+    ],
+    "comparisons": [
+      "environment-agency-recorded-outline",
+      "copernicus-emsr147-initial",
+      "copernicus-emsr147-monitoring-01"
+    ],
+    "isolation": {
+      "modelInput": false,
+      "calibration": false,
+      "predictionSelection": false,
+      "automaticExtraction": false,
+      "evaluationExecuted": false,
+      "referencesCombined": false
+    },
+    "nextGate": "normalize_and_rasterize_each_reference_independently"
+  },
   "modelAccessRequest": {
     "id": "cumbria-carlisle-pre-event-model-products-5-6-7-v0",
     "state": "sent_awaiting_response",
@@ -2965,17 +3046,23 @@
         "evaluation": true
       },
       "access": {
-        "state": "remote_verified_intermittent",
-        "checkedOn": "2026-08-30",
-        "url": "https://environment.data.gov.uk/geoservices/datasets/8c75e700-d465-11e4-8b5b-f0def148f590/ogc/features/v1/collections/Recorded_Flood_Outlines/items?bbox=-3.05,54.82,-2.85,55.00&datetime=2015-12-01T00:00:00Z/2015-12-15T00:00:00Z&limit=100&f=json",
+        "state": "materialized",
+        "checkedOn": "2026-09-19",
+        "url": "https://environment.data.gov.uk/geoservices/datasets/8c75e700-d465-11e4-8b5b-f0def148f590/ogc/features/v1/collections/Recorded_Flood_Outlines/items?bbox=-3.0634070957129724%2C54.89408798666897%2C-2.9370369857492205%2C54.958009472698436&filter=rec_grp_id%20%3D%204175&filter-lang=cql2-text&limit=100&f=json",
         "additionalUrls": [
           "https://www.data.gov.uk/dataset/16e32c53-35a6-4d54-a111-ca09031eaaaf/recorded-flood-outlines1"
         ],
-        "note": "The official OGC Features endpoint returned Carlisle geometry during the audit but was intermittently unavailable on a repeated request. Exact feature identifiers and hashes remain deliberately unfrozen until the input protocol is sealed."
+        "note": "After prediction-freeze merge df33838, the exact frozen-domain query returned one event-group 4175 feature. The raw GeoJSON is content-addressed outside Git and remains evaluation-only."
       },
       "facts": {
         "publicAccessConstraints": false,
-        "exactEvaluationFeaturesFrozen": false
+        "exactEvaluationFeaturesFrozen": true,
+        "featureId": "Recorded_Flood_Outlines.26355",
+        "recordId": 4078182,
+        "eventGroupId": 4175,
+        "sourceBytes": 53114,
+        "sourceSha256": "e2ad395a39441a077cf3585e3cce09a49454922798dba483a31fe71fabef78c0",
+        "geometryLoadedAfterPredictionFreeze": true
       }
     },
     {
@@ -2994,20 +3081,24 @@
         "evaluation": true
       },
       "access": {
-        "state": "remote_verified",
-        "checkedOn": "2026-08-30",
+        "state": "materialized",
+        "checkedOn": "2026-09-19",
         "url": "https://mapping.emergency.copernicus.eu/activations/EMSR147/",
         "additionalUrls": [
           "https://cems-mapping-website.s3.eu-west-1.amazonaws.com/static/activations/EMSR147/EMSR147_01CARLISLE_DELINEATION_OVERVIEW_v1_vector.zip",
           "https://cems-mapping-website.s3.eu-west-1.amazonaws.com/static/activations/EMSR147/EMSR147_01CARLISLE_DELINEATION_OVERVIEW-MONIT01_v1_vector.zip"
         ],
-        "note": "Both official Carlisle vector archives returned HTTP 200. They remain sealed evaluation references and have not been downloaded into the repository."
+        "note": "Both official Carlisle vector archives were downloaded only after prediction freeze, content-addressed outside Git, ZIP-safety inspected without extraction and retained as separate initial and monitoring references."
       },
       "facts": {
         "activationDate": "2015-12-05",
         "initialVectorBytes": 2040503,
         "monitoringVectorBytes": 3621649,
-        "archivesDownloaded": false
+        "archivesDownloaded": true,
+        "initialVectorSha256": "5524efba986082b901bf27fc7ecde0cf6af91fea393b36bfa6bcf6a959448049",
+        "monitoringVectorSha256": "b58b6e047d8e1066fffcf3aa09fafa4b975cd7eedccda22d8df8c4971d509cfb",
+        "initialCrisisFeatureCount": 228,
+        "monitoringCrisisFeatureCount": 495
       }
     },
     {
@@ -3123,7 +3214,7 @@
     {
       "id": "bounded_environmental_inputs",
       "state": "passed",
-      "reason": "The bounded public baseline now has content-addressed real terrain, CLC 2012 and IMERG V07 Final evidence outside Git. The ten effective DTM gaps remain missing, the observed flood geometries remain sealed, H3 remains an inspection join only and solver execution is still unauthorized."
+      "reason": "The bounded public baseline has content-addressed real terrain, CLC 2012 and IMERG V07 Final evidence outside Git. The ten effective DTM gaps remain missing and H3 remains an inspection join only. Solver execution and later reference acquisition are recorded by separate immutable gates."
     },
     {
       "id": "replacement_solver_contract",
@@ -3133,7 +3224,7 @@
     {
       "id": "solver_grid_materialization",
       "state": "passed",
-      "reason": "The corrected frozen 10 m, 20 m and 40 m meshes now have content-addressed elevation, finite CLC-derived runoff and Manning parameters, explicit validity masks and a one-cell prediction-exclusion halo. Every solver cell requires complete native DTM coverage; internal NoData remains missing, so only 75,786 of 140,000 primary cells are solver-valid. The superseded NoData parameter receipt is retained but forbidden; H3 is not used for routing, and event execution remains blocked pending runner and prediction-contract freeze."
+      "reason": "The corrected frozen 10 m, 20 m and 40 m meshes have content-addressed elevation, finite CLC-derived runoff and Manning parameters, explicit validity masks and a one-cell prediction-exclusion halo. Every solver cell requires complete native DTM coverage; internal NoData remains missing, so only 75,786 of 140,000 primary cells are solver-valid. The superseded NoData parameter receipt is retained but forbidden, H3 is not used for routing, and the later completed run remains bound to these exact grids."
     },
     {
       "id": "time_varying_forcing_materialization",
@@ -3177,19 +3268,24 @@
     },
     {
       "id": "evaluation_geometry_identity",
+      "state": "passed",
+      "reason": "After prediction-freeze merge df33838, the exact Environment Agency event-group feature and both official Carlisle EMSR147 archives were acquired outside Git and content-addressed under receipt SHA-256 b9bf772af4a356de533edb26c005dd318e36d889ad44fdaeb51586c989adffbf. The three references remain separate and have not been evaluated."
+    },
+    {
+      "id": "evaluation_reference_normalization",
       "state": "blocked",
-      "reason": "The prediction artifact, code revision, physical wetness semantic and evaluation domain are frozen. Exact Environment Agency and Copernicus feature selections and content hashes remain absent because both references stay sealed until this prediction-freeze checkpoint is merged."
+      "reason": "The raw evaluation references are acquired but have not been normalized, clipped or rasterized onto the frozen 20 m evaluation grid. EA, EMSR147 initial and EMSR147 monitoring must produce separate content-addressed masks before any metric runs."
     },
     {
       "id": "large_artifact_downloads",
       "state": "blocked",
-      "reason": "Unbounded or full-envelope artifact acquisition remains blocked. After the prediction-freeze checkpoint is merged, only the bounded Environment Agency and Copernicus evaluation references declared by the blind protocol may be acquired, hashed and kept separate; they cannot alter the model, domain, mesh or wetness threshold."
+      "reason": "Unbounded or full-envelope artifact acquisition remains blocked. The only authorized bounded references have been acquired and hashed; no other geography or post-hoc reference may be added to alter the model, domain, mesh or wetness threshold."
     }
   ],
   "acquisition": {
-    "state": "prediction_frozen_reference_acquisition_pending",
+    "state": "evaluation_references_acquired_normalization_pending",
     "largeDownloadsAllowed": false,
     "boundedTerrainDownloadsAllowed": true,
-    "nextAction": "After this prediction-freeze checkpoint is merged, acquire and content-address only the declared Environment Agency and Copernicus evaluation references. Compare each independently against the frozen primary 0.05 m wet mask without changing inputs, model, domain, mesh, threshold or metrics."
+    "nextAction": "Normalize and rasterize the Environment Agency outline, EMSR147 initial delineation and EMSR147 monitoring delineation independently on the frozen 20 m EPSG:27700 grid. Preserve missing coverage and run no metrics until all three masks and their transformations are content-addressed."
   }
 }

@@ -39,7 +39,7 @@ test('Cumbria manifest freezes the replacement-solver contract without opening s
   );
   assert.equal(
     manifest.acquisition.state,
-    'prediction_frozen_reference_acquisition_pending',
+    'evaluation_references_acquired_normalization_pending',
   );
   assert.equal(manifest.acquisition.largeDownloadsAllowed, false);
   assert.equal(manifest.acquisition.boundedTerrainDownloadsAllowed, true);
@@ -198,7 +198,7 @@ test('public baseline terrain materialization records real coverage without zero
   const manifest = manifestFixture();
   const result = manifest.publicBaselineTerrainMaterialization;
 
-  assert.equal(manifest.manifestVersion, '0.26.0');
+  assert.equal(manifest.manifestVersion, '0.27.0');
   assert.equal(result.state, 'terrain_materialized_with_explicit_gaps');
   assert.equal(
     result.protocolSha256,
@@ -409,13 +409,43 @@ test('blind evaluation protocol rejects reference access and post-hoc changes', 
   );
 });
 
+test('evaluation references are content-addressed after prediction freeze without running metrics', () => {
+  const manifest = manifestFixture();
+  const acquisition = manifest.evaluationReferenceAcquisition;
+
+  assert.equal(acquisition.state, 'content_addressed_normalization_pending');
+  assert.equal(
+    acquisition.predictionFreeze.mergeCommit,
+    'df33838ba7774a736ebe17aec7e6c9aee01e1827',
+  );
+  assert.equal(
+    acquisition.receipt.sha256,
+    'b9bf772af4a356de533edb26c005dd318e36d889ad44fdaeb51586c989adffbf',
+  );
+  assert.equal(acquisition.receipt.sourceCount, 3);
+  assert.equal(acquisition.receipt.totalSourceBytes, 5715266);
+  assert.deepEqual(
+    acquisition.sources.map((source) => [source.id, source.featureCount]),
+    [
+      ['ea-recorded-flood-outlines-carlisle-2015', 1],
+      ['copernicus-emsr147-carlisle-initial', 228],
+      ['copernicus-emsr147-carlisle-monitoring-01', 495],
+    ],
+  );
+  assert.equal(acquisition.isolation.modelInput, false);
+  assert.equal(acquisition.isolation.calibration, false);
+  assert.equal(acquisition.isolation.predictionSelection, false);
+  assert.equal(acquisition.isolation.evaluationExecuted, false);
+  assert.equal(acquisition.isolation.referencesCombined, false);
+});
+
 test('pre-event terrain selection maps to downloadable archives with explicit gaps', () => {
   const manifest = manifestFixture();
   const lidar = manifest.datasets.find(
     (dataset) => dataset.id === 'ea-lidar-dtm-time-stamped',
   );
 
-  assert.equal(manifest.manifestVersion, '0.26.0');
+  assert.equal(manifest.manifestVersion, '0.27.0');
   assert.equal(lidar.access.state, 'remote_verified');
   assert.deepEqual(
     {
@@ -1651,7 +1681,8 @@ test('terrain identity passes while bulk acquisition remains physically gated', 
   assert.equal(gates.get('replacement_solver_contract'), 'passed');
   assert.equal(gates.get('as_of_event_defence_state'), 'blocked');
   assert.equal(gates.get('hydraulic_context'), 'blocked');
-  assert.equal(gates.get('evaluation_geometry_identity'), 'blocked');
+  assert.equal(gates.get('evaluation_geometry_identity'), 'passed');
+  assert.equal(gates.get('evaluation_reference_normalization'), 'blocked');
   assert.equal(gates.get('large_artifact_downloads'), 'blocked');
   assert.equal(gates.get('evaluation_withholding'), 'passed');
 });

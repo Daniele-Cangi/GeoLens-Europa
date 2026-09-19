@@ -242,7 +242,9 @@ console.log(
       primaryScenarioId: protocol.predictionFreeze.wetnessCriterion.scenarioId,
       primaryWetnessThresholdM: protocol.predictionFreeze.wetnessCriterion.threshold,
       evaluationDomainMaskSha256: protocol.predictionFreeze.evaluationDomain.artifact.sha256,
-      referenceState: protocol.referenceSeal.state,
+      referenceStateAtPredictionFreeze: protocol.referenceSeal.state,
+      currentReferenceAcquisitionState:
+        manifest.evaluationReferenceAcquisition.state,
       referenceDatasetIds: protocol.referenceSeal.datasetIds,
       metricIds: protocol.metrics.map((metric) => metric.id),
       networkRequests: 0,
