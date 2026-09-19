@@ -13,7 +13,7 @@ import {
   type CumbriaReplacementSolverProtocol,
 } from './cumbriaReplacementSolver';
 
-export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.26.0' as const;
+export const CUMBRIA_ACCESS_MANIFEST_VERSION = '0.27.0' as const;
 
 export const CUMBRIA_EVENT_WINDOW = {
   start: '2015-12-04T00:00:00Z',
@@ -1348,6 +1348,61 @@ export interface CumbriaEventRunnerContract {
   readonly contractSha256: string;
 }
 
+export interface CumbriaEvaluationReferenceAcquisition {
+  readonly schemaVersion: 'cumbria-evaluation-reference-acquisition-v0.1.0';
+  readonly state: 'content_addressed_normalization_pending';
+  readonly recordedOn: string;
+  readonly predictionFreeze: {
+    readonly mergeCommit: 'df33838ba7774a736ebe17aec7e6c9aee01e1827';
+    readonly protocolSha256: string;
+    readonly predictionReceiptSha256: string;
+  };
+  readonly acquisitionRevision: {
+    readonly commit: '4e4d303ac007c077b283e364e38f8421c637bbb8';
+    readonly tree: '7f8f3b30dc644ccb0c45a587e187bd2a8e4abef4';
+  };
+  readonly selection: {
+    readonly rule: string;
+    readonly frozenDomainBng: readonly [332000, 556000, 340000, 563000];
+    readonly providerQueryBboxWgs84: readonly [number, number, number, number];
+    readonly eaEventGroupId: 4175;
+    readonly eaFeatureIds: readonly ['Recorded_Flood_Outlines.26355'];
+    readonly copernicusProductIds: readonly [string, string];
+  };
+  readonly receipt: {
+    readonly fileName: 'cumbria-evaluation-references-v0.receipt.json';
+    readonly schemaVersion: 'cumbria-evaluation-reference-receipt-v0.1.0';
+    readonly sha256: string;
+    readonly sourceCount: 3;
+    readonly totalSourceBytes: 5715266;
+  };
+  readonly sources: readonly {
+    readonly id: string;
+    readonly datasetId: 'ea-recorded-flood-outlines' | 'copernicus-emsr147-carlisle';
+    readonly bytes: number;
+    readonly sha256: string;
+    readonly relativePath: string;
+    readonly format: 'geojson' | 'zip';
+    readonly selectedLayer?: string;
+    readonly featureCount?: number;
+    readonly sourceDates?: readonly string[];
+  }[];
+  readonly comparisons: readonly [
+    'environment-agency-recorded-outline',
+    'copernicus-emsr147-initial',
+    'copernicus-emsr147-monitoring-01',
+  ];
+  readonly isolation: {
+    readonly modelInput: false;
+    readonly calibration: false;
+    readonly predictionSelection: false;
+    readonly automaticExtraction: false;
+    readonly evaluationExecuted: false;
+    readonly referencesCombined: false;
+  };
+  readonly nextGate: 'normalize_and_rasterize_each_reference_independently';
+}
+
 export interface CumbriaAccessManifest {
   readonly manifestVersion: typeof CUMBRIA_ACCESS_MANIFEST_VERSION;
   readonly audit: {
@@ -1393,12 +1448,13 @@ export interface CumbriaAccessManifest {
   readonly publicBaselineSolverGridMaterialization:
     CumbriaSolverGridMaterialization;
   readonly evaluationProtocol: CumbriaBlindEvaluationProtocol;
+  readonly evaluationReferenceAcquisition: CumbriaEvaluationReferenceAcquisition;
   readonly modelAccessRequest: CumbriaModelAccessRequest;
   readonly modelDeliveryIntakeProtocol: CumbriaModelDeliveryIntakeProtocol;
   readonly datasets: readonly CumbriaDatasetAudit[];
   readonly gates: readonly CumbriaAccessGate[];
   readonly acquisition: {
-    readonly state: 'prediction_frozen_reference_acquisition_pending';
+    readonly state: 'evaluation_references_acquired_normalization_pending';
     readonly largeDownloadsAllowed: false;
     readonly boundedTerrainDownloadsAllowed: true;
     readonly nextAction: string;
@@ -1671,6 +1727,11 @@ export function assertCumbriaAccessManifest(
     manifest.publicBaselineNumericalKernelVerification,
   );
   blindEvaluationProtocol(manifest.evaluationProtocol, datasetRecords);
+  evaluationReferenceAcquisition(
+    manifest.evaluationReferenceAcquisition,
+    manifest.evaluationProtocol,
+    datasetRecords,
+  );
 
   const imergFacts = record(
     datasetRecords.get('nasa-imerg-v07-final')?.facts,
@@ -2579,11 +2640,21 @@ export function assertCumbriaAccessManifest(
   equal(gateStates.get('as_of_event_defence_state'), 'blocked', 'as_of_event_defence_state');
   equal(gateStates.get('hydraulic_context'), 'blocked', 'hydraulic_context');
   equal(gateStates.get('large_artifact_downloads'), 'blocked', 'large_artifact_downloads');
+  equal(
+    gateStates.get('evaluation_geometry_identity'),
+    'passed',
+    'evaluation_geometry_identity',
+  );
+  equal(
+    gateStates.get('evaluation_reference_normalization'),
+    'blocked',
+    'evaluation_reference_normalization',
+  );
 
   const acquisition = record(manifest.acquisition, 'acquisition');
   equal(
     acquisition.state,
-    'prediction_frozen_reference_acquisition_pending',
+    'evaluation_references_acquired_normalization_pending',
     'acquisition.state',
   );
   equal(
@@ -5285,6 +5356,226 @@ function blindEvaluationProtocol(
   if (!/^[a-f0-9]{64}$/.test(protocolSha256)) {
     throw new Error('evaluationProtocol.protocolSha256 must be lowercase SHA-256');
   }
+}
+
+function evaluationReferenceAcquisition(
+  value: unknown,
+  protocolValue: unknown,
+  datasets: ReadonlyMap<string, Record<string, unknown>>,
+): void {
+  const acquisition = record(value, 'evaluationReferenceAcquisition');
+  equal(
+    acquisition.schemaVersion,
+    'cumbria-evaluation-reference-acquisition-v0.1.0',
+    'evaluation-reference acquisition schema',
+  );
+  equal(
+    acquisition.state,
+    'content_addressed_normalization_pending',
+    'evaluation-reference acquisition state',
+  );
+  dateOnly(acquisition.recordedOn, 'evaluation-reference acquisition date');
+
+  const protocol = record(protocolValue, 'evaluationProtocol');
+  const freeze = record(
+    acquisition.predictionFreeze,
+    'evaluationReferenceAcquisition.predictionFreeze',
+  );
+  equal(
+    freeze.mergeCommit,
+    'df33838ba7774a736ebe17aec7e6c9aee01e1827',
+    'evaluation-reference freeze merge',
+  );
+  equal(
+    freeze.protocolSha256,
+    protocol.protocolSha256,
+    'evaluation-reference protocol SHA-256',
+  );
+  const prediction = record(
+    record(protocol.predictionFreeze, 'evaluationProtocol.predictionFreeze')
+      .predictionReceipt,
+    'evaluationProtocol.predictionFreeze.predictionReceipt',
+  );
+  equal(
+    freeze.predictionReceiptSha256,
+    prediction.sha256,
+    'evaluation-reference prediction receipt SHA-256',
+  );
+
+  const revision = record(
+    acquisition.acquisitionRevision,
+    'evaluationReferenceAcquisition.acquisitionRevision',
+  );
+  equal(
+    revision.commit,
+    '4e4d303ac007c077b283e364e38f8421c637bbb8',
+    'evaluation-reference acquisition commit',
+  );
+  equal(
+    revision.tree,
+    '7f8f3b30dc644ccb0c45a587e187bd2a8e4abef4',
+    'evaluation-reference acquisition tree',
+  );
+
+  const selection = record(
+    acquisition.selection,
+    'evaluationReferenceAcquisition.selection',
+  );
+  nonEmpty(selection.rule, 'evaluation-reference selection rule');
+  equal(
+    JSON.stringify(numericArray(selection.frozenDomainBng, 4, 'evaluation domain')),
+    JSON.stringify([332000, 556000, 340000, 563000]),
+    'evaluation-reference frozen domain',
+  );
+  equal(
+    JSON.stringify(
+      numericArray(selection.providerQueryBboxWgs84, 4, 'evaluation query bbox'),
+    ),
+    JSON.stringify([
+      -3.0634070957129724,
+      54.89408798666897,
+      -2.9370369857492205,
+      54.958009472698436,
+    ]),
+    'evaluation-reference query bbox',
+  );
+  equal(selection.eaEventGroupId, 4175, 'evaluation-reference EA event group');
+  equal(
+    JSON.stringify(stringArray(selection.eaFeatureIds, 'EA feature ids')),
+    JSON.stringify(['Recorded_Flood_Outlines.26355']),
+    'evaluation-reference EA feature ids',
+  );
+  equal(
+    JSON.stringify(stringArray(selection.copernicusProductIds, 'CEMS product ids')),
+    JSON.stringify([
+      'EMSR147_01CARLISLE_DELINEATION_OVERVIEW_v1',
+      'EMSR147_01CARLISLE_DELINEATION_OVERVIEW-MONIT01_v1',
+    ]),
+    'evaluation-reference CEMS product ids',
+  );
+
+  const receipt = record(acquisition.receipt, 'evaluationReferenceAcquisition.receipt');
+  equal(
+    receipt.fileName,
+    'cumbria-evaluation-references-v0.receipt.json',
+    'evaluation-reference receipt filename',
+  );
+  equal(
+    receipt.schemaVersion,
+    'cumbria-evaluation-reference-receipt-v0.1.0',
+    'evaluation-reference receipt schema',
+  );
+  equal(
+    sha256(receipt.sha256, 'evaluation-reference receipt SHA-256'),
+    'b9bf772af4a356de533edb26c005dd318e36d889ad44fdaeb51586c989adffbf',
+    'evaluation-reference receipt SHA-256',
+  );
+  equal(receipt.sourceCount, 3, 'evaluation-reference source count');
+  equal(receipt.totalSourceBytes, 5715266, 'evaluation-reference source bytes');
+
+  const expectedSources = [
+    {
+      id: 'ea-recorded-flood-outlines-carlisle-2015',
+      datasetId: 'ea-recorded-flood-outlines',
+      bytes: 53114,
+      sha256: 'e2ad395a39441a077cf3585e3cce09a49454922798dba483a31fe71fabef78c0',
+      format: 'geojson',
+      featureCount: 1,
+      selectedLayer: 'Recorded_Flood_Outlines event group 4175',
+      sourceDates: ['2015-12-05', '2015-12-07'],
+    },
+    {
+      id: 'copernicus-emsr147-carlisle-initial',
+      datasetId: 'copernicus-emsr147-carlisle',
+      bytes: 2040503,
+      sha256: '5524efba986082b901bf27fc7ecde0cf6af91fea393b36bfa6bcf6a959448049',
+      format: 'zip',
+      featureCount: 228,
+      selectedLayer:
+        'EMSR147_01CARLISLE_01DELINEATION_v1_50000_crisis_information_poly',
+      sourceDates: ['20151207'],
+    },
+    {
+      id: 'copernicus-emsr147-carlisle-monitoring-01',
+      datasetId: 'copernicus-emsr147-carlisle',
+      bytes: 3621649,
+      sha256: 'b58b6e047d8e1066fffcf3aa09fafa4b975cd7eedccda22d8df8c4971d509cfb',
+      format: 'zip',
+      featureCount: 495,
+      selectedLayer:
+        'EMSR147_01CARLISLE_01DELINEATION_MONIT01_v1_50000_crisis_information_poly',
+      sourceDates: ['20151207', '20151210'],
+    },
+  ] as const;
+  const sources = array(acquisition.sources, 'evaluationReferenceAcquisition.sources');
+  equal(sources.length, expectedSources.length, 'evaluation-reference source count');
+  for (const [index, expected] of expectedSources.entries()) {
+    const source = record(sources[index], `evaluation reference source ${index}`);
+    for (const field of ['id', 'datasetId', 'bytes', 'format', 'featureCount'] as const) {
+      equal(source[field], expected[field], `evaluation reference source ${index} ${field}`);
+    }
+    equal(
+      sha256(source.sha256, `evaluation reference source ${index} SHA-256`),
+      expected.sha256,
+      `evaluation reference source ${index} SHA-256`,
+    );
+    equal(
+      source.selectedLayer,
+      expected.selectedLayer,
+      `evaluation reference source ${index} selected layer`,
+    );
+    equal(
+      JSON.stringify(
+        stringArray(source.sourceDates, `evaluation reference source ${index} dates`),
+      ),
+      JSON.stringify(expected.sourceDates),
+      `evaluation reference source ${index} dates`,
+    );
+    const relativePath = nonEmpty(
+      source.relativePath,
+      `evaluation reference source ${index} path`,
+    );
+    if (
+      relativePath.includes('\\') ||
+      relativePath.startsWith('/') ||
+      relativePath.split('/').includes('..') ||
+      !relativePath.startsWith(`evaluation-references/sources/sha256/${expected.sha256}.`)
+    ) {
+      throw new Error(`Evaluation reference source ${index} path is not content-addressed`);
+    }
+    if (!datasets.has(expected.datasetId)) {
+      throw new Error(`Evaluation reference source ${index} uses an unknown dataset`);
+    }
+  }
+
+  equal(
+    JSON.stringify(stringArray(acquisition.comparisons, 'evaluation comparisons')),
+    JSON.stringify([
+      'environment-agency-recorded-outline',
+      'copernicus-emsr147-initial',
+      'copernicus-emsr147-monitoring-01',
+    ]),
+    'evaluation-reference comparison separation',
+  );
+  const isolation = record(
+    acquisition.isolation,
+    'evaluationReferenceAcquisition.isolation',
+  );
+  for (const field of [
+    'modelInput',
+    'calibration',
+    'predictionSelection',
+    'automaticExtraction',
+    'evaluationExecuted',
+    'referencesCombined',
+  ]) {
+    equal(isolation[field], false, `evaluation-reference isolation ${field}`);
+  }
+  equal(
+    acquisition.nextGate,
+    'normalize_and_rasterize_each_reference_independently',
+    'evaluation-reference next gate',
+  );
 }
 
 function modelAccessRequest(value: unknown): void {
