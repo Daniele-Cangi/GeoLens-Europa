@@ -62,6 +62,26 @@ class CumbriaBlindEvaluationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "has not been authorized"):
             MODULE.validate_execution_authorization(manifest, "0" * 64)
 
+    def test_completed_evaluation_gate_blocks_another_execute_before_artifact_access(self):
+        manifest = MODULE.json.loads(MODULE.MANIFEST_PATH.read_text(encoding="utf-8"))
+        with self.assertRaisesRegex(
+            ValueError,
+            "physics revision gate blocks another Carlisle evaluation execution",
+        ):
+            MODULE.assert_execution_revision(manifest)
+
+        changed = copy.deepcopy(manifest)
+        changed["physicsRevisionGate"]["authorization"][
+            "carlisleRevisionRunAllowed"
+        ] = True
+        with self.assertRaisesRegex(ValueError, "physics revision gate drifted"):
+            MODULE.assert_post_evaluation_execution_blocked(changed)
+
+        missing = copy.deepcopy(manifest)
+        missing.pop("physicsRevisionGate")
+        with self.assertRaisesRegex(ValueError, "physics revision gate is missing"):
+            MODULE.assert_post_evaluation_execution_blocked(missing)
+
     def test_execution_authorization_binds_every_external_identity_and_executor_byte(self):
         executor_sha256 = hashlib.sha256(MODULE_PATH.read_bytes()).hexdigest()
         manifest = {
