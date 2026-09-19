@@ -1936,8 +1936,8 @@
     "referenceReceiptSha256": "fae2cadba3675bff4191da5829e8bf64d71ffc028a9c6899c9e865f97b6debe0",
     "executor": {
       "relativePath": "scripts/evaluate_cumbria_blind_prediction.py",
-      "sha256": "7cc63485c59ca3f4716f056ae3f5420f180e55fad62af6dfb006631e11e06373",
-      "frozenCommit": "efe7a053d0e1c97baad8b571f809ddfe46078457"
+      "sha256": "f029baef594f8710fef9d79f1efadd8eae27586e6f371b9e57a39151128ae4f6",
+      "frozenCommit": "5d34bc1d8109a7a3ea3f8300ab3810c81c8fa745"
     },
     "isolation": {
       "predictionArtifactsLoaded": false,
@@ -3473,7 +3473,7 @@
     {
       "id": "blind_evaluation_execution_authorization",
       "state": "passed",
-      "reason": "The reviewed evaluator revision efe7a05 and its exact Git-blob SHA-256 are bound to the frozen protocol, prediction receipt and normalized-reference receipt. Authorization records zero loaded artifacts, writes, network requests and evaluation runs; the next action is the single deterministic blind comparison without retuning."
+      "reason": "The reviewed evaluator revision 5d34bc1 and its exact Git-blob SHA-256 are bound to the frozen protocol, prediction receipt and normalized-reference receipt. Authorization records zero loaded artifacts, writes, network requests and evaluation runs; the next action is the single deterministic blind comparison without retuning."
     },
     {
       "id": "large_artifact_downloads",

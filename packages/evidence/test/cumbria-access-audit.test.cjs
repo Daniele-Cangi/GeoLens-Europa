@@ -479,11 +479,11 @@ test('blind evaluation executor is byte-pinned before any metric runs', () => {
 
   assert.equal(
     authorization.executor.sha256,
-    '7cc63485c59ca3f4716f056ae3f5420f180e55fad62af6dfb006631e11e06373',
+    'f029baef594f8710fef9d79f1efadd8eae27586e6f371b9e57a39151128ae4f6',
   );
   assert.equal(
     authorization.executor.frozenCommit,
-    'efe7a053d0e1c97baad8b571f809ddfe46078457',
+    '5d34bc1d8109a7a3ea3f8300ab3810c81c8fa745',
   );
   assert.equal(authorization.isolation.predictionArtifactsLoaded, false);
   assert.equal(authorization.isolation.referenceArtifactsLoaded, false);

@@ -72,6 +72,14 @@ class CumbriaBlindEvaluationTests(unittest.TestCase):
                     "sha256": executor_sha256,
                     "frozenCommit": "0" * 40,
                 },
+                "isolation": {
+                    "predictionArtifactsLoaded": False,
+                    "referenceArtifactsLoaded": False,
+                    "filesWritten": 0,
+                    "evaluationRuns": 0,
+                    "networkRequests": 0,
+                },
+                "nextGate": "execute_once_and_record_all_predeclared_metrics",
             }
         }
         MODULE.validate_execution_authorization(manifest, executor_sha256)
@@ -96,7 +104,11 @@ class CumbriaBlindEvaluationTests(unittest.TestCase):
             cwd=MODULE.REPOSITORY_ROOT,
         )
         executor_sha256 = hashlib.sha256(source).hexdigest()
-        MODULE.validate_execution_authorization(manifest, executor_sha256)
+        authorization = MODULE.validate_execution_authorization(manifest, executor_sha256)
+        self.assertEqual(
+            MODULE.first_revision_with_executor_identity(executor_sha256),
+            authorization["executor"]["frozenCommit"],
+        )
 
     def test_exact_match_has_perfect_overlap_and_zero_boundary_distance(self):
         self.predicted[12:16, 12:16] = 1
