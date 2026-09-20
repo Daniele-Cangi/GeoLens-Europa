@@ -13,10 +13,33 @@ export default function AboutPage() {
     <main>
       <PageIntro
         section="About"
-        title="GeoLens is being refounded around evidence, not features."
-        lede="The project preserves valuable spatial, provider and stormwater work while replacing the historical multi-product framing with one physically meaningful system."
-        status="Experimental open-source research system"
+        title="GeoLens is an open spatial evidence research programme."
+        lede="It connects real environmental observations, terrain and infrastructure to derived physical state while keeping provenance, uncertainty and missing evidence visible."
+        status="Experimental system · active external-evidence review"
       />
+
+      <section className="about-profile" aria-label="GeoLens project profile">
+        <div>
+          <span>Identity</span>
+          <strong>Spatial evidence engine</strong>
+          <p>Environmental evidence remains connected to every derived quantity.</p>
+        </div>
+        <div>
+          <span>Current maturity</span>
+          <strong>Research prototype</strong>
+          <p>Verified transformation chains and retained negative benchmarks; not an operational forecast.</p>
+        </div>
+        <div>
+          <span>Current focus</span>
+          <strong>Owner evidence review</strong>
+          <p>Qualifying the Environment Agency Carlisle historical-model delivery.</p>
+        </div>
+        <div>
+          <span>Operating posture</span>
+          <strong>Expansion frozen</strong>
+          <p>Maintenance and evidence qualification continue without adding new scientific scope.</p>
+        </div>
+      </section>
 
       <section className="page-section about-mission">
         <div className="section-heading-row">
@@ -53,6 +76,27 @@ export default function AboutPage() {
             <li>Accounts, billing and collaboration features</li>
           </ul>
         </div>
+      </section>
+
+      <section className="page-section about-current-objective">
+        <div className="section-heading-row">
+          <div>
+            <p className="site-overline">Current objective</p>
+            <h2>Determine what the owner model can prove—without adapting the answer after seeing it.</h2>
+          </div>
+          <p>
+            GeoLens will catalogue and review the received Carlisle package,
+            then introduce only the minimum adapters required to represent its
+            formats and semantics. Any new physical experiment will remain
+            versioned beside the frozen public-data baseline.
+          </p>
+        </div>
+        <ol>
+          <li><span>01</span><strong>Qualify</strong><p>Model identity, dates, licence, software, CRS, units and datum.</p></li>
+          <li><span>02</span><strong>Separate</strong><p>Pre-event inputs, contextual material and evaluation evidence.</p></li>
+          <li><span>03</span><strong>Adapt minimally</strong><p>Format and schema only; no retrospective tuning.</p></li>
+          <li><span>04</span><strong>Compare honestly</strong><p>Preserve the original negative result beside every later experiment.</p></li>
+        </ol>
       </section>
 
       <section className="page-section about-governance">
