@@ -645,8 +645,82 @@ export function inspectCumbriaModelEvidenceIntake(
   };
 }
 
+const CUMBRIA_EA_MODEL_DELIVERY_COMPONENTS: readonly CumbriaModelComponent[] =
+  CUMBRIA_MODEL_COMPONENT_IDS.map(
+    (id): CumbriaModelComponent => ({
+      id,
+      requirement: requirementByComponent[id],
+      status:
+        id === 'licence_and_reuse_conditions' ? 'metadata_only' : 'incomplete',
+      artifactIds: ['ea-eir2026-42104-delivery-archive'],
+      productNumbers: [5, 6, 7],
+      modelGroupIds: [],
+      source: {
+        provider: 'Environment Agency',
+        dataset: 'Carlisle historic modelling request response EIR2026/42104',
+        datasetVersion: 'delivery-2026-09-18',
+      },
+      temporalClassification: 'mixed_requires_review',
+      sourceDates: [],
+      temporalLineageMethod:
+        'Package-level central-directory inventory only; component dates and requested model-group mapping require document-level review.',
+      missingReason:
+        id === 'licence_and_reuse_conditions'
+          ? 'Environment Agency Conditional Licence is identified, but embedded third-party material and redistribution rights require review.'
+          : 'Central-directory evidence indicates relevant material, but component completeness, pre-event lineage, CRS, units and model-group identity have not yet been reviewed.',
+      observedEventGeometryIncluded: false,
+      derivedFromEvaluationReference: false,
+      calibrationUse: 'forbidden',
+      automaticPromotion: false,
+    }),
+  );
+
+export const CUMBRIA_EA_MODEL_DELIVERY_PACKAGE: CumbriaModelEvidencePackage = {
+  schemaVersion: 'cumbria-ea-model-evidence-package-v0.1.0',
+  packageId: 'ea:carlisle:eir2026-42104:delivery-2026-09-18',
+  caseId: CASE_ID,
+  requestId: REQUEST_ID,
+  sourceKind: 'external_delivery',
+  receivedAt: '2026-09-18T09:07:00+02:00',
+  authority: 'Environment Agency',
+  deliveryReference:
+    'Environment Agency EIR2026/42104; Quatrix delivery received 2026-09-18',
+  requestedProductNumbers: [5, 6, 7],
+  requestedModelGroupIds: [1313, 1314, 1797, 8323],
+  excludedModelGroupIds: [2039, 9458],
+  license: {
+    access: 'permission_required',
+    redistribution: 'unknown',
+    termsUrl:
+      'https://www.gov.uk/government/publications/environment-agency-conditional-licence/environment-agency-conditional-licence',
+    attribution:
+      'Contains Environment Agency information © Environment Agency and/or database right',
+  },
+  policy: {
+    product4Use: 'forbidden',
+    observedEventGeometryUse: 'forbidden',
+    postEventModelInput: 'forbidden',
+    missingValuePolicy: 'block_not_zero_or_infer',
+    automaticReplayPromotion: false,
+    evaluationReferenceSeal: 'must_remain_closed',
+  },
+  artifacts: [
+    {
+      id: 'ea-eir2026-42104-delivery-archive',
+      role: 'delivery_archive',
+      relativePath:
+        'environment-agency-carlisle-historic-modelling-request-2026-09-18.zip',
+      mediaType: 'application/zip',
+      bytes: 46_688_104_848,
+      sha256:
+        '40ae1d7df10b105b8abb195c43b53e9576683a654e781686406f286cee5da145',
+    },
+  ],
+  components: CUMBRIA_EA_MODEL_DELIVERY_COMPONENTS,
+};
+
 export const CUMBRIA_MODEL_EVIDENCE_INTAKE =
-  inspectCumbriaModelEvidenceIntake(null);
+  inspectCumbriaModelEvidenceIntake(CUMBRIA_EA_MODEL_DELIVERY_PACKAGE);
 
 function missingSummary(): CumbriaModelIntakeSummary {
   return {
