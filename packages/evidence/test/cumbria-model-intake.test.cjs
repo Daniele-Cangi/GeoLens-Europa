@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 
 const {
   CUMBRIA_EXCLUDED_MODEL_GROUP_IDS,
+  CUMBRIA_EA_MODEL_DELIVERY_PACKAGE,
   CUMBRIA_MODEL_COMPONENT_IDS,
   CUMBRIA_MODEL_EVIDENCE_INTAKE,
   CUMBRIA_MODEL_GROUP_IDS,
@@ -100,8 +101,16 @@ function acceptedReview(evidencePackage) {
   };
 }
 
-test('missing Environment Agency delivery remains explicit and replay-blocking', () => {
-  assert.equal(CUMBRIA_MODEL_EVIDENCE_INTAKE.status, 'missing');
+test('received Environment Agency delivery remains review- and replay-blocking', () => {
+  assert.equal(
+    validateCumbriaModelEvidencePackage(CUMBRIA_EA_MODEL_DELIVERY_PACKAGE).ok,
+    true,
+  );
+  assert.equal(CUMBRIA_MODEL_EVIDENCE_INTAKE.status, 'received');
+  assert.equal(
+    CUMBRIA_MODEL_EVIDENCE_INTAKE.packageId,
+    'ea:carlisle:eir2026-42104:delivery-2026-09-18',
+  );
   assert.equal(CUMBRIA_MODEL_EVIDENCE_INTAKE.replayEligibility, 'blocked');
   assert.equal(
     CUMBRIA_MODEL_EVIDENCE_INTAKE.hydraulicContextAssessment,
@@ -113,8 +122,16 @@ test('missing Environment Agency delivery remains explicit and replay-blocking',
   );
   assert.ok(
     CUMBRIA_MODEL_EVIDENCE_INTAKE.requiredComponents.every(
-      (component) => component.status === 'missing',
+      (component) =>
+        ['incomplete', 'metadata_only'].includes(component.status) &&
+        component.artifactCount === 1 &&
+        component.reviewDecision === 'not_reviewed',
     ),
+  );
+  assert.equal(CUMBRIA_EA_MODEL_DELIVERY_PACKAGE.artifacts[0].bytes, 46_688_104_848);
+  assert.equal(
+    CUMBRIA_EA_MODEL_DELIVERY_PACKAGE.artifacts[0].sha256,
+    '40ae1d7df10b105b8abb195c43b53e9576683a654e781686406f286cee5da145',
   );
 });
 

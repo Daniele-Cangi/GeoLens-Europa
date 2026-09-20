@@ -633,7 +633,7 @@ test('API exposes the ARPAE intake as explicitly missing and replay-blocking', a
   assert.equal(JSON.stringify(body).includes('floodProbability'), false);
 });
 
-test('API exposes the Cumbria model delivery as explicitly missing', async (context) => {
+test('API exposes the Cumbria model delivery as received but unreviewed', async (context) => {
   const server = buildTestServer();
   context.after(() => server.close());
 
@@ -649,16 +649,19 @@ test('API exposes the Cumbria model delivery as explicitly missing', async (cont
     'public, max-age=300, stale-while-revalidate=86400',
   );
   assert.equal(body.schemaVersion, 'cumbria-ea-model-intake-status-v0.1.0');
-  assert.equal(body.status, 'missing');
-  assert.equal(body.packageId, null);
+  assert.equal(body.status, 'received');
+  assert.equal(
+    body.packageId,
+    'ea:carlisle:eir2026-42104:delivery-2026-09-18',
+  );
   assert.equal(body.hydraulicContextAssessment, 'blocked');
   assert.equal(body.replayEligibility, 'blocked');
   assert.equal(body.requiredComponents.length, 10);
   assert.ok(
     body.requiredComponents.every(
       (component) =>
-        component.status === 'missing' &&
-        component.artifactCount === 0 &&
+        ['incomplete', 'metadata_only'].includes(component.status) &&
+        component.artifactCount === 1 &&
         component.reviewDecision === 'not_reviewed',
     ),
   );
