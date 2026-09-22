@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 
 const programmeStatus = [
   ['Verified baseline', 'Case 00 · complete chain'],
-  ['Open evidence gates', '2 · externally dependent'],
-  ['Next expansion', 'Public-data territory'],
-  ['Core dependency', 'No AI service required'],
+  ['Retained benchmarks', '2 · negative results visible'],
+  ['Active review', 'Cumbria · owner model package'],
+  ['Programme posture', 'Expansion frozen · evidence active'],
 ] as const;
 
 export default function HomePage() {
@@ -139,7 +139,7 @@ export default function HomePage() {
             <h2>Evidence is the product boundary.</h2>
           </div>
           <p>
-            GeoLens is being rebuilt around one coherent responsibility: to
+            GeoLens is built around one coherent responsibility: to
             preserve the connection between environmental evidence and every
             physical quantity derived from it.
           </p>

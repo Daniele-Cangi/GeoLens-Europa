@@ -16,7 +16,7 @@ export default function SiteHeader() {
           <span>GeoLens Research Programme</span>
           <span>Environmental evidence infrastructure</span>
         </div>
-        <p>Experimental system · Refoundation 2026</p>
+        <p>Experimental system · External evidence review</p>
       </div>
       <header className="site-header">
         <Link className="site-wordmark" href="/" aria-label="GeoLens home">

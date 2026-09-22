@@ -2279,6 +2279,87 @@
   background: var(--site-blue-pale);
 }
 
+.programme-work {
+  background: #edf3f7;
+}
+
+.programme-work-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 62px;
+  border-top: 2px solid var(--site-navy);
+  border-left: 1px solid var(--site-line);
+}
+
+.programme-work-grid article {
+  min-height: 390px;
+  border-right: 1px solid var(--site-line);
+  border-bottom: 1px solid var(--site-line);
+  padding: 28px;
+  background: var(--site-white);
+}
+
+.programme-work-grid article > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.programme-work-grid article > div span,
+.programme-work-grid article > div strong {
+  color: var(--site-blue);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.programme-work-grid article > div strong {
+  border-left: 3px solid var(--site-gold);
+  padding-left: 10px;
+  color: #725f3d;
+}
+
+.programme-work-grid h3 {
+  max-width: 470px;
+  margin: 54px 0 0;
+  color: var(--site-navy);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.85rem;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+}
+
+.programme-work-grid article > p {
+  max-width: 560px;
+  margin: 20px 0 0;
+  color: var(--site-muted);
+  font-size: 0.73rem;
+  line-height: 1.65;
+}
+
+.programme-work-grid dl {
+  margin: 36px 0 0;
+  border-top: 1px solid var(--site-line);
+  padding-top: 17px;
+}
+
+.programme-work-grid dt {
+  color: #71808b;
+  font-size: 0.61rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.programme-work-grid dd {
+  margin: 9px 0 0;
+  color: #526572;
+  font-size: 0.69rem;
+  line-height: 1.55;
+}
+
 .cumbria-diagnostic figure {
   margin: 2rem 0 0;
   border: 1px solid rgba(31, 54, 47, 0.18);
@@ -2789,6 +2870,90 @@
 
 /* About */
 
+.about-profile {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 0 max(24px, calc((100vw - 1320px) / 2));
+  background: var(--site-navy-deep);
+}
+
+.about-profile > div {
+  min-height: 245px;
+  border-right: 1px solid var(--site-line-dark);
+  padding: 32px 25px;
+}
+
+.about-profile > div:first-child {
+  border-left: 1px solid var(--site-line-dark);
+}
+
+.about-profile span {
+  color: #8dc0e5;
+  font-size: 0.61rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.about-profile strong {
+  display: block;
+  margin-top: 46px;
+  color: var(--site-white);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.55rem;
+  font-weight: 400;
+  line-height: 1.08;
+}
+
+.about-profile p {
+  margin: 14px 0 0;
+  color: #aebdca;
+  font-size: 0.68rem;
+  line-height: 1.55;
+}
+
+.about-current-objective {
+  background: #f4f7f9;
+}
+
+.about-current-objective ol {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin: 62px 0 0;
+  padding: 0;
+  border-top: 2px solid var(--site-navy);
+  border-left: 1px solid var(--site-line);
+  list-style: none;
+}
+
+.about-current-objective li {
+  min-height: 230px;
+  border-right: 1px solid var(--site-line);
+  border-bottom: 1px solid var(--site-line);
+  padding: 25px;
+  background: var(--site-white);
+}
+
+.about-current-objective li span {
+  color: var(--site-blue);
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
+.about-current-objective li strong {
+  display: block;
+  margin-top: 50px;
+  color: var(--site-navy);
+  font-size: 0.86rem;
+}
+
+.about-current-objective li p {
+  margin: 13px 0 0;
+  color: var(--site-muted);
+  font-size: 0.69rem;
+  line-height: 1.56;
+}
+
 .about-mission blockquote {
   max-width: 950px;
   margin: 70px 0 0;
@@ -2929,12 +3094,15 @@
   }
 
   .platform-capability-grid,
-  .about-governance ol {
+  .about-governance ol,
+  .about-current-objective ol,
+  .about-profile {
     grid-template-columns: 1fr 1fr;
   }
 
   .programme-summary,
-  .programme-register {
+  .programme-register,
+  .programme-work-grid {
     grid-template-columns: 1fr 1fr;
   }
 
@@ -3024,7 +3192,10 @@
   }
 
   .programme-summary,
-  .programme-register {
+  .programme-register,
+  .programme-work-grid,
+  .about-current-objective ol,
+  .about-profile {
     grid-template-columns: 1fr;
   }
 

@@ -3,8 +3,10 @@ import Link from 'next/link';
 
 import PageIntro from '../../_components/PageIntro';
 import {
+  programmeObjectives,
   programmeRecords,
   programmeUpdatedAt,
+  programmeWorkstreams,
 } from '../../_data/programme';
 
 export const metadata: Metadata = {
@@ -12,15 +14,6 @@ export const metadata: Metadata = {
   description:
     'The public GeoLens record of verified results, open evidence gates and the next validation territory.',
 };
-
-const territoryCriteria = [
-  ['Event evidence', 'A bounded historical event with a declared observation window and usable rainfall record.'],
-  ['Physical inputs', 'Terrain, land cover, hydrography and material barriers available as machine-readable data.'],
-  ['Independent truth', 'Observed extent, levels or infrastructure evidence kept outside model input until evaluation.'],
-  ['Access', 'Stable public download or service access without depending on an unanswered institutional request.'],
-  ['Licensing', 'Terms that permit reproducible research, derived artifacts and a public technical record.'],
-  ['Scientific fit', 'A case that tests a missing capability instead of repeating a result already established.'],
-] as const;
 
 export default function ProgrammePage() {
   const verifiedCount = programmeRecords.filter(
@@ -56,9 +49,39 @@ export default function ProgrammePage() {
           <p>External evidence required; software work can continue.</p>
         </div>
         <div>
-          <span>Next expansion</span>
-          <strong>01</strong>
-          <p>A territory selected for complete public-data access.</p>
+          <span>Active workstreams</span>
+          <strong>{programmeWorkstreams.length}</strong>
+          <p>Review, public communication and evidence controls.</p>
+        </div>
+      </section>
+
+      <section className="programme-work page-section">
+        <div className="section-heading-row">
+          <div>
+            <p className="site-overline">Work in progress</p>
+            <h2>Focused work, with expansion deliberately paused.</h2>
+          </div>
+          <p>
+            The programme is not adding new territories or major physical
+            models. Current work qualifies external evidence, strengthens the
+            public product and preserves the frozen experimental record.
+          </p>
+        </div>
+        <div className="programme-work-grid">
+          {programmeWorkstreams.map((workstream) => (
+            <article key={workstream.code}>
+              <div>
+                <span>{workstream.code}</span>
+                <strong>{workstream.status}</strong>
+              </div>
+              <h3>{workstream.title}</h3>
+              <p>{workstream.description}</p>
+              <dl>
+                <dt>Expected outcome</dt>
+                <dd>{workstream.outcome}</dd>
+              </dl>
+            </article>
+          ))}
         </div>
       </section>
 
@@ -109,24 +132,23 @@ export default function ProgrammePage() {
         </div>
       </section>
 
-      <section className="programme-selection">
+      <section className="programme-selection programme-objectives">
         <div className="programme-selection-intro">
-          <p className="site-overline">Case 03 evidence policy</p>
-          <h2>Data access is a scientific requirement.</h2>
+          <p className="site-overline">Programme objectives</p>
+          <h2>Progress means stronger claims, not more features.</h2>
           <p>
-            Cumbria was selected for the evidence it can support, not for name
-            recognition. Source qualification remains separate from model
-            adaptation. The evaluation references were opened only after the
-            prediction freeze and now remain diagnostic-only.
+            The immediate objective is to determine what the received owner
+            evidence legitimately permits GeoLens to test while keeping the
+            original architecture and negative result independently visible.
           </p>
         </div>
         <ol>
-          {territoryCriteria.map(([title, description], index) => (
-            <li key={title}>
-              <span>{String(index + 1).padStart(2, '0')}</span>
+          {programmeObjectives.map((objective) => (
+            <li key={objective.code}>
+              <span>{objective.code}</span>
               <div>
-                <strong>{title}</strong>
-                <p>{description}</p>
+                <strong>{objective.title}</strong>
+                <p>{objective.description}</p>
               </div>
             </li>
           ))}
@@ -135,14 +157,14 @@ export default function ProgrammePage() {
 
       <section className="programme-next-step">
         <div>
-          <p className="site-overline">Parallel work</p>
-          <h2>The programme is waiting for evidence, not standing still.</h2>
+          <p className="site-overline">Current decision boundary</p>
+          <h2>Receipt is established. Scientific usability is not.</h2>
         </div>
         <p>
-          Amsterdam and Emilia-Romagna remain open evidence gates. Cumbria has
-          completed its public-only test and retains the negative outcome while
-          awaiting optional owner evidence. No case is allowed to convert an
-          absent dataset into a valid-looking result.
+          The 46.7 GB Environment Agency package is content-addressed and safely
+          registered outside Git. Its model files, surveys and reports remain
+          under controlled review. Until lineage, licence, units, datum and
+          model identity pass, they cannot alter the Carlisle replay.
         </p>
         <div className="site-actions">
           <Link className="site-primary-action" href="/cases">
