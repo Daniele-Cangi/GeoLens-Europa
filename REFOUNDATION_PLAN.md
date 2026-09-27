@@ -20,6 +20,8 @@ This plan is the durable execution record for the refoundation described in `AGE
 - Historical benchmark API gate: established through a compact `GET /api/benchmarks/emilia-romagna-2023` snapshot that is contract-tested against manifest v1.16.0; the Case 02 inspector exposes the negative evaluation, source resolution, artifact inventory and blocked hydraulic evidence gate without loading or redistributing the external archive; a separate ARPAE intake endpoint now reports the awaited package as explicitly missing and replay-blocking
 - Historical benchmark spatial-inspection gate: established through a deterministic nominal 300 m display projection from byte-verified 30 m AOI, GLO-30, CLC, DBTR, terrain-routing and event-runoff artifacts; the map manifest exposes five attribution-bearing renderable layers while V7 geometry and ARPAE station geometry remain explicitly withheld under restricted or unresolved redistribution state
 - Cumbria replay qualification gate: metadata, four upstream hydrographs, bounded real DTM/CLC/IMERG evidence, a reproducible real-source H3 inspection cell, a canonically hashed public-only 2D replacement-solver contract, all three static solver grids, complete 15-minute/30-minute forcing, an isolated fixture-verified local-inertial kernel, event-input binding and restart-safe execution are frozen; all nine scenarios completed with verified checkpoints and mass balance, and the single blind comparison against separate EA plus two EMSR147 masks is retained as a spatially inspectable negative baseline
+- Learned-inference qualification gate: newly authorized as a separate research track. First establish one usable observed flood-extent target and event-time input pair, with event-level holdouts and leakage controls; only then compare source features with the same estimator plus GeoLens-derived features. GEOID-Flood is a candidate catalogue, not yet an accepted training or validation set. Store downloads outside Git on E. No model, probability, or operational forecast is currently qualified by this gate.
+- GEOID-Flood catalogue intake: pinned upstream revision `6e513dea74ec4c2c970f40ef1a424583ac6c7251`; the 633,270-byte `tile_catalog.parquet` is stored at `E:/GeoLens/learned-inference/geoid-flood` with SHA-256 `c6ec7e3a3c252977069e9fa1613f07a0c01f7a121a0f55e9868f0645aad38022`. One 1024 × 1024 DEM/label sample pair from `EMSR712-3` is stored there for format inspection only. Among 12,853 catalogue rows passing its published validity filter, 210 activations occur and 52 activation IDs appear in more than one published split; GeoLens must regroup by activation before any event-held-out evaluation. No training shards or model weights have been downloaded.
 
 Verified starting baseline (historical):
 
@@ -32,7 +34,7 @@ Verified starting baseline (historical):
 
 ## External-evidence freeze — active
 
-State: GeoLens development continues, but architectural and scientific expansion remains frozen while the Waternet attachment request is pending and the received Environment Agency Carlisle package is under controlled review. This is a freeze on target drift, not a pause in implementation.
+State: the existing physical-proof architecture and scientific claims remain frozen while the Waternet attachment request is pending and the received Environment Agency Carlisle package is under controlled review. The separately versioned, bounded learned-inference qualification track in `AGENTS.md` is an explicit exception for testing a different outcome claim; it cannot change these frozen proofs.
 
 Frozen reference:
 
@@ -50,6 +52,7 @@ Permitted work:
 - intake and review Waternet or Environment Agency deliveries, preserving original bytes, SHA-256 identities, publisher authority, licence, temporal lineage, CRS, units, datum, and missing components;
 - build only minimal non-inferential adapters for format, schema, identifier, unit, CRS, and time normalization;
 - perform maintenance, security work, CI improvements, performance work, documentation, UI inspection, and semantic-preserving bug fixes.
+- qualify the learned-inference target-data pair and inspect a bounded dataset catalogue/sample on E under the separate research contract in `AGENTS.md`.
 
 Forbidden work:
 
@@ -70,7 +73,7 @@ Arrival and evaluation sequence:
 6. calculate the predeclared result and metrics once, preserving negative evidence;
 7. if a scientific correction is required, retain the baseline result and create a separately versioned model and evaluation.
 
-The freeze may be reconsidered only after both external-delivery paths have either produced a documented frozen-baseline result or reached a durable external unavailability state. Ordinary waiting does not authorize unrelated expansion.
+The physical-proof freeze may be reconsidered only after both external-delivery paths have either produced a documented frozen-baseline result or reached a durable external unavailability state. Ordinary waiting does not authorize unrelated expansion. The learned-inference qualification exception is limited to its explicitly defined target, data and comparison gates.
 
 ## Migration classification
 
