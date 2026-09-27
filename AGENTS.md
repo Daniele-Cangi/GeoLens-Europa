@@ -203,6 +203,8 @@ Compare a retained deterministic baseline, an estimator using source-level envir
 
 Dataset catalogues and a small technical sample may be stored on E before full data qualification. Large downloads, training, a production AI route, a public probability claim, and refits to the opened Cumbria or Emilia-Romagna evaluation extents are outside this initial qualification gate. The earlier prohibition on AI in the Proof 0 core and on LLM-generated confidence remains in force.
 
+For later qualified training, prefer Google Colab as the disposable compute environment. Fetch only selected, pinned source shards directly in that runtime; the E volume holds the local catalogue, review receipts and downloaded final artifacts, not a required 584 GB mirror. The training procedure must be restartable from content-addressed checkpoints, record code/data/model identities and resource usage, and verify returned artifacts before local use. Colab hardware and session length are variable; never rely on a live session as the sole copy of a result. Colab use does not waive the target, split, leakage or evaluation gates above.
+
 ## Scope until Proof 0
 
 Do not add authentication, accounts, billing, collaboration, AI, agents, LLM analysis, mineral exploration, elaborate 3D, mobile, continent-scale optimization, generic dashboards, or unrelated hazards.
