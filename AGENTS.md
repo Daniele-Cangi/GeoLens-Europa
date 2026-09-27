@@ -172,7 +172,7 @@ Avoid unjustified confidence percentages and production/validated claims. Prefer
 
 The annotated tag `pre-external-evidence-baseline-v1` identifies commit `938b18fb66925e36236ea04a49eefdb2ca9826cb`, the GeoLens architecture frozen before receipt of owner-supplied Waternet attachment evidence or an Environment Agency Carlisle model package. Never move, delete, recreate, or retarget this tag.
 
-The project is not paused. Expansion and reference-driven scientific change are paused while these external-evidence tests are pending.
+The project is not paused. Expansion and reference-driven scientific change to the existing physical proofs are paused while these external-evidence tests are pending. A separate, bounded learned-inference research track is authorized below; it does not revise the frozen proofs.
 
 Permitted work:
 
@@ -181,6 +181,7 @@ Permitted work:
 - add minimal non-inferential adapters for file format, CRS, units, time, identifiers, and schema;
 - improve CI, reproducibility, security, documentation, UI inspection, performance, and tests without changing scientific semantics;
 - fix bugs, provided any output-changing correction creates a new version and retains the frozen-baseline result.
+- inventory and qualify a bounded, externally labelled event dataset for the learned-inference research track below, storing downloaded data outside Git on the E volume.
 
 Forbidden work while the freeze is active:
 
@@ -191,6 +192,16 @@ Forbidden work while the freeze is active:
 - overwrite, hide, or relabel a negative frozen-baseline result.
 
 When a package arrives, first retain its original bytes outside Git and compute content identities. Classify each artifact as event-available model input, contextual evidence, or post-event evaluation evidence. Evaluation evidence stays sealed until the prediction identity is frozen. Run the tagged baseline through only the minimum reviewed adapter. Any later scientific revision is a separately versioned experiment and must be reported beside, never instead of, the frozen result.
+
+## Bounded learned-inference research track
+
+The first question is whether GeoLens-derived features improve estimation of an independently mapped flood extent over the same estimator using source observations and terrain alone. This track is a separately versioned experiment, not a change to Proof 0, Amsterdam attachment semantics, or the frozen Emilia-Romagna and Cumbria results. It is permitted during the external-evidence freeze.
+
+Before selecting a model or training, qualify one target-data pair: the exact observed label, mapped/unknown pixels, event and acquisition times, geography, event-time available inputs, licences, and a geographically and temporally defensible event-level development/test split. Post-event imagery or flood masks may define labels but must not enter predictors for a retrospective pre-outcome estimate. Do not claim an operational forecast while using retrospective rainfall products unavailable at issue time.
+
+Compare a retained deterministic baseline, an estimator using source-level environmental features, and the same estimator family and selection budget with GeoLens-derived features added. Keep observed evidence, derived transformations, model hypotheses, missingness indicators, and model/feature versions distinguishable. A missing relation may block a claim about that relation without blocking a separately labelled and independently evaluated estimate of another outcome. Do not turn a learned score into a probability until reliability has been measured on held-out events. Select architecture by target and input structure; LSTM, spatial networks, graph models, neural operators, and simpler estimators are candidates, not mandated answers.
+
+Dataset catalogues and a small technical sample may be stored on E before full data qualification. Large downloads, training, a production AI route, a public probability claim, and refits to the opened Cumbria or Emilia-Romagna evaluation extents are outside this initial qualification gate. The earlier prohibition on AI in the Proof 0 core and on LLM-generated confidence remains in force.
 
 ## Scope until Proof 0
 
