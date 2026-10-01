@@ -26,6 +26,8 @@ The first completed proof is a bounded stormwater chain. Flood-extent estimation
 
 See `README.md` for detailed methods, inputs, metrics, API routes and local commands.
 
+The Emilia-Romagna manifest v1.16.0 pins 55 benchmark artifacts totaling 746,444,721 bytes; artifact identities and provenance remain in `tests/ground-truth/emilia-romagna-2023/manifest.json`.
+
 ## Open evidence gates
 
 - **Amsterdam:** owner-published BGT surface-to-network attachment evidence is still missing. The API intake reports missing; proximity and conditioned outlets cannot establish an observed link.
