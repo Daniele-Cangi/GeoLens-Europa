@@ -731,3 +731,12 @@ When repository materials disagree, use this order:
 6. historical documentation
 
 The durable execution state belongs in the plan, code, tests and commits, not in generated completion reports.
+
+## License
+
+GeoLens is licensed under the [Apache License 2.0](LICENSE).
+
+Third-party datasets, services, software and documentation used or referenced by
+GeoLens remain subject to their own licenses, terms, attribution requirements and
+redistribution restrictions. See [NOTICE](NOTICE) and the source-specific
+provenance recorded by the project.
